@@ -1,0 +1,16 @@
+node_modules
+.expo
+supabase/functions
+dist
+build
+coverage
+ios
+android
+*.lock
+pnpm-lock.yaml
+
+# Uniwind-generated; formatter conflicts with generator output
+src/uniwind-types.d.ts
+
+# Generated from `src/theme/tokens.json`
+src/theme/generated/theme.css
