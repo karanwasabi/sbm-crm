@@ -26,7 +26,7 @@ export function Customer360View({ customerId }: Customer360ViewProps) {
 
   return (
     <CrmPageLayout>
-      <ProfileHeader customer={customer} />
+      <ProfileHeader customer={customer} onLogCall={() => setCallModalOpen(true)} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]">
         <ActivityTimeline events={MOCK_TIMELINE} />
         <ProgramHistory items={MOCK_PROGRAM_HISTORY} />

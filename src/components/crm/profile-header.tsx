@@ -1,3 +1,5 @@
+'use client';
+
 import { Calendar, Globe, Mail, Phone, Star } from 'lucide-react';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -6,9 +8,10 @@ import type { CustomerProfile } from '@/types/crm';
 
 type ProfileHeaderProps = {
   customer: CustomerProfile;
+  onLogCall?: () => void;
 };
 
-export function ProfileHeader({ customer }: ProfileHeaderProps) {
+export function ProfileHeader({ customer, onLogCall }: ProfileHeaderProps) {
   return (
     <div className="relative overflow-hidden rounded-[28px] border-b-[6px] border-[#4149AA] bg-linear-to-br from-brand from-0% via-[#6A71E6] via-55% to-brand-press to-100% px-6 py-6 text-white shadow-[0_12px_30px_-8px_rgba(92,101,207,0.30)]">
       <div aria-hidden className="absolute -top-12 -right-8 h-60 w-60 rounded-full bg-white/18 blur-[36px]" />
@@ -17,9 +20,9 @@ export function ProfileHeader({ customer }: ProfileHeaderProps) {
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-[26px] font-extrabold tracking-tight">{customer.name}</h2>
-            <span className="inline-flex items-center gap-1.5 rounded-full border-b-2 border-black/22 bg-black/18 px-3 py-1.25">
-              <StagePill stage={customer.stage} />
-              <span className="text-[10px] font-bold tracking-[0.14em] uppercase">· {customer.batch}</span>
+            <StagePill stage={customer.stage} />
+            <span className="inline-flex items-center gap-1.5 rounded-full border-b-2 border-black/22 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
+              {customer.batch}
             </span>
             {customer.tags.includes('vip') && (
               <span className="inline-flex items-center gap-1.5 rounded-full border-b-2 border-[#C28C00] bg-motivation px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] text-slate-900 uppercase">
@@ -67,7 +70,7 @@ export function ProfileHeader({ customer }: ProfileHeaderProps) {
           <Button variant="light" size="sm" leftIcon={<Phone className="h-3.5 w-3.5" />}>
             Call
           </Button>
-          <Button variant="light" size="sm">
+          <Button variant="light" size="sm" onClick={onLogCall}>
             Log call
           </Button>
         </div>
