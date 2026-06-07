@@ -1,9 +1,5 @@
-import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { DashboardView } from '@/components/views/dashboard-view';
 
 export default function DashboardPage() {
-  return (
-    <CrmPageLayout>
-      <p className="text-sm text-slate-500">Dashboard loading…</p>
-    </CrmPageLayout>
-  );
+  return <DashboardView />;
 }
