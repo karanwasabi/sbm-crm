@@ -1,9 +1,5 @@
-import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { LeadDatabaseView } from '@/components/views/lead-database-view';
 
 export default function DatabasePage() {
-  return (
-    <CrmPageLayout>
-      <p className="text-sm text-slate-500">Lead database loading…</p>
-    </CrmPageLayout>
-  );
+  return <LeadDatabaseView />;
 }
