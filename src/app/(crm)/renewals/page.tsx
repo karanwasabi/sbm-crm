@@ -1,9 +1,5 @@
-import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { RenewalsView } from '@/components/views/renewals-view';
 
 export default function RenewalsPage() {
-  return (
-    <CrmPageLayout>
-      <p className="text-sm text-slate-500">Renewals loading…</p>
-    </CrmPageLayout>
-  );
+  return <RenewalsView />;
 }

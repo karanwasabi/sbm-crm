@@ -1,9 +1,5 @@
-import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { CommunicationsView } from '@/components/views/communications-view';
 
 export default function CommunicationsPage() {
-  return (
-    <CrmPageLayout>
-      <p className="text-sm text-slate-500">Communications loading…</p>
-    </CrmPageLayout>
-  );
+  return <CommunicationsView />;
 }
