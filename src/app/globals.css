@@ -1,25 +1,66 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sbm-brand: #5c65cf;
+  --sbm-brand-press: #4850a8;
+  --sbm-brand-deep: #2b1865;
+  --sbm-brand-deep-press: #1a0f3d;
+  --sbm-brand-glow: #a2a8f3;
+  --sbm-brand-glow-soft: #c8ccff;
+  --sbm-lilac: #c8b6ff;
+  --sbm-canvas-warm: #fdfbf7;
+  --sbm-canvas-cool: #f8f9fe;
+  --sbm-surface: #ffffff;
+  --sbm-accent-amber: #ff9f1c;
+  --sbm-accent-motivation: #ffb703;
+  --sbm-success: #10b981;
+  --sbm-success-press: #059669;
+  --sbm-danger: #f43f5e;
+  --sbm-danger-press: #be123c;
+  --sbm-slate-50: #f8fafc;
+  --sbm-slate-100: #f1f5f9;
+  --sbm-slate-200: #e2e8f0;
+  --sbm-slate-300: #cbd5e1;
+  --sbm-slate-400: #90a1b9;
+  --sbm-slate-500: #64748b;
+  --sbm-slate-600: #475569;
+  --sbm-slate-700: #334155;
+  --sbm-slate-800: #1e293b;
+  --sbm-slate-900: #0f172a;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand: var(--sbm-brand);
+  --color-brand-press: var(--sbm-brand-press);
+  --color-brand-deep: var(--sbm-brand-deep);
+  --color-brand-deep-press: var(--sbm-brand-deep-press);
+  --color-brand-glow: var(--sbm-brand-glow);
+  --color-brand-glow-soft: var(--sbm-brand-glow-soft);
+  --color-lilac: var(--sbm-lilac);
+  --color-canvas: var(--sbm-canvas-warm);
+  --color-canvas-cool: var(--sbm-canvas-cool);
+  --color-surface: var(--sbm-surface);
+  --color-amber: var(--sbm-accent-amber);
+  --color-motivation: var(--sbm-accent-motivation);
+  --color-success: var(--sbm-success);
+  --color-success-press: var(--sbm-success-press);
+  --color-danger: var(--sbm-danger);
+  --color-danger-press: var(--sbm-danger-press);
+  --color-slate-50: var(--sbm-slate-50);
+  --color-slate-100: var(--sbm-slate-100);
+  --color-slate-200: var(--sbm-slate-200);
+  --color-slate-300: var(--sbm-slate-300);
+  --color-slate-400: var(--sbm-slate-400);
+  --color-slate-500: var(--sbm-slate-500);
+  --color-slate-600: var(--sbm-slate-600);
+  --color-slate-700: var(--sbm-slate-700);
+  --color-slate-800: var(--sbm-slate-800);
+  --color-slate-900: var(--sbm-slate-900);
+  --font-sans: var(--font-poppins);
+  --shadow-brand: 0 10px 15px -3px rgba(92, 101, 207, 0.25);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--sbm-canvas-warm);
+  color: var(--sbm-slate-900);
 }

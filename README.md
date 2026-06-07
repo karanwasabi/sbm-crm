@@ -9,6 +9,24 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
+## Authentication (Supabase)
+
+Copy `.env.example` to `.env.local` and set your Supabase credentials:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
+
+Get these from Supabase Dashboard → Project Settings → API. Email/password auth must be enabled under Authentication → Providers.
+
+### Manual test checklist
+
+1. Visit `/` while logged out → redirects to `/login`
+2. Submit invalid credentials → error shown below password field, inputs turn red
+3. Submit valid credentials → redirects to `/`, session cookie set
+4. Visit `/login` while authenticated → redirects to `/`
+
 ## Scripts
 
 - `pnpm dev` — start the development server
