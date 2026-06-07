@@ -3,10 +3,6 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 const PUBLIC_ROUTES = ['/login', '/forgot-password'];
 
-function isProtectedRoute(pathname: string) {
-  return pathname === '/';
-}
-
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
@@ -37,9 +33,8 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isPublicRoute = PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
-  const requiresAuth = isProtectedRoute(pathname);
 
-  if (!user && requiresAuth) {
+  if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
@@ -48,12 +43,6 @@ export async function updateSession(request: NextRequest) {
   if (user && pathname === '/login') {
     const url = request.nextUrl.clone();
     url.pathname = '/';
-    return NextResponse.redirect(url);
-  }
-
-  if (!user && !isPublicRoute && !requiresAuth) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/login';
     return NextResponse.redirect(url);
   }
 
