@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
 import { hasProduct, PRODUCT_CRM, visibleStaffRoles } from '@/lib/access';
-import { getLatestProfile, getMyAccess, ApiError } from '@/utils/api';
+import { getLatestProfile, getMyAccess, getLeadSummary, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import { getInitials, type Profile } from '@/types/profile';
 
@@ -40,11 +40,19 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   let profile: Profile | null = null;
   let profileError: string | null = null;
+  let leadTotal = 0;
 
   try {
     profile = await getLatestProfile();
   } catch (error) {
     profileError = error instanceof ApiError ? error.message : 'Failed to load profile.';
+  }
+
+  try {
+    const summary = await getLeadSummary();
+    leadTotal = summary.total;
+  } catch {
+    leadTotal = 0;
   }
 
   const staffUser = {
@@ -54,7 +62,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError}>
+    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError} leadTotal={leadTotal}>
       {children}
     </CrmShell>
   );

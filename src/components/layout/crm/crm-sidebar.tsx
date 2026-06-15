@@ -29,7 +29,7 @@ export function CrmSidebar() {
           )}
           {groupIndex === 0 && <div className="h-2" />}
           <nav className="flex flex-col gap-1">
-            {group.items.map(({ id, href, label, icon: Icon, badge, badgeTone }) => {
+            {group.items.map(({ id, href, label, icon: Icon }) => {
               const active = isNavActive(pathname, href);
 
               return (
@@ -45,20 +45,6 @@ export function CrmSidebar() {
                 >
                   <Icon size={17} className={active ? 'text-white' : 'text-slate-500'} />
                   <span className="flex-1">{label}</span>
-                  {badge !== undefined && (
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[10px] font-bold',
-                        active
-                          ? 'bg-white/22 text-white'
-                          : badgeTone === 'amber'
-                            ? 'bg-[#FEF3C7] text-[#92400E]'
-                            : 'bg-slate-100 text-slate-600'
-                      )}
-                    >
-                      {badge}
-                    </span>
-                  )}
                 </Link>
               );
             })}

@@ -14,8 +14,6 @@ export type CrmNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  badge?: string | number;
-  badgeTone?: 'neutral' | 'amber';
 };
 
 export type CrmPageMeta = {
@@ -28,10 +26,10 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
     items: [
       { id: 'dashboard', href: '/', label: 'Dashboard', icon: LayoutDashboard },
       { id: 'leads', href: '/leads', label: 'Lead Intake', icon: UserPlus },
-      { id: 'database', href: '/database', label: 'Lead Database', icon: Database, badge: '12.4k' },
+      { id: 'database', href: '/database', label: 'Lead Database', icon: Database },
       { id: 'programs', href: '/programs', label: 'Program Management', icon: Calendar },
-      { id: 'communications', href: '/communications', label: 'Communications', icon: MessageSquare, badge: 3 },
-      { id: 'renewals', href: '/renewals', label: 'Renewals', icon: RefreshCw, badge: 28, badgeTone: 'amber' },
+      { id: 'communications', href: '/communications', label: 'Communications', icon: MessageSquare },
+      { id: 'renewals', href: '/renewals', label: 'Renewals', icon: RefreshCw },
     ],
   },
   {
@@ -43,7 +41,7 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
 export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/': { title: 'Dashboard', subtitle: 'Reporting & performance overview' },
   '/leads': { title: 'Lead Intake', subtitle: 'Capture and route inbound leads' },
-  '/database': { title: 'Lead Database', subtitle: '12,412 contacts · segmented & enriched' },
+  '/database': { title: 'Lead Database' },
   '/programs': { title: 'Program Management', subtitle: 'Cohorts, capacity & attendance' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: '28 renewals due in 14 days' },

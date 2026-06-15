@@ -9,6 +9,12 @@ export function formatLeadCount(count: number): string {
   return String(count);
 }
 
+export function leadDatabaseSubtitle(total: number): string {
+  if (total === 0) return 'No leads yet';
+  if (total === 1) return '1 lead';
+  return `${total.toLocaleString('en-IN')} leads`;
+}
+
 export function buildStageFilterOptions(summary: LeadSummary) {
   const stages: { id: string; label: string; count: string }[] = [
     { id: 'all', label: 'All', count: formatLeadCount(summary.total) },

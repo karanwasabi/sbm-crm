@@ -18,16 +18,17 @@ type CrmShellProps = {
   staffUser: CrmStaffUser;
   profile: Profile | null;
   profileError: string | null;
+  leadTotal: number;
 };
 
-export function CrmShell({ children, staffUser, profile, profileError }: CrmShellProps) {
+export function CrmShell({ children, staffUser, profile, profileError, leadTotal }: CrmShellProps) {
   return (
     <ToastProvider>
       <CrmProfileProvider profile={profile} profileError={profileError} roleLabel={staffUser.roleLabel}>
         <div className="flex h-dvh min-w-0 bg-white">
           <CrmSidebar />
           <div className="flex min-w-0 flex-1 flex-col">
-            <CrmTopbar staffUser={staffUser} />
+            <CrmTopbar staffUser={staffUser} leadTotal={leadTotal} />
             <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">{children}</div>
           </div>
         </div>

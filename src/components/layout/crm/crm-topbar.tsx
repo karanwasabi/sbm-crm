@@ -6,21 +6,31 @@ import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
 import { CrmUserMenu } from '@/components/layout/crm/crm-user-menu';
 import { IconButton } from '@/components/ui/icon-button';
 import { SearchInput } from '@/components/ui/search-input';
+import { leadDatabaseSubtitle } from '@/lib/lead-display';
 import { getPageMeta } from '@/lib/navigation';
 
 type CrmTopbarProps = {
   staffUser: CrmStaffUser;
+  leadTotal: number;
 };
 
-export function CrmTopbar({ staffUser }: CrmTopbarProps) {
+function resolveSubtitle(pathname: string, leadTotal: number, fallback?: string) {
+  if (pathname === '/database' || pathname.startsWith('/database/')) {
+    return leadDatabaseSubtitle(leadTotal);
+  }
+  return fallback;
+}
+
+export function CrmTopbar({ staffUser, leadTotal }: CrmTopbarProps) {
   const pathname = usePathname();
   const { title, subtitle } = getPageMeta(pathname);
+  const resolvedSubtitle = resolveSubtitle(pathname, leadTotal, subtitle);
 
   return (
     <header className="flex shrink-0 items-center gap-4 border-b border-slate-100 bg-canvas px-6 py-4.5">
       <div className="min-w-[240px]">
         <h1 className="text-lg font-bold tracking-tight text-slate-800">{title}</h1>
-        {subtitle && <p className="mt-0.5 text-xs text-slate-500">{subtitle}</p>}
+        {resolvedSubtitle && <p className="mt-0.5 text-xs text-slate-500">{resolvedSubtitle}</p>}
       </div>
 
       <div className="max-w-[460px] flex-1">
