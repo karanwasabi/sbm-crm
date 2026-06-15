@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { MOCK_API_KEYS, MOCK_SETTINGS_INTEGRATIONS, MOCK_WEBHOOK_URL } from '@/lib/mock/settings';
+import { TeamManagement } from '@/components/views/team-management';
+import type { StaffRoleRow } from '@/utils/api';
 
 const INTEGRATION_ICONS: Record<string, typeof Globe> = {
   meta: Share2,
@@ -19,7 +21,7 @@ const INTEGRATION_ICONS: Record<string, typeof Globe> = {
   zoom: Globe,
 };
 
-export function SettingsView() {
+export function SettingsView({ teamRows }: { teamRows: StaffRoleRow[] }) {
   const [activeTab, setActiveTab] = useState('Integrations');
 
   return (
@@ -79,12 +81,7 @@ export function SettingsView() {
         </div>
       )}
 
-      {activeTab === 'Team' && (
-        <Card>
-          <SectionHead title="Team members" subtitle="Admin and sales access" />
-          <p className="text-sm text-slate-500">Team management will be wired to Supabase auth roles in a later phase.</p>
-        </Card>
-      )}
+      {activeTab === 'Team' && <TeamManagement initialRows={teamRows} />}
     </CrmPageLayout>
   );
 }

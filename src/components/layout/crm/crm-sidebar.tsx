@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SbmWordmark } from '@/components/brand/sbm-wordmark';
 import { Avatar } from '@/components/ui/avatar';
+import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
 import { CRM_NAV_GROUPS } from '@/lib/navigation';
-import { MOCK_STAFF } from '@/lib/mock/staff';
 import { cn } from '@/lib/cn';
 
 function isNavActive(pathname: string, href: string) {
@@ -13,7 +13,11 @@ function isNavActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function CrmSidebar() {
+type CrmSidebarProps = {
+  staffUser: CrmStaffUser;
+};
+
+export function CrmSidebar({ staffUser }: CrmSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -70,12 +74,10 @@ export function CrmSidebar() {
 
       <div className="mt-auto">
         <div className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white p-3">
-          <Avatar initials={MOCK_STAFF.initials} size="sm" />
+          <Avatar initials={staffUser.initials} size="sm" />
           <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-bold text-slate-800">{MOCK_STAFF.name}</div>
-            <div className="truncate text-[10px] text-slate-500">
-              {MOCK_STAFF.role} · {MOCK_STAFF.location}
-            </div>
+            <div className="truncate text-xs font-bold text-slate-800">{staffUser.email}</div>
+            <div className="truncate text-[10px] text-slate-500 capitalize">{staffUser.roleLabel}</div>
           </div>
         </div>
       </div>
