@@ -1,8 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { type ReactNode, useState, useTransition } from 'react';
 import { createStaffAction } from '@/app/(crm)/settings/team-actions';
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeaderCell,
+  DataTableRow,
+} from '@/components/crm/data-table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -10,8 +18,11 @@ import { Field } from '@/components/ui/field';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
 import { TextInput } from '@/components/ui/text-input';
+import { useToast } from '@/components/ui/toast';
 import { formatStaffName, StaffAccessModal } from '@/components/views/staff-access-modal';
 import type { StaffAccessRole } from '@/lib/access';
+import { toTitleCase } from '@/lib/title-case';
+import { cn } from '@/lib/cn';
 import type { StaffList, StaffMember } from '@/utils/api';
 
 type TeamManagementProps = {
@@ -21,13 +32,12 @@ type TeamManagementProps = {
 
 export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [admin, setAdmin] = useState(true);
   const [coach, setCoach] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
   const [editingInactive, setEditingInactive] = useState(false);
@@ -40,29 +50,30 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
   };
 
   const handleCreate = () => {
-    setError(null);
-    setSuccess(null);
-
     const roles = selectedRoles();
     if (!firstName.trim()) {
-      setError('First name is required.');
+      toast({ message: 'First name is required.', variant: 'error' });
       return;
     }
     if (!email.trim()) {
-      setError('Email is required.');
+      toast({ message: 'Email is required.', variant: 'error' });
       return;
     }
     if (roles.length === 0) {
-      setError('Select at least one role.');
+      toast({ message: 'Select at least one role.', variant: 'error' });
       return;
     }
 
     startTransition(async () => {
+      const normalizedFirstName = toTitleCase(firstName.trim());
+      const normalizedLastName = lastName.trim() ? toTitleCase(lastName.trim()) : undefined;
+      const normalizedEmail = email.trim().toLowerCase();
+
       try {
         await createStaffAction({
-          first_name: firstName.trim(),
-          last_name: lastName.trim() || undefined,
-          email: email.trim(),
+          first_name: normalizedFirstName,
+          last_name: normalizedLastName,
+          email: normalizedEmail,
           roles,
         });
         setFirstName('');
@@ -70,10 +81,13 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         setEmail('');
         setAdmin(true);
         setCoach(true);
-        setSuccess(`Invite sent to ${email.trim()}`);
+        toast({ message: `Invite sent to ${normalizedEmail}`, variant: 'success' });
         router.refresh();
       } catch (createError) {
-        setError(createError instanceof Error ? createError.message : 'Failed to add staff member.');
+        toast({
+          message: createError instanceof Error ? createError.message : 'Failed to add staff member.',
+          variant: 'error',
+        });
       }
     });
   };
@@ -90,15 +104,25 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
           <SectionHead title="Add staff member" />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)_auto]">
             <Field label="First name">
-              <TextInput value={firstName} onChange={setFirstName} placeholder="Priya" disabled={pending} />
+              <TextInput
+                value={firstName}
+                onChange={(value) => setFirstName(toTitleCase(value))}
+                placeholder="Priya"
+                disabled={pending}
+              />
             </Field>
             <Field label="Last name">
-              <TextInput value={lastName} onChange={setLastName} placeholder="Optional" disabled={pending} />
+              <TextInput
+                value={lastName}
+                onChange={(value) => setLastName(toTitleCase(value))}
+                placeholder="Optional"
+                disabled={pending}
+              />
             </Field>
             <Field label="Email">
               <TextInput
                 value={email}
-                onChange={setEmail}
+                onChange={(value) => setEmail(value.toLowerCase())}
                 placeholder="person@example.com"
                 type="email"
                 disabled={pending}
@@ -119,8 +143,6 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
               </Button>
             </div>
           </div>
-          {success ? <p className="mt-3 text-sm font-semibold text-success-press">{success}</p> : null}
-          {error ? <p className="mt-3 text-sm font-semibold text-danger-press">{error}</p> : null}
         </Card>
 
         <Card>
@@ -128,7 +150,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
           {staff.active.length === 0 ? (
             <p className="text-sm text-slate-500">No active staff yet.</p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <StaffTable>
               {staff.active.map((member) => (
                 <StaffRow
                   key={member.user_id}
@@ -138,7 +160,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
                   disabled={pending}
                 />
               ))}
-            </div>
+            </StaffTable>
           )}
         </Card>
 
@@ -147,7 +169,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
           {staff.inactive.length === 0 ? (
             <p className="text-sm text-slate-500">No inactive staff.</p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <StaffTable>
               {staff.inactive.map((member) => (
                 <StaffRow
                   key={member.user_id}
@@ -158,7 +180,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
                   disabled={pending}
                 />
               ))}
-            </div>
+            </StaffTable>
           )}
         </Card>
       </div>
@@ -171,6 +193,31 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         onSaved={() => router.refresh()}
       />
     </>
+  );
+}
+
+function StaffTable({ children }: { children: ReactNode }) {
+  return (
+    <DataTable className="-mx-1">
+      <DataTableHead>
+        <DataTableHeaderCell className="w-[28%] min-w-[160px]">Name</DataTableHeaderCell>
+        <DataTableHeaderCell className="w-[32%] min-w-[200px]">Email</DataTableHeaderCell>
+        <DataTableHeaderCell className="w-[24%] min-w-[180px]">Access</DataTableHeaderCell>
+        <DataTableHeaderCell className="w-[16%] min-w-[120px] text-right"> </DataTableHeaderCell>
+      </DataTableHead>
+      <DataTableBody>{children}</DataTableBody>
+    </DataTable>
+  );
+}
+
+function RolePill({ label, active, tone }: { label: string; active: boolean; tone: 'deep' | 'success' }) {
+  return (
+    <Pill
+      tone={active ? tone : 'neutral'}
+      className={cn(!active && 'border border-dashed border-slate-200 bg-slate-50 text-slate-400')}
+    >
+      {label}
+    </Pill>
   );
 }
 
@@ -189,28 +236,31 @@ function StaffRow({
 }) {
   const isSelf = member.user_id === currentUserId;
   const name = formatStaffName(member);
+  const hasAdmin = member.roles.includes('admin');
+  const hasCoach = member.roles.includes('coach');
 
   return (
-    <div
-      className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
-        inactive ? 'border-slate-100 bg-slate-50/80' : 'border-slate-100 bg-white'
-      }`}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="text-[13px] font-semibold text-slate-800">
-            {name}
-            {isSelf ? <span className="ml-1.5 text-[11px] font-medium text-slate-400">(you)</span> : null}
-          </div>
-          {inactive ? <Pill tone="neutral">Inactive</Pill> : null}
-          {member.roles.includes('admin') ? <Pill tone="deep">Admin</Pill> : null}
-          {member.roles.includes('coach') ? <Pill tone="success">Coach</Pill> : null}
+    <DataTableRow className={cn(inactive && 'bg-slate-50/60')}>
+      <DataTableCell>
+        <div className="text-[13px] font-semibold text-slate-800">
+          {name}
+          {isSelf ? <span className="ml-1.5 text-[11px] font-medium text-slate-400">(you)</span> : null}
         </div>
-        <div className="truncate text-[11px] text-slate-500">{member.email}</div>
-      </div>
-      <Button variant="light" size="sm" disabled={disabled} onClick={onEdit}>
-        {inactive ? 'Edit' : 'Edit access'}
-      </Button>
-    </div>
+      </DataTableCell>
+      <DataTableCell>
+        <div className="truncate text-[12px] text-slate-500">{member.email}</div>
+      </DataTableCell>
+      <DataTableCell>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <RolePill label="Admin" active={hasAdmin} tone="deep" />
+          <RolePill label="Coach" active={hasCoach} tone="success" />
+        </div>
+      </DataTableCell>
+      <DataTableCell className="text-right">
+        <Button variant="light" size="sm" disabled={disabled || isSelf} onClick={onEdit}>
+          {inactive ? 'Edit' : 'Edit access'}
+        </Button>
+      </DataTableCell>
+    </DataTableRow>
   );
 }
