@@ -2,12 +2,26 @@ export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'active' | '
 
 export type LeadMedium = 'paid' | 'organic' | 'offline';
 
+export type ManualLeadSource = 'walk_in' | 'event_booth' | 'phone_enquiry' | 'referral' | 'other';
+
+export const MANUAL_LEAD_SOURCE_OPTIONS: { value: ManualLeadSource; label: string }[] = [
+  { value: 'walk_in', label: 'Walk-in' },
+  { value: 'event_booth', label: 'Event booth' },
+  { value: 'phone_enquiry', label: 'Phone enquiry' },
+  { value: 'referral', label: 'Referral' },
+  { value: 'other', label: 'Other' },
+];
+
 export type Lead = {
   id: string;
+  firstName: string;
+  lastName: string;
   name: string;
   email: string;
   phone: string;
   location: string;
+  countryCode: string;
+  city: string;
   stage: LifecycleStage;
   interest: string;
   batch: string;
@@ -15,6 +29,28 @@ export type Lead = {
   enriched: boolean;
   dedup: boolean;
   addedAt: string;
+};
+
+export type LeadSummary = {
+  total: number;
+  byStage: Record<LifecycleStage, number>;
+};
+
+export type CreateLeadInput = {
+  first_name: string;
+  last_name?: string;
+  email: string;
+  phone?: string;
+  country_code?: string;
+  city?: string;
+  manual_source: ManualLeadSource;
+  notes?: string;
+  dpdp_consent: boolean;
+};
+
+export type CreateLeadState = {
+  error: string | null;
+  success: boolean;
 };
 
 export type StaffUser = {

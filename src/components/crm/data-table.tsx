@@ -43,6 +43,18 @@ export function DataTableRow({ children, className }: { children: ReactNode; cla
   return <tr className={cn('border-t border-slate-100', className)}>{children}</tr>;
 }
 
-export function DataTableCell({ children, className }: { children: ReactNode; className?: string }) {
-  return <td className={cn('px-4 py-3 text-[13px] text-slate-700', className)}>{children}</td>;
+export function DataTableCell({
+  children,
+  className,
+  colSpan,
+}: {
+  children: ReactNode;
+  className?: string;
+  colSpan?: number;
+}) {
+  return (
+    <td colSpan={colSpan} className={cn('px-4 py-3 text-[13px] text-slate-700', className)}>
+      {children}
+    </td>
+  );
 }

@@ -175,3 +175,84 @@ export async function fetchCountryCities(countryCode: string): Promise<CountryCi
   }
   return response.json() as Promise<CountryCity[]>;
 }
+
+type ApiLeadResponse = {
+  id: string;
+  first_name: string;
+  last_name: string | null;
+  email: string;
+  phone: string | null;
+  location: string;
+  country_code: string | null;
+  city: string | null;
+  stage: import('@/types/crm').LifecycleStage;
+  interest: string;
+  batch: string;
+  tags: string[];
+  enriched: boolean;
+  dedup: boolean;
+  added_at: string;
+};
+
+function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
+  const firstName = row.first_name;
+  const lastName = row.last_name ?? '';
+  return {
+    id: row.id,
+    firstName,
+    lastName,
+    name: [firstName, lastName].filter(Boolean).join(' '),
+    email: row.email,
+    phone: row.phone ?? '',
+    location: row.location,
+    countryCode: row.country_code ?? '',
+    city: row.city ?? '',
+    stage: row.stage,
+    interest: row.interest || '—',
+    batch: row.batch || '—',
+    tags: row.tags ?? [],
+    enriched: row.enriched,
+    dedup: row.dedup,
+    addedAt: row.added_at,
+  };
+}
+
+export async function createLead(input: import('@/types/crm').CreateLeadInput): Promise<import('@/types/crm').Lead> {
+  const response = await requireApiFetch('/admin/leads', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to create lead.', response.status);
+  }
+
+  const row = (await response.json()) as ApiLeadResponse;
+  return mapLead(row);
+}
+
+export async function listLeads(stage?: string): Promise<import('@/types/crm').Lead[]> {
+  const query = stage && stage !== 'all' ? `?stage=${encodeURIComponent(stage)}` : '';
+  const response = await requireApiFetch(`/admin/leads${query}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load leads.', response.status);
+  }
+  const rows = (await response.json()) as ApiLeadResponse[];
+  return rows.map(mapLead);
+}
+
+export async function getLeadSummary(): Promise<import('@/types/crm').LeadSummary> {
+  const response = await requireApiFetch('/admin/leads/summary');
+  if (!response.ok) {
+    throw new ApiError('Failed to load lead summary.', response.status);
+  }
+  const payload = (await response.json()) as {
+    total: number;
+    by_stage: Record<import('@/types/crm').LifecycleStage, number>;
+  };
+  return {
+    total: payload.total,
+    byStage: payload.by_stage,
+  };
+}
