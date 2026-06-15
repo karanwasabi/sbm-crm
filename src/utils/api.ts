@@ -313,3 +313,75 @@ export async function markLeadLost(id: string, reason?: string): Promise<import(
   }
   return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }
+
+type ApiProgramResponse = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+type ApiCohortResponse = {
+  id: string;
+  name: string;
+  capacity: number;
+  enrolled_count: number;
+  waitlist_count: number;
+  week_label: string;
+  badge?: string;
+  color: string;
+};
+
+type ApiCalendarResponse = {
+  month: string;
+  days: { day: number; label?: string; events: number }[];
+};
+
+type ApiEnrollmentResponse = {
+  id: string;
+  program_name: string;
+  cohort_name: string;
+  status: string;
+  phase?: string | null;
+  amount: string;
+  date: string;
+};
+
+export async function listPrograms(): Promise<ApiProgramResponse[]> {
+  const response = await requireApiFetch('/admin/programs');
+  if (!response.ok) throw new ApiError('Failed to load programs.', response.status);
+  return (await response.json()) as ApiProgramResponse[];
+}
+
+export async function getProgramCohorts(programId: string): Promise<import('@/types/crm').CohortCapacity[]> {
+  const response = await requireApiFetch(`/admin/programs/${encodeURIComponent(programId)}/cohorts`);
+  if (!response.ok) throw new ApiError('Failed to load cohorts.', response.status);
+  const rows = (await response.json()) as ApiCohortResponse[];
+  return rows.map((row) => ({
+    name: row.name,
+    color: row.color,
+    week: row.week_label,
+    enrolled: row.enrolled_count,
+    cap: row.capacity,
+    waitlist: row.waitlist_count,
+    badge: row.badge,
+  }));
+}
+
+export async function getProgramCalendar(month: string): Promise<ApiCalendarResponse> {
+  const response = await requireApiFetch(`/admin/programs/calendar?month=${encodeURIComponent(month)}`);
+  if (!response.ok) throw new ApiError('Failed to load program calendar.', response.status);
+  return (await response.json()) as ApiCalendarResponse;
+}
+
+export async function getMemberEnrollments(userId: string): Promise<import('@/types/crm').ProgramHistoryItem[]> {
+  const response = await requireApiFetch(`/admin/users/${encodeURIComponent(userId)}/enrollments`);
+  if (!response.ok) throw new ApiError('Failed to load enrollments.', response.status);
+  const rows = (await response.json()) as ApiEnrollmentResponse[];
+  return rows.map((row) => ({
+    program: row.program_name,
+    batch: row.cohort_name,
+    status: row.status.charAt(0).toUpperCase() + row.status.slice(1),
+    amount: row.amount,
+    date: row.date,
+  }));
+}

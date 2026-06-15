@@ -1,19 +1,30 @@
-import { AttendanceTable } from '@/components/crm/attendance-table';
 import { CapacityStrip } from '@/components/crm/capacity-strip';
 import { CohortCalendar } from '@/components/crm/cohort-calendar';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
-import { MOCK_ATTENDANCE, MOCK_CALENDAR_DAYS, MOCK_COHORT_CAPACITY } from '@/lib/mock/cohorts';
+import type { CohortCapacity } from '@/types/crm';
 
-export function ProgramsView() {
+type CalendarDay = {
+  day: number;
+  label?: string;
+  events: number;
+};
+
+type ProgramsViewProps = {
+  cohorts: CohortCapacity[];
+  calendarMonth: string;
+  calendarDays: CalendarDay[];
+};
+
+export function ProgramsView({ cohorts, calendarMonth, calendarDays }: ProgramsViewProps) {
   return (
     <CrmPageLayout>
-      <CapacityStrip cohorts={MOCK_COHORT_CAPACITY} />
+      <CapacityStrip cohorts={cohorts} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <CohortCalendar days={MOCK_CALENDAR_DAYS} />
+        <CohortCalendar days={calendarDays} month={calendarMonth} />
         <Card>
           <SectionHead title="Transfer workflow" subtitle="Move contact between cohorts" />
           <p className="mb-4 text-[13px] text-slate-600">
@@ -24,8 +35,6 @@ export function ProgramsView() {
           </Button>
         </Card>
       </div>
-
-      <AttendanceTable rows={MOCK_ATTENDANCE} />
     </CrmPageLayout>
   );
 }

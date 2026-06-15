@@ -9,13 +9,14 @@ import { ProgramHistory } from '@/components/crm/program-history';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
-import type { LeadDetail } from '@/types/crm';
+import type { LeadDetail, ProgramHistoryItem } from '@/types/crm';
 
 type Customer360ViewProps = {
   lead: LeadDetail;
+  programHistory: ProgramHistoryItem[];
 };
 
-export function Customer360View({ lead: initialLead }: Customer360ViewProps) {
+export function Customer360View({ lead: initialLead, programHistory }: Customer360ViewProps) {
   const router = useRouter();
   const { setContactName } = useCrmContactName();
   const [lead, setLead] = useState(initialLead);
@@ -44,7 +45,7 @@ export function Customer360View({ lead: initialLead }: Customer360ViewProps) {
       <ProfileHeader contact={contact} onLogCall={() => setCallModalOpen(true)} />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]">
         <ActivityTimeline events={lead.timeline} />
-        <ProgramHistory items={[]} />
+        <ProgramHistory items={programHistory} />
       </div>
       <CallLogModal
         open={callModalOpen}

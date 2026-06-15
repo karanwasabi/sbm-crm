@@ -7,7 +7,7 @@ type CapacityStripProps = {
 
 export function CapacityStrip({ cohorts }: CapacityStripProps) {
   return (
-    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
       {cohorts.map((cohort) => {
         const pct = Math.round((cohort.enrolled / cohort.cap) * 100);
         return (
