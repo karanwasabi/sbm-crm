@@ -1,19 +1,21 @@
 'use server';
 
-import type { ContactOutcome } from '@/types/crm';
+import { type ContactOutcome, contactOutcomeMarksLost } from '@/types/crm';
 import { ApiError, createLeadContactEvent, markLeadLost } from '@/utils/api';
 
 export async function logLeadCall(
   leadId: string,
   input: { outcome: ContactOutcome; notes?: string }
-): Promise<{ error: string | null; suggestMarkLost: boolean }> {
+): Promise<{ error: string | null }> {
   try {
     await createLeadContactEvent(leadId, input);
-    const suggestMarkLost = input.outcome === 'not_interested' || input.outcome === 'wrong_number';
-    return { error: null, suggestMarkLost };
+    if (contactOutcomeMarksLost(input.outcome)) {
+      await markLeadLost(leadId, input.outcome);
+    }
+    return { error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to log call.';
-    return { error: message, suggestMarkLost: false };
+    return { error: message };
   }
 }
 

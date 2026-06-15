@@ -9,11 +9,9 @@ import type { ContactProfile } from '@/types/crm';
 type ProfileHeaderProps = {
   contact: ContactProfile;
   onLogCall?: () => void;
-  onMarkLost?: () => void;
-  markLostPending?: boolean;
 };
 
-export function ProfileHeader({ contact, onLogCall, onMarkLost, markLostPending }: ProfileHeaderProps) {
+export function ProfileHeader({ contact, onLogCall }: ProfileHeaderProps) {
   const showMemberStats = contact.isMember && contact.clv != null;
 
   return (
@@ -88,7 +86,7 @@ export function ProfileHeader({ contact, onLogCall, onMarkLost, markLostPending 
             </div>
           )}
         </div>
-        <div className="flex shrink-0 flex-col gap-2">
+        <div className="flex shrink-0 flex-col items-stretch gap-2">
           {contact.phone && (
             <Button
               variant="light"
@@ -104,11 +102,6 @@ export function ProfileHeader({ contact, onLogCall, onMarkLost, markLostPending 
           {contact.stage !== 'lost' && (
             <Button variant="light" size="sm" onClick={onLogCall}>
               Log call
-            </Button>
-          )}
-          {onMarkLost && (
-            <Button variant="light" size="sm" onClick={onMarkLost} disabled={markLostPending}>
-              Mark as lost
             </Button>
           )}
         </div>

@@ -1,26 +1,36 @@
 'use client';
 
-import { X } from 'lucide-react';
-import { useState, useTransition } from 'react';
+import { AlertTriangle, X } from 'lucide-react';
+import { useEffect, useState, useTransition } from 'react';
 import { logLeadCall } from '@/app/(crm)/customers/actions';
+import { CallOutcomeSelect } from '@/components/crm/call-outcome-select';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Textarea } from '@/components/ui/textarea';
-import { CONTACT_OUTCOME_OPTIONS, type ContactOutcome } from '@/types/crm';
+import { contactOutcomeMarksLost, type ContactOutcome } from '@/types/crm';
 
 type CallLogModalProps = {
   open: boolean;
   onClose: () => void;
   leadId: string;
   onSaved: () => void;
-  onSuggestMarkLost: () => void;
 };
 
-export function CallLogModal({ open, onClose, leadId, onSaved, onSuggestMarkLost }: CallLogModalProps) {
+export function CallLogModal({ open, onClose, leadId, onSaved }: CallLogModalProps) {
   const [outcome, setOutcome] = useState<ContactOutcome | ''>('');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const willMarkLost = outcome !== '' && contactOutcomeMarksLost(outcome);
+
+  useEffect(() => {
+    if (!open) {
+      setOutcome('');
+      setNotes('');
+      setError(null);
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -42,13 +52,7 @@ export function CallLogModal({ open, onClose, leadId, onSaved, onSuggestMarkLost
         return;
       }
 
-      setOutcome('');
-      setNotes('');
       onSaved();
-
-      if (result.suggestMarkLost) {
-        onSuggestMarkLost();
-      }
     });
   };
 
@@ -67,19 +71,7 @@ export function CallLogModal({ open, onClose, leadId, onSaved, onSuggestMarkLost
         </div>
         <div className="flex flex-col gap-3.5">
           <Field label="Outcome">
-            <select
-              value={outcome}
-              onChange={(event) => setOutcome(event.target.value as ContactOutcome)}
-              disabled={pending}
-              className="w-full rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-            >
-              <option value="">Select outcome</option>
-              {CONTACT_OUTCOME_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+            <CallOutcomeSelect value={outcome} onChange={setOutcome} disabled={pending} />
           </Field>
           <Field label="Notes">
             <Textarea
@@ -91,13 +83,23 @@ export function CallLogModal({ open, onClose, leadId, onSaved, onSuggestMarkLost
             />
           </Field>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="light" onClick={onClose} disabled={pending}>
-              Cancel
-            </Button>
-            <Button variant="primary" onClick={handleSave} disabled={pending}>
-              Save log
-            </Button>
+          <div className="flex items-end justify-between gap-4 pt-2">
+            <div className="min-w-0 flex-1">
+              {willMarkLost && (
+                <p className="flex items-start gap-1.5 text-xs leading-relaxed text-rose-700">
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+                  This lead will be marked as lost when you save.
+                </p>
+              )}
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <Button variant="light" onClick={onClose} disabled={pending}>
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleSave} disabled={pending}>
+                Save log
+              </Button>
+            </div>
           </div>
         </div>
       </div>

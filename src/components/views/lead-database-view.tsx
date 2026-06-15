@@ -83,7 +83,9 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
                     <div className="font-semibold text-slate-800">{lead.name}</div>
                     <div className="text-[11px] text-slate-500">{lead.email}</div>
                     {lead.dedup && <span className="text-[10px] font-bold text-danger-press">Possible duplicate</span>}
-                    {!lead.enriched && <span className="text-[10px] font-bold text-motivation">Needs enrichment</span>}
+                    {!lead.enriched && lead.medium !== 'offline' && (
+                      <span className="text-[10px] font-bold text-motivation">Needs enrichment</span>
+                    )}
                   </DataTableCell>
                   <DataTableCell>
                     <StagePill stage={lead.stage} />

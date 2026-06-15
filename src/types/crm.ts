@@ -23,6 +23,7 @@ export type Lead = {
   countryCode: string;
   city: string;
   stage: LifecycleStage;
+  medium: LeadMedium;
   interest: string;
   batch: string;
   tags: string[];
@@ -62,6 +63,10 @@ export const CONTACT_OUTCOME_OPTIONS: { value: ContactOutcome; label: string }[]
   { value: 'not_interested', label: 'Not interested' },
   { value: 'wrong_number', label: 'Wrong number' },
 ];
+
+export function contactOutcomeMarksLost(outcome: ContactOutcome): boolean {
+  return outcome === 'not_interested' || outcome === 'wrong_number';
+}
 
 export type LeadDetail = Lead & {
   manualSource: ManualLeadSource;
@@ -184,6 +189,11 @@ export type TimelineEvent = {
   body?: string;
   meta: string;
   color: string;
+};
+
+export const TIMELINE_KIND_LABELS: Record<TimelineEvent['kind'], string> = {
+  op: 'Operations',
+  comms: 'Communications',
 };
 
 export type ProgramHistoryItem = {

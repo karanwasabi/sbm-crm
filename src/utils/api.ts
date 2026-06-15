@@ -186,6 +186,7 @@ type ApiLeadResponse = {
   country_code: string | null;
   city: string | null;
   stage: import('@/types/crm').LifecycleStage;
+  medium: import('@/types/crm').LeadMedium;
   interest: string;
   batch: string;
   tags: string[];
@@ -213,6 +214,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     countryCode: row.country_code ?? '',
     city: row.city ?? '',
     stage: row.stage,
+    medium: row.medium ?? 'offline',
     interest: row.interest || '—',
     batch: row.batch || '—',
     tags: row.tags ?? [],

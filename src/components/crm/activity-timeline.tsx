@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
-import type { TimelineEvent } from '@/types/crm';
+import { TIMELINE_KIND_LABELS, type TimelineEvent } from '@/types/crm';
 
 type ActivityTimelineProps = {
   events: TimelineEvent[];
@@ -25,8 +25,8 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-2">
                 <span className="text-[13px] font-bold text-slate-800">{event.title}</span>
-                <span className="shrink-0 text-[10px] font-semibold tracking-wide text-slate-400 uppercase">
-                  {event.kind}
+                <span className="shrink-0 text-[11px] font-medium text-slate-400">
+                  {TIMELINE_KIND_LABELS[event.kind]}
                 </span>
               </div>
               {event.body && <p className="mt-0.5 text-[12.5px] text-slate-600">{event.body}</p>}
