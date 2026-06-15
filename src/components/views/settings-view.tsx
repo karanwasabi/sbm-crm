@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { MOCK_API_KEYS, MOCK_SETTINGS_INTEGRATIONS, MOCK_WEBHOOK_URL } from '@/lib/mock/settings';
 import { TeamManagement } from '@/components/views/team-management';
-import type { StaffRoleRow } from '@/utils/api';
+import type { StaffList } from '@/utils/api';
 
 const INTEGRATION_ICONS: Record<string, typeof Globe> = {
   meta: Share2,
@@ -21,7 +21,7 @@ const INTEGRATION_ICONS: Record<string, typeof Globe> = {
   zoom: Globe,
 };
 
-export function SettingsView({ teamRows }: { teamRows: StaffRoleRow[] }) {
+export function SettingsView({ staff, currentUserId }: { staff: StaffList; currentUserId: string }) {
   const [activeTab, setActiveTab] = useState('Integrations');
 
   return (
@@ -81,7 +81,7 @@ export function SettingsView({ teamRows }: { teamRows: StaffRoleRow[] }) {
         </div>
       )}
 
-      {activeTab === 'Team' && <TeamManagement initialRows={teamRows} />}
+      {activeTab === 'Team' && <TeamManagement staff={staff} currentUserId={currentUserId} />}
     </CrmPageLayout>
   );
 }

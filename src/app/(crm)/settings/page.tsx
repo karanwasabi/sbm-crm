@@ -1,13 +1,26 @@
+import { redirect } from 'next/navigation';
 import { SettingsView } from '@/components/views/settings-view';
-import { listStaffRoles, type StaffRoleRow } from '@/utils/api';
+import { listStaff, type StaffList } from '@/utils/api';
+import { createClient } from '@/utils/supabase/server';
+
+const emptyStaff: StaffList = { active: [], inactive: [] };
 
 export default async function SettingsPage() {
-  let teamRows: StaffRoleRow[] = [];
-  try {
-    teamRows = await listStaffRoles();
-  } catch {
-    teamRows = [];
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/login');
   }
 
-  return <SettingsView teamRows={teamRows} />;
+  let staff = emptyStaff;
+  try {
+    staff = await listStaff();
+  } catch {
+    staff = emptyStaff;
+  }
+
+  return <SettingsView staff={staff} currentUserId={user.id} />;
 }

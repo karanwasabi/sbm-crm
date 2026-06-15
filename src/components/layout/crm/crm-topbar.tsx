@@ -1,13 +1,18 @@
 'use client';
 
-import { Bell, Plus } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
+import { CrmUserMenu } from '@/components/layout/crm/crm-user-menu';
 import { IconButton } from '@/components/ui/icon-button';
 import { SearchInput } from '@/components/ui/search-input';
 import { getPageMeta } from '@/lib/navigation';
 
-export function CrmTopbar() {
+type CrmTopbarProps = {
+  staffUser: CrmStaffUser;
+};
+
+export function CrmTopbar({ staffUser }: CrmTopbarProps) {
   const pathname = usePathname();
   const { title, subtitle } = getPageMeta(pathname);
 
@@ -28,9 +33,7 @@ export function CrmTopbar() {
         <Bell className="h-4 w-4" />
       </IconButton>
 
-      <Button variant="primary" size="md" leftIcon={<Plus className="h-4 w-4" />}>
-        Quick add lead
-      </Button>
+      <CrmUserMenu staffUser={staffUser} />
     </header>
   );
 }

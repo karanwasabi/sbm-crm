@@ -1,6 +1,5 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { hasProduct, parseAccessTokenClaims, PRODUCT_CRM } from '@/lib/access';
 
 const PUBLIC_ROUTES = ['/login', '/forgot-password', '/unauthorized'];
 
@@ -45,18 +44,6 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);
-  }
-
-  if (user && !isPublicRoute && pathname !== '/unauthorized') {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const { products } = parseAccessTokenClaims(session?.access_token);
-    if (products.length > 0 && !hasProduct(products, PRODUCT_CRM)) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/unauthorized';
-      return NextResponse.redirect(url);
-    }
   }
 
   return supabaseResponse;

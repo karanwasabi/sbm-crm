@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
-import { hasProduct, PRODUCT_CRM } from '@/lib/access';
+import { hasProduct, PRODUCT_CRM, visibleStaffRoles } from '@/lib/access';
 import { getMyAccess } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 
@@ -29,8 +29,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     if (!hasProduct(access.products, PRODUCT_CRM)) {
       redirect('/unauthorized');
     }
-    if (access.roles.length > 0) {
-      accessLabel = access.roles.join(', ');
+    const visible = visibleStaffRoles(access.roles);
+    if (visible.length > 0) {
+      accessLabel = visible.join(', ');
     }
   } catch {
     redirect('/unauthorized');

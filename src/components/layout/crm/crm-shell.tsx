@@ -18,9 +18,9 @@ type CrmShellProps = {
 export function CrmShell({ children, staffUser }: CrmShellProps) {
   return (
     <div className="flex h-dvh min-w-0 bg-white">
-      <CrmSidebar staffUser={staffUser} />
+      <CrmSidebar />
       <div className="flex min-w-0 flex-1 flex-col">
-        <CrmTopbar />
+        <CrmTopbar staffUser={staffUser} />
         <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">{children}</div>
       </div>
     </div>

@@ -3,8 +3,6 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SbmWordmark } from '@/components/brand/sbm-wordmark';
-import { Avatar } from '@/components/ui/avatar';
-import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
 import { CRM_NAV_GROUPS } from '@/lib/navigation';
 import { cn } from '@/lib/cn';
 
@@ -13,11 +11,7 @@ function isNavActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-type CrmSidebarProps = {
-  staffUser: CrmStaffUser;
-};
-
-export function CrmSidebar({ staffUser }: CrmSidebarProps) {
+export function CrmSidebar() {
   const pathname = usePathname();
 
   return (
@@ -71,16 +65,6 @@ export function CrmSidebar({ staffUser }: CrmSidebarProps) {
           </nav>
         </div>
       ))}
-
-      <div className="mt-auto">
-        <div className="flex items-center gap-2.5 rounded-2xl border border-slate-100 bg-white p-3">
-          <Avatar initials={staffUser.initials} size="sm" />
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-xs font-bold text-slate-800">{staffUser.email}</div>
-            <div className="truncate text-[10px] text-slate-500 capitalize">{staffUser.roleLabel}</div>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }

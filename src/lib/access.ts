@@ -1,7 +1,9 @@
 export const PRODUCT_MEMBER_PORTAL = 'member_portal';
 export const PRODUCT_CRM = 'crm';
 
-export type AppRole = 'member' | 'admin' | 'coach';
+export type AppRole = 'member' | 'staff' | 'admin' | 'coach';
+
+export type StaffAccessRole = 'admin' | 'coach';
 
 export type Product = 'member_portal' | 'app' | 'crm' | 'coach_dashboard' | 'forum' | 'forum_admin';
 
@@ -9,6 +11,10 @@ export type AccessClaims = {
   roles: AppRole[];
   products: Product[];
 };
+
+export function visibleStaffRoles(roles: AppRole[]): StaffAccessRole[] {
+  return roles.filter((role): role is StaffAccessRole => role === 'admin' || role === 'coach');
+}
 
 export function parseAccessTokenClaims(accessToken: string | undefined): AccessClaims {
   if (!accessToken) {
@@ -44,7 +50,7 @@ export function hasProduct(products: Product[], required: Product): boolean {
 }
 
 function isAppRole(value: unknown): value is AppRole {
-  return value === 'member' || value === 'admin' || value === 'coach';
+  return value === 'member' || value === 'staff' || value === 'admin' || value === 'coach';
 }
 
 function isProduct(value: unknown): value is Product {

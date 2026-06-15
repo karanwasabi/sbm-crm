@@ -1,15 +1,23 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { AppRole } from '@/lib/access';
-import { grantRole, revokeRole } from '@/utils/api';
+import type { StaffAccessRole } from '@/lib/access';
+import type { CreateStaffInput } from '@/utils/api';
+import { createStaff, revokeStaffAccess, updateStaffAccess } from '@/utils/api';
 
-export async function grantRoleAction(email: string, role: AppRole) {
-  await grantRole(email, role);
+export async function createStaffAction(input: CreateStaffInput) {
+  const result = await createStaff(input);
   revalidatePath('/settings');
+  return result;
 }
 
-export async function revokeRoleAction(userId: string, role: AppRole) {
-  await revokeRole(userId, role);
+export async function updateStaffAccessAction(userId: string, roles: StaffAccessRole[]) {
+  const result = await updateStaffAccess(userId, roles);
+  revalidatePath('/settings');
+  return result;
+}
+
+export async function revokeStaffAccessAction(userId: string) {
+  await revokeStaffAccess(userId);
   revalidatePath('/settings');
 }

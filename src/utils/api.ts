@@ -1,4 +1,4 @@
-import type { AccessClaims, AppRole } from '@/lib/access';
+import type { StaffAccessRole } from '@/lib/access';
 import { createClient } from '@/utils/supabase/server';
 
 export class ApiError extends Error {
@@ -54,48 +54,77 @@ async function requireApiFetch(path: string, init?: RequestInit): Promise<Respon
   return response;
 }
 
-export async function getMyAccess(): Promise<AccessClaims> {
+export async function getMyAccess() {
   const response = await requireApiFetch('/me/access');
   if (!response.ok) {
     throw new ApiError(`Failed to load access (${response.status})`, response.status);
   }
-  return response.json() as Promise<AccessClaims>;
+  return response.json() as Promise<import('@/lib/access').AccessClaims>;
 }
 
-export type StaffRoleRow = {
+export type StaffMember = {
   user_id: string;
   email: string;
-  role: AppRole;
-  granted_at: string;
+  first_name: string | null;
+  last_name: string | null;
+  roles: StaffAccessRole[];
 };
 
-export async function listStaffRoles(): Promise<StaffRoleRow[]> {
-  const response = await requireApiFetch('/admin/staff-roles');
+export type StaffList = {
+  active: StaffMember[];
+  inactive: StaffMember[];
+};
+
+export async function listStaff(): Promise<StaffList> {
+  const response = await requireApiFetch('/admin/staff');
   if (!response.ok) {
-    throw new ApiError('Failed to load team roles.', response.status);
+    throw new ApiError('Failed to load staff.', response.status);
   }
-  return response.json() as Promise<StaffRoleRow[]>;
+  return response.json() as Promise<StaffList>;
 }
 
-export async function grantRole(email: string, role: AppRole): Promise<void> {
-  const response = await requireApiFetch('/admin/roles', {
+export type CreateStaffInput = {
+  first_name: string;
+  last_name?: string;
+  email: string;
+  roles: StaffAccessRole[];
+};
+
+export async function createStaff(input: CreateStaffInput): Promise<StaffMember> {
+  const response = await requireApiFetch('/admin/staff', {
     method: 'POST',
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify(input),
   });
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new ApiError(payload?.error ?? 'Failed to grant role.', response.status);
+    throw new ApiError(payload?.error ?? 'Failed to create staff user.', response.status);
   }
+
+  return response.json() as Promise<StaffMember>;
 }
 
-export async function revokeRole(userId: string, role: AppRole): Promise<void> {
-  const response = await requireApiFetch(`/admin/users/${encodeURIComponent(userId)}/roles/${role}`, {
-    method: 'DELETE',
+export async function updateStaffAccess(userId: string, roles: StaffAccessRole[]): Promise<StaffMember> {
+  const response = await requireApiFetch(`/admin/staff/${encodeURIComponent(userId)}/access`, {
+    method: 'PATCH',
+    body: JSON.stringify({ roles }),
   });
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new ApiError(payload?.error ?? 'Failed to revoke role.', response.status);
+    throw new ApiError(payload?.error ?? 'Failed to update staff access.', response.status);
+  }
+
+  return response.json() as Promise<StaffMember>;
+}
+
+export async function revokeStaffAccess(userId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/staff/${encodeURIComponent(userId)}/revoke-access`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to revoke staff access.', response.status);
   }
 }
