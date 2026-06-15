@@ -36,7 +36,10 @@ export function ProfileHeader({ customer, onLogCall }: ProfileHeaderProps) {
               <Mail className="h-3 w-3" />
               {customer.email}
             </span>
-            <a href={`tel:${customer.phone}`} className="inline-flex items-center gap-1.5 font-semibold text-white no-underline">
+            <a
+              href={`tel:${customer.phone}`}
+              className="inline-flex items-center gap-1.5 font-semibold text-white no-underline"
+            >
               <Phone className="h-3 w-3" />
               {customer.phone}
             </a>

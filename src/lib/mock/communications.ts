@@ -1,10 +1,38 @@
 import type { CampaignSequence, CommunicationRule, MessageTemplate } from '@/types/crm';
 
 export const MOCK_RULES: CommunicationRule[] = [
-  { id: '1', name: 'Meta lead welcome', trigger: 'Lead created', condition: 'Source = Meta', action: 'Send WhatsApp + assign rep', active: true },
-  { id: '2', name: 'Payment confirmation', trigger: 'Payment received', condition: 'Program = Take Control', action: 'Send email + update stage', active: true },
-  { id: '3', name: 'Renewal reminder', trigger: '7 days before expiry', condition: 'Stage = Active', action: 'Send email + WhatsApp', active: true },
-  { id: '4', name: 'Win-back lapsed', trigger: '30 days after churn', condition: 'Stage = Lost', action: 'Send win-back sequence', active: false },
+  {
+    id: '1',
+    name: 'Meta lead welcome',
+    trigger: 'Lead created',
+    condition: 'Source = Meta',
+    action: 'Send WhatsApp + assign rep',
+    active: true,
+  },
+  {
+    id: '2',
+    name: 'Payment confirmation',
+    trigger: 'Payment received',
+    condition: 'Program = Take Control',
+    action: 'Send email + update stage',
+    active: true,
+  },
+  {
+    id: '3',
+    name: 'Renewal reminder',
+    trigger: '7 days before expiry',
+    condition: 'Stage = Active',
+    action: 'Send email + WhatsApp',
+    active: true,
+  },
+  {
+    id: '4',
+    name: 'Win-back lapsed',
+    trigger: '30 days after churn',
+    condition: 'Stage = Lost',
+    action: 'Send win-back sequence',
+    active: false,
+  },
 ];
 
 export const MOCK_TEMPLATES: MessageTemplate[] = [

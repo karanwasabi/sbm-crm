@@ -13,7 +13,10 @@ function RateBar({ label, value, color, faded }: { label: string; value: number;
     <div className="grid grid-cols-[70px_1fr_50px] items-center gap-2">
       <span className="text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase">{label}</span>
       <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-        <div className="h-full rounded-full" style={{ width: `${value * 100}%`, background: color, opacity: faded ? 0.65 : 1 }} />
+        <div
+          className="h-full rounded-full"
+          style={{ width: `${value * 100}%`, background: color, opacity: faded ? 0.65 : 1 }}
+        />
       </div>
       <span className="text-right text-xs font-bold text-slate-700 tabular-nums">{Math.round(value * 100)}%</span>
     </div>

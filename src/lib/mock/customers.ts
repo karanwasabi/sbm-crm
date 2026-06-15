@@ -19,12 +19,54 @@ export const MOCK_CUSTOMERS: Record<string, CustomerProfile> = {
 };
 
 export const MOCK_TIMELINE: TimelineEvent[] = [
-  { id: '1', kind: 'op', title: 'Payment received', body: 'Take Control · Cohort C — ₹14,900', meta: '28 Apr 2026 · Razorpay', color: '#10B981' },
-  { id: '2', kind: 'comms', title: 'WhatsApp sent', body: 'Welcome sequence · Day 1', meta: '28 Apr 2026 · Delivered', color: '#5C65CF' },
-  { id: '3', kind: 'comms', title: 'Email opened', body: 'Your Week 1 plan is ready', meta: '29 Apr 2026 · Resend', color: '#0EA5E9' },
-  { id: '4', kind: 'op', title: 'Assigned to cohort', body: 'Cohort C · July batch', meta: '28 Apr 2026', color: '#8338EC' },
-  { id: '5', kind: 'comms', title: 'Call logged', body: 'Interested · Will start logging tomorrow', meta: '27 Apr 2026 · Manual', color: '#FFB703' },
-  { id: '6', kind: 'op', title: 'Lead created', body: 'Source: Referral · UTM: friend_share', meta: '26 Apr 2026', color: '#64748B' },
+  {
+    id: '1',
+    kind: 'op',
+    title: 'Payment received',
+    body: 'Take Control · Cohort C — ₹14,900',
+    meta: '28 Apr 2026 · Razorpay',
+    color: '#10B981',
+  },
+  {
+    id: '2',
+    kind: 'comms',
+    title: 'WhatsApp sent',
+    body: 'Welcome sequence · Day 1',
+    meta: '28 Apr 2026 · Delivered',
+    color: '#5C65CF',
+  },
+  {
+    id: '3',
+    kind: 'comms',
+    title: 'Email opened',
+    body: 'Your Week 1 plan is ready',
+    meta: '29 Apr 2026 · Resend',
+    color: '#0EA5E9',
+  },
+  {
+    id: '4',
+    kind: 'op',
+    title: 'Assigned to cohort',
+    body: 'Cohort C · July batch',
+    meta: '28 Apr 2026',
+    color: '#8338EC',
+  },
+  {
+    id: '5',
+    kind: 'comms',
+    title: 'Call logged',
+    body: 'Interested · Will start logging tomorrow',
+    meta: '27 Apr 2026 · Manual',
+    color: '#FFB703',
+  },
+  {
+    id: '6',
+    kind: 'op',
+    title: 'Lead created',
+    body: 'Source: Referral · UTM: friend_share',
+    meta: '26 Apr 2026',
+    color: '#64748B',
+  },
 ];
 
 export const MOCK_PROGRAM_HISTORY: ProgramHistoryItem[] = [

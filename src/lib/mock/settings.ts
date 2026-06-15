@@ -1,11 +1,23 @@
 import type { ApiKey, SettingsIntegration } from '@/types/crm';
 
 export const MOCK_SETTINGS_INTEGRATIONS: SettingsIntegration[] = [
-  { id: 'meta', name: 'Meta Ads', subtitle: 'Lead Ads + CAPI + Custom Audiences', status: 'connected', color: '#5C65CF' },
+  {
+    id: 'meta',
+    name: 'Meta Ads',
+    subtitle: 'Lead Ads + CAPI + Custom Audiences',
+    status: 'connected',
+    color: '#5C65CF',
+  },
   { id: 'razorpay', name: 'Razorpay', subtitle: 'Payments + subscriptions', status: 'connected', color: '#0EA5E9' },
   { id: 'convonite', name: 'Convonite', subtitle: 'WhatsApp Business API', status: 'connected', color: '#10B981' },
   { id: 'resend', name: 'Resend', subtitle: 'Email broadcasts + transactional', status: 'connected', color: '#8338EC' },
-  { id: 'google', name: 'Google Ads', subtitle: 'Conversion import · pending approval', status: 'warning', color: '#FFB703' },
+  {
+    id: 'google',
+    name: 'Google Ads',
+    subtitle: 'Conversion import · pending approval',
+    status: 'warning',
+    color: '#FFB703',
+  },
   { id: 'zoom', name: 'Zoom', subtitle: 'Session links for online programs', status: 'connected', color: '#64748B' },
 ];
 

@@ -103,7 +103,12 @@ export function TeamManagement({ initialRows }: TeamManagementProps) {
                     {row.role} · granted {new Date(row.granted_at).toLocaleDateString()}
                   </div>
                 </div>
-                <Button variant="light" size="sm" disabled={pending} onClick={() => handleRevoke(row.user_id, row.role)}>
+                <Button
+                  variant="light"
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => handleRevoke(row.user_id, row.role)}
+                >
                   Revoke
                 </Button>
               </div>

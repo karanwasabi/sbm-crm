@@ -44,7 +44,10 @@ export function FilterBar({ activeStage, onStageChange, activeFilters }: FilterB
         {activeFilters.map((filter) => (
           <ActiveFilterTag key={filter.key} label={filter.key} value={filter.value} />
         ))}
-        <button type="button" className="cursor-pointer border-none bg-transparent text-[11px] font-semibold text-slate-500">
+        <button
+          type="button"
+          className="cursor-pointer border-none bg-transparent text-[11px] font-semibold text-slate-500"
+        >
           Clear all
         </button>
       </div>

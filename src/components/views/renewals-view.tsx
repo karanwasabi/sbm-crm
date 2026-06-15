@@ -25,7 +25,14 @@ export function RenewalsView() {
     <CrmPageLayout>
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
         {MOCK_RENEWAL_KPIS.map((kpi) => (
-          <KpiCard key={kpi.label} label={kpi.label} value={kpi.value} sub={kpi.sub} trend={kpi.trend} accent={kpi.accent} />
+          <KpiCard
+            key={kpi.label}
+            label={kpi.label}
+            value={kpi.value}
+            sub={kpi.sub}
+            trend={kpi.trend}
+            accent={kpi.accent}
+          />
         ))}
       </div>
 

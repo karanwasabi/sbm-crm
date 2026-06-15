@@ -30,8 +30,7 @@ export function FunnelChart({
       <div className="flex flex-col gap-2.5">
         {steps.map((step, index) => {
           const pct = step.count / max;
-          const dropFromPrev =
-            index === 0 ? null : Math.round((1 - step.count / (steps[index - 1]?.count ?? 1)) * 100);
+          const dropFromPrev = index === 0 ? null : Math.round((1 - step.count / (steps[index - 1]?.count ?? 1)) * 100);
 
           return (
             <div key={step.label}>
@@ -41,7 +40,9 @@ export function FunnelChart({
                   {dropFromPrev !== null && (
                     <span className="text-[10px] font-semibold text-slate-400">↓ {dropFromPrev}%</span>
                   )}
-                  <span className="text-sm font-extrabold text-slate-800 tabular-nums">{step.count.toLocaleString()}</span>
+                  <span className="text-sm font-extrabold text-slate-800 tabular-nums">
+                    {step.count.toLocaleString()}
+                  </span>
                 </div>
               </div>
               <div className="relative h-[22px] overflow-hidden rounded-full bg-slate-100">

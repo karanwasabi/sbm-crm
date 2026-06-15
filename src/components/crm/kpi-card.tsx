@@ -17,7 +17,9 @@ export function KpiCard({ label, value, sub, trend, accent = '#5C65CF', icon: Ic
   const h = 26;
   const path =
     spark.length > 1
-      ? spark.map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i * w) / (spark.length - 1)},${h - (v / 10) * (h - 4) - 2}`).join(' ')
+      ? spark
+          .map((v, i) => `${i === 0 ? 'M' : 'L'} ${(i * w) / (spark.length - 1)},${h - (v / 10) * (h - 4) - 2}`)
+          .join(' ')
       : '';
 
   const trendPositive = trend && !trend.startsWith('-');

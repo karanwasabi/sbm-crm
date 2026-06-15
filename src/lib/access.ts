@@ -3,13 +3,7 @@ export const PRODUCT_CRM = 'crm';
 
 export type AppRole = 'member' | 'admin' | 'coach';
 
-export type Product =
-  | 'member_portal'
-  | 'app'
-  | 'crm'
-  | 'coach_dashboard'
-  | 'forum'
-  | 'forum_admin';
+export type Product = 'member_portal' | 'app' | 'crm' | 'coach_dashboard' | 'forum' | 'forum_admin';
 
 export type AccessClaims = {
   roles: AppRole[];

@@ -1,11 +1,4 @@
-export type LifecycleStage =
-  | 'inquiry'
-  | 'engaged'
-  | 'registered'
-  | 'active'
-  | 'completed'
-  | 'renewal'
-  | 'lost';
+export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'active' | 'completed' | 'renewal' | 'lost';
 
 export type LeadMedium = 'paid' | 'organic' | 'offline';
 

@@ -21,7 +21,7 @@ export function CrmShell({ children, staffUser }: CrmShellProps) {
       <CrmSidebar staffUser={staffUser} />
       <div className="flex min-w-0 flex-1 flex-col">
         <CrmTopbar />
-        <div className="flex flex-1 flex-col overflow-auto bg-canvas [scrollbar-gutter:stable]">{children}</div>
+        <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">{children}</div>
       </div>
     </div>
   );

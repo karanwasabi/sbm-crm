@@ -22,7 +22,11 @@ export function CallLogModal({ open, onClose }: CallLogModalProps) {
       <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-bold text-slate-800">Log call</h3>
-          <button type="button" onClick={onClose} className="cursor-pointer border-none bg-transparent p-1 text-slate-500">
+          <button
+            type="button"
+            onClick={onClose}
+            className="cursor-pointer border-none bg-transparent p-1 text-slate-500"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>

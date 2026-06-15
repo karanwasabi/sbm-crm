@@ -46,7 +46,15 @@ export function DonutChart({
           <text x={C} y={C - 2} textAnchor="middle" fontSize="18" fontWeight="800" fill="#1E293B">
             {totalLabel}
           </text>
-          <text x={C} y={C + 12} textAnchor="middle" fontSize="8" fontWeight="700" letterSpacing="0.16em" fill="#64748B">
+          <text
+            x={C}
+            y={C + 12}
+            textAnchor="middle"
+            fontSize="8"
+            fontWeight="700"
+            letterSpacing="0.16em"
+            fill="#64748B"
+          >
             LEADS
           </text>
         </svg>

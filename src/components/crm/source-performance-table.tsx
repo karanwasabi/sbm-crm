@@ -60,12 +60,19 @@ export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
               <DataTableCell>
                 <div className="flex items-center gap-2">
                   <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
-                    <div className="absolute top-0 bottom-0 left-0 rounded-full bg-brand" style={{ width: `${row.cvr * 200}%` }} />
+                    <div
+                      className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
+                      style={{ width: `${row.cvr * 200}%` }}
+                    />
                   </div>
                   <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
                 </div>
               </DataTableCell>
-              <DataTableCell className={row.cac > 500 ? 'font-semibold text-danger-press tabular-nums' : 'font-semibold tabular-nums'}>
+              <DataTableCell
+                className={
+                  row.cac > 500 ? 'font-semibold text-danger-press tabular-nums' : 'font-semibold tabular-nums'
+                }
+              >
                 {row.cac ? `₹${row.cac}` : '—'}
               </DataTableCell>
               <DataTableCell className="text-right">
