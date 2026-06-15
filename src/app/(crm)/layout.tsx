@@ -1,8 +1,9 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
 import { hasProduct, PRODUCT_CRM, visibleStaffRoles } from '@/lib/access';
-import { getMyAccess } from '@/utils/api';
+import { getLatestProfile, getMyAccess, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
+import { getInitials, type Profile } from '@/types/profile';
 
 function initialsFromEmail(email: string): string {
   const local = email.split('@')[0] ?? '';
@@ -31,17 +32,30 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     }
     const visible = visibleStaffRoles(access.roles);
     if (visible.length > 0) {
-      accessLabel = visible.join(', ');
+      accessLabel = visible.map((role) => role.charAt(0).toUpperCase() + role.slice(1)).join(', ');
     }
   } catch {
     redirect('/unauthorized');
   }
 
+  let profile: Profile | null = null;
+  let profileError: string | null = null;
+
+  try {
+    profile = await getLatestProfile();
+  } catch (error) {
+    profileError = error instanceof ApiError ? error.message : 'Failed to load profile.';
+  }
+
   const staffUser = {
     email: user.email ?? 'Unknown user',
-    initials: initialsFromEmail(user.email ?? '??'),
+    initials: profile ? getInitials(profile) : initialsFromEmail(user.email ?? '??'),
     roleLabel: accessLabel,
   };
 
-  return <CrmShell staffUser={staffUser}>{children}</CrmShell>;
+  return (
+    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError}>
+      {children}
+    </CrmShell>
+  );
 }

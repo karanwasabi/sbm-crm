@@ -1,4 +1,6 @@
 import type { StaffAccessRole } from '@/lib/access';
+import type { Profile, ProfilePatch } from '@/types/profile';
+import type { Country, CountryCity } from '@/types/reference';
 import { createClient } from '@/utils/supabase/server';
 
 export class ApiError extends Error {
@@ -127,4 +129,49 @@ export async function revokeStaffAccess(userId: string): Promise<void> {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to revoke staff access.', response.status);
   }
+}
+
+export async function getLatestProfile(): Promise<Profile> {
+  const response = await requireApiFetch('/me');
+
+  if (response.status === 404) {
+    throw new ApiError('No profile found for your account.', 404);
+  }
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new ApiError(`Failed to load profile (${response.status}): ${body}`, response.status);
+  }
+
+  return response.json() as Promise<Profile>;
+}
+
+export async function patchProfile(body: ProfilePatch): Promise<Profile> {
+  const response = await requireApiFetch('/me', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? `Failed to update profile (${response.status})`, response.status);
+  }
+
+  return response.json() as Promise<Profile>;
+}
+
+export async function fetchCountries(): Promise<Country[]> {
+  const response = await requireApiFetch('/reference/countries');
+  if (!response.ok) {
+    throw new ApiError('Failed to load countries.', response.status);
+  }
+  return response.json() as Promise<Country[]>;
+}
+
+export async function fetchCountryCities(countryCode: string): Promise<CountryCity[]> {
+  const response = await requireApiFetch(`/reference/countries/${encodeURIComponent(countryCode)}/cities`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load cities.', response.status);
+  }
+  return response.json() as Promise<CountryCity[]>;
 }
