@@ -9,7 +9,7 @@ type ActivityTimelineProps = {
 export function ActivityTimeline({ events }: ActivityTimelineProps) {
   return (
     <Card>
-      <SectionHead title="Activity timeline" subtitle="Operations + communications" />
+      <SectionHead title="Activity timeline" subtitle="Newest first" />
       <div className="flex flex-col gap-0">
         {events.map((event, index) => (
           <div key={event.id} className="relative flex gap-3.5 pb-5">
