@@ -15,6 +15,47 @@ export function leadDatabaseSubtitle(total: number): string {
   return `${total.toLocaleString('en-IN')} leads`;
 }
 
+const MANUAL_SOURCE_LABELS: Record<import('@/types/crm').ManualLeadSource, string> = {
+  walk_in: 'Walk-in',
+  event_booth: 'Event booth',
+  phone_enquiry: 'Phone enquiry',
+  referral: 'Referral',
+  other: 'Other',
+};
+
+export function manualSourceLabel(source: import('@/types/crm').ManualLeadSource): string {
+  return MANUAL_SOURCE_LABELS[source] ?? source;
+}
+
+export function initialsFromName(firstName: string, lastName: string, email: string): string {
+  if (firstName && lastName) {
+    return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase();
+  }
+  if (firstName) return firstName.slice(0, 2).toUpperCase();
+  return email.slice(0, 2).toUpperCase();
+}
+
+export function leadDetailToContactProfile(
+  lead: import('@/types/crm').LeadDetail
+): import('@/types/crm').ContactProfile {
+  return {
+    id: lead.id,
+    name: lead.name,
+    initials: initialsFromName(lead.firstName, lead.lastName, lead.email),
+    email: lead.email,
+    phone: lead.phone,
+    location: lead.location || '—',
+    joinedAt: formatLeadAddedAt(lead.addedAt),
+    stage: lead.stage,
+    batch: lead.batch,
+    tags: lead.tags,
+    manualSourceLabel: manualSourceLabel(lead.manualSource),
+    notes: lead.notes,
+    isMember: Boolean(lead.memberUserId),
+    canMarkLost: lead.canMarkLost,
+  };
+}
+
 export function buildStageFilterOptions(summary: LeadSummary) {
   const stages: { id: string; label: string; count: string }[] = [
     { id: 'all', label: 'All', count: formatLeadCount(summary.total) },

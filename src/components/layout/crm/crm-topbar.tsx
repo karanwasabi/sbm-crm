@@ -8,13 +8,17 @@ import { IconButton } from '@/components/ui/icon-button';
 import { SearchInput } from '@/components/ui/search-input';
 import { leadDatabaseSubtitle } from '@/lib/lead-display';
 import { getPageMeta } from '@/lib/navigation';
+import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 
 type CrmTopbarProps = {
   staffUser: CrmStaffUser;
   leadTotal: number;
 };
 
-function resolveSubtitle(pathname: string, leadTotal: number, fallback?: string) {
+function resolveSubtitle(pathname: string, leadTotal: number, contactName: string | null, fallback?: string) {
+  if (pathname.startsWith('/customers/') && contactName) {
+    return contactName;
+  }
   if (pathname === '/database' || pathname.startsWith('/database/')) {
     return leadDatabaseSubtitle(leadTotal);
   }
@@ -23,8 +27,9 @@ function resolveSubtitle(pathname: string, leadTotal: number, fallback?: string)
 
 export function CrmTopbar({ staffUser, leadTotal }: CrmTopbarProps) {
   const pathname = usePathname();
+  const { contactName } = useCrmContactName();
   const { title, subtitle } = getPageMeta(pathname);
-  const resolvedSubtitle = resolveSubtitle(pathname, leadTotal, subtitle);
+  const resolvedSubtitle = resolveSubtitle(pathname, leadTotal, contactName, subtitle);
 
   return (
     <header className="flex shrink-0 items-center gap-4 border-b border-slate-100 bg-canvas px-6 py-4.5">

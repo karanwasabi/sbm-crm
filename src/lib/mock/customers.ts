@@ -76,5 +76,5 @@ export const MOCK_PROGRAM_HISTORY: ProgramHistoryItem[] = [
 ];
 
 export function getCustomerById(id: string): CustomerProfile | null {
-  return MOCK_CUSTOMERS[id] ?? MOCK_CUSTOMERS['9'];
+  return MOCK_CUSTOMERS[id] ?? null;
 }

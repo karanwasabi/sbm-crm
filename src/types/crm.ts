@@ -53,6 +53,44 @@ export type CreateLeadState = {
   success: boolean;
 };
 
+export type ContactOutcome = 'interested' | 'busy' | 'no_answer' | 'not_interested' | 'wrong_number';
+
+export const CONTACT_OUTCOME_OPTIONS: { value: ContactOutcome; label: string }[] = [
+  { value: 'interested', label: 'Interested' },
+  { value: 'busy', label: 'Busy / call back later' },
+  { value: 'no_answer', label: 'No answer' },
+  { value: 'not_interested', label: 'Not interested' },
+  { value: 'wrong_number', label: 'Wrong number' },
+];
+
+export type LeadDetail = Lead & {
+  manualSource: ManualLeadSource;
+  notes: string;
+  memberUserId: string | null;
+  canMarkLost: boolean;
+  timeline: TimelineEvent[];
+};
+
+export type ContactProfile = {
+  id: string;
+  name: string;
+  initials: string;
+  email: string;
+  phone: string;
+  location: string;
+  joinedAt: string;
+  stage: LifecycleStage;
+  batch: string;
+  tags: string[];
+  manualSourceLabel: string;
+  notes: string;
+  isMember: boolean;
+  canMarkLost: boolean;
+  clv?: string;
+  programs?: number;
+  loggingPct?: number;
+};
+
 export type StaffUser = {
   name: string;
   initials: string;

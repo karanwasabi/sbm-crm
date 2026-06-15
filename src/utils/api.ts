@@ -192,6 +192,11 @@ type ApiLeadResponse = {
   enriched: boolean;
   dedup: boolean;
   added_at: string;
+  manual_source?: import('@/types/crm').ManualLeadSource;
+  notes?: string | null;
+  member_user_id?: string | null;
+  can_mark_lost?: boolean;
+  timeline?: import('@/types/crm').TimelineEvent[];
 };
 
 function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
@@ -255,4 +260,54 @@ export async function getLeadSummary(): Promise<import('@/types/crm').LeadSummar
     total: payload.total,
     byStage: payload.by_stage,
   };
+}
+
+function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
+  const base = mapLead(row);
+  return {
+    ...base,
+    manualSource: row.manual_source ?? 'other',
+    notes: row.notes ?? '',
+    memberUserId: row.member_user_id ?? null,
+    canMarkLost: row.can_mark_lost ?? false,
+    timeline: row.timeline ?? [],
+  };
+}
+
+export async function getLead(id: string): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(id)}`);
+  if (response.status === 404) {
+    throw new ApiError('Lead not found.', 404);
+  }
+  if (!response.ok) {
+    throw new ApiError('Failed to load lead.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export async function createLeadContactEvent(
+  id: string,
+  input: { channel?: 'call'; outcome: import('@/types/crm').ContactOutcome; notes?: string }
+): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(id)}/contact-events`, {
+    method: 'POST',
+    body: JSON.stringify({ channel: 'call', ...input }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to log call.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export async function markLeadLost(id: string, reason?: string): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(id)}/stage`, {
+    method: 'PATCH',
+    body: JSON.stringify({ stage: 'lost', ...(reason ? { reason } : {}) }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to mark lead as lost.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }

@@ -1,21 +1,56 @@
 'use client';
 
 import { X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
+import { logLeadCall } from '@/app/(crm)/customers/actions';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
-import { TextInput } from '@/components/ui/text-input';
+import { Textarea } from '@/components/ui/textarea';
+import { CONTACT_OUTCOME_OPTIONS, type ContactOutcome } from '@/types/crm';
 
 type CallLogModalProps = {
   open: boolean;
   onClose: () => void;
+  leadId: string;
+  onSaved: () => void;
+  onSuggestMarkLost: () => void;
 };
 
-export function CallLogModal({ open, onClose }: CallLogModalProps) {
-  const [outcome, setOutcome] = useState('');
+export function CallLogModal({ open, onClose, leadId, onSaved, onSuggestMarkLost }: CallLogModalProps) {
+  const [outcome, setOutcome] = useState<ContactOutcome | ''>('');
   const [notes, setNotes] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
 
   if (!open) return null;
+
+  const handleSave = () => {
+    if (!outcome) {
+      setError('Select a call outcome.');
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const result = await logLeadCall(leadId, {
+        outcome,
+        notes: notes.trim() || undefined,
+      });
+
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+
+      setOutcome('');
+      setNotes('');
+      onSaved();
+
+      if (result.suggestMarkLost) {
+        onSuggestMarkLost();
+      }
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-6">
@@ -32,16 +67,35 @@ export function CallLogModal({ open, onClose }: CallLogModalProps) {
         </div>
         <div className="flex flex-col gap-3.5">
           <Field label="Outcome">
-            <TextInput value={outcome} onChange={setOutcome} placeholder="Interested, Busy, No answer…" />
+            <select
+              value={outcome}
+              onChange={(event) => setOutcome(event.target.value as ContactOutcome)}
+              disabled={pending}
+              className="w-full rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+            >
+              <option value="">Select outcome</option>
+              {CONTACT_OUTCOME_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </Field>
           <Field label="Notes">
-            <TextInput value={notes} onChange={setNotes} placeholder="Brief notes from the call" />
+            <Textarea
+              value={notes}
+              onChange={(event) => setNotes(event.target.value)}
+              placeholder="Brief notes from the call"
+              rows={3}
+              disabled={pending}
+            />
           </Field>
+          {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="light" onClick={onClose}>
+            <Button variant="light" onClick={onClose} disabled={pending}>
               Cancel
             </Button>
-            <Button variant="primary" onClick={onClose}>
+            <Button variant="primary" onClick={handleSave} disabled={pending}>
               Save log
             </Button>
           </div>
