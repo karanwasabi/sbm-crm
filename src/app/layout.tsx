@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Poppins } from 'next/font/google';
 import './globals.css';
+import { siteMetadata } from '@/lib/site-metadata';
 import { cn } from '@/lib/utils';
 
 const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
@@ -11,10 +12,7 @@ const poppins = Poppins({
   weight: ['500', '600', '700', '800'],
 });
 
-export const metadata: Metadata = {
-  title: 'SBM CRM',
-  description: 'SBM CRM',
-};
+export const metadata: Metadata = siteMetadata;
 
 export default function RootLayout({
   children,
