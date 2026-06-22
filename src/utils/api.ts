@@ -412,3 +412,144 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     date: row.date,
   }));
 }
+
+export type PromoStatus = 'active' | 'scheduled' | 'ended';
+
+export type PromoListItem = {
+  id: string;
+  code: string;
+  created_at: string;
+  current_term_id?: string | null;
+  discount_type?: string;
+  discount_value?: number;
+  applies_to?: string;
+  program_slug?: string | null;
+  starts_at?: string | null;
+  ends_at?: string | null;
+  max_redemptions?: number | null;
+  redemption_count: number;
+  applied_count: number;
+  redeemed_count: number;
+  status: PromoStatus;
+};
+
+export type PromoTerm = {
+  id: string;
+  discount_type: string;
+  discount_value: number;
+  applies_to: string;
+  program_slug?: string | null;
+  starts_at: string;
+  ends_at?: string | null;
+  max_redemptions?: number | null;
+  redemption_count: number;
+  status: PromoStatus;
+};
+
+export type PromoEvent = {
+  id: string;
+  event_type: string;
+  occurred_at: string;
+  term_id?: string | null;
+  actor_user_id?: string | null;
+  snapshot: Record<string, unknown>;
+};
+
+export type PromoUsage = {
+  id: string;
+  status: string;
+  user_email: string;
+  checkout_session_id: string;
+  applied_at: string;
+  redeemed_at?: string | null;
+  discount_paise?: number | null;
+  term_id: string;
+};
+
+export type PromoDetail = {
+  id: string;
+  code: string;
+  created_at: string;
+  terms: PromoTerm[];
+  events: PromoEvent[];
+  usages: PromoUsage[];
+  current_term?: PromoTerm | null;
+  summary: PromoListItem;
+};
+
+export type CreatePromoInput = {
+  code: string;
+  discount_type?: string;
+  discount_value: number;
+  applies_to?: string;
+  program_slug?: string;
+  starts_at: string;
+  ends_at?: string | null;
+  max_redemptions?: number | null;
+};
+
+export type PromoTermInput = {
+  discount_type?: string;
+  discount_value: number;
+  applies_to?: string;
+  program_slug?: string;
+  starts_at: string;
+  ends_at?: string | null;
+  max_redemptions?: number | null;
+};
+
+async function parseApiError(response: Response, fallback: string): Promise<never> {
+  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+  throw new ApiError(payload?.error ?? fallback, response.status);
+}
+
+export async function listPromoCodes(): Promise<PromoListItem[]> {
+  const response = await requireApiFetch('/admin/promo-codes');
+  if (!response.ok) await parseApiError(response, 'Failed to load promo codes.');
+  const payload = (await response.json()) as { items: PromoListItem[] };
+  return payload.items;
+}
+
+export async function getPromoCode(id: string): Promise<PromoDetail> {
+  const response = await requireApiFetch(`/admin/promo-codes/${encodeURIComponent(id)}`);
+  if (!response.ok) await parseApiError(response, 'Failed to load promo code.');
+  return response.json() as Promise<PromoDetail>;
+}
+
+export async function createPromoCode(input: CreatePromoInput): Promise<{ id: string; code: string }> {
+  const response = await requireApiFetch('/admin/promo-codes', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to create promo code.');
+  return response.json() as Promise<{ id: string; code: string }>;
+}
+
+export async function updatePromoTerm(promoId: string, termId: string, input: PromoTermInput): Promise<PromoTerm> {
+  const response = await requireApiFetch(
+    `/admin/promo-codes/${encodeURIComponent(promoId)}/terms/${encodeURIComponent(termId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }
+  );
+  if (!response.ok) await parseApiError(response, 'Failed to update promo term.');
+  return response.json() as Promise<PromoTerm>;
+}
+
+export async function createPromoTerm(promoId: string, input: PromoTermInput): Promise<PromoTerm> {
+  const response = await requireApiFetch(`/admin/promo-codes/${encodeURIComponent(promoId)}/terms`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to create promo term.');
+  return response.json() as Promise<PromoTerm>;
+}
+
+export async function deactivatePromoCode(promoId: string): Promise<PromoTerm> {
+  const response = await requireApiFetch(`/admin/promo-codes/${encodeURIComponent(promoId)}/deactivate`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to deactivate promo code.');
+  return response.json() as Promise<PromoTerm>;
+}

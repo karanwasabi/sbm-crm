@@ -5,6 +5,7 @@ import {
   MessageSquare,
   RefreshCw,
   Settings,
+  Tag,
   UserPlus,
   type LucideIcon,
 } from 'lucide-react';
@@ -34,7 +35,10 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
   },
   {
     label: 'Setup',
-    items: [{ id: 'settings', href: '/settings', label: 'Settings', icon: Settings }],
+    items: [
+      { id: 'promos', href: '/promos', label: 'Promo Codes', icon: Tag },
+      { id: 'settings', href: '/settings', label: 'Settings', icon: Settings },
+    ],
   },
 ];
 
@@ -45,12 +49,17 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/programs': { title: 'Program Management', subtitle: 'Cohorts, capacity & attendance' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: '28 renewals due in 14 days' },
+  '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
+  '/promos/new': { title: 'New Promo Code', subtitle: 'Create an upfront Take Control offer' },
   '/settings': { title: 'Settings', subtitle: 'Integrations, webhooks & team' },
 };
 
 export function getPageMeta(pathname: string): CrmPageMeta {
   if (pathname.startsWith('/customers/')) {
     return { title: 'Customer 360', subtitle: 'Unified contact profile' };
+  }
+  if (pathname.startsWith('/promos/') && pathname !== '/promos/new') {
+    return { title: 'Promo Detail', subtitle: 'Terms, history & usage' };
   }
   return CRM_PAGES[pathname] ?? { title: 'CRM' };
 }
