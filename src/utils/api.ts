@@ -17,6 +17,28 @@ function getBackendUrl(): string {
   return process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080';
 }
 
+export async function sendLoginOTP(email: string, extraHeaders: HeadersInit = {}): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${getBackendUrl()}/auth/login/otp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...extraHeaders,
+      },
+      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError('Could not reach the backend. Is it running?', 503);
+  }
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? `Failed to send OTP (${response.status})`, response.status);
+  }
+}
+
 async function getAccessToken(): Promise<string | null> {
   const supabase = await createClient();
   const {
