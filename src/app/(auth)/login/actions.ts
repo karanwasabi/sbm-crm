@@ -4,8 +4,11 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { emailOtpInvalidMessage, isValidEmailOtp } from '@/lib/email-otp';
 import { formatUserFacingError } from '@/lib/format-user-error';
-import { ApiError, sendLoginOTP } from '@/utils/api';
+import { hasProduct, PRODUCT_CRM } from '@/lib/access';
+import { CRM_LOGIN_DENIED_MESSAGE, LOGIN_PRODUCT_CRM } from '@/lib/login-access';
+import { ApiError, getMyAccess, sendLoginOTP } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type LoginFocusField = 'email' | 'password' | 'otp';
 
@@ -30,6 +33,28 @@ async function getForwardedHeaders(): Promise<HeadersInit> {
   if (forwarded) out['X-Forwarded-For'] = forwarded;
   if (realIp) out['X-Real-IP'] = realIp;
   return out;
+}
+
+async function rejectLoginWithoutCrmAccess(supabase: SupabaseClient, focusField: LoginFocusField): Promise<LoginState> {
+  await supabase.auth.signOut();
+  const errorFields: LoginFocusField[] = focusField === 'otp' ? ['email', 'otp'] : ['email', 'password'];
+  return {
+    error: CRM_LOGIN_DENIED_MESSAGE,
+    focusField,
+    errorFields,
+  };
+}
+
+async function ensureCrmLoginAccess(supabase: SupabaseClient, focusField: LoginFocusField): Promise<LoginState | null> {
+  try {
+    const access = await getMyAccess();
+    if (!hasProduct(access.products, PRODUCT_CRM)) {
+      return rejectLoginWithoutCrmAccess(supabase, focusField);
+    }
+  } catch {
+    return rejectLoginWithoutCrmAccess(supabase, focusField);
+  }
+  return null;
 }
 
 export async function login(_prevState: LoginState, formData: FormData): Promise<LoginState> {
@@ -63,6 +88,9 @@ export async function login(_prevState: LoginState, formData: FormData): Promise
     };
   }
 
+  const denied = await ensureCrmLoginAccess(supabase, 'password');
+  if (denied) return denied;
+
   redirect('/');
 }
 
@@ -76,7 +104,7 @@ export async function sendLoginOtp(_prevState: SendLoginOtpState, formData: Form
   }
 
   try {
-    await sendLoginOTP(email, await getForwardedHeaders());
+    await sendLoginOTP(email, LOGIN_PRODUCT_CRM, await getForwardedHeaders());
     return { error: null, sent: true, email };
   } catch (err) {
     const message = err instanceof ApiError ? err.message : 'Failed to send OTP.';
@@ -104,6 +132,9 @@ export async function verifyLoginOtp(_prevState: LoginState, formData: FormData)
     return { error: formatUserFacingError(error.message), focusField: 'otp', errorFields: ['otp'] };
   }
 
+  const denied = await ensureCrmLoginAccess(supabase, 'otp');
+  if (denied) return denied;
+
   redirect('/');
 }
 
@@ -114,7 +145,7 @@ export async function resendLoginOtp(email: string): Promise<{ error: string | n
   }
 
   try {
-    await sendLoginOTP(normalizedEmail, await getForwardedHeaders());
+    await sendLoginOTP(normalizedEmail, LOGIN_PRODUCT_CRM, await getForwardedHeaders());
     return { error: null };
   } catch (err) {
     return {

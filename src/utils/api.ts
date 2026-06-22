@@ -1,4 +1,5 @@
 import type { StaffAccessRole } from '@/lib/access';
+import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
 import { createClient } from '@/utils/supabase/server';
@@ -17,7 +18,11 @@ function getBackendUrl(): string {
   return process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080';
 }
 
-export async function sendLoginOTP(email: string, extraHeaders: HeadersInit = {}): Promise<void> {
+export async function sendLoginOTP(
+  email: string,
+  product: typeof LOGIN_PRODUCT_CRM,
+  extraHeaders: HeadersInit = {}
+): Promise<void> {
   let response: Response;
   try {
     response = await fetch(`${getBackendUrl()}/auth/login/otp`, {
@@ -26,7 +31,7 @@ export async function sendLoginOTP(email: string, extraHeaders: HeadersInit = {}
         'Content-Type': 'application/json',
         ...extraHeaders,
       },
-      body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      body: JSON.stringify({ email: email.trim().toLowerCase(), product }),
       cache: 'no-store',
     });
   } catch {
