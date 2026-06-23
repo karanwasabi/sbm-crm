@@ -50,7 +50,6 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: '28 renewals due in 14 days' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
-  '/promos/new': { title: 'New Promo Code', subtitle: 'Create an upfront Take Control offer' },
   '/settings': { title: 'Settings', subtitle: 'Integrations, webhooks & team' },
 };
 
@@ -58,7 +57,7 @@ export function getPageMeta(pathname: string): CrmPageMeta {
   if (pathname.startsWith('/customers/')) {
     return { title: 'Customer 360', subtitle: 'Unified contact profile' };
   }
-  if (pathname.startsWith('/promos/') && pathname !== '/promos/new') {
+  if (pathname.startsWith('/promos/')) {
     return { title: 'Promo Detail', subtitle: 'Terms, history & usage' };
   }
   return CRM_PAGES[pathname] ?? { title: 'CRM' };

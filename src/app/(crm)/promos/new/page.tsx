@@ -1,5 +1,5 @@
-import { PromoCreateView } from '@/components/views/promo-create-view';
+import { redirect } from 'next/navigation';
 
 export default function NewPromoPage() {
-  return <PromoCreateView />;
+  redirect('/promos');
 }

@@ -426,7 +426,6 @@ export type PromoListItem = {
   program_slug?: string | null;
   starts_at?: string | null;
   ends_at?: string | null;
-  max_redemptions?: number | null;
   redemption_count: number;
   applied_count: number;
   redeemed_count: number;
@@ -441,8 +440,9 @@ export type PromoTerm = {
   program_slug?: string | null;
   starts_at: string;
   ends_at?: string | null;
-  max_redemptions?: number | null;
   redemption_count: number;
+  applied_count: number;
+  redeemed_count: number;
   status: PromoStatus;
 };
 
@@ -469,6 +469,7 @@ export type PromoUsage = {
 export type PromoDetail = {
   id: string;
   code: string;
+  description?: string | null;
   created_at: string;
   terms: PromoTerm[];
   events: PromoEvent[];
@@ -479,13 +480,13 @@ export type PromoDetail = {
 
 export type CreatePromoInput = {
   code: string;
+  description?: string | null;
   discount_type?: string;
   discount_value: number;
   applies_to?: string;
   program_slug?: string;
   starts_at: string;
   ends_at?: string | null;
-  max_redemptions?: number | null;
 };
 
 export type PromoTermInput = {
@@ -495,7 +496,6 @@ export type PromoTermInput = {
   program_slug?: string;
   starts_at: string;
   ends_at?: string | null;
-  max_redemptions?: number | null;
 };
 
 async function parseApiError(response: Response, fallback: string): Promise<never> {
@@ -525,18 +525,6 @@ export async function createPromoCode(input: CreatePromoInput): Promise<{ id: st
   return response.json() as Promise<{ id: string; code: string }>;
 }
 
-export async function updatePromoTerm(promoId: string, termId: string, input: PromoTermInput): Promise<PromoTerm> {
-  const response = await requireApiFetch(
-    `/admin/promo-codes/${encodeURIComponent(promoId)}/terms/${encodeURIComponent(termId)}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify(input),
-    }
-  );
-  if (!response.ok) await parseApiError(response, 'Failed to update promo term.');
-  return response.json() as Promise<PromoTerm>;
-}
-
 export async function createPromoTerm(promoId: string, input: PromoTermInput): Promise<PromoTerm> {
   const response = await requireApiFetch(`/admin/promo-codes/${encodeURIComponent(promoId)}/terms`, {
     method: 'POST',
@@ -552,4 +540,23 @@ export async function deactivatePromoCode(promoId: string): Promise<PromoTerm> {
   });
   if (!response.ok) await parseApiError(response, 'Failed to deactivate promo code.');
   return response.json() as Promise<PromoTerm>;
+}
+
+export async function deletePromoCode(promoId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/promo-codes/${encodeURIComponent(promoId)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to delete promo code.');
+}
+
+export async function updatePromoDescription(
+  promoId: string,
+  description: string | null
+): Promise<{ id: string; description?: string | null }> {
+  const response = await requireApiFetch(`/admin/promo-codes/${encodeURIComponent(promoId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ description }),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to update description.');
+  return response.json() as Promise<{ id: string; description?: string | null }>;
 }

@@ -1,7 +1,10 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
-import { createPromoTermAction, deactivatePromoAction, updatePromoTermAction } from '@/app/(crm)/promos/actions';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { createPromoTermAction, deactivatePromoAction, deletePromoAction } from '@/app/(crm)/promos/actions';
 import {
   DataTable,
   DataTableBody,
@@ -10,32 +13,30 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
-import { PromoDiscountTypeField } from '@/components/promos/promo-discount-type-field';
-import { PromoDiscountValueField } from '@/components/promos/promo-discount-value-field';
+import { PromoNewTermDialog } from '@/components/promos/promo-new-term-dialog';
+import {
+  PromoOfferDisplay,
+  PromoUsageCountCell,
+  PromoUsageCountHeader,
+  PromoWindowDisplay,
+} from '@/components/promos/promo-display-cells';
+import { PromoSummaryCard } from '@/components/promos/promo-summary-card';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Field } from '@/components/ui/field';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
-import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
-import {
-  formatDateTimeIST,
-  isoToISTDateInput,
-  isoToISTTimeInput,
-  istLocalInputToRFC3339,
-  splitISTInputDefaults,
-} from '@/lib/ist-datetime';
-import {
-  formatPromoDiscount,
-  formatPromoDiscountFromSnapshot,
-  promoDiscountFromFormValue,
-  promoDiscountToFormValue,
-  promoDiscountTypeLabel,
-  type PromoDiscountType,
-  validatePromoDiscountFormValue,
-} from '@/lib/promo-discount';
-import type { PromoDetail } from '@/utils/api';
+import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { formatDateTimeIST } from '@/lib/ist-datetime';
+import type { PromoDetail, PromoTerm, PromoTermInput } from '@/utils/api';
 
 type PromoDetailViewProps = {
   promo: PromoDetail;
@@ -48,84 +49,58 @@ function formatInrFromPaise(paise: number | null | undefined): string {
   );
 }
 
+function statusTone(status: string) {
+  switch (status) {
+    case 'active':
+      return 'success' as const;
+    case 'scheduled':
+      return 'warn' as const;
+    default:
+      return 'neutral' as const;
+  }
+}
+
+function promoCount(value: number | null | undefined): number {
+  return value ?? 0;
+}
+
+function PromoHistoryTableRow({ term }: { term: PromoTerm }) {
+  return (
+    <DataTableRow>
+      <DataTableCell>
+        <PromoOfferDisplay discountType={term.discount_type} discountValue={term.discount_value} />
+      </DataTableCell>
+      <DataTableCell>
+        <PromoWindowDisplay startsAt={term.starts_at} endsAt={term.ends_at} />
+      </DataTableCell>
+      <DataTableCell>
+        <Pill tone={statusTone(term.status)}>{term.status}</Pill>
+      </DataTableCell>
+      <PromoUsageCountCell className="w-28 min-w-28">{promoCount(term.applied_count)}</PromoUsageCountCell>
+      <PromoUsageCountCell className="w-28 min-w-28">{promoCount(term.redeemed_count)}</PromoUsageCountCell>
+    </DataTableRow>
+  );
+}
+
 export function PromoDetailView({ promo }: PromoDetailViewProps) {
+  const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showNewTermDialog, setShowNewTermDialog] = useState(false);
   const current = promo.current_term ?? promo.terms[0];
+  const pastTerms = promo.terms.filter((term) => term.id !== current?.id);
   const usageCount = promo.usages.length;
-  const termUsageCount = useMemo(
-    () => (current ? promo.usages.filter((usage) => usage.term_id === current.id).length : 0),
-    [current, promo.usages]
-  );
-  const canEditInPlace = termUsageCount === 0 && current != null;
+  const canDelete = promo.summary.status === 'ended' && usageCount === 0;
+  const isActive = promo.summary.status === 'active' || promo.summary.status === 'scheduled';
 
-  const defaults = splitISTInputDefaults();
-  const [discountType, setDiscountType] = useState<PromoDiscountType>(
-    current?.discount_type === 'fixed' ? 'fixed' : 'percent'
-  );
-  const [discountValue, setDiscountValue] = useState(
-    promoDiscountToFormValue(current?.discount_type, current?.discount_value) || '10'
-  );
-  const [startDate, setStartDate] = useState(isoToISTDateInput(current?.starts_at) || defaults.date);
-  const [startTime, setStartTime] = useState(isoToISTTimeInput(current?.starts_at) || defaults.time);
-  const [endDate, setEndDate] = useState(isoToISTDateInput(current?.ends_at));
-  const [endTime, setEndTime] = useState(isoToISTTimeInput(current?.ends_at));
-  const [maxRedemptions, setMaxRedemptions] = useState(
-    current?.max_redemptions != null ? String(current.max_redemptions) : ''
-  );
-  const [showNewTerm, setShowNewTerm] = useState(false);
-  const canEditDiscountFields = canEditInPlace || showNewTerm;
-
-  const handleDiscountTypeChange = (next: PromoDiscountType) => {
-    setDiscountType(next);
-    setDiscountValue(next === 'fixed' ? '1000' : '10');
-  };
-
-  const buildTermInput = () => {
-    const formValue = Number(discountValue);
-    return {
-      discount_type: discountType,
-      discount_value: promoDiscountFromFormValue(discountType, formValue),
-      applies_to: current?.applies_to ?? 'upfront',
-      program_slug: current?.program_slug ?? 'take-control',
-      starts_at: istLocalInputToRFC3339(startDate, startTime),
-      ends_at: endDate.trim() ? istLocalInputToRFC3339(endDate, endTime || '23:59') : null,
-      max_redemptions: maxRedemptions.trim() ? Number(maxRedemptions) : null,
-    };
-  };
-
-  const handleSave = () => {
-    if (!current) return;
-    const formValue = Number(discountValue);
-    const validationError = validatePromoDiscountFormValue(discountType, formValue);
-    if (validationError) {
-      toast({ message: validationError, variant: 'error' });
-      return;
-    }
-
-    const input = buildTermInput();
-    if (!Number.isFinite(input.discount_value) || input.discount_value <= 0) {
-      toast({ message: 'Discount must be positive.', variant: 'error' });
-      return;
-    }
-
-    startTransition(async () => {
-      try {
-        if (canEditInPlace && !showNewTerm) {
-          await updatePromoTermAction(promo.id, current.id, input);
-          toast({ message: 'Promo term updated.', variant: 'success' });
-        } else {
-          await createPromoTermAction(promo.id, input);
-          toast({ message: 'New promo term created.', variant: 'success' });
-          setShowNewTerm(false);
-        }
-      } catch (error) {
-        toast({
-          message: error instanceof Error ? error.message : 'Failed to save promo term.',
-          variant: 'error',
-        });
-      }
+  const handleCreateTerm = async (input: PromoTermInput) => {
+    await createPromoTermAction(promo.id, input);
+    toast({
+      message: promo.summary.status === 'ended' ? `${promo.code} is active again.` : 'New promo term created.',
+      variant: 'success',
     });
+    router.refresh();
   };
 
   const handleDeactivate = () => {
@@ -133,6 +108,8 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
       try {
         await deactivatePromoAction(promo.id);
         toast({ message: 'Promo deactivated.', variant: 'success' });
+        setShowDeleteConfirm(false);
+        router.refresh();
       } catch (error) {
         toast({
           message: error instanceof Error ? error.message : 'Failed to deactivate promo.',
@@ -142,217 +119,149 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
     });
   };
 
+  const handleDelete = () => {
+    startTransition(async () => {
+      try {
+        await deletePromoAction(promo.id);
+        setShowDeleteConfirm(false);
+        toast({ message: `Deleted promo ${promo.code}.`, variant: 'success' });
+        router.push('/promos');
+        router.refresh();
+      } catch (error) {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to delete promo.',
+          variant: 'error',
+        });
+      }
+    });
+  };
+
   return (
-    <div className="space-y-5">
-      <Card className="p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <SectionHead title={promo.code} subtitle={`Created ${formatDateTimeIST(promo.created_at)}`} />
-            <div className="mt-2 flex flex-wrap gap-2">
-              <Pill tone={promo.summary.status === 'active' ? 'success' : 'neutral'}>{promo.summary.status}</Pill>
-              {current ? (
-                <Pill tone="brand">{formatPromoDiscount(current.discount_type, current.discount_value)}</Pill>
-              ) : null}
-              {current ? <Pill tone="neutral">{promoDiscountTypeLabel(current.discount_type)}</Pill> : null}
-              <Pill tone="brand">{promo.summary.applied_count} applied</Pill>
-              <Pill tone="deep">{promo.summary.redeemed_count} redeemed</Pill>
-            </div>
-          </div>
-          {promo.summary.status === 'active' || promo.summary.status === 'scheduled' ? (
-            <Button type="button" variant="light" size="md" disabled={pending} onClick={handleDeactivate}>
-              Deactivate
-            </Button>
-          ) : null}
-        </div>
-      </Card>
+    <CrmPageLayout className="mx-auto max-w-6xl">
+      <div className="space-y-5">
+        <Link
+          href="/promos"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 no-underline hover:text-slate-700"
+        >
+          <ArrowLeft size={16} />
+          Back to promo codes
+        </Link>
 
-      <Card className="p-5">
-        <SectionHead
-          title="Current offer"
-          subtitle={
-            canEditInPlace && !showNewTerm
-              ? 'No usages yet — you can edit in place.'
-              : 'Usages exist — start a new term to change the offer.'
+        <PromoNewTermDialog
+          open={showNewTermDialog}
+          onOpenChange={setShowNewTermDialog}
+          sourceTerm={current}
+          onSubmit={handleCreateTerm}
+          description={
+            promo.summary.status === 'ended'
+              ? 'Reactivate this promo code with a new term. You can adjust the offer before confirming.'
+              : 'Create a new term with an updated offer. The current term will be closed automatically.'
           }
+          confirmLabel={promo.summary.status === 'ended' ? 'Activate term' : 'Create term'}
         />
-        <div className="mt-4 grid gap-5 lg:grid-cols-2 lg:items-start">
-          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-            <p className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Discount</p>
-            <div className="mt-3 space-y-4">
-              {canEditDiscountFields ? (
-                <PromoDiscountTypeField value={discountType} onChange={handleDiscountTypeChange} />
-              ) : (
-                <Field label="Discount type">
-                  <p className="text-sm font-medium text-slate-700">{promoDiscountTypeLabel(current?.discount_type)}</p>
-                </Field>
-              )}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-                <PromoDiscountValueField
-                  discountType={
-                    canEditDiscountFields ? discountType : current?.discount_type === 'fixed' ? 'fixed' : 'percent'
-                  }
-                  value={discountValue}
-                  onChange={setDiscountValue}
-                  disabled={!canEditDiscountFields}
-                  className="max-w-44 lg:max-w-none"
-                />
-                <Field label="Max redemptions (optional)">
-                  <TextInput
-                    value={maxRedemptions}
-                    onChange={setMaxRedemptions}
-                    inputMode="numeric"
-                    disabled={!canEditDiscountFields}
-                    placeholder="Unlimited"
-                    className="max-w-44 lg:max-w-none"
-                  />
-                </Field>
-              </div>
+
+        <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+            <DialogHeader className="gap-0 border-b border-slate-100 px-6 py-5 pr-12">
+              <DialogTitle className="text-lg font-bold text-slate-900">Delete promo code?</DialogTitle>
+              <DialogDescription className="sr-only">Confirm permanent deletion of this promo code</DialogDescription>
+            </DialogHeader>
+            <div className="px-6 py-5">
+              <p className="text-sm leading-relaxed text-slate-600">
+                Permanently delete <span className="font-semibold text-slate-800">{promo.code}</span>? This action
+                cannot be undone.
+              </p>
             </div>
-          </div>
+            <DialogFooter className="mx-0 mb-0 border-t border-slate-100 bg-canvas-cool/60 px-6 py-4 sm:justify-end">
+              <Button
+                type="button"
+                variant="light"
+                size="sm"
+                disabled={pending}
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </Button>
+              <Button type="button" variant="danger" size="sm" disabled={pending} onClick={handleDelete}>
+                {pending ? 'Deleting…' : 'Delete permanently'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-          <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
-            <p className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Schedule (IST)</p>
-            <div className="mt-3 space-y-4">
-              <Field label="Start">
-                <div className="flex gap-2">
-                  <TextInput
-                    type="date"
-                    value={startDate}
-                    onChange={setStartDate}
-                    disabled={!canEditDiscountFields}
-                    className="min-w-0 flex-1"
-                  />
-                  <TextInput
-                    type="time"
-                    value={startTime}
-                    onChange={setStartTime}
-                    disabled={!canEditDiscountFields}
-                    className="w-34 min-w-0 shrink-0"
-                  />
-                </div>
-              </Field>
-              <Field label="End (optional)" hint="Leave blank for open-ended promos.">
-                <div className="flex gap-2">
-                  <TextInput
-                    type="date"
-                    value={endDate}
-                    onChange={setEndDate}
-                    disabled={!canEditDiscountFields}
-                    className="min-w-0 flex-1"
-                  />
-                  <TextInput
-                    type="time"
-                    value={endTime}
-                    onChange={setEndTime}
-                    disabled={!canEditDiscountFields}
-                    className="w-34 min-w-0 shrink-0"
-                  />
-                </div>
-              </Field>
+        <PromoSummaryCard
+          promo={promo}
+          current={current}
+          pending={pending}
+          onStartNewTerm={() => setShowNewTermDialog(true)}
+          onDeactivate={handleDeactivate}
+          onDelete={() => setShowDeleteConfirm(true)}
+          canDelete={canDelete}
+          isActive={isActive}
+        />
+
+        {pastTerms.length > 0 ? (
+          <Card className="p-5">
+            <SectionHead title="History" subtitle="Previous offer terms and usage." />
+            <div className="mt-6 overflow-hidden rounded-xl border border-slate-100">
+              <DataTable>
+                <DataTableHead>
+                  <DataTableHeaderCell>Offer</DataTableHeaderCell>
+                  <DataTableHeaderCell>Window (IST)</DataTableHeaderCell>
+                  <DataTableHeaderCell>Status</DataTableHeaderCell>
+                  <PromoUsageCountHeader className="w-28 min-w-28">Applied</PromoUsageCountHeader>
+                  <PromoUsageCountHeader className="w-28 min-w-28">Redeemed</PromoUsageCountHeader>
+                </DataTableHead>
+                <DataTableBody>
+                  {pastTerms.map((term) => (
+                    <PromoHistoryTableRow key={term.id} term={term} />
+                  ))}
+                </DataTableBody>
+              </DataTable>
             </div>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {canEditInPlace && !showNewTerm ? (
-            <Button type="button" variant="primary" size="md" disabled={pending} onClick={handleSave}>
-              Save changes
-            </Button>
-          ) : (
-            <>
-              {!showNewTerm ? (
-                <Button
-                  type="button"
-                  variant="primary"
-                  size="md"
-                  disabled={pending}
-                  onClick={() => setShowNewTerm(true)}
-                >
-                  Start new term
-                </Button>
-              ) : (
-                <>
-                  <Button type="button" variant="primary" size="md" disabled={pending} onClick={handleSave}>
-                    Create new term
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="light"
-                    size="md"
-                    disabled={pending}
-                    onClick={() => setShowNewTerm(false)}
-                  >
-                    Cancel
-                  </Button>
-                </>
-              )}
-            </>
-          )}
-        </div>
-      </Card>
+          </Card>
+        ) : null}
 
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <SectionHead title="History" subtitle="Terms and audit events" />
-        </div>
-        <DataTable>
-          <DataTableHead>
-            <DataTableHeaderCell>Type</DataTableHeaderCell>
-            <DataTableHeaderCell>When (IST)</DataTableHeaderCell>
-            <DataTableHeaderCell>Details</DataTableHeaderCell>
-          </DataTableHead>
-          <DataTableBody>
-            {promo.events.map((event) => (
-              <DataTableRow key={event.id}>
-                <DataTableCell className="font-medium capitalize">{event.event_type.replace('_', ' ')}</DataTableCell>
-                <DataTableCell className="text-xs">{formatDateTimeIST(event.occurred_at)}</DataTableCell>
-                <DataTableCell className="text-xs text-slate-600">
-                  {formatPromoDiscountFromSnapshot(event.snapshot)}
-                </DataTableCell>
-              </DataTableRow>
-            ))}
-          </DataTableBody>
-        </DataTable>
-      </Card>
-
-      <Card className="overflow-hidden p-0">
-        <div className="border-b border-slate-100 px-5 py-4">
-          <SectionHead title="Usage" subtitle={`${usageCount} checkout applications`} />
-        </div>
-        <DataTable>
-          <DataTableHead>
-            <DataTableHeaderCell>Member</DataTableHeaderCell>
-            <DataTableHeaderCell>Status</DataTableHeaderCell>
-            <DataTableHeaderCell>Applied (IST)</DataTableHeaderCell>
-            <DataTableHeaderCell>Redeemed (IST)</DataTableHeaderCell>
-            <DataTableHeaderCell>Discount</DataTableHeaderCell>
-          </DataTableHead>
-          <DataTableBody>
-            {promo.usages.length === 0 ? (
-              <DataTableRow>
-                <DataTableCell colSpan={5} className="py-8 text-center text-sm text-slate-500">
-                  No usages yet.
-                </DataTableCell>
-              </DataTableRow>
-            ) : (
-              promo.usages.map((usage) => (
-                <DataTableRow key={usage.id}>
-                  <DataTableCell>{usage.user_email || '—'}</DataTableCell>
-                  <DataTableCell>
-                    <Pill
-                      tone={usage.status === 'redeemed' ? 'success' : usage.status === 'applied' ? 'warn' : 'neutral'}
-                    >
-                      {usage.status}
-                    </Pill>
-                  </DataTableCell>
-                  <DataTableCell className="text-xs">{formatDateTimeIST(usage.applied_at)}</DataTableCell>
-                  <DataTableCell className="text-xs">{formatDateTimeIST(usage.redeemed_at)}</DataTableCell>
-                  <DataTableCell>{formatInrFromPaise(usage.discount_paise)}</DataTableCell>
-                </DataTableRow>
-              ))
-            )}
-          </DataTableBody>
-        </DataTable>
-      </Card>
-    </div>
+        {usageCount > 0 ? (
+          <Card className="p-5">
+            <SectionHead title="Checkout usage" subtitle="Individual applications linked to a term." />
+            <div className="mt-6 overflow-hidden rounded-xl border border-slate-100">
+              <DataTable>
+                <DataTableHead>
+                  <DataTableHeaderCell>Member</DataTableHeaderCell>
+                  <DataTableHeaderCell>Status</DataTableHeaderCell>
+                  <DataTableHeaderCell>Applied</DataTableHeaderCell>
+                  <DataTableHeaderCell>Redeemed</DataTableHeaderCell>
+                  <DataTableHeaderCell className="text-right">Discount</DataTableHeaderCell>
+                </DataTableHead>
+                <DataTableBody>
+                  {promo.usages.map((usage) => (
+                    <DataTableRow key={usage.id}>
+                      <DataTableCell>{usage.user_email || '—'}</DataTableCell>
+                      <DataTableCell>
+                        <Pill
+                          tone={
+                            usage.status === 'redeemed' ? 'success' : usage.status === 'applied' ? 'warn' : 'neutral'
+                          }
+                        >
+                          {usage.status}
+                        </Pill>
+                      </DataTableCell>
+                      <DataTableCell className="text-xs text-slate-600">
+                        {formatDateTimeIST(usage.applied_at)}
+                      </DataTableCell>
+                      <DataTableCell className="text-xs text-slate-600">
+                        {formatDateTimeIST(usage.redeemed_at)}
+                      </DataTableCell>
+                      <DataTableCell className="text-right">{formatInrFromPaise(usage.discount_paise)}</DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            </div>
+          </Card>
+        ) : null}
+      </div>
+    </CrmPageLayout>
   );
 }

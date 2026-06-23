@@ -4,12 +4,13 @@ import { cn } from '@/lib/cn';
 type DataTableProps = {
   children: ReactNode;
   className?: string;
+  tableClassName?: string;
 };
 
-export function DataTable({ children, className }: DataTableProps) {
+export function DataTable({ children, className, tableClassName }: DataTableProps) {
   return (
     <div className={cn('overflow-x-auto', className)}>
-      <table className="w-full border-collapse">{children}</table>
+      <table className={cn('w-full border-collapse', tableClassName)}>{children}</table>
     </div>
   );
 }
