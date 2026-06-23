@@ -8,21 +8,32 @@ import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
-import { MOCK_API_KEYS, MOCK_SETTINGS_INTEGRATIONS, MOCK_WEBHOOK_URL } from '@/lib/mock/settings';
+import { buildMetaIntegrationCard } from '@/lib/meta-integration';
 import { TeamManagement } from '@/components/views/team-management';
+import type { MetaIntegrationStatus } from '@/types/crm';
 import type { StaffList } from '@/utils/api';
 
-const INTEGRATION_ICONS: Record<string, typeof Globe> = {
-  meta: Share2,
-  razorpay: Globe,
-  convonite: Globe,
-  resend: Globe,
-  google: Globe,
-  zoom: Globe,
+type SettingsViewProps = {
+  staff: StaffList;
+  currentUserId: string;
+  integrationStatus: MetaIntegrationStatus;
 };
 
-export function SettingsView({ staff, currentUserId }: { staff: StaffList; currentUserId: string }) {
+export function SettingsView({ staff, currentUserId, integrationStatus }: SettingsViewProps) {
   const [activeTab, setActiveTab] = useState('Integrations');
+  const [copied, setCopied] = useState(false);
+
+  const metaCard = buildMetaIntegrationCard(integrationStatus);
+
+  const handleCopyWebhook = async () => {
+    try {
+      await navigator.clipboard.writeText(integrationStatus.webhookUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
     <CrmPageLayout>
@@ -30,52 +41,52 @@ export function SettingsView({ staff, currentUserId }: { staff: StaffList; curre
 
       {activeTab === 'Integrations' && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {MOCK_SETTINGS_INTEGRATIONS.map((integration) => (
-            <IntegrationCard
-              key={integration.id}
-              name={integration.name}
-              subtitle={integration.subtitle}
-              icon={INTEGRATION_ICONS[integration.id] ?? Globe}
-              color={integration.color}
-              status={integration.status}
-            />
-          ))}
+          <IntegrationCard
+            name={metaCard.name}
+            subtitle={metaCard.subtitle}
+            icon={Share2}
+            color={metaCard.color}
+            status={metaCard.status}
+          />
+          <IntegrationCard
+            name="Razorpay"
+            subtitle="Payments + subscriptions"
+            icon={Globe}
+            color="#0EA5E9"
+            status="connected"
+          />
         </div>
       )}
 
       {activeTab === 'Webhooks' && (
         <div className="flex flex-col gap-4">
           <Card>
-            <SectionHead title="Lead ingestion endpoint" subtitle="POST JSON payloads to create leads" />
+            <SectionHead
+              title="Lead ingestion endpoint"
+              subtitle="POST JSON payloads to create leads (LeadSync Phase 2)"
+            />
             <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3">
-              <code className="flex-1 text-xs text-slate-700">{MOCK_WEBHOOK_URL}</code>
-              <Button variant="light" size="sm" leftIcon={<Copy className="h-3.5 w-3.5" />}>
-                Copy
+              <code className="flex-1 text-xs break-all text-slate-700">{integrationStatus.webhookUrl}</code>
+              <Button variant="light" size="sm" leftIcon={<Copy className="h-3.5 w-3.5" />} onClick={handleCopyWebhook}>
+                {copied ? 'Copied' : 'Copy'}
               </Button>
             </div>
+            <p className="mt-2 text-xs text-slate-500">
+              {integrationStatus.webhookConfigured
+                ? 'Webhook auth is configured on the backend.'
+                : 'Set LEAD_INGESTION_API_KEY on the backend before connecting LeadSync.'}
+            </p>
           </Card>
           <Card>
-            <SectionHead title="API key vault" subtitle="Rotate keys from this panel" />
-            <div className="flex flex-col gap-2">
-              {MOCK_API_KEYS.map((apiKey) => (
-                <div
-                  key={apiKey.id}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-3"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Key className="h-4 w-4 text-brand" />
-                    <div>
-                      <div className="text-[13px] font-semibold text-slate-800">{apiKey.label}</div>
-                      <div className="font-mono text-[11px] text-slate-500">
-                        {apiKey.masked ? apiKey.key.replace(/x+/, '••••••••') : apiKey.key}
-                      </div>
-                    </div>
-                  </div>
-                  <Button variant="light" size="sm">
-                    Reveal
-                  </Button>
+            <SectionHead title="API key" subtitle="Send as Authorization: Bearer … from LeadSync" />
+            <div className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-3">
+              <div className="flex items-center gap-2.5">
+                <Key className="h-4 w-4 text-brand" />
+                <div>
+                  <div className="text-[13px] font-semibold text-slate-800">Lead ingestion API key</div>
+                  <div className="font-mono text-[11px] text-slate-500">Managed in backend environment</div>
                 </div>
-              ))}
+              </div>
             </div>
           </Card>
         </div>

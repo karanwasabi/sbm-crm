@@ -49,39 +49,49 @@ export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
           ))}
         </DataTableHead>
         <DataTableBody>
-          {rows.map((row) => (
-            <DataTableRow key={row.source}>
-              <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
-              <DataTableCell>
-                <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>
-              </DataTableCell>
-              <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
-              <DataTableCell className="font-bold tabular-nums">{row.paid}</DataTableCell>
-              <DataTableCell>
-                <div className="flex items-center gap-2">
-                  <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
-                    <div
-                      className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
-                      style={{ width: `${row.cvr * 200}%` }}
-                    />
-                  </div>
-                  <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
-                </div>
-              </DataTableCell>
-              <DataTableCell
-                className={
-                  row.cac > 500 ? 'font-semibold text-danger-press tabular-nums' : 'font-semibold tabular-nums'
-                }
-              >
-                {row.cac ? `₹${row.cac}` : '—'}
-              </DataTableCell>
-              <DataTableCell className="text-right">
-                <Button variant="light" size="sm">
-                  View
-                </Button>
+          {rows.length === 0 ? (
+            <DataTableRow>
+              <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
+                No attributed leads yet. Import Meta CSV or connect LeadSync.
               </DataTableCell>
             </DataTableRow>
-          ))}
+          ) : (
+            rows.map((row) => (
+              <DataTableRow key={row.source}>
+                <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
+                <DataTableCell>
+                  <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>
+                </DataTableCell>
+                <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
+                <DataTableCell className="font-bold tabular-nums">{row.paid}</DataTableCell>
+                <DataTableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
+                        style={{ width: `${row.cvr * 200}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
+                  </div>
+                </DataTableCell>
+                <DataTableCell
+                  className={
+                    row.cac != null && row.cac > 500
+                      ? 'font-semibold text-danger-press tabular-nums'
+                      : 'font-semibold tabular-nums'
+                  }
+                >
+                  {row.cac != null ? `₹${row.cac}` : '—'}
+                </DataTableCell>
+                <DataTableCell className="text-right">
+                  <Button variant="light" size="sm">
+                    View
+                  </Button>
+                </DataTableCell>
+              </DataTableRow>
+            ))
+          )}
         </DataTableBody>
       </DataTable>
     </Card>

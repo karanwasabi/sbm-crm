@@ -232,6 +232,14 @@ type ApiLeadResponse = {
     amount_paise: number;
   } | null;
   timeline?: import('@/types/crm').TimelineEvent[];
+  attribution?: {
+    source: string;
+    integration: string | null;
+    campaign: string | null;
+    form_id: string | null;
+    platform: string | null;
+    external_id: string | null;
+  } | null;
 };
 
 function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
@@ -312,6 +320,16 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
           programName: row.payment_pending.program_name,
           cohortName: row.payment_pending.cohort_name,
           amountPaise: row.payment_pending.amount_paise,
+        }
+      : null,
+    attribution: row.attribution
+      ? {
+          source: row.attribution.source,
+          integration: row.attribution.integration,
+          campaign: row.attribution.campaign,
+          formId: row.attribution.form_id,
+          platform: row.attribution.platform,
+          externalId: row.attribution.external_id,
         }
       : null,
     timeline: row.timeline ?? [],
@@ -762,4 +780,120 @@ export async function listRenewals(bucket?: string): Promise<import('@/types/crm
   if (!response.ok) throw new ApiError('Failed to load renewals.', response.status);
   const payload = (await response.json()) as ApiRenewalRowResponse[];
   return payload.map(mapRenewalRow);
+}
+
+export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').MetaIntegrationStatus> {
+  const response = await requireApiFetch('/admin/integrations/meta/status');
+  if (!response.ok) {
+    throw new ApiError('Failed to load integration status.', response.status);
+  }
+  const payload = (await response.json()) as {
+    connected: boolean;
+    provider: string | null;
+    webhook_configured: boolean;
+    webhook_url: string;
+    leads_today: number;
+    last_sync_at: string | null;
+    meta_leads_total: number;
+    meta_leads_7d: number;
+  };
+  return {
+    connected: payload.connected,
+    provider: payload.provider,
+    webhookConfigured: payload.webhook_configured,
+    webhookUrl: payload.webhook_url,
+    leadsToday: payload.leads_today,
+    lastSyncAt: payload.last_sync_at,
+    metaLeadsTotal: payload.meta_leads_total,
+    metaLeads7d: payload.meta_leads_7d,
+  };
+}
+
+export async function getMetaInboundLeads(limit = 20): Promise<import('@/types/crm').InboundLead[]> {
+  const response = await requireApiFetch(`/admin/integrations/meta/inbound?limit=${limit}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load inbound leads.', response.status);
+  }
+  const rows = (await response.json()) as Array<{
+    id: string;
+    name: string;
+    source: string;
+    medium: string;
+    campaign: string;
+    time: string;
+  }>;
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    source: row.source,
+    medium: row.medium,
+    campaign: row.campaign || '—',
+    time: row.time,
+  }));
+}
+
+export async function getSourcePerformance(): Promise<import('@/types/crm').SourcePerformanceRow[]> {
+  const response = await requireApiFetch('/admin/analytics/source-performance');
+  if (!response.ok) {
+    throw new ApiError('Failed to load source performance.', response.status);
+  }
+  const payload = (await response.json()) as {
+    rows: Array<{
+      source: string;
+      medium: import('@/types/crm').LeadMedium;
+      leads: number;
+      paid: number;
+      cvr: number;
+      cac: number | null;
+    }>;
+  };
+  return payload.rows.map((row) => ({
+    source: row.source,
+    medium: row.medium,
+    leads: row.leads,
+    paid: row.paid,
+    cvr: row.cvr,
+    cac: row.cac,
+  }));
+}
+
+export async function importMetaLeadsCSV(file: File): Promise<import('@/types/crm').MetaCSVImportResult> {
+  const token = await getAccessToken();
+  if (!token) {
+    throw new ApiError('Not authenticated.', 401);
+  }
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  let response: Response;
+  try {
+    response = await fetch(`${getBackendUrl()}/admin/leads/import-meta-csv`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      cache: 'no-store',
+    });
+  } catch {
+    throw new ApiError('Could not reach the backend. Is it running?', 503);
+  }
+
+  const payload = (await response.json().catch(() => null)) as {
+    created?: number;
+    skipped?: number;
+    duplicate?: number;
+    errors?: string[];
+    error?: string;
+  } | null;
+
+  if (!response.ok) {
+    throw new ApiError(payload?.error ?? 'Failed to import leads.', response.status);
+  }
+
+  return {
+    created: payload?.created ?? 0,
+    skipped: payload?.skipped ?? 0,
+    duplicate: payload?.duplicate ?? 0,
+    errors: payload?.errors ?? [],
+  };
 }

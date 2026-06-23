@@ -1,6 +1,6 @@
 'use client';
 
-import { Globe, MessageCircle, QrCode, Share2 } from 'lucide-react';
+import { Globe, MessageCircle, Share2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import { createManualLead } from '@/app/(crm)/leads/actions';
@@ -19,16 +19,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { useLocationFields } from '@/hooks/use-location-fields';
 import { isManualLeadSource } from '@/lib/lead-form';
+import { buildMetaIntegrationCard } from '@/lib/meta-integration';
 import { toTitleCase } from '@/lib/title-case';
-import { MOCK_INBOUND_LOG, MOCK_INTEGRATIONS } from '@/lib/mock/lead-intake';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
+import type { InboundLead, MetaIntegrationStatus } from '@/types/crm';
 import type { Country } from '@/types/reference';
 
 const INTEGRATION_ICONS = {
   meta: Share2,
   whatsapp: MessageCircle,
   website: Globe,
-  google: Globe,
 };
 
 const EMPTY_FORM = {
@@ -45,15 +45,19 @@ const EMPTY_FORM = {
 
 type LeadIntakeViewProps = {
   countries: Country[];
+  integrationStatus: MetaIntegrationStatus;
+  inboundLeads: InboundLead[];
 };
 
-export function LeadIntakeView({ countries }: LeadIntakeViewProps) {
+export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: LeadIntakeViewProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [phoneSyncToken, setPhoneSyncToken] = useState(0);
+
+  const metaIntegration = buildMetaIntegrationCard(integrationStatus);
 
   const { citySuggestions, loadingCities, handleCountryChange, handleCitySuggestion } = useLocationFields({
     countries,
@@ -217,44 +221,18 @@ export function LeadIntakeView({ countries }: LeadIntakeViewProps) {
           <Card>
             <SectionHead title="Integration health" subtitle="Inbound sources" />
             <div className="flex flex-col gap-2.5">
-              {MOCK_INTEGRATIONS.map((integration) => {
-                const Icon = INTEGRATION_ICONS[integration.id as keyof typeof INTEGRATION_ICONS] ?? Globe;
-                return (
-                  <IntegrationCard
-                    key={integration.id}
-                    name={integration.name}
-                    subtitle={integration.subtitle}
-                    icon={Icon}
-                    color={integration.color}
-                    status={integration.status}
-                  />
-                );
-              })}
+              <IntegrationCard
+                name={metaIntegration.name}
+                subtitle={metaIntegration.subtitle}
+                icon={INTEGRATION_ICONS.meta}
+                color={metaIntegration.color}
+                status={metaIntegration.status}
+              />
             </div>
           </Card>
-          <InboundLog leads={MOCK_INBOUND_LOG} />
+          <InboundLog leads={inboundLeads} />
         </div>
       </div>
-
-      <Card>
-        <SectionHead
-          title="QR code generator"
-          subtitle="Link to landing page for event capture"
-          right={<QrCode className="h-5 w-5 text-brand" />}
-        />
-        <div className="flex items-center gap-6">
-          <div className="flex h-28 w-28 items-center justify-center rounded-2xl border border-slate-200 bg-canvas-cool">
-            <QrCode className="h-16 w-16 text-slate-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-800">Take Control enquiry page</p>
-            <p className="mt-1 text-xs text-slate-500">slowburnmethod.com/enquire?utm_source=event</p>
-            <Button variant="light" size="sm" className="mt-3">
-              Download PNG
-            </Button>
-          </div>
-        </div>
-      </Card>
     </CrmPageLayout>
   );
 }

@@ -74,6 +74,7 @@ export type LeadDetail = Lead & {
   memberUserId: string | null;
   canMarkLost: boolean;
   paymentPending: PaymentPending | null;
+  attribution: LeadAttribution | null;
   timeline: TimelineEvent[];
 };
 
@@ -132,7 +133,34 @@ export type SourcePerformanceRow = {
   leads: number;
   paid: number;
   cvr: number;
-  cac: number;
+  cac: number | null;
+};
+
+export type MetaIntegrationStatus = {
+  connected: boolean;
+  provider: string | null;
+  webhookConfigured: boolean;
+  webhookUrl: string;
+  leadsToday: number;
+  lastSyncAt: string | null;
+  metaLeadsTotal: number;
+  metaLeads7d: number;
+};
+
+export type LeadAttribution = {
+  source: string;
+  integration: string | null;
+  campaign: string | null;
+  formId: string | null;
+  platform: string | null;
+  externalId: string | null;
+};
+
+export type MetaCSVImportResult = {
+  created: number;
+  skipped: number;
+  duplicate: number;
+  errors: string[];
 };
 
 export type RevenueWeek = {

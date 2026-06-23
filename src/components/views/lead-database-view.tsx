@@ -1,7 +1,8 @@
 'use client';
 
 import { Download, Send, Upload } from 'lucide-react';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { FilterBar } from '@/components/crm/filter-bar';
 import {
   DataTable,
@@ -11,6 +12,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { MetaCsvImportDialog } from '@/components/leads/meta-csv-import-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
 import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
@@ -28,7 +30,9 @@ type LeadDatabaseViewProps = {
 };
 
 export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseViewProps) {
+  const router = useRouter();
   const { setLeadTotal } = useCrmLeadSummary();
+  const [importOpen, setImportOpen] = useState(false);
   const stageOptions = buildStageFilterOptions(summary);
 
   useEffect(() => {
@@ -46,13 +50,24 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
           <span className="ml-1.5">0 selected</span>
         </p>
         <div className="flex-1" />
-        <Button variant="light" size="sm" leftIcon={<Upload className="h-3.5 w-3.5" />}>
-          Import CSV (Zoho)
+        <Button
+          variant="light"
+          size="sm"
+          leftIcon={<Upload className="h-3.5 w-3.5" />}
+          onClick={() => setImportOpen(true)}
+        >
+          Import CSV (Meta)
         </Button>
-        <Button variant="light" size="sm" leftIcon={<Download className="h-3.5 w-3.5" />}>
+        <Button
+          variant="light"
+          size="sm"
+          leftIcon={<Download className="h-3.5 w-3.5" />}
+          disabled
+          title="Requires native Meta app (Phase 3)"
+        >
           Lookalike export (Meta)
         </Button>
-        <Button variant="primary" size="sm" leftIcon={<Send className="h-3.5 w-3.5" />}>
+        <Button variant="primary" size="sm" leftIcon={<Send className="h-3.5 w-3.5" />} disabled>
           Message segment
         </Button>
       </div>
@@ -71,7 +86,7 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
             {leads.length === 0 ? (
               <DataTableRow>
                 <DataTableCell colSpan={9} className="py-10 text-center text-sm text-slate-500">
-                  No leads yet. Add one from Lead Intake.
+                  No leads yet. Add one from Lead Intake or import Meta CSV.
                 </DataTableCell>
               </DataTableRow>
             ) : (
@@ -122,6 +137,15 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
           </DataTableBody>
         </DataTable>
       </Card>
+
+      <MetaCsvImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onImported={() => {
+          setImportOpen(false);
+          router.refresh();
+        }}
+      />
     </CrmPageLayout>
   );
 }
