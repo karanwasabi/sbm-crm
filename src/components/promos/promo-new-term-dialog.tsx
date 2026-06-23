@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { PromoDiscountTypeField } from '@/components/promos/promo-discount-type-field';
 import { PromoDiscountValueField } from '@/components/promos/promo-discount-value-field';
+import { PromoScheduleStartField } from '@/components/promos/promo-schedule-start-field';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -15,7 +16,14 @@ import {
 import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
-import { istLocalInputToRFC3339, splitISTInputDefaults } from '@/lib/ist-datetime';
+import {
+  isoToISTDateInput,
+  isoToISTTimeInput,
+  istLocalInputToRFC3339,
+  splitISTInputDefaults,
+  validatePromoScheduleDates,
+  type ISTDateTimeInput,
+} from '@/lib/ist-datetime';
 import {
   promoDiscountFromFormValue,
   promoDiscountToFormValue,
@@ -24,11 +32,14 @@ import {
 } from '@/lib/promo-discount';
 import type { PromoTerm, PromoTermInput } from '@/utils/api';
 
+type PromoTermDialogMode = 'create' | 'edit';
+
 type PromoNewTermDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceTerm: PromoTerm | null | undefined;
   onSubmit: (input: PromoTermInput) => Promise<void>;
+  mode?: PromoTermDialogMode;
   title?: string;
   description?: string;
   confirmLabel?: string;
@@ -39,12 +50,14 @@ export function PromoNewTermDialog({
   onOpenChange,
   sourceTerm,
   onSubmit,
-  title = 'Start new term',
-  description = 'Set the offer for the next term. Any open-ended current term will be closed automatically.',
-  confirmLabel = 'Create term',
+  mode = 'create',
+  title,
+  description,
+  confirmLabel,
 }: PromoNewTermDialogProps) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
+  const [openedAt, setOpenedAt] = useState<ISTDateTimeInput | null>(null);
   const [discountType, setDiscountType] = useState<PromoDiscountType>('percent');
   const [discountValue, setDiscountValue] = useState('10');
   const [startDate, setStartDate] = useState('');
@@ -52,17 +65,41 @@ export function PromoNewTermDialog({
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('');
 
-  useEffect(() => {
-    if (!open || !sourceTerm) return;
+  const resolvedTitle = title ?? (mode === 'edit' ? 'Edit term' : 'Start new term');
+  const resolvedDescription =
+    description ??
+    (mode === 'edit'
+      ? 'Update the offer and schedule before this term goes live.'
+      : 'Set the offer for the next term. Any open-ended current term will be closed automatically.');
+  const resolvedConfirmLabel = confirmLabel ?? (mode === 'edit' ? 'Save changes' : 'Create term');
 
-    const now = splitISTInputDefaults();
+  useEffect(() => {
+    if (!open) {
+      setOpenedAt(null);
+      return;
+    }
+
+    const minAt = splitISTInputDefaults();
+    setOpenedAt(minAt);
+
+    if (!sourceTerm) return;
+
     setDiscountType(sourceTerm.discount_type === 'fixed' ? 'fixed' : 'percent');
     setDiscountValue(promoDiscountToFormValue(sourceTerm.discount_type, sourceTerm.discount_value) || '10');
-    setStartDate(now.date);
-    setStartTime(now.time);
+
+    if (mode === 'edit') {
+      setStartDate(isoToISTDateInput(sourceTerm.starts_at));
+      setStartTime(isoToISTTimeInput(sourceTerm.starts_at));
+      setEndDate(isoToISTDateInput(sourceTerm.ends_at));
+      setEndTime(isoToISTTimeInput(sourceTerm.ends_at));
+      return;
+    }
+
+    setStartDate(minAt.date);
+    setStartTime(minAt.time);
     setEndDate('');
     setEndTime('');
-  }, [open, sourceTerm]);
+  }, [open, sourceTerm, mode]);
 
   const handleDiscountTypeChange = (next: PromoDiscountType) => {
     setDiscountType(next);
@@ -74,6 +111,13 @@ export function PromoNewTermDialog({
     const validationError = validatePromoDiscountFormValue(discountType, formValue);
     if (validationError) {
       toast({ message: validationError, variant: 'error' });
+      return;
+    }
+
+    const minAt = openedAt ?? splitISTInputDefaults();
+    const scheduleError = validatePromoScheduleDates(minAt, startDate, startTime, endDate, endTime);
+    if (scheduleError) {
+      toast({ message: scheduleError, variant: 'error' });
       return;
     }
 
@@ -97,19 +141,26 @@ export function PromoNewTermDialog({
         onOpenChange(false);
       } catch (error) {
         toast({
-          message: error instanceof Error ? error.message : 'Failed to create promo term.',
+          message:
+            error instanceof Error
+              ? error.message
+              : mode === 'edit'
+                ? 'Failed to update promo term.'
+                : 'Failed to create promo term.',
           variant: 'error',
         });
       }
     });
   };
 
+  const dateMin = openedAt?.date ?? '';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="gap-1 border-b border-slate-100 px-6 py-5 pr-12">
-          <DialogTitle className="text-lg font-bold text-slate-900">{title}</DialogTitle>
-          <DialogDescription className="text-sm text-slate-500">{description}</DialogDescription>
+          <DialogTitle className="text-lg font-bold text-slate-900">{resolvedTitle}</DialogTitle>
+          <DialogDescription className="text-sm text-slate-500">{resolvedDescription}</DialogDescription>
         </DialogHeader>
         <div className="max-h-[70vh] overflow-y-auto px-6 py-5">
           <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
@@ -127,15 +178,22 @@ export function PromoNewTermDialog({
             <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
               <p className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Schedule (IST)</p>
               <div className="mt-3 space-y-4">
-                <Field label="Start" hint="Required">
-                  <div className="space-y-2">
-                    <TextInput type="date" value={startDate} onChange={setStartDate} className="w-full" />
-                    <TextInput type="time" value={startTime} onChange={setStartTime} className="w-full max-w-40" />
-                  </div>
-                </Field>
+                <PromoScheduleStartField
+                  startDate={startDate}
+                  startTime={startTime}
+                  onStartDateChange={setStartDate}
+                  onStartTimeChange={setStartTime}
+                  dateMin={dateMin}
+                />
                 <Field label="End (optional)" hint="Leave blank to keep active until you deactivate it.">
                   <div className="space-y-2">
-                    <TextInput type="date" value={endDate} onChange={setEndDate} className="w-full" />
+                    <TextInput
+                      type="date"
+                      value={endDate}
+                      min={startDate || dateMin}
+                      onChange={setEndDate}
+                      className="w-full"
+                    />
                     <TextInput type="time" value={endTime} onChange={setEndTime} className="w-full max-w-40" />
                   </div>
                 </Field>
@@ -155,7 +213,7 @@ export function PromoNewTermDialog({
             loadingLabel="Saving…"
             onClick={handleSubmit}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

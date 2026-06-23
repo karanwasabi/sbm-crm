@@ -63,3 +63,51 @@ export function isoToISTTimeInput(iso: string | null | undefined): string {
   const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((p) => p.type === type)?.value ?? '';
   return `${get('hour')}:${get('minute')}`;
 }
+
+export type ISTDateTimeInput = { date: string; time: string };
+
+/** Allow start/end times that are slightly in the past (clock drift, minute rounding, save delay). */
+export const PROMO_SCHEDULE_PAST_GRACE_MS = 5 * 60 * 1000;
+
+function istInputToMs(date: string, time: string): number {
+  return new Date(istLocalInputToRFC3339(date, time)).getTime();
+}
+
+function earliestAllowedScheduleMs(): number {
+  return Date.now() - PROMO_SCHEDULE_PAST_GRACE_MS;
+}
+
+export function validatePromoScheduleDates(
+  minAt: ISTDateTimeInput,
+  startDate: string,
+  startTime: string,
+  endDate: string,
+  endTime: string
+): string | null {
+  if (!startDate.trim()) {
+    return 'Start date is required.';
+  }
+
+  const earliestMs = earliestAllowedScheduleMs();
+  const dialogMinMs = istInputToMs(minAt.date, minAt.time) - PROMO_SCHEDULE_PAST_GRACE_MS;
+  const startMs = istInputToMs(startDate, startTime);
+
+  if (startMs < dialogMinMs) {
+    return 'Start cannot be before this dialog was opened.';
+  }
+  if (startMs < earliestMs) {
+    return 'Start time cannot be more than 5 minutes in the past.';
+  }
+
+  if (endDate.trim()) {
+    const endMs = istInputToMs(endDate, endTime || '23:59');
+    if (endMs < earliestMs) {
+      return 'End time cannot be more than 5 minutes in the past.';
+    }
+    if (endMs <= startMs) {
+      return 'End must be after start.';
+    }
+  }
+
+  return null;
+}

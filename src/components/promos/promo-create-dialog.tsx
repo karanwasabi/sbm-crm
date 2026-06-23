@@ -5,6 +5,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { createPromoAction } from '@/app/(crm)/promos/actions';
 import { PromoDiscountTypeField } from '@/components/promos/promo-discount-type-field';
 import { PromoDiscountValueField } from '@/components/promos/promo-discount-value-field';
+import { PromoScheduleStartField } from '@/components/promos/promo-schedule-start-field';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -19,7 +20,12 @@ import { TextInput } from '@/components/ui/text-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/cn';
-import { istLocalInputToRFC3339, splitISTInputDefaults } from '@/lib/ist-datetime';
+import {
+  istLocalInputToRFC3339,
+  splitISTInputDefaults,
+  validatePromoScheduleDates,
+  type ISTDateTimeInput,
+} from '@/lib/ist-datetime';
 import {
   normalizePromoCode,
   normalizePromoCodeInput,
@@ -63,10 +69,15 @@ export function PromoCreateDialog({ open, onOpenChange }: PromoCreateDialogProps
   const [startTime, setStartTime] = useState('');
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('');
+  const [openedAt, setOpenedAt] = useState<ISTDateTimeInput | null>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setOpenedAt(null);
+      return;
+    }
     const defaults = defaultFormState();
+    setOpenedAt({ date: defaults.startDate, time: defaults.startTime });
     setCode(defaults.code);
     setDescription(defaults.description);
     setDiscountType(defaults.discountType);
@@ -95,6 +106,13 @@ export function PromoCreateDialog({ open, onOpenChange }: PromoCreateDialogProps
       return;
     }
 
+    const minAt = openedAt ?? splitISTInputDefaults();
+    const scheduleError = validatePromoScheduleDates(minAt, startDate, startTime, endDate, endTime);
+    if (scheduleError) {
+      toast({ message: scheduleError, variant: 'error' });
+      return;
+    }
+
     startTransition(async () => {
       try {
         const result = await createPromoAction({
@@ -119,6 +137,8 @@ export function PromoCreateDialog({ open, onOpenChange }: PromoCreateDialogProps
       }
     });
   };
+
+  const dateMin = openedAt?.date ?? '';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -170,15 +190,22 @@ export function PromoCreateDialog({ open, onOpenChange }: PromoCreateDialogProps
               <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
                 <p className="text-[11px] font-bold tracking-[0.12em] text-slate-500 uppercase">Schedule (IST)</p>
                 <div className="mt-3 space-y-4">
-                  <Field label="Start" hint="Required">
-                    <div className="space-y-2">
-                      <TextInput type="date" value={startDate} onChange={setStartDate} className="w-full" />
-                      <TextInput type="time" value={startTime} onChange={setStartTime} className="w-full max-w-40" />
-                    </div>
-                  </Field>
+                  <PromoScheduleStartField
+                    startDate={startDate}
+                    startTime={startTime}
+                    onStartDateChange={setStartDate}
+                    onStartTimeChange={setStartTime}
+                    dateMin={dateMin}
+                  />
                   <Field label="End (optional)" hint="Leave blank to keep active until you deactivate it.">
                     <div className="space-y-2">
-                      <TextInput type="date" value={endDate} onChange={setEndDate} className="w-full" />
+                      <TextInput
+                        type="date"
+                        value={endDate}
+                        min={startDate || dateMin}
+                        onChange={setEndDate}
+                        className="w-full"
+                      />
                       <TextInput type="time" value={endTime} onChange={setEndTime} className="w-full max-w-40" />
                     </div>
                   </Field>

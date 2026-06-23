@@ -159,9 +159,9 @@ export function PromoSummaryCard({
           </div>
 
           <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {current ? (
+            {current && (promo.summary.status === 'scheduled' || promo.summary.status === 'ended') ? (
               <Button type="button" variant="primary" size="sm" disabled={pending} onClick={onStartNewTerm}>
-                Start new term
+                {promo.summary.status === 'scheduled' ? 'Edit' : 'Start new term'}
               </Button>
             ) : null}
             {isActive ? (

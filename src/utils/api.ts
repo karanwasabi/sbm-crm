@@ -441,6 +441,7 @@ type ApiEnrollmentResponse = {
   phase?: string | null;
   amount: string;
   date: string;
+  promo_code?: string | null;
 };
 
 export async function listPrograms(): Promise<ApiProgramResponse[]> {
@@ -512,6 +513,7 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     status: row.status.charAt(0).toUpperCase() + row.status.slice(1),
     amount: row.amount,
     date: row.date,
+    promoCode: row.promo_code ?? null,
   }));
 }
 
@@ -633,6 +635,18 @@ export async function createPromoTerm(promoId: string, input: PromoTermInput): P
     body: JSON.stringify(input),
   });
   if (!response.ok) await parseApiError(response, 'Failed to create promo term.');
+  return response.json() as Promise<PromoTerm>;
+}
+
+export async function updatePromoTerm(promoId: string, termId: string, input: PromoTermInput): Promise<PromoTerm> {
+  const response = await requireApiFetch(
+    `/admin/promo-codes/${encodeURIComponent(promoId)}/terms/${encodeURIComponent(termId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(input),
+    }
+  );
+  if (!response.ok) await parseApiError(response, 'Failed to update promo term.');
   return response.json() as Promise<PromoTerm>;
 }
 

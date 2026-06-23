@@ -1,5 +1,5 @@
 import { Card } from '@/components/ui/card';
-import { formatCompactInrFromPaise } from '@/lib/money';
+import { formatInrFromPaise } from '@/lib/money';
 import type { PaymentPending } from '@/types/crm';
 
 type PaymentPendingBannerProps = {
@@ -14,8 +14,8 @@ export function PaymentPendingBanner({ paymentPending }: PaymentPendingBannerPro
         {paymentPending.programName} · {paymentPending.cohortName}
       </p>
       <p className="mt-1 text-sm text-slate-600">
-        Checkout was started but payment has not completed yet ({formatCompactInrFromPaise(paymentPending.amountPaise)}{' '}
-        due). See timeline for checkout attempts.
+        Checkout was started but payment has not completed yet ({formatInrFromPaise(paymentPending.amountPaise)} due).
+        See timeline for checkout attempts.
       </p>
     </Card>
   );

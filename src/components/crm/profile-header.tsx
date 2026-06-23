@@ -23,7 +23,7 @@ export function ProfileHeader({ contact, onLogCall }: ProfileHeaderProps) {
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-[26px] font-extrabold tracking-tight">{contact.name}</h2>
             <StagePill stage={contact.stage} />
-            {contact.batch && (
+            {contact.batch && contact.batch !== '—' && (
               <span className="inline-flex items-center gap-1.5 rounded-full border-b-2 border-black/22 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
                 {contact.batch}
               </span>
@@ -54,10 +54,12 @@ export function ProfileHeader({ contact, onLogCall }: ProfileHeaderProps) {
                 {contact.phone}
               </a>
             )}
-            <span className="inline-flex items-center gap-1.5">
-              <Globe className="h-3 w-3" />
-              {contact.location}
-            </span>
+            {contact.location && contact.location !== '—' && (
+              <span className="inline-flex items-center gap-1.5">
+                <Globe className="h-3 w-3" />
+                {contact.location}
+              </span>
+            )}
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="h-3 w-3" />
               Added {contact.joinedAt}

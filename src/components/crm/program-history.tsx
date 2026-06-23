@@ -25,7 +25,7 @@ export function ProgramHistory({ items }: ProgramHistoryProps) {
       ) : (
         <DataTable>
           <DataTableHead>
-            {['Program', 'Batch', 'Status', 'Amount', 'Date'].map((h) => (
+            {['Program', 'Batch', 'Status', 'Amount', 'Promo', 'Start date'].map((h) => (
               <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
             ))}
           </DataTableHead>
@@ -36,6 +36,7 @@ export function ProgramHistory({ items }: ProgramHistoryProps) {
                 <DataTableCell>{item.batch}</DataTableCell>
                 <DataTableCell className="font-semibold">{item.status}</DataTableCell>
                 <DataTableCell className="font-bold tabular-nums">{item.amount}</DataTableCell>
+                <DataTableCell className="font-semibold text-slate-700">{item.promoCode ?? '—'}</DataTableCell>
                 <DataTableCell>{item.date}</DataTableCell>
               </DataTableRow>
             ))}

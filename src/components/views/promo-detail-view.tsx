@@ -5,7 +5,12 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { useState, useTransition } from 'react';
-import { createPromoTermAction, deactivatePromoAction, deletePromoAction } from '@/app/(crm)/promos/actions';
+import {
+  createPromoTermAction,
+  deactivatePromoAction,
+  deletePromoAction,
+  updatePromoTermAction,
+} from '@/app/(crm)/promos/actions';
 import {
   DataTable,
   DataTableBody,
@@ -99,12 +104,20 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
   const canDelete = promo.summary.status === 'ended' && usageCount === 0;
   const isActive = promo.summary.status === 'active' || promo.summary.status === 'scheduled';
 
-  const handleCreateTerm = async (input: PromoTermInput) => {
-    await createPromoTermAction(promo.id, input);
-    toast({
-      message: promo.summary.status === 'ended' ? `${promo.code} is active again.` : 'New promo term created.',
-      variant: 'success',
-    });
+  const isScheduled = promo.summary.status === 'scheduled';
+  const canManageTerm = isScheduled || promo.summary.status === 'ended';
+
+  const handleTermSubmit = async (input: PromoTermInput) => {
+    if (isScheduled && current) {
+      await updatePromoTermAction(promo.id, current.id, input);
+      toast({ message: 'Promo term updated.', variant: 'success' });
+    } else {
+      await createPromoTermAction(promo.id, input);
+      toast({
+        message: promo.summary.status === 'ended' ? `${promo.code} is active again.` : 'New promo term created.',
+        variant: 'success',
+      });
+    }
     router.refresh();
   };
 
@@ -157,13 +170,18 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
             open={showNewTermDialog}
             onOpenChange={setShowNewTermDialog}
             sourceTerm={current}
-            onSubmit={handleCreateTerm}
+            mode={isScheduled ? 'edit' : 'create'}
+            onSubmit={handleTermSubmit}
             description={
-              promo.summary.status === 'ended'
-                ? 'Reactivate this promo code with a new term. You can adjust the offer before confirming.'
-                : 'Create a new term with an updated offer. The current term will be closed automatically.'
+              isScheduled
+                ? 'Update the offer and schedule before this term goes live.'
+                : promo.summary.status === 'ended'
+                  ? 'Reactivate this promo code with a new term. You can adjust the offer before confirming.'
+                  : 'Create a new term with an updated offer. The current term will be closed automatically.'
             }
-            confirmLabel={promo.summary.status === 'ended' ? 'Activate term' : 'Create term'}
+            confirmLabel={
+              isScheduled ? 'Save changes' : promo.summary.status === 'ended' ? 'Activate term' : 'Create term'
+            }
           />
         ) : null}
 
@@ -207,7 +225,9 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
           promo={promo}
           current={current}
           pending={pending}
-          onStartNewTerm={() => setShowNewTermDialog(true)}
+          onStartNewTerm={() => {
+            if (canManageTerm) setShowNewTermDialog(true);
+          }}
           onDeactivate={handleDeactivate}
           onDelete={() => setShowDeleteConfirm(true)}
           canDelete={canDelete}

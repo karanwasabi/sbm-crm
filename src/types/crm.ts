@@ -210,6 +210,7 @@ export type ProgramHistoryItem = {
   status: string;
   amount: string;
   date: string;
+  promoCode?: string | null;
 };
 
 export type CohortSummary = {
