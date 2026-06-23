@@ -225,6 +225,12 @@ type ApiLeadResponse = {
   notes?: string | null;
   member_user_id?: string | null;
   can_mark_lost?: boolean;
+  payment_pending?: {
+    checkout_session_id: string;
+    program_name: string;
+    cohort_name: string;
+    amount_paise: number;
+  } | null;
   timeline?: import('@/types/crm').TimelineEvent[];
 };
 
@@ -300,6 +306,14 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     notes: row.notes ?? '',
     memberUserId: row.member_user_id ?? null,
     canMarkLost: row.can_mark_lost ?? false,
+    paymentPending: row.payment_pending
+      ? {
+          checkoutSessionId: row.payment_pending.checkout_session_id,
+          programName: row.payment_pending.program_name,
+          cohortName: row.payment_pending.cohort_name,
+          amountPaise: row.payment_pending.amount_paise,
+        }
+      : null,
     timeline: row.timeline ?? [],
   };
 }

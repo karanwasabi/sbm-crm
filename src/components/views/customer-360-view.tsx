@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
+import { PaymentPendingBanner } from '@/components/crm/payment-pending-banner';
 import { ProfileHeader } from '@/components/crm/profile-header';
 import { ProgramHistory } from '@/components/crm/program-history';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
@@ -49,6 +50,7 @@ export function Customer360View({ lead: initialLead, programHistory }: Customer3
   return (
     <CrmPageLayout>
       <ProfileHeader contact={contact} onLogCall={() => setCallModalOpen(true)} />
+      {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
       <div
         className={cn(
           'grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]',

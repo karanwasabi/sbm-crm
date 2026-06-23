@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Pencil } from 'lucide-react';
 import {
   DataTable,
   DataTableBody,
@@ -18,7 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
-import { formatCohortStartDateLong, phasePillTone } from '@/lib/cohort-display';
+import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
 
@@ -113,6 +114,56 @@ function MemberTable({
   );
 }
 
+function CohortDetailHeader({
+  cohort,
+  memberCount,
+  onEdit,
+}: {
+  cohort: CohortDetail;
+  memberCount: number;
+  onEdit: () => void;
+}) {
+  return (
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-[28px] border-b-[6px] bg-linear-to-br px-6 py-6 text-white shadow-[0_12px_30px_-8px_rgba(92,101,207,0.30)]',
+        cohortHeaderAccent(cohort.status)
+      )}
+    >
+      <div aria-hidden className="absolute -top-12 -right-8 h-60 w-60 rounded-full bg-white/18 blur-[36px]" />
+      <div className="relative z-1 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <span className="inline-flex items-center rounded-full border-b-2 border-black/20 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
+            {cohort.phaseLabel}
+          </span>
+          <h1 className="mt-3 text-[26px] font-extrabold tracking-tight">{cohort.name}</h1>
+          <div className="mt-2.5 flex flex-wrap items-center gap-4 text-sm font-medium text-white/92">
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="h-3.5 w-3.5" />
+              Starts {formatCohortStartDateLong(cohort.startsOn)}
+            </span>
+            <span className="text-white/75">{cohort.programName}</span>
+            <span className="text-white/75">
+              {memberCount} member{memberCount === 1 ? '' : 's'}
+            </span>
+          </div>
+        </div>
+        {cohort.canEdit && (
+          <Button
+            variant="light"
+            size="sm"
+            className="shrink-0"
+            onClick={onEdit}
+            leftIcon={<Pencil className="h-3.5 w-3.5" />}
+          >
+            Edit cohort
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function CohortDetailView({ cohort, members, transferTargets }: CohortDetailViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -124,41 +175,27 @@ export function CohortDetailView({ cohort, members, transferTargets }: CohortDet
   const canTransfer = cohort.status === 'active' && transferTargets.length > 0;
 
   return (
-    <CrmPageLayout>
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <Button variant="ghost" size="sm" className="mb-2 -ml-2" onClick={() => router.push('/programs')}>
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            All cohorts
-          </Button>
-          <h1 className="text-xl font-bold tracking-tight text-slate-800">{cohort.name}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {cohort.programName} · starts {formatCohortStartDateLong(cohort.startsOn)}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Pill tone={phasePillTone(cohort.phaseLabel)}>{cohort.phaseLabel}</Pill>
-          {cohort.canEdit && (
-            <Button variant="light" size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil className="mr-1.5 h-3.5 w-3.5" />
-              Edit
-            </Button>
-          )}
-        </div>
-      </div>
+    <CrmPageLayout className="space-y-5">
+      <Link
+        href="/programs"
+        className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 no-underline hover:text-slate-700"
+      >
+        <ArrowLeft size={16} />
+        Back to cohorts
+      </Link>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <CohortDetailHeader cohort={cohort} memberCount={members.length} onEdit={() => setEditOpen(true)} />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Card padding="sm" className="p-4">
-          <div className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Members</div>
-          <div className="mt-1 text-2xl font-extrabold text-slate-800 tabular-nums">{cohort.memberCount}</div>
-        </Card>
-        <Card padding="sm" className="p-4">
-          <div className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Active subscriptions</div>
+          <div className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Active</div>
           <div className="mt-1 text-2xl font-extrabold text-slate-800 tabular-nums">{activeMembers.length}</div>
+          <p className="mt-1 text-xs text-slate-500">Live subscription with access</p>
         </Card>
         <Card padding="sm" className="p-4">
-          <div className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Paid enrollments</div>
-          <div className="mt-1 text-2xl font-extrabold text-slate-800 tabular-nums">{cohort.paidMemberCount}</div>
+          <div className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Lapsed</div>
+          <div className="mt-1 text-2xl font-extrabold text-slate-800 tabular-nums">{lapsedMembers.length}</div>
+          <p className="mt-1 text-xs text-slate-500">Never paid, cancelled, halted, or expired</p>
         </Card>
       </div>
 

@@ -5,9 +5,10 @@ import { Pencil } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import {
+  cohortCardGlow,
   cohortCardHref,
-  formatCohortStartDate,
-  isInactiveCohort,
+  cohortCardSurface,
+  formatCohortStartDateCard,
   phasePillTone,
   sortCohorts,
 } from '@/lib/cohort-display';
@@ -29,15 +30,12 @@ export function CohortCardGrid({ cohorts }: CohortCardGridProps) {
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
       {sorted.map((cohort) => {
-        const inactive = isInactiveCohort(cohort.status);
+        const glow = cohortCardGlow(cohort.status);
         return (
           <Card
             key={cohort.id}
             padding="sm"
-            className={cn(
-              'group cursor-pointer p-4 transition hover:border-brand/30 hover:shadow-sm',
-              inactive && 'opacity-60'
-            )}
+            className={cn('group cursor-pointer p-4 transition', cohortCardSurface(cohort.status))}
             onClick={() => router.push(cohortCardHref(cohort.id))}
             onKeyDown={(event) => {
               if (event.key === 'Enter' || event.key === ' ') {
@@ -48,28 +46,36 @@ export function CohortCardGrid({ cohorts }: CohortCardGridProps) {
             role="button"
             tabIndex={0}
           >
-            <div className="mb-2 flex items-start justify-between gap-2">
-              <div>
-                <div className="text-[13px] font-bold text-slate-800">{cohort.name}</div>
-                <div className="mt-0.5 text-[11px] font-semibold text-slate-500">
-                  Starts {formatCohortStartDate(cohort.startsOn)}
+            {glow ? (
+              <div
+                aria-hidden
+                className={cn('pointer-events-none absolute -top-10 -right-10 h-32 w-32 rounded-full blur-3xl', glow)}
+              />
+            ) : null}
+            <div className="relative z-1">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold tracking-[0.14em] text-slate-500 uppercase">Start date</div>
+                  <div className="mt-0.5 text-lg font-extrabold tracking-tight text-slate-900">
+                    {formatCohortStartDateCard(cohort.startsOn)}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  {cohort.canEdit && (
+                    <span className="rounded-full bg-white/70 p-1 text-slate-400 opacity-0 transition group-hover:opacity-100">
+                      <Pencil className="h-3 w-3" />
+                    </span>
+                  )}
+                  <Pill tone={phasePillTone(cohort.phaseLabel)}>{cohort.phaseLabel}</Pill>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                {cohort.canEdit && (
-                  <span className="rounded-full bg-canvas-cool p-1 text-slate-400 opacity-0 transition group-hover:opacity-100">
-                    <Pencil className="h-3 w-3" />
-                  </span>
-                )}
-                <Pill tone={phasePillTone(cohort.phaseLabel)}>{cohort.phaseLabel}</Pill>
-              </div>
-            </div>
-            <div className="mt-3 flex items-end justify-between">
-              <div>
+
+              <div className="text-[13px] font-bold text-slate-700">{cohort.name}</div>
+
+              <div className="mt-3 border-t border-black/5 pt-3">
                 <div className="text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Members</div>
                 <div className="text-xl font-extrabold text-slate-800 tabular-nums">{cohort.memberCount}</div>
               </div>
-              <div className="h-2 w-2 rounded-full" style={{ background: cohort.color }} aria-hidden />
             </div>
           </Card>
         );

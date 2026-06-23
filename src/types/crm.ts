@@ -73,7 +73,15 @@ export type LeadDetail = Lead & {
   notes: string;
   memberUserId: string | null;
   canMarkLost: boolean;
+  paymentPending: PaymentPending | null;
   timeline: TimelineEvent[];
+};
+
+export type PaymentPending = {
+  checkoutSessionId: string;
+  programName: string;
+  cohortName: string;
+  amountPaise: number;
 };
 
 export type ContactProfile = {
