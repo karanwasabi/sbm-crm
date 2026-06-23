@@ -1,13 +1,12 @@
 'use client';
 
-import { Bell } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
+import { CRM_HEADER_ROW_CLASS } from '@/components/layout/crm/crm-header-row';
 import { CrmUserMenu } from '@/components/layout/crm/crm-user-menu';
-import { IconButton } from '@/components/ui/icon-button';
-import { SearchInput } from '@/components/ui/search-input';
 import { leadDatabaseSubtitle } from '@/lib/lead-display';
 import { getPageMeta } from '@/lib/navigation';
+import { cn } from '@/lib/cn';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 
 type CrmTopbarProps = {
@@ -32,21 +31,13 @@ export function CrmTopbar({ staffUser, leadTotal }: CrmTopbarProps) {
   const resolvedSubtitle = resolveSubtitle(pathname, leadTotal, contactName, subtitle);
 
   return (
-    <header className="flex shrink-0 items-center gap-4 border-b border-slate-100 bg-canvas px-6 py-4.5">
-      <div className="min-w-[240px]">
-        <h1 className="text-lg font-bold tracking-tight text-slate-800">{title}</h1>
-        {resolvedSubtitle && <p className="mt-0.5 text-xs text-slate-500">{resolvedSubtitle}</p>}
-      </div>
-
-      <div className="max-w-[460px] flex-1">
-        <SearchInput />
+    <header className={cn(CRM_HEADER_ROW_CLASS, 'gap-4 px-6')}>
+      <div className="min-w-0">
+        <h1 className="truncate text-lg leading-tight font-bold tracking-tight text-slate-800">{title}</h1>
+        {resolvedSubtitle && <p className="mt-0.5 truncate text-xs text-slate-500">{resolvedSubtitle}</p>}
       </div>
 
       <div className="flex-1" />
-
-      <IconButton showDot aria-label="Notifications">
-        <Bell className="h-4 w-4" />
-      </IconButton>
 
       <CrmUserMenu staffUser={staffUser} />
     </header>
