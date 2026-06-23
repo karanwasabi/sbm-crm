@@ -1,8 +1,5 @@
 export function formatPeriodTrend(current: number, previous: number): string | undefined {
   if (previous <= 0) {
-    if (current > 0) {
-      return 'New';
-    }
     return undefined;
   }
   const pct = ((current - previous) / previous) * 100;

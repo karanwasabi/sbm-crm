@@ -42,7 +42,7 @@ export function KpiStrip({ items }: KpiStripProps) {
         {items.map((kpi) => {
           const Icon = kpi.icon;
           const accent = kpi.accent ?? '#5C65CF';
-          const trendUp = kpi.trend?.startsWith('+') || kpi.trend === 'New';
+          const trendUp = kpi.trend?.startsWith('+');
           const trendDown = kpi.trend?.startsWith('-');
 
           return (
