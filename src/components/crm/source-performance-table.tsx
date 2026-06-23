@@ -52,7 +52,7 @@ export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
           {rows.length === 0 ? (
             <DataTableRow>
               <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
-                No attributed leads yet. Import Meta CSV or connect LeadSync.
+                No attributed leads yet. Import a CSV from Meta Leads Center.
               </DataTableCell>
             </DataTableRow>
           ) : (

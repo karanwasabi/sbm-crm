@@ -63,7 +63,7 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
           size="sm"
           leftIcon={<Download className="h-3.5 w-3.5" />}
           disabled
-          title="Requires native Meta app (Phase 3)"
+          title="Requires Meta Marketing API access"
         >
           Lookalike export (Meta)
         </Button>

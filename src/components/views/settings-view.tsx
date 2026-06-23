@@ -63,7 +63,7 @@ export function SettingsView({ staff, currentUserId, integrationStatus }: Settin
           <Card>
             <SectionHead
               title="Lead ingestion endpoint"
-              subtitle="POST JSON payloads to create leads (LeadSync Phase 2)"
+              subtitle="POST JSON payloads to create leads from an external source"
             />
             <div className="flex items-center gap-2 rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3">
               <code className="flex-1 text-xs break-all text-slate-700">{integrationStatus.webhookUrl}</code>
@@ -74,11 +74,11 @@ export function SettingsView({ staff, currentUserId, integrationStatus }: Settin
             <p className="mt-2 text-xs text-slate-500">
               {integrationStatus.webhookConfigured
                 ? 'Webhook auth is configured on the backend.'
-                : 'Set LEAD_INGESTION_API_KEY on the backend before connecting LeadSync.'}
+                : 'Set LEAD_INGESTION_API_KEY on the backend before sending webhook requests.'}
             </p>
           </Card>
           <Card>
-            <SectionHead title="API key" subtitle="Send as Authorization: Bearer … from LeadSync" />
+            <SectionHead title="API key" subtitle="Send as Authorization: Bearer … with webhook requests" />
             <div className="flex items-center justify-between rounded-2xl border border-slate-100 px-4 py-3">
               <div className="flex items-center gap-2.5">
                 <Key className="h-4 w-4 text-brand" />

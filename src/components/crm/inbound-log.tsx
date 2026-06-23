@@ -9,7 +9,7 @@ type InboundLogProps = {
 export function InboundLog({ leads }: InboundLogProps) {
   return (
     <Card>
-      <SectionHead title="Recent inbound" subtitle="UTM-attributed leads · last 24 hrs" />
+      <SectionHead title="Recent inbound" subtitle="Attributed leads · most recent first" />
       <div className="flex flex-col gap-2">
         {leads.map((lead) => (
           <div
