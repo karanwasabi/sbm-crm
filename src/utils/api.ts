@@ -866,6 +866,7 @@ export async function getDashboardAnalytics(): Promise<import('@/types/crm').Das
     kpis: {
       new_leads_7d: number;
       new_leads_prev_7d: number;
+      total_leads: number;
       conversion_rate: number;
       active_members: number;
       active_cohorts: number;
@@ -882,6 +883,7 @@ export async function getDashboardAnalytics(): Promise<import('@/types/crm').Das
     kpis: {
       newLeads7d: payload.kpis.new_leads_7d,
       newLeadsPrev7d: payload.kpis.new_leads_prev_7d,
+      totalLeads: payload.kpis.total_leads,
       conversionRate: payload.kpis.conversion_rate,
       activeMembers: payload.kpis.active_members,
       activeCohorts: payload.kpis.active_cohorts,

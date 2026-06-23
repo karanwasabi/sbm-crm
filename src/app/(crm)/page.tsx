@@ -1,34 +1,26 @@
 import { DashboardView } from '@/components/views/dashboard-view';
+import { emptyDashboardAnalytics } from '@/lib/dashboard-analytics';
 import { getDashboardAnalytics, getSourcePerformance } from '@/utils/api';
-import type { DashboardAnalytics, SourcePerformanceRow } from '@/types/crm';
-
-const EMPTY_ANALYTICS: DashboardAnalytics = {
-  kpis: {
-    newLeads7d: 0,
-    newLeadsPrev7d: 0,
-    conversionRate: 0,
-    activeMembers: 0,
-    activeCohorts: 0,
-    revenueMtdPaise: 0,
-    revenuePrevMtdPaise: 0,
-    renewalsAtRisk: 0,
-  },
-  newLeadsSparkline: [0, 0, 0, 0, 0, 0, 0],
-  funnel: [],
-  revenueWeekly: [],
-  geo: [],
-};
+import type { SourcePerformanceRow } from '@/types/crm';
 
 export default async function DashboardPage() {
-  let analytics = EMPTY_ANALYTICS;
+  let analytics = emptyDashboardAnalytics();
   let sourcePerformance: SourcePerformanceRow[] = [];
+  let analyticsError: string | null = null;
 
   try {
-    [analytics, sourcePerformance] = await Promise.all([getDashboardAnalytics(), getSourcePerformance()]);
+    analytics = await getDashboardAnalytics();
   } catch {
-    analytics = EMPTY_ANALYTICS;
-    sourcePerformance = [];
+    analyticsError = 'Dashboard metrics could not be loaded. Check that the backend is running the latest version.';
   }
 
-  return <DashboardView analytics={analytics} sourcePerformance={sourcePerformance} />;
+  try {
+    sourcePerformance = await getSourcePerformance();
+  } catch {
+    if (!analyticsError) {
+      analyticsError = 'Source performance could not be loaded.';
+    }
+  }
+
+  return <DashboardView analytics={analytics} sourcePerformance={sourcePerformance} analyticsError={analyticsError} />;
 }

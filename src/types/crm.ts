@@ -172,6 +172,7 @@ export type DashboardAnalytics = {
   kpis: {
     newLeads7d: number;
     newLeadsPrev7d: number;
+    totalLeads: number;
     conversionRate: number;
     activeMembers: number;
     activeCohorts: number;

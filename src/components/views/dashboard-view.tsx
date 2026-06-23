@@ -21,6 +21,7 @@ const GEO_COLORS = ['#5C65CF', '#8338EC', '#0EA5E9', '#10B981', '#FFB703', '#90A
 type DashboardViewProps = {
   analytics: DashboardAnalytics;
   sourcePerformance: SourcePerformanceRow[];
+  analyticsError?: string | null;
 };
 
 function funnelColor(stage: string): string {
@@ -54,14 +55,14 @@ function geoTotalLabel(analytics: DashboardAnalytics): string {
   return String(total);
 }
 
-export function DashboardView({ analytics, sourcePerformance }: DashboardViewProps) {
+export function DashboardView({ analytics, sourcePerformance, analyticsError }: DashboardViewProps) {
   const { kpis } = analytics;
 
   const kpisToRender = [
     {
       label: 'New leads (7d)',
       value: formatLeadCount(kpis.newLeads7d),
-      sub: `${formatLeadCount(kpis.newLeadsPrev7d)} in prior 7 days`,
+      sub: `${formatLeadCount(kpis.totalLeads)} total in CRM`,
       trend: formatPeriodTrend(kpis.newLeads7d, kpis.newLeadsPrev7d),
       accent: '#5C65CF',
       spark: analytics.newLeadsSparkline,
@@ -107,6 +108,11 @@ export function DashboardView({ analytics, sourcePerformance }: DashboardViewPro
 
   return (
     <CrmPageLayout className="gap-4.5">
+      {analyticsError ? (
+        <p className="rounded-2xl border border-danger-press/20 bg-danger-press/5 px-4 py-3 text-sm font-medium text-danger-press">
+          {analyticsError}
+        </p>
+      ) : null}
       <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-5">
         {kpisToRender.map((kpi, i) => (
           <KpiCard
