@@ -1,4 +1,3 @@
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import type { FunnelStep } from '@/types/crm';
@@ -11,22 +10,23 @@ type FunnelChartProps = {
 
 export function FunnelChart({
   steps,
-  title = 'Funnel · last 30 days',
-  subtitle = 'Drop-off across inquiry → completed',
+  title = 'Lifecycle funnel',
+  subtitle = 'All contacts by stage',
 }: FunnelChartProps) {
-  const max = steps[0]?.count ?? 1;
+  const max = Math.max(1, ...steps.map((step) => step.count));
+
+  if (steps.length === 0) {
+    return (
+      <Card>
+        <SectionHead title={title} subtitle={subtitle} />
+        <p className="px-5 pb-5 text-sm text-slate-500">No leads in CRM yet.</p>
+      </Card>
+    );
+  }
 
   return (
     <Card>
-      <SectionHead
-        title={title}
-        subtitle={subtitle}
-        right={
-          <Button variant="light" size="sm">
-            Switch cohort
-          </Button>
-        }
-      />
+      <SectionHead title={title} subtitle={subtitle} />
       <div className="flex flex-col gap-2.5">
         {steps.map((step, index) => {
           const pct = step.count / max;

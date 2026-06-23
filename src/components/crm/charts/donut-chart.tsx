@@ -15,6 +15,15 @@ export function DonutChart({
   title = 'Geography',
   subtitle = 'Lead distribution',
 }: DonutChartProps) {
+  if (items.length === 0) {
+    return (
+      <Card>
+        <SectionHead title={title} subtitle={subtitle} />
+        <p className="px-5 pb-5 text-sm text-slate-500">No city data on leads yet.</p>
+      </Card>
+    );
+  }
+
   let cum = 0;
   const R = 56;
   const C = 70;

@@ -857,6 +857,48 @@ export async function getSourcePerformance(): Promise<import('@/types/crm').Sour
   }));
 }
 
+export async function getDashboardAnalytics(): Promise<import('@/types/crm').DashboardAnalytics> {
+  const response = await requireApiFetch('/admin/analytics/dashboard');
+  if (!response.ok) {
+    throw new ApiError('Failed to load dashboard analytics.', response.status);
+  }
+  const payload = (await response.json()) as {
+    kpis: {
+      new_leads_7d: number;
+      new_leads_prev_7d: number;
+      conversion_rate: number;
+      active_members: number;
+      active_cohorts: number;
+      revenue_mtd_paise: number;
+      revenue_prev_mtd_paise: number;
+      renewals_at_risk: number;
+    };
+    new_leads_sparkline: number[];
+    funnel: Array<{ stage: string; label: string; count: number }>;
+    revenue_weekly: Array<{ week_label: string; revenue_lakhs: number }>;
+    geo: Array<{ label: string; count: number; pct: number }>;
+  };
+  return {
+    kpis: {
+      newLeads7d: payload.kpis.new_leads_7d,
+      newLeadsPrev7d: payload.kpis.new_leads_prev_7d,
+      conversionRate: payload.kpis.conversion_rate,
+      activeMembers: payload.kpis.active_members,
+      activeCohorts: payload.kpis.active_cohorts,
+      revenueMtdPaise: payload.kpis.revenue_mtd_paise,
+      revenuePrevMtdPaise: payload.kpis.revenue_prev_mtd_paise,
+      renewalsAtRisk: payload.kpis.renewals_at_risk,
+    },
+    newLeadsSparkline: payload.new_leads_sparkline,
+    funnel: payload.funnel,
+    revenueWeekly: payload.revenue_weekly.map((row) => ({
+      weekLabel: row.week_label,
+      revenueLakhs: row.revenue_lakhs,
+    })),
+    geo: payload.geo,
+  };
+}
+
 export async function importMetaLeadsCSV(file: File): Promise<import('@/types/crm').MetaCSVImportResult> {
   const token = await getAccessToken();
   if (!token) {

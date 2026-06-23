@@ -1,28 +1,34 @@
 import { DashboardView } from '@/components/views/dashboard-view';
-import { getMetaIntegrationStatus, getSourcePerformance } from '@/utils/api';
-import type { MetaIntegrationStatus, SourcePerformanceRow } from '@/types/crm';
+import { getDashboardAnalytics, getSourcePerformance } from '@/utils/api';
+import type { DashboardAnalytics, SourcePerformanceRow } from '@/types/crm';
 
-const EMPTY_STATUS: MetaIntegrationStatus = {
-  connected: false,
-  provider: null,
-  webhookConfigured: false,
-  webhookUrl: '',
-  leadsToday: 0,
-  lastSyncAt: null,
-  metaLeadsTotal: 0,
-  metaLeads7d: 0,
+const EMPTY_ANALYTICS: DashboardAnalytics = {
+  kpis: {
+    newLeads7d: 0,
+    newLeadsPrev7d: 0,
+    conversionRate: 0,
+    activeMembers: 0,
+    activeCohorts: 0,
+    revenueMtdPaise: 0,
+    revenuePrevMtdPaise: 0,
+    renewalsAtRisk: 0,
+  },
+  newLeadsSparkline: [0, 0, 0, 0, 0, 0, 0],
+  funnel: [],
+  revenueWeekly: [],
+  geo: [],
 };
 
 export default async function DashboardPage() {
-  let integrationStatus = EMPTY_STATUS;
+  let analytics = EMPTY_ANALYTICS;
   let sourcePerformance: SourcePerformanceRow[] = [];
 
   try {
-    [integrationStatus, sourcePerformance] = await Promise.all([getMetaIntegrationStatus(), getSourcePerformance()]);
+    [analytics, sourcePerformance] = await Promise.all([getDashboardAnalytics(), getSourcePerformance()]);
   } catch {
-    integrationStatus = EMPTY_STATUS;
+    analytics = EMPTY_ANALYTICS;
     sourcePerformance = [];
   }
 
-  return <DashboardView integrationStatus={integrationStatus} sourcePerformance={sourcePerformance} />;
+  return <DashboardView analytics={analytics} sourcePerformance={sourcePerformance} />;
 }

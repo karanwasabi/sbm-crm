@@ -1,5 +1,3 @@
-import { Calendar, Download } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
@@ -27,31 +25,18 @@ export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
   return (
     <Card padding="none">
       <div className="p-5">
-        <SectionHead
-          title="Source performance"
-          subtitle="Lead volume + conversion by UTM source"
-          right={
-            <div className="flex gap-2">
-              <Button variant="light" size="sm" leftIcon={<Calendar className="h-3.5 w-3.5" />}>
-                Last 30 days
-              </Button>
-              <Button variant="light" size="sm" leftIcon={<Download className="h-3.5 w-3.5" />}>
-                Export
-              </Button>
-            </div>
-          }
-        />
+        <SectionHead title="Source performance" subtitle="Lead volume + conversion by UTM source" />
       </div>
       <DataTable>
         <DataTableHead>
-          {['Source', 'Medium', 'Leads', 'Paid', 'CVR', 'CAC', ''].map((h) => (
+          {['Source', 'Medium', 'Leads', 'Paid', 'CVR', 'CAC'].map((h) => (
             <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
           ))}
         </DataTableHead>
         <DataTableBody>
           {rows.length === 0 ? (
             <DataTableRow>
-              <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
+              <DataTableCell colSpan={6} className="py-8 text-center text-sm text-slate-500">
                 No attributed leads yet. Import a CSV from Meta Leads Center.
               </DataTableCell>
             </DataTableRow>
@@ -83,11 +68,6 @@ export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
                   }
                 >
                   {row.cac != null ? `₹${row.cac}` : '—'}
-                </DataTableCell>
-                <DataTableCell className="text-right">
-                  <Button variant="light" size="sm">
-                    View
-                  </Button>
                 </DataTableCell>
               </DataTableRow>
             ))

@@ -1,31 +1,35 @@
 # CRM fake / mock data audit
 
-> **TEMPORARY** — delete or archive after we have decided what to wire to real APIs.  
+> **TEMPORARY** — delete or archive when remaining mocks are wired or removed.  
 > Permanent integration plans live in [`meta-integrations-roadmap.md`](./meta-integrations-roadmap.md).
 
 Last updated: 2026-06-23
 
 ---
 
+## Dashboard (`/`) — real data
+
+| Element                  | Source                                                |
+| ------------------------ | ----------------------------------------------------- |
+| All 5 KPI cards          | `GET /admin/analytics/dashboard`                      |
+| New leads sparkline      | Same endpoint (`new_leads_sparkline`, last 7 days)    |
+| Lifecycle funnel         | `CountLeadsByStage` via dashboard endpoint            |
+| Geography donut          | `CountLeadsByCity` via dashboard endpoint             |
+| Weekly revenue chart     | Paid `checkout_sessions` + `subscription_charges`     |
+| Source performance table | `GET /admin/analytics/source-performance`             |
+| Comms health panel       | **Removed** from dashboard (comms not integrated yet) |
+
+**Still limited (not fake, but incomplete):**
+
+| Element        | Notes                                                |
+| -------------- | ---------------------------------------------------- |
+| CAC column     | Always `—` until Meta Ads spend API                  |
+| Conversion KPI | All-time; paid = registered+active+completed+renewal |
+| Revenue chart  | No ad spend overlay (requires Meta Ads API)          |
+
+---
+
 ## Active mocks (still imported by live views)
-
-### Dashboard (`/`)
-
-| Element                               | File                                     | Notes                                       |
-| ------------------------------------- | ---------------------------------------- | ------------------------------------------- |
-| KPI: Inquiry → Paid                   | `lib/mock/dashboard.ts` → `MOCK_KPIS[1]` | Fully fake                                  |
-| KPI: Active members                   | `MOCK_KPIS[2]`                           | Fully fake                                  |
-| KPI: Revenue (₹L)                     | `MOCK_KPIS[3]`                           | Fully fake                                  |
-| KPI: Renewals at risk                 | `MOCK_KPIS[4]`                           | Fully fake                                  |
-| KPI: New leads (7d) — **value**       | Real (`metaLeads7d`)                     | Only Meta-attributed leads, not all sources |
-| KPI: New leads (7d) — sub/trend/spark | `MOCK_KPIS[0]`                           | Fake trend (`+15%`) and sparkline           |
-| Funnel chart                          | `MOCK_FUNNEL`                            | Fully fake                                  |
-| Comms health chart                    | `MOCK_COMMS_HEALTH`                      | Fully fake                                  |
-| Revenue bar chart                     | `MOCK_REVENUE`                           | Fully fake                                  |
-| Geography donut                       | `MOCK_GEO`                               | Fully fake                                  |
-| Source performance table              | **Real API**                             | Empty until CSV import; CAC always `—`      |
-| “Last 30 days” button                 | `source-performance-table.tsx`           | Decorative — no filter                      |
-| “Export” / “View” buttons             | `source-performance-table.tsx`           | Not wired                                   |
 
 ### Communications (`/communications`)
 
@@ -40,7 +44,6 @@ Last updated: 2026-06-23
 | Element                          | Location            | Notes                                         |
 | -------------------------------- | ------------------- | --------------------------------------------- |
 | Razorpay integration card status | `settings-view.tsx` | Hardcoded `status="connected"` — not verified |
-| API key value                    | `settings-view.tsx` | Not shown (correct); only placeholder copy    |
 
 ---
 
@@ -52,23 +55,20 @@ Last updated: 2026-06-23
 | Lead Database | “Message segment” button  | `disabled`                                |
 | Lead Database | “Lookalike export (Meta)” | `disabled` — needs Marketing API          |
 | Lead Intake   | Inbound log empty state   | No empty-state message when list is empty |
-| Dashboard     | All KPI sparklines        | Static arrays from mock                   |
 
 ---
 
-## Dead mock files (not imported — safe to delete later)
+## Dead code removed
 
-| File                      | Contents                                                          |
-| ------------------------- | ----------------------------------------------------------------- |
-| `lib/mock/lead-intake.ts` | `MOCK_INTEGRATIONS`, `MOCK_INBOUND_LOG`                           |
-| `lib/mock/settings.ts`    | `MOCK_SETTINGS_INTEGRATIONS`, `MOCK_API_KEYS`, `MOCK_WEBHOOK_URL` |
-| `lib/mock/customers.ts`   | `MOCK_CUSTOMERS`, `MOCK_TIMELINE`, `MOCK_PROGRAM_HISTORY`         |
-| `lib/mock/staff.ts`       | `MOCK_STAFF`                                                      |
-| `lib/mock/dashboard.ts`   | `MOCK_SOURCE_ROWS` (unused; table uses API)                       |
+- `lib/mock/dashboard.ts` — deleted (dashboard wired to API)
+- `lib/mock/lead-intake.ts` — deleted
+- `lib/mock/settings.ts` — deleted
+- `lib/mock/customers.ts` — deleted
+- `lib/mock/staff.ts` — deleted
 
 ---
 
-## Real data (for contrast)
+## Real data elsewhere (unchanged)
 
 | Screen                              | Source                                            |
 | ----------------------------------- | ------------------------------------------------- |
@@ -79,19 +79,13 @@ Last updated: 2026-06-23
 | Customer 360 attribution card       | When `lead_attribution` row exists                |
 | Settings webhook URL                | `PUBLIC_API_URL` on backend                       |
 | Settings team tab                   | `listStaff`                                       |
-| Programs, promos, renewals, cohorts | Real APIs (out of scope for this audit)           |
-| Dashboard source performance        | `getSourcePerformance`                            |
-| Dashboard Meta lead KPI number      | `getMetaIntegrationStatus`                        |
+| Programs, promos, renewals, cohorts | Real APIs                                         |
 
 ---
 
-## Suggested prioritisation (for discussion — not decided)
+## Remaining prioritisation
 
-1. **Dashboard KPIs** — wire from leads/enrollments/renewals aggregates (high visibility)
-2. **Funnel chart** — lifecycle stage counts from `getLeadSummary` or dedicated query
-3. **Razorpay card** — derive from env or health check
-4. **Renewals at risk KPI** — likely already have renewal API
-5. **Revenue / geo charts** — need billing/analytics endpoints
-6. **Communications page** — large scope; likely last
-7. **CAC column** — needs Meta Ads spend (native app section of roadmap)
-8. **Delete dead mock files** — cleanup once dashboard is wired
+1. **Communications page** — Convonite (WhatsApp templates) + Resend (email); no SMS
+2. **Settings Razorpay card** — optional health check from backend
+3. **CAC column** — Meta Ads spend (native Meta app roadmap)
+4. **Lead Database** — selection + message segment when comms ships

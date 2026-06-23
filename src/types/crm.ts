@@ -166,7 +166,23 @@ export type MetaCSVImportResult = {
 export type RevenueWeek = {
   week: string;
   revenue: number;
-  spend: number;
+};
+
+export type DashboardAnalytics = {
+  kpis: {
+    newLeads7d: number;
+    newLeadsPrev7d: number;
+    conversionRate: number;
+    activeMembers: number;
+    activeCohorts: number;
+    revenueMtdPaise: number;
+    revenuePrevMtdPaise: number;
+    renewalsAtRisk: number;
+  };
+  newLeadsSparkline: number[];
+  funnel: Array<{ stage: string; label: string; count: number }>;
+  revenueWeekly: Array<{ weekLabel: string; revenueLakhs: number }>;
+  geo: Array<{ label: string; count: number; pct: number }>;
 };
 
 export type GeoItem = {
