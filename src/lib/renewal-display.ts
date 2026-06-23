@@ -3,10 +3,14 @@ import { formatCompactInrFromPaise, formatInrFromPaise } from '@/lib/money';
 
 export type RenewalBucketFilter = 'at_risk' | RenewalRetentionBucket | 'all';
 
+export function renewalBucketHref(bucket: RenewalBucketFilter): string {
+  return bucket === 'at_risk' || bucket === 'all' ? '/renewals' : `/renewals?bucket=${bucket}`;
+}
+
 export const RENEWAL_BUCKET_FILTERS: { id: RenewalBucketFilter; label: string }[] = [
-  { id: 'at_risk', label: 'At risk' },
+  { id: 'at_risk', label: 'At Risk' },
   { id: 'cancelling', label: 'Cancelling' },
-  { id: 'payment_issue', label: 'Payment issue' },
+  { id: 'payment_issue', label: 'Payment Issue' },
   { id: 'churned', label: 'Churned' },
   { id: 'healthy', label: 'Healthy' },
   { id: 'all', label: 'All' },
@@ -64,7 +68,7 @@ export function bucketLabel(bucket: RenewalRetentionBucket): string {
     case 'cancelling':
       return 'Cancelling';
     case 'payment_issue':
-      return 'Payment issue';
+      return 'Payment Issue';
     case 'churned':
       return 'Churned';
   }
@@ -106,31 +110,26 @@ export function riskDotClass(risk: RenewalRow['risk']): string {
 }
 
 export function buildRenewalActions(summary: RenewalSummary): RenewalAction[] {
-  const cancellingTitle = summary.nextCancellingName
-    ? `Follow up with ${summary.nextCancellingName}`
-    : 'Review cancelling members';
-  const cancellingSubtitle = summary.nextCancellingAccessAt
-    ? `Access ends ${formatRenewalDate(summary.nextCancellingAccessAt)}`
-    : `${summary.cancellingCount} opted out of auto-renew`;
-
   return [
     {
       id: 'cancelling',
-      title: cancellingTitle,
-      subtitle: cancellingSubtitle,
+      title: 'Cancelling Members',
+      subtitle: `${summary.cancellingCount} opted out of auto-renew`,
       count: summary.cancellingCount,
       accent: '#FFB703',
-      cta: summary.nextCancellingLeadId ? 'Open profile' : undefined,
-      href: summary.nextCancellingLeadId ? `/customers/${summary.nextCancellingLeadId}` : undefined,
+      cta: 'View',
+      href: '/renewals?bucket=cancelling',
+      bucket: 'cancelling',
     },
     {
       id: 'payment',
-      title: 'Payment issues',
+      title: 'Payment Issues',
       subtitle: 'Auto-renew may fail without a fix',
       count: summary.paymentIssueCount,
       accent: '#F43F5E',
-      cta: 'View all',
+      cta: 'View',
       href: '/renewals?bucket=payment_issue',
+      bucket: 'payment_issue',
     },
     {
       id: 'churned',
@@ -138,8 +137,9 @@ export function buildRenewalActions(summary: RenewalSummary): RenewalAction[] {
       subtitle: 'Members who lapsed recently',
       count: summary.churnedThisMonth,
       accent: '#5C65CF',
-      cta: 'View churned',
+      cta: 'View',
       href: '/renewals?bucket=churned',
+      bucket: 'churned',
     },
   ];
 }

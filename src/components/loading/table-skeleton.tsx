@@ -7,13 +7,20 @@ type TableSkeletonProps = {
   rows?: number;
   className?: string;
   showHeader?: boolean;
+  embedded?: boolean;
 };
 
-export function TableSkeleton({ columns = 6, rows = 8, className, showHeader = true }: TableSkeletonProps) {
-  return (
-    <CardSkeleton padding="none" className={cn('overflow-hidden', className)}>
+export function TableSkeleton({
+  columns = 6,
+  rows = 8,
+  className,
+  showHeader = true,
+  embedded = false,
+}: TableSkeletonProps) {
+  const content = (
+    <>
       {showHeader ? (
-        <div className="flex gap-4 border-b border-slate-100 px-5 py-3">
+        <div className="flex gap-4 border-b border-slate-100 bg-canvas-cool px-5 py-3">
           {Array.from({ length: columns }).map((_, index) => (
             <Skeleton key={`head-${index}`} className="h-3 flex-1" />
           ))}
@@ -31,6 +38,16 @@ export function TableSkeleton({ columns = 6, rows = 8, className, showHeader = t
           </div>
         ))}
       </div>
+    </>
+  );
+
+  if (embedded) {
+    return <div className={className}>{content}</div>;
+  }
+
+  return (
+    <CardSkeleton padding="none" className={cn('overflow-hidden', className)}>
+      {content}
     </CardSkeleton>
   );
 }

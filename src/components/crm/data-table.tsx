@@ -40,8 +40,35 @@ export function DataTableBody({ children }: { children: ReactNode }) {
   return <tbody>{children}</tbody>;
 }
 
-export function DataTableRow({ children, className }: { children: ReactNode; className?: string }) {
-  return <tr className={cn('border-t border-slate-100', className)}>{children}</tr>;
+export function DataTableRow({
+  children,
+  className,
+  onClick,
+}: {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <tr
+      className={cn('border-t border-slate-100', onClick && 'cursor-pointer hover:bg-canvas-cool/50', className)}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      role={onClick ? 'link' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
+      {children}
+    </tr>
+  );
 }
 
 export function DataTableCell({

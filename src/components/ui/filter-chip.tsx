@@ -12,16 +12,18 @@ type FilterChipProps = {
   count?: string | number;
   href?: string;
   onClick?: () => void;
+  pending?: boolean;
 };
 
-function FilterChipInner({ children, count }: Pick<FilterChipProps, 'children' | 'count'>) {
-  const { pending } = useLinkStatus();
+function FilterChipInner({ children, count, pending }: Pick<FilterChipProps, 'children' | 'count' | 'pending'>) {
+  const { pending: linkPending } = useLinkStatus();
+  const showPending = pending ?? linkPending;
 
   return (
     <>
-      <span className={cn(pending && 'opacity-70')}>{children}</span>
+      <span className={cn(showPending && 'opacity-70')}>{children}</span>
       {count !== undefined ? <span className="text-[10.5px] font-bold opacity-80">{count}</span> : null}
-      {pending ? <Loader2 size={12} className="shrink-0 animate-spin opacity-80" aria-hidden /> : null}
+      {showPending ? <Loader2 size={12} className="shrink-0 animate-spin opacity-80" aria-hidden /> : null}
     </>
   );
 }
@@ -34,19 +36,22 @@ const chipClassName = (active?: boolean) =>
       : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
   );
 
-export function FilterChip({ children, active, count, href, onClick }: FilterChipProps) {
+export function FilterChip({ children, active, count, href, onClick, pending }: FilterChipProps) {
   if (href) {
     return (
       <Link href={href} className={chipClassName(active)}>
-        <FilterChipInner count={count}>{children}</FilterChipInner>
+        <FilterChipInner count={count} pending={pending}>
+          {children}
+        </FilterChipInner>
       </Link>
     );
   }
 
   return (
-    <button type="button" onClick={onClick} className={chipClassName(active)}>
-      {children}
-      {count !== undefined ? <span className="text-[10.5px] font-bold opacity-80">{count}</span> : null}
+    <button type="button" onClick={onClick} className={chipClassName(active)} aria-busy={pending || undefined}>
+      <FilterChipInner count={count} pending={pending}>
+        {children}
+      </FilterChipInner>
     </button>
   );
 }

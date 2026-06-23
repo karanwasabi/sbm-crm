@@ -32,7 +32,7 @@ export default function RenewalsLoading() {
         <div className="p-5">
           <SectionHeadSkeleton />
         </div>
-        <TableSkeleton columns={8} rows={5} showHeader />
+        <TableSkeleton columns={7} rows={5} showHeader />
       </CardSkeleton>
     </CrmPageSkeleton>
   );

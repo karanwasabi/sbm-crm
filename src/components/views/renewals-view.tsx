@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { KpiCard } from '@/components/crm/kpi-card';
 import { RenewalActionCard } from '@/components/crm/renewal-action-card';
 import {
@@ -11,9 +12,9 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { TableSkeleton } from '@/components/loading/table-skeleton';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { useCrmRenewalSummary } from '@/components/layout/crm/crm-renewal-summary-context';
-import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
 import { Card } from '@/components/ui/card';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Pill } from '@/components/ui/pill';
@@ -27,11 +28,13 @@ import {
   filterCount,
   formatChargeLabel,
   formatClv,
+  renewalBucketHref,
   renewalSubtitle,
   riskDotClass,
   riskLabel,
   type RenewalBucketFilter,
 } from '@/lib/renewal-display';
+import { cn } from '@/lib/cn';
 import type { RenewalRow, RenewalSummary } from '@/types/crm';
 
 type RenewalsViewProps = {
@@ -41,8 +44,28 @@ type RenewalsViewProps = {
 };
 
 export function RenewalsView({ summary, rows, activeBucket }: RenewalsViewProps) {
+  const router = useRouter();
   const { setRenewalSubtitle } = useCrmRenewalSummary();
+  const [pendingBucket, setPendingBucket] = useState<RenewalBucketFilter | null>(null);
+  const [isNavigating, startTransition] = useTransition();
   const actions = buildRenewalActions(summary);
+
+  const displayedBucket = pendingBucket ?? activeBucket;
+  const isTableLoading = isNavigating || (pendingBucket !== null && pendingBucket !== activeBucket);
+
+  const navigateBucket = (bucket: RenewalBucketFilter) => {
+    if (bucket === activeBucket && pendingBucket === null) return;
+    setPendingBucket(bucket);
+    startTransition(() => {
+      router.push(renewalBucketHref(bucket));
+    });
+  };
+
+  useEffect(() => {
+    if (pendingBucket !== null && pendingBucket === activeBucket && !isNavigating) {
+      setPendingBucket(null);
+    }
+  }, [activeBucket, pendingBucket, isNavigating]);
 
   useEffect(() => {
     setRenewalSubtitle(renewalSubtitle(summary));
@@ -79,10 +102,15 @@ export function RenewalsView({ summary, rows, activeBucket }: RenewalsViewProps)
       </div>
 
       <Card padding="md">
-        <SectionHead title="Action center" subtitle="Monitor retention risk and open member profiles" />
+        <SectionHead title="Action center" subtitle="Jump to retention filters" />
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {actions.map((action) => (
-            <RenewalActionCard key={action.id} action={action} />
+            <RenewalActionCard
+              key={action.id}
+              action={action}
+              onNavigate={navigateBucket}
+              navigatePending={isTableLoading && action.bucket === pendingBucket}
+            />
           ))}
         </div>
       </Card>
@@ -91,8 +119,9 @@ export function RenewalsView({ summary, rows, activeBucket }: RenewalsViewProps)
         {RENEWAL_BUCKET_FILTERS.map((filter) => (
           <FilterChip
             key={filter.id}
-            href={filter.id === 'at_risk' ? '/renewals' : `/renewals?bucket=${filter.id}`}
-            active={activeBucket === filter.id}
+            onClick={() => navigateBucket(filter.id)}
+            active={displayedBucket === filter.id}
+            pending={isTableLoading && pendingBucket === filter.id}
             count={filterCount(summary, filter.id)}
           >
             {filter.label}
@@ -100,64 +129,66 @@ export function RenewalsView({ summary, rows, activeBucket }: RenewalsViewProps)
         ))}
       </div>
 
-      <Card padding="none">
+      <Card padding="none" className={cn(isTableLoading && 'pointer-events-none')}>
         <div className="p-5">
           <SectionHead
             title="Subscription retention"
-            subtitle={`${rows.length} member${rows.length === 1 ? '' : 's'} · sorted by risk`}
+            subtitle={
+              isTableLoading
+                ? 'Loading members…'
+                : `${rows.length} member${rows.length === 1 ? '' : 's'} · sorted by risk`
+            }
           />
         </div>
-        <DataTable>
-          <DataTableHead>
-            {['Member', 'Cohort', 'Next charge / access', 'CLV', 'Status', 'Risk', 'Automation', ''].map((h) => (
-              <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
-            ))}
-          </DataTableHead>
-          <DataTableBody>
-            {rows.length === 0 ? (
-              <DataTableRow>
-                <DataTableCell colSpan={8} className="py-10 text-center text-sm text-slate-500">
-                  No members match this filter.
-                </DataTableCell>
-              </DataTableRow>
-            ) : (
-              rows.map((row) => (
-                <DataTableRow key={row.checkoutSessionId}>
-                  <DataTableCell>
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
-                        {row.memberInitials}
-                      </div>
-                      <span className="font-semibold text-slate-800">{row.memberName}</span>
-                    </div>
-                  </DataTableCell>
-                  <DataTableCell>{row.cohortName}</DataTableCell>
-                  <DataTableCell className="text-slate-600">{formatChargeLabel(row)}</DataTableCell>
-                  <DataTableCell className="font-bold tabular-nums">{formatClv(row.lifetimePaidPaise)}</DataTableCell>
-                  <DataTableCell>
-                    <Pill tone={bucketTone(row.retentionBucket)}>{bucketLabel(row.retentionBucket)}</Pill>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600">
-                      <span className={`h-2 w-2 rounded-full ${riskDotClass(row.risk)}`} />
-                      {riskLabel(row.risk)}
-                    </span>
-                  </DataTableCell>
-                  <DataTableCell className="text-slate-400">—</DataTableCell>
-                  <DataTableCell className="text-right">
-                    {row.leadId ? (
-                      <CrmTableLink href={`/customers/${row.leadId}`} className="text-xs font-semibold text-brand">
-                        Open
-                      </CrmTableLink>
-                    ) : (
-                      <span className="text-xs text-slate-400">No CRM profile</span>
-                    )}
+        {isTableLoading ? (
+          <TableSkeleton columns={7} rows={5} showHeader embedded />
+        ) : (
+          <DataTable>
+            <DataTableHead>
+              {['Member', 'Cohort', 'Next charge / access', 'CLV', 'Status', 'Risk', 'Automation'].map((h) => (
+                <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
+              ))}
+            </DataTableHead>
+            <DataTableBody>
+              {rows.length === 0 ? (
+                <DataTableRow>
+                  <DataTableCell colSpan={7} className="py-10 text-center text-sm text-slate-500">
+                    No members match this filter.
                   </DataTableCell>
                 </DataTableRow>
-              ))
-            )}
-          </DataTableBody>
-        </DataTable>
+              ) : (
+                rows.map((row) => (
+                  <DataTableRow
+                    key={row.checkoutSessionId}
+                    onClick={row.leadId ? () => router.push(`/customers/${row.leadId}`) : undefined}
+                  >
+                    <DataTableCell>
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
+                          {row.memberInitials}
+                        </div>
+                        <span className="font-semibold text-slate-800">{row.memberName}</span>
+                      </div>
+                    </DataTableCell>
+                    <DataTableCell>{row.cohortName}</DataTableCell>
+                    <DataTableCell className="text-slate-600">{formatChargeLabel(row)}</DataTableCell>
+                    <DataTableCell className="font-bold tabular-nums">{formatClv(row.lifetimePaidPaise)}</DataTableCell>
+                    <DataTableCell>
+                      <Pill tone={bucketTone(row.retentionBucket)}>{bucketLabel(row.retentionBucket)}</Pill>
+                    </DataTableCell>
+                    <DataTableCell>
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600">
+                        <span className={`h-2 w-2 rounded-full ${riskDotClass(row.risk)}`} />
+                        {riskLabel(row.risk)}
+                      </span>
+                    </DataTableCell>
+                    <DataTableCell className="text-slate-400">—</DataTableCell>
+                  </DataTableRow>
+                ))
+              )}
+            </DataTableBody>
+          </DataTable>
+        )}
       </Card>
     </CrmPageLayout>
   );

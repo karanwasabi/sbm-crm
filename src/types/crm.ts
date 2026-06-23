@@ -293,6 +293,7 @@ export type RenewalAction = {
   accent: string;
   cta?: string;
   href?: string;
+  bucket?: 'cancelling' | 'payment_issue' | 'churned';
 };
 
 export type SettingsIntegration = {
