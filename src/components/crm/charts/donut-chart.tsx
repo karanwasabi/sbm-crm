@@ -1,5 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
+import { cn } from '@/lib/cn';
 import type { GeoItem } from '@/types/crm';
 
 type DonutChartProps = {
@@ -7,6 +8,8 @@ type DonutChartProps = {
   totalLabel?: string;
   title?: string;
   subtitle?: string;
+  className?: string;
+  compact?: boolean;
 };
 
 export function DonutChart({
@@ -14,19 +17,24 @@ export function DonutChart({
   totalLabel = '12.4k',
   title = 'Geography',
   subtitle = 'Lead distribution',
+  className,
+  compact = false,
 }: DonutChartProps) {
   if (items.length === 0) {
     return (
-      <Card>
-        <SectionHead title={title} subtitle={subtitle} />
-        <p className="px-5 pb-5 text-sm text-slate-500">No location data on leads yet.</p>
+      <Card className={cn('h-full', className)}>
+        <SectionHead title={title} subtitle={subtitle} className={compact ? 'mb-2.5' : undefined} />
+        <p className="text-sm text-slate-500">No location data on leads yet.</p>
       </Card>
     );
   }
 
+  const size = compact ? 96 : 140;
+  const R = compact ? 36 : 56;
+  const C = size / 2;
+  const innerR = compact ? 22 : 32;
+
   let cum = 0;
-  const R = 56;
-  const C = 70;
 
   const segments = items.map((item) => {
     const start = cum * Math.PI * 2 - Math.PI / 2;
@@ -44,22 +52,31 @@ export function DonutChart({
   });
 
   return (
-    <Card>
-      <SectionHead title={title} subtitle={subtitle} />
-      <div className="grid grid-cols-[140px_1fr] items-center gap-4.5">
-        <svg viewBox="0 0 140 140" width={140} height={140}>
+    <Card className={cn('h-full', className)}>
+      <SectionHead title={title} subtitle={subtitle} className={compact ? 'mb-2.5' : undefined} />
+      <div
+        className={cn(compact ? 'flex flex-col items-center gap-3' : 'grid grid-cols-[140px_1fr] items-center gap-4.5')}
+      >
+        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="shrink-0">
           {segments.map((seg, i) => (
             <path key={i} d={seg.d} fill={seg.color} />
           ))}
-          <circle cx={C} cy={C} r={32} fill="#fff" />
-          <text x={C} y={C - 2} textAnchor="middle" fontSize="18" fontWeight="800" fill="#1E293B">
+          <circle cx={C} cy={C} r={innerR} fill="#fff" />
+          <text
+            x={C}
+            y={C - (compact ? 1 : 2)}
+            textAnchor="middle"
+            fontSize={compact ? '14' : '18'}
+            fontWeight="800"
+            fill="#1E293B"
+          >
             {totalLabel}
           </text>
           <text
             x={C}
-            y={C + 12}
+            y={C + (compact ? 10 : 12)}
             textAnchor="middle"
-            fontSize="8"
+            fontSize={compact ? '7' : '8'}
             fontWeight="700"
             letterSpacing="0.16em"
             fill="#64748B"
@@ -67,12 +84,27 @@ export function DonutChart({
             LEADS
           </text>
         </svg>
-        <div className="flex flex-col gap-2">
+        <div className={cn('flex flex-col gap-2', compact && 'w-full')}>
           {items.map((item) => (
-            <div key={item.city} className="flex items-center gap-2.5">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ background: item.color }} />
-              <span className="flex-1 text-[12.5px] font-semibold text-slate-700">{item.city}</span>
-              <span className="text-[12.5px] font-bold text-slate-800 tabular-nums">{Math.round(item.pct * 100)}%</span>
+            <div key={item.city} className="flex min-w-0 items-center gap-2">
+              <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: item.color }} />
+              <span
+                className={cn(
+                  'min-w-0 flex-1 truncate font-semibold text-slate-700',
+                  compact ? 'text-[11px]' : 'text-[12.5px]'
+                )}
+                title={item.city}
+              >
+                {item.city}
+              </span>
+              <span
+                className={cn(
+                  'shrink-0 font-bold text-slate-800 tabular-nums',
+                  compact ? 'text-[11px]' : 'text-[12.5px]'
+                )}
+              >
+                {Math.round(item.pct * 100)}%
+              </span>
             </div>
           ))}
         </div>

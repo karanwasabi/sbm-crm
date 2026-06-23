@@ -7,9 +7,10 @@ import { SourcePerformanceTable } from '@/components/crm/source-performance-tabl
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import {
   formatConversionRate,
-  formatLakhsFromPaise,
   formatLeadCount,
   formatPeriodTrend,
+  formatThousandsFromPaise,
+  lakhsToThousands,
 } from '@/lib/dashboard-display';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import type { DashboardAnalytics, FunnelStep, GeoItem, LifecycleStage, SourcePerformanceRow } from '@/types/crm';
@@ -66,7 +67,6 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
       trend: formatPeriodTrend(kpis.newLeads7d, kpis.newLeadsPrev7d),
       accent: '#5C65CF',
       icon: KPI_ICONS[0],
-      spark: analytics.newLeadsSparkline,
     },
     {
       label: 'Inquiry → Paid',
@@ -83,9 +83,9 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
       icon: KPI_ICONS[2],
     },
     {
-      label: 'Revenue (₹L)',
-      value: formatLakhsFromPaise(kpis.revenueMtdPaise),
-      sub: 'This month · MTD',
+      label: 'Revenue MTD',
+      value: formatThousandsFromPaise(kpis.revenueMtdPaise),
+      sub: 'This month',
       trend: formatPeriodTrend(kpis.revenueMtdPaise, kpis.revenuePrevMtdPaise),
       accent: '#FFB703',
       icon: KPI_ICONS[3],
@@ -101,7 +101,7 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
 
   const revenueData = analytics.revenueWeekly.map((week) => ({
     week: week.weekLabel,
-    revenue: week.revenueLakhs,
+    revenue: lakhsToThousands(week.revenueLakhs),
   }));
 
   return (
@@ -114,19 +114,26 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
 
       <KpiStrip items={kpiItems} />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
-        <FunnelChart steps={buildFunnelSteps(analytics)} title="Lifecycle funnel" subtitle="All contacts by stage" />
+      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+        <FunnelChart
+          compact
+          className="min-w-0"
+          steps={buildFunnelSteps(analytics)}
+          title="Lifecycle funnel"
+          subtitle="By stage"
+        />
+        <BarChart className="min-w-0" data={revenueData} />
         <DonutChart
+          compact
+          className="min-w-0"
           items={buildGeoItems(analytics)}
           totalLabel={geoTotalLabel(analytics)}
           title="Geography"
-          subtitle="City, or country when city is unknown"
+          subtitle="By city or country"
         />
       </div>
 
       <SourcePerformanceTable rows={sourcePerformance} />
-
-      <BarChart data={revenueData} />
     </CrmPageLayout>
   );
 }
