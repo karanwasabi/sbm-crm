@@ -46,7 +46,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/': { title: 'Dashboard', subtitle: 'Reporting & performance overview' },
   '/leads': { title: 'Lead Intake', subtitle: 'Capture and route inbound leads' },
   '/database': { title: 'Lead Database' },
-  '/programs': { title: 'Program Management', subtitle: 'Cohorts, capacity & attendance' },
+  '/programs': { title: 'Program Management', subtitle: 'Cohort queue, phases & members' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: 'Subscription retention monitoring' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
@@ -54,6 +54,9 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
 };
 
 export function getPageMeta(pathname: string): CrmPageMeta {
+  if (pathname.startsWith('/programs/cohorts/')) {
+    return { title: 'Cohort Detail', subtitle: 'Members & transfers' };
+  }
   if (pathname.startsWith('/customers/')) {
     return { title: 'Customer 360', subtitle: 'Unified contact profile' };
   }

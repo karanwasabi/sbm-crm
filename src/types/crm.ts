@@ -204,6 +204,39 @@ export type ProgramHistoryItem = {
   date: string;
 };
 
+export type CohortSummary = {
+  id: string;
+  programId: string;
+  name: string;
+  startsOn: string;
+  status: string;
+  phaseLabel: string;
+  memberCount: number;
+  canEdit: boolean;
+  canEditStartsOn: boolean;
+  color: string;
+};
+
+export type CohortDetail = CohortSummary & {
+  programName: string;
+  paidMemberCount: number;
+};
+
+export type CohortMember = {
+  enrollmentId: string;
+  userId: string;
+  leadId?: string;
+  memberName: string;
+  memberInitials: string;
+  email: string;
+  enrollmentStatus: string;
+  memberPhase: string;
+  subscriptionState: 'active' | 'lapsed';
+  subscriptionStatus?: string;
+  enrolledAt: string;
+};
+
+/** @deprecated Use CohortSummary */
 export type CohortCapacity = {
   name: string;
   color: string;

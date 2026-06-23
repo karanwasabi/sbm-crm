@@ -350,19 +350,74 @@ type ApiProgramResponse = {
 
 type ApiCohortResponse = {
   id: string;
+  program_id: string;
   name: string;
-  capacity: number;
-  enrolled_count: number;
-  waitlist_count: number;
-  week_label: string;
-  badge?: string;
+  starts_on: string;
+  status: string;
+  phase_label: string;
+  member_count: number;
+  can_edit: boolean;
+  can_edit_starts_on: boolean;
   color: string;
 };
 
-type ApiCalendarResponse = {
-  month: string;
-  days: { day: number; label?: string; events: number }[];
+type ApiCohortDetailResponse = ApiCohortResponse & {
+  program_name: string;
+  paid_member_count: number;
 };
+
+type ApiCohortMemberResponse = {
+  enrollment_id: string;
+  user_id: string;
+  lead_id?: string | null;
+  member_name: string;
+  member_initials: string;
+  email: string;
+  enrollment_status: string;
+  member_phase: string;
+  subscription_state: 'active' | 'lapsed';
+  subscription_status?: string;
+  enrolled_at: string;
+};
+
+function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortSummary {
+  return {
+    id: row.id,
+    programId: row.program_id,
+    name: row.name,
+    startsOn: row.starts_on,
+    status: row.status,
+    phaseLabel: row.phase_label,
+    memberCount: row.member_count,
+    canEdit: row.can_edit,
+    canEditStartsOn: row.can_edit_starts_on,
+    color: row.color,
+  };
+}
+
+function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').CohortDetail {
+  return {
+    ...mapCohortSummary(row),
+    programName: row.program_name,
+    paidMemberCount: row.paid_member_count,
+  };
+}
+
+function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').CohortMember {
+  return {
+    enrollmentId: row.enrollment_id,
+    userId: row.user_id,
+    leadId: row.lead_id ?? undefined,
+    memberName: row.member_name,
+    memberInitials: row.member_initials,
+    email: row.email,
+    enrollmentStatus: row.enrollment_status,
+    memberPhase: row.member_phase,
+    subscriptionState: row.subscription_state,
+    subscriptionStatus: row.subscription_status,
+    enrolledAt: row.enrolled_at,
+  };
+}
 
 type ApiEnrollmentResponse = {
   id: string;
@@ -380,25 +435,57 @@ export async function listPrograms(): Promise<ApiProgramResponse[]> {
   return (await response.json()) as ApiProgramResponse[];
 }
 
-export async function getProgramCohorts(programId: string): Promise<import('@/types/crm').CohortCapacity[]> {
+export async function getProgramCohorts(programId: string): Promise<import('@/types/crm').CohortSummary[]> {
   const response = await requireApiFetch(`/admin/programs/${encodeURIComponent(programId)}/cohorts`);
   if (!response.ok) throw new ApiError('Failed to load cohorts.', response.status);
   const rows = (await response.json()) as ApiCohortResponse[];
-  return rows.map((row) => ({
-    name: row.name,
-    color: row.color,
-    week: row.week_label,
-    enrolled: row.enrolled_count,
-    cap: row.capacity,
-    waitlist: row.waitlist_count,
-    badge: row.badge,
-  }));
+  return rows.map(mapCohortSummary);
 }
 
-export async function getProgramCalendar(month: string): Promise<ApiCalendarResponse> {
-  const response = await requireApiFetch(`/admin/programs/calendar?month=${encodeURIComponent(month)}`);
-  if (!response.ok) throw new ApiError('Failed to load program calendar.', response.status);
-  return (await response.json()) as ApiCalendarResponse;
+export async function getCohort(cohortId: string): Promise<import('@/types/crm').CohortDetail> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}`);
+  if (!response.ok) throw new ApiError('Failed to load cohort.', response.status);
+  return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
+}
+
+export async function getCohortMembers(cohortId: string): Promise<import('@/types/crm').CohortMember[]> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/members`);
+  if (!response.ok) throw new ApiError('Failed to load cohort members.', response.status);
+  const rows = (await response.json()) as ApiCohortMemberResponse[];
+  return rows.map(mapCohortMember);
+}
+
+export type PatchCohortInput = {
+  name?: string;
+  starts_on?: string;
+};
+
+export async function patchCohort(
+  cohortId: string,
+  input: PatchCohortInput
+): Promise<import('@/types/crm').CohortDetail> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update cohort.', response.status);
+  }
+  return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
+}
+
+export async function transferEnrollment(enrollmentId: string, targetCohortId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/enrollments/${encodeURIComponent(enrollmentId)}/transfer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ target_cohort_id: targetCohortId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to transfer member.', response.status);
+  }
 }
 
 export async function getMemberEnrollments(userId: string): Promise<import('@/types/crm').ProgramHistoryItem[]> {
