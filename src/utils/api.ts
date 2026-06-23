@@ -1,9 +1,9 @@
+import { cache } from 'react';
 import type { StaffAccessRole } from '@/lib/access';
 import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
 import { createClient } from '@/utils/supabase/server';
-import { cache } from 'react';
 
 export class ApiError extends Error {
   constructor(

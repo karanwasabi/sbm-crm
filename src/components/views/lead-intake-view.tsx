@@ -6,9 +6,7 @@ import { useState, useTransition } from 'react';
 import { createManualLead } from '@/app/(crm)/leads/actions';
 import { InboundLog } from '@/components/crm/inbound-log';
 import { IntegrationCard } from '@/components/crm/integration-card';
-import { CityCombobox } from '@/components/profile/city-combobox';
-import { CountryCombobox } from '@/components/profile/country-combobox';
-import { PhoneInput } from '@/components/profile/phone-input';
+import { LazyCityCombobox, LazyCountryCombobox, LazyPhoneInput } from '@/components/profile/lazy-profile-fields';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -135,7 +133,7 @@ export function LeadIntakeView({ countries }: LeadIntakeViewProps) {
                 />
               </Field>
               <Field label="Phone">
-                <PhoneInput
+                <LazyPhoneInput
                   value={form.phone}
                   onChange={(value) => setForm((current) => ({ ...current, phone: value }))}
                   countries={countries}
@@ -145,7 +143,7 @@ export function LeadIntakeView({ countries }: LeadIntakeViewProps) {
                 />
               </Field>
               <Field label="Country">
-                <CountryCombobox
+                <LazyCountryCombobox
                   value={form.countryCode}
                   onChange={handleCountryChange}
                   countries={countries}
@@ -153,7 +151,7 @@ export function LeadIntakeView({ countries }: LeadIntakeViewProps) {
                 />
               </Field>
               <Field label="City" hint={loadingCities ? 'Loading suggestions…' : 'Start typing or pick a suggestion.'}>
-                <CityCombobox
+                <LazyCityCombobox
                   value={form.city}
                   onChange={(value) => setForm((current) => ({ ...current, city: value }))}
                   suggestions={citySuggestions}

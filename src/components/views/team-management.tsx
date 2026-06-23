@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useState, useTransition } from 'react';
 import { createStaffAction } from '@/app/(crm)/settings/team-actions';
@@ -19,11 +20,16 @@ import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
-import { formatStaffName, StaffAccessModal } from '@/components/views/staff-access-modal';
+import { formatStaffName } from '@/components/views/staff-access-modal';
 import type { StaffAccessRole } from '@/lib/access';
 import { toTitleCase } from '@/lib/title-case';
 import { cn } from '@/lib/cn';
 import type { StaffList, StaffMember } from '@/utils/api';
+
+const StaffAccessModal = dynamic(
+  () => import('@/components/views/staff-access-modal').then((module) => ({ default: module.StaffAccessModal })),
+  { ssr: false }
+);
 
 type TeamManagementProps = {
   staff: StaffList;
@@ -190,13 +196,15 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         </Card>
       </div>
 
-      <StaffAccessModal
-        member={editingMember}
-        currentUserId={currentUserId}
-        inactive={editingInactive}
-        onClose={() => setEditingMember(null)}
-        onSaved={() => router.refresh()}
-      />
+      {editingMember ? (
+        <StaffAccessModal
+          member={editingMember}
+          currentUserId={currentUserId}
+          inactive={editingInactive}
+          onClose={() => setEditingMember(null)}
+          onSaved={() => router.refresh()}
+        />
+      ) : null}
     </>
   );
 }

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, ArrowRight, Loader2, Mail } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Mail } from 'lucide-react';
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { requestPasswordReset, type ForgotPasswordState } from '@/app/(auth)/forgot-password/actions';
 import { SbmWordmark } from '@/components/brand/sbm-wordmark';
@@ -127,8 +127,8 @@ export function ForgotPasswordForm() {
             variant="primary"
             size="lg"
             fullWidth
-            disabled={isPending}
-            rightIcon={isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+            loading={isPending}
+            rightIcon={<ArrowRight className="h-4 w-4" />}
           >
             {forgotPasswordMessages.sendResetLink}
           </Button>

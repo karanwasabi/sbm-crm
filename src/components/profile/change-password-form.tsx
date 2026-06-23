@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Loader2 } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useActionState, useEffect, useRef, useState } from 'react';
 import { changePassword } from '@/app/(crm)/profile/change-password/actions';
 import { PasswordField } from '@/components/auth/password-field';
@@ -157,15 +157,15 @@ export function ChangePasswordForm() {
             )}
           </div>
 
-          <Button type="submit" variant="primary" size="md" disabled={isPending} className="self-start">
-            {isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Updating…
-              </>
-            ) : (
-              'Update password'
-            )}
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            loading={isPending}
+            loadingLabel="Updating…"
+            className="self-start"
+          >
+            Update password
           </Button>
         </form>
       </Card>

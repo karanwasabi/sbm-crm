@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail } from 'lucide-react';
+import { ArrowRight, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useActionState, useEffect, useRef, useState } from 'react';
 import {
   login,
@@ -222,10 +222,10 @@ export function LoginForm() {
                 variant="primary"
                 size="lg"
                 fullWidth
-                disabled={isPending || sendOtpPending}
-                rightIcon={
-                  isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />
-                }
+                loading={isPending}
+                loadingLabel="Logging in…"
+                disabled={sendOtpPending}
+                rightIcon={<ArrowRight className="h-4 w-4" />}
               >
                 Login
               </Button>
@@ -244,10 +244,12 @@ export function LoginForm() {
                 variant="light"
                 size="lg"
                 fullWidth
-                disabled={sendOtpPending || isPending || !email.trim()}
-                leftIcon={sendOtpPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                loading={sendOtpPending}
+                loadingLabel="Sending OTP…"
+                disabled={isPending || !email.trim()}
+                leftIcon={<Mail className="h-4 w-4" />}
               >
-                {sendOtpPending ? 'Sending OTP…' : 'Login via OTP'}
+                Login via OTP
               </Button>
             </form>
           </>
@@ -291,12 +293,12 @@ export function LoginForm() {
               variant="primary"
               size="lg"
               fullWidth
-              disabled={verifyOtpPending || !isValidEmailOtp(otp)}
-              rightIcon={
-                verifyOtpPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />
-              }
+              loading={verifyOtpPending}
+              loadingLabel="Logging in…"
+              disabled={!isValidEmailOtp(otp)}
+              rightIcon={<ArrowRight className="h-4 w-4" />}
             >
-              {verifyOtpPending ? 'Logging in…' : 'Login'}
+              Login
             </Button>
 
             <p className="text-center">

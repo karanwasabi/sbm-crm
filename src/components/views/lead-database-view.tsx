@@ -1,6 +1,7 @@
 'use client';
 
 import { Download, Send, Upload } from 'lucide-react';
+import { useEffect } from 'react';
 import { FilterBar } from '@/components/crm/filter-bar';
 import {
   DataTable,
@@ -11,6 +12,7 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
 import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -26,7 +28,13 @@ type LeadDatabaseViewProps = {
 };
 
 export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseViewProps) {
+  const { setLeadTotal } = useCrmLeadSummary();
   const stageOptions = buildStageFilterOptions(summary);
+
+  useEffect(() => {
+    setLeadTotal(summary.total);
+    return () => setLeadTotal(null);
+  }, [summary.total, setLeadTotal]);
 
   return (
     <CrmPageLayout>

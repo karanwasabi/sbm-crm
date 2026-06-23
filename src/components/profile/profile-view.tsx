@@ -1,18 +1,21 @@
 'use client';
 
-import { Cake, Loader2, Lock, Mail } from 'lucide-react';
+import { Cake, Lock, Mail } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { updateProfile } from '@/app/(crm)/profile/actions';
 import { useCrmProfile } from '@/components/layout/crm/crm-profile-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import { CityCombobox } from '@/components/profile/city-combobox';
-import { CountryCombobox } from '@/components/profile/country-combobox';
+import {
+  LazyCityCombobox,
+  LazyCountryCombobox,
+  LazyPhoneInput,
+  LazyTimezonePicker,
+} from '@/components/profile/lazy-profile-fields';
 import { MealPreferenceSelect } from '@/components/profile/meal-preference-select';
 import { ParentalConsentBlock } from '@/components/profile/parental-consent-block';
-import { PhoneInput } from '@/components/profile/phone-input';
 import { SexSelect } from '@/components/profile/sex-select';
-import { TimezonePicker } from '@/components/profile/timezone-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -323,7 +326,7 @@ export function ProfileView({ countries }: ProfileViewProps) {
               <MealPreferenceSelect value={mealPreference} onChange={setMealPreference} disabled={pending} />
             </Field>
             <Field label="Country">
-              <CountryCombobox
+              <LazyCountryCombobox
                 value={countryCode}
                 onChange={handleCountryChange}
                 countries={countries}
@@ -331,7 +334,7 @@ export function ProfileView({ countries }: ProfileViewProps) {
               />
             </Field>
             <Field label="City" hint={loadingCities ? 'Loading suggestions…' : 'Start typing or pick a suggestion.'}>
-              <CityCombobox
+              <LazyCityCombobox
                 value={city}
                 onChange={setCity}
                 suggestions={citySuggestions}
@@ -341,7 +344,7 @@ export function ProfileView({ countries }: ProfileViewProps) {
               />
             </Field>
             <Field label="Mobile (WhatsApp)">
-              <PhoneInput
+              <LazyPhoneInput
                 name="whatsapp"
                 value={whatsapp}
                 onChange={setWhatsapp}
@@ -352,7 +355,7 @@ export function ProfileView({ countries }: ProfileViewProps) {
               />
             </Field>
             <Field label="Timezone">
-              <TimezonePicker value={timezoneId} onChange={setTimezoneId} disabled={pending} />
+              <LazyTimezonePicker value={timezoneId} onChange={setTimezoneId} disabled={pending} />
             </Field>
           </div>
 
@@ -362,11 +365,15 @@ export function ProfileView({ countries }: ProfileViewProps) {
             <Button type="button" variant="ghost" size="md" onClick={resetForm} disabled={pending || !isDirty}>
               Discard
             </Button>
-            <Button type="submit" variant="primary" size="md" disabled={pending || !canSave} aria-busy={pending}>
-              <span className="relative inline-flex items-center justify-center">
-                <span className={pending ? 'opacity-0' : undefined}>Save changes</span>
-                {pending ? <Loader2 size={16} className="absolute animate-spin" aria-hidden /> : null}
-              </span>
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              loading={pending}
+              loadingLabel="Saving…"
+              disabled={!canSave}
+            >
+              Save changes
             </Button>
           </div>
         </form>

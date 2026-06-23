@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
 import { hasProduct, PRODUCT_CRM, visibleStaffRoles } from '@/lib/access';
-import { getLatestProfile, getMyAccess, getLeadSummary, ApiError } from '@/utils/api';
+import { getLatestProfile, getMyAccess, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import { getInitials, type Profile } from '@/types/profile';
 
@@ -40,19 +40,11 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   let profile: Profile | null = null;
   let profileError: string | null = null;
-  let leadTotal = 0;
 
-  const [profileResult, summaryResult] = await Promise.allSettled([getLatestProfile(), getLeadSummary()]);
-
-  if (profileResult.status === 'fulfilled') {
-    profile = profileResult.value;
-  } else {
-    const error = profileResult.reason;
+  try {
+    profile = await getLatestProfile();
+  } catch (error) {
     profileError = error instanceof ApiError ? error.message : 'Failed to load profile.';
-  }
-
-  if (summaryResult.status === 'fulfilled') {
-    leadTotal = summaryResult.value.total;
   }
 
   const staffUser = {
@@ -62,7 +54,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError} leadTotal={leadTotal}>
+    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError}>
       {children}
     </CrmShell>
   );

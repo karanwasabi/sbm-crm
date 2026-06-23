@@ -115,10 +115,11 @@ export function PromoSummaryCard({
                     type="button"
                     variant="primary"
                     size="sm"
-                    disabled={savingDescription}
+                    loading={savingDescription}
+                    loadingLabel="Saving…"
                     onClick={handleSaveDescription}
                   >
-                    {savingDescription ? 'Saving…' : 'Save description'}
+                    Save description
                   </Button>
                   <Button
                     type="button"

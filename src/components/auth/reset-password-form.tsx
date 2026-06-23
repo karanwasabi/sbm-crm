@@ -280,8 +280,8 @@ export function ResetPasswordForm() {
           variant="primary"
           size="lg"
           fullWidth
-          disabled={isSubmitting}
-          rightIcon={isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+          loading={isSubmitting}
+          rightIcon={<ArrowRight className="h-4 w-4" />}
         >
           {resetPasswordMessages.updatePassword}
         </Button>

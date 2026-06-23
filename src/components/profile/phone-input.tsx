@@ -4,11 +4,12 @@ import { Phone } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { DialCodePicker } from '@/components/profile/dial-code-picker';
 import { TextInput } from '@/components/ui/text-input';
-import { getMobileDigitHint, sanitizeNationalDigits, validateMobileNational } from '@/lib/country-mobile-rules';
 import { getCountryDialCode } from '@/lib/country-dial-codes';
 import { combineWhatsapp, parseWhatsapp } from '@/lib/phone-number';
 import { cn } from '@/lib/utils';
 import type { Country } from '@/types/reference';
+
+type MobileRules = typeof import('@/lib/country-mobile-rules');
 
 type PhoneInputProps = {
   value: string;
@@ -23,7 +24,11 @@ type PhoneInputProps = {
   className?: string;
 };
 
-function initialParts(value: string, suggestedCountryIso?: string) {
+function sanitizeDigits(raw: string): string {
+  return raw.replace(/\D/g, '');
+}
+
+function initialParts(value: string, suggestedCountryIso: string | undefined, rules: MobileRules | null) {
   const parsed = parseWhatsapp(value, suggestedCountryIso);
   if (!value.trim() && suggestedCountryIso) {
     const dial = getCountryDialCode(suggestedCountryIso);
@@ -34,7 +39,9 @@ function initialParts(value: string, suggestedCountryIso?: string) {
   if (parsed.dialIso && parsed.nationalNumber) {
     return {
       ...parsed,
-      nationalNumber: sanitizeNationalDigits(parsed.nationalNumber, parsed.dialIso),
+      nationalNumber: rules
+        ? rules.sanitizeNationalDigits(parsed.nationalNumber, parsed.dialIso)
+        : sanitizeDigits(parsed.nationalNumber),
     };
   }
   return parsed;
@@ -43,6 +50,7 @@ function initialParts(value: string, suggestedCountryIso?: string) {
 function applyValueToParts(
   value: string,
   suggestedCountryIso: string | undefined,
+  rules: MobileRules | null,
   setters: {
     setDialCode: (v: string) => void;
     setDialIso: (v: string) => void;
@@ -55,7 +63,7 @@ function applyValueToParts(
 ) {
   refs.lastEmitted.current = value;
   refs.lastSuggestedIso.current = suggestedCountryIso;
-  const next = initialParts(value, suggestedCountryIso);
+  const next = initialParts(value, suggestedCountryIso, rules);
   setters.setDialCode(next.dialCode);
   setters.setDialIso(next.dialIso);
   setters.setNationalNumber(next.nationalNumber);
@@ -71,7 +79,8 @@ export function PhoneInput({
   disabled,
   className,
 }: PhoneInputProps) {
-  const initial = initialParts(value, suggestedCountryIso);
+  const [mobileRules, setMobileRules] = useState<MobileRules | null>(null);
+  const initial = initialParts(value, suggestedCountryIso, mobileRules);
   const [dialCode, setDialCode] = useState(initial.dialCode);
   const [dialIso, setDialIso] = useState(initial.dialIso);
   const [nationalNumber, setNationalNumber] = useState(initial.nationalNumber);
@@ -80,11 +89,22 @@ export function PhoneInput({
   const lastSyncToken = useRef(syncToken);
 
   useEffect(() => {
+    let active = true;
+    void import('@/lib/country-mobile-rules').then((module) => {
+      if (active) setMobileRules(module);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     if (syncToken !== undefined && syncToken !== lastSyncToken.current) {
       lastSyncToken.current = syncToken;
       applyValueToParts(
         value,
         suggestedCountryIso,
+        mobileRules,
         { setDialCode, setDialIso, setNationalNumber },
         { lastEmitted, lastSuggestedIso }
       );
@@ -103,27 +123,30 @@ export function PhoneInput({
       return;
     }
 
-    // Parent has not applied a clear emit yet; avoid restoring a stale saved number.
     if (!lastEmitted.current.trim() && value.trim()) {
       return;
     }
 
     lastEmitted.current = value;
     lastSuggestedIso.current = suggestedCountryIso;
-    const next = initialParts(value, suggestedCountryIso);
+    const next = initialParts(value, suggestedCountryIso, mobileRules);
     setDialCode(next.dialCode);
     setDialIso(next.dialIso);
     setNationalNumber(next.nationalNumber);
-  }, [value, suggestedCountryIso, syncToken]);
+  }, [value, suggestedCountryIso, syncToken, mobileRules]);
 
-  const digitHint = useMemo(() => getMobileDigitHint(dialIso), [dialIso]);
+  const digitHint = useMemo(() => mobileRules?.getMobileDigitHint(dialIso) ?? null, [mobileRules, dialIso]);
   const validationError = useMemo(() => {
-    if (!nationalNumber) return null;
-    return validateMobileNational(nationalNumber, dialIso);
-  }, [nationalNumber, dialIso]);
+    if (!nationalNumber || !mobileRules) return null;
+    return mobileRules.validateMobileNational(nationalNumber, dialIso);
+  }, [mobileRules, nationalNumber, dialIso]);
 
   const updateCombined = (nextDial: string, nextIso: string, nextNational: string) => {
-    const sanitized = nextIso ? sanitizeNationalDigits(nextNational, nextIso) : nextNational.replace(/\D/g, '');
+    const sanitized = nextIso
+      ? mobileRules
+        ? mobileRules.sanitizeNationalDigits(nextNational, nextIso)
+        : sanitizeDigits(nextNational)
+      : sanitizeDigits(nextNational);
     setDialCode(nextDial);
     setDialIso(nextIso);
     setNationalNumber(sanitized);
@@ -139,7 +162,9 @@ export function PhoneInput({
       <DialCodePicker
         dialIso={dialIso}
         onChange={({ dialCode: nextDial, dialIso: nextIso }) => {
-          const sanitized = sanitizeNationalDigits(nationalNumber, nextIso);
+          const sanitized = mobileRules
+            ? mobileRules.sanitizeNationalDigits(nationalNumber, nextIso)
+            : sanitizeDigits(nationalNumber);
           updateCombined(nextDial, nextIso, sanitized);
         }}
         countries={countries}
