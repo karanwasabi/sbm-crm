@@ -1,9 +1,9 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SbmWordmark } from '@/components/brand/sbm-wordmark';
 import { CRM_HEADER_ROW_CLASS } from '@/components/layout/crm/crm-header-row';
+import { CrmNavLink } from '@/components/layout/crm/crm-nav-link';
 import { CRM_NAV_GROUPS } from '@/lib/navigation';
 import { cn } from '@/lib/cn';
 
@@ -34,21 +34,7 @@ export function CrmSidebar() {
               {group.items.map(({ id, href, label, icon: Icon }) => {
                 const active = isNavActive(pathname, href);
 
-                return (
-                  <Link
-                    key={id}
-                    href={href}
-                    className={cn(
-                      'flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-[13px] font-semibold transition-colors',
-                      active
-                        ? 'border-b-[3px] border-b-brand-press bg-brand font-bold text-white shadow-[0_8px_14px_-6px_rgba(92,101,207,0.40)]'
-                        : 'border-b-[3px] border-transparent text-slate-700 hover:bg-white/60'
-                    )}
-                  >
-                    <Icon size={17} className={active ? 'text-white' : 'text-slate-500'} />
-                    <span className="flex-1">{label}</span>
-                  </Link>
-                );
+                return <CrmNavLink key={id} href={href} label={label} icon={Icon} active={active} />;
               })}
             </nav>
           </div>

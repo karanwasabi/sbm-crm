@@ -1,5 +1,6 @@
 'use client';
 
+import { Loader2 } from 'lucide-react';
 import { type ButtonHTMLAttributes, type ReactNode, useState } from 'react';
 import { cn } from '@/lib/cn';
 
@@ -12,6 +13,8 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   fullWidth?: boolean;
+  loading?: boolean;
+  loadingLabel?: ReactNode;
 };
 
 const variantClasses: Record<ButtonVariant, { base: string; lip: string; pressedLip: string; shadow: string }> = {
@@ -78,23 +81,29 @@ export function Button({
   leftIcon,
   rightIcon,
   fullWidth,
+  loading = false,
+  loadingLabel,
   disabled,
   className,
   type = 'button',
   ...props
 }: ButtonProps) {
   const [pressed, setPressed] = useState(false);
-  const variantStyle = variantClasses[disabled ? 'ghost' : variant];
+  const isDisabled = disabled || loading;
+  const variantStyle = variantClasses[isDisabled && !loading ? 'ghost' : variant];
   const sizeStyle = sizeClasses[size];
-  const isPressed = pressed && !disabled;
+  const isPressed = pressed && !isDisabled;
+  const label = loading ? (loadingLabel ?? children) : children;
+  const showLeftSlot = loading || leftIcon;
 
   return (
     <button
       {...props}
       type={type}
-      disabled={disabled}
+      disabled={isDisabled}
+      aria-busy={loading || undefined}
       onPointerDown={(e) => {
-        if (!disabled) setPressed(true);
+        if (!isDisabled) setPressed(true);
         props.onPointerDown?.(e);
       }}
       onPointerUp={(e) => {
@@ -110,7 +119,7 @@ export function Button({
         sizeStyle.base,
         sizeStyle.lip,
         fullWidth && 'w-full',
-        disabled
+        isDisabled && !loading
           ? 'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none'
           : cn(
               variantStyle.base,
@@ -118,12 +127,17 @@ export function Button({
               isPressed ? 'shadow-none' : variantStyle.shadow,
               isPressed && sizeStyle.pressOffset
             ),
+        loading && 'cursor-wait',
         className
       )}
     >
-      {leftIcon}
-      <span>{children}</span>
-      {rightIcon}
+      {showLeftSlot ? (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : leftIcon}
+        </span>
+      ) : null}
+      <span className="whitespace-nowrap">{label}</span>
+      {!loading && rightIcon ? rightIcon : null}
     </button>
   );
 }
