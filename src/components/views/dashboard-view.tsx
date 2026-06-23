@@ -2,7 +2,7 @@ import { Database, RefreshCw, Sparkles, Trophy, UserPlus } from 'lucide-react';
 import { BarChart } from '@/components/crm/charts/bar-chart';
 import { DonutChart } from '@/components/crm/charts/donut-chart';
 import { FunnelChart } from '@/components/crm/charts/funnel-chart';
-import { KpiCard } from '@/components/crm/kpi-card';
+import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
 import { SourcePerformanceTable } from '@/components/crm/source-performance-table';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import {
@@ -58,46 +58,44 @@ function geoTotalLabel(analytics: DashboardAnalytics): string {
 export function DashboardView({ analytics, sourcePerformance, analyticsError }: DashboardViewProps) {
   const { kpis } = analytics;
 
-  const kpisToRender = [
+  const kpiItems: KpiStripItem[] = [
     {
       label: 'New leads (7d)',
       value: formatLeadCount(kpis.newLeads7d),
       sub: `${formatLeadCount(kpis.totalLeads)} total in CRM`,
       trend: formatPeriodTrend(kpis.newLeads7d, kpis.newLeadsPrev7d),
       accent: '#5C65CF',
+      icon: KPI_ICONS[0],
       spark: analytics.newLeadsSparkline,
     },
     {
       label: 'Inquiry → Paid',
       value: formatConversionRate(kpis.conversionRate),
-      sub: 'registered and beyond · excl. lost',
-      trend: undefined,
+      sub: 'Registered and beyond',
       accent: '#10B981',
-      spark: undefined,
+      icon: KPI_ICONS[1],
     },
     {
       label: 'Active members',
       value: formatLeadCount(kpis.activeMembers),
-      sub: `across ${kpis.activeCohorts} cohort${kpis.activeCohorts === 1 ? '' : 's'}`,
-      trend: undefined,
+      sub: `Across ${kpis.activeCohorts} cohort${kpis.activeCohorts === 1 ? '' : 's'}`,
       accent: LIFECYCLE_STAGES.completed.color,
-      spark: undefined,
+      icon: KPI_ICONS[2],
     },
     {
       label: 'Revenue (₹L)',
       value: formatLakhsFromPaise(kpis.revenueMtdPaise),
-      sub: 'this month · MTD',
+      sub: 'This month · MTD',
       trend: formatPeriodTrend(kpis.revenueMtdPaise, kpis.revenuePrevMtdPaise),
       accent: '#FFB703',
-      spark: undefined,
+      icon: KPI_ICONS[3],
     },
     {
       label: 'Renewals at risk',
       value: formatLeadCount(kpis.renewalsAtRisk),
-      sub: 'cancelling or payment issues',
-      trend: undefined,
+      sub: 'Cancelling or payment issues',
       accent: '#F43F5E',
-      spark: undefined,
+      icon: KPI_ICONS[4],
     },
   ];
 
@@ -113,20 +111,8 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
           {analyticsError}
         </p>
       ) : null}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-5">
-        {kpisToRender.map((kpi, i) => (
-          <KpiCard
-            key={kpi.label}
-            label={kpi.label}
-            value={kpi.value}
-            sub={kpi.sub}
-            trend={kpi.trend}
-            accent={kpi.accent}
-            icon={KPI_ICONS[i]}
-            spark={kpi.spark}
-          />
-        ))}
-      </div>
+
+      <KpiStrip items={kpiItems} />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.4fr_1fr]">
         <FunnelChart steps={buildFunnelSteps(analytics)} title="Lifecycle funnel" subtitle="All contacts by stage" />
@@ -134,7 +120,7 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
           items={buildGeoItems(analytics)}
           totalLabel={geoTotalLabel(analytics)}
           title="Geography"
-          subtitle="Lead distribution by city"
+          subtitle="City, or country when city is unknown"
         />
       </div>
 

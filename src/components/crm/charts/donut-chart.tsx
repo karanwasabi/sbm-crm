@@ -19,7 +19,7 @@ export function DonutChart({
     return (
       <Card>
         <SectionHead title={title} subtitle={subtitle} />
-        <p className="px-5 pb-5 text-sm text-slate-500">No city data on leads yet.</p>
+        <p className="px-5 pb-5 text-sm text-slate-500">No location data on leads yet.</p>
       </Card>
     );
   }
