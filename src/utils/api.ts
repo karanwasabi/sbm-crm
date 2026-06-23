@@ -561,3 +561,90 @@ export async function updatePromoDescription(
   if (!response.ok) await parseApiError(response, 'Failed to update description.');
   return response.json() as Promise<{ id: string; description?: string | null }>;
 }
+
+type ApiRenewalSummaryResponse = {
+  at_risk_count: number;
+  at_risk_mrr_paise: number;
+  cancelling_count: number;
+  payment_issue_count: number;
+  churned_count: number;
+  churned_this_month: number;
+  auto_renewed_this_month: number;
+  healthy_count: number;
+  next_cancelling_lead_id?: string | null;
+  next_cancelling_name?: string | null;
+  next_cancelling_access_at?: string | null;
+};
+
+type ApiRenewalRowResponse = {
+  checkout_session_id: string;
+  user_id: string;
+  lead_id?: string | null;
+  member_name: string;
+  member_initials: string;
+  program_name: string;
+  cohort_name: string;
+  next_charge_at?: string | null;
+  access_until?: string | null;
+  monthly_total_paise: number;
+  lifetime_paid_paise: number;
+  retention_bucket: import('@/types/crm').RenewalRetentionBucket;
+  subscription_status: string;
+  cancel_at_period_end: boolean;
+  payment_method_summary?: string;
+  risk: import('@/types/crm').RenewalRisk;
+  days_until_charge?: number | null;
+};
+
+function mapRenewalSummary(row: ApiRenewalSummaryResponse): import('@/types/crm').RenewalSummary {
+  return {
+    atRiskCount: row.at_risk_count,
+    atRiskMrrPaise: row.at_risk_mrr_paise,
+    cancellingCount: row.cancelling_count,
+    paymentIssueCount: row.payment_issue_count,
+    churnedCount: row.churned_count,
+    churnedThisMonth: row.churned_this_month,
+    autoRenewedThisMonth: row.auto_renewed_this_month,
+    healthyCount: row.healthy_count,
+    nextCancellingLeadId: row.next_cancelling_lead_id,
+    nextCancellingName: row.next_cancelling_name,
+    nextCancellingAccessAt: row.next_cancelling_access_at,
+  };
+}
+
+function mapRenewalRow(row: ApiRenewalRowResponse): import('@/types/crm').RenewalRow {
+  return {
+    checkoutSessionId: row.checkout_session_id,
+    userId: row.user_id,
+    leadId: row.lead_id,
+    memberName: row.member_name,
+    memberInitials: row.member_initials,
+    programName: row.program_name,
+    cohortName: row.cohort_name,
+    nextChargeAt: row.next_charge_at,
+    accessUntil: row.access_until,
+    monthlyTotalPaise: row.monthly_total_paise,
+    lifetimePaidPaise: row.lifetime_paid_paise,
+    retentionBucket: row.retention_bucket,
+    subscriptionStatus: row.subscription_status,
+    cancelAtPeriodEnd: row.cancel_at_period_end,
+    paymentMethodSummary: row.payment_method_summary,
+    risk: row.risk,
+    daysUntilCharge: row.days_until_charge,
+  };
+}
+
+export async function getRenewalSummary(): Promise<import('@/types/crm').RenewalSummary> {
+  const response = await requireApiFetch('/admin/renewals/summary');
+  if (!response.ok) throw new ApiError('Failed to load renewal summary.', response.status);
+  const payload = (await response.json()) as ApiRenewalSummaryResponse;
+  return mapRenewalSummary(payload);
+}
+
+export async function listRenewals(bucket?: string): Promise<import('@/types/crm').RenewalRow[]> {
+  const query = bucket && bucket !== 'all' ? `?bucket=${encodeURIComponent(bucket)}` : '';
+  const response = await requireApiFetch(`/admin/renewals${query}`);
+  if (!response.ok) throw new ApiError('Failed to load renewals.', response.status);
+  const payload = (await response.json()) as ApiRenewalRowResponse[];
+  return payload.map(mapRenewalRow);
+}

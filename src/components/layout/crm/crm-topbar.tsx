@@ -5,6 +5,7 @@ import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CRM_HEADER_ROW_CLASS } from '@/components/layout/crm/crm-header-row';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
+import { useCrmRenewalSummary } from '@/components/layout/crm/crm-renewal-summary-context';
 import { CrmUserMenu } from '@/components/layout/crm/crm-user-menu';
 import { leadDatabaseSubtitle } from '@/lib/lead-display';
 import { getPageMeta } from '@/lib/navigation';
@@ -14,12 +15,21 @@ type CrmTopbarProps = {
   staffUser: CrmStaffUser;
 };
 
-function resolveSubtitle(pathname: string, leadTotal: number | null, contactName: string | null, fallback?: string) {
+function resolveSubtitle(
+  pathname: string,
+  leadTotal: number | null,
+  renewalSubtitle: string | null,
+  contactName: string | null,
+  fallback?: string
+) {
   if (pathname.startsWith('/customers/') && contactName) {
     return contactName;
   }
   if ((pathname === '/database' || pathname.startsWith('/database/')) && leadTotal != null) {
     return leadDatabaseSubtitle(leadTotal);
+  }
+  if ((pathname === '/renewals' || pathname.startsWith('/renewals/')) && renewalSubtitle) {
+    return renewalSubtitle;
   }
   return fallback;
 }
@@ -28,8 +38,9 @@ export function CrmTopbar({ staffUser }: CrmTopbarProps) {
   const pathname = usePathname();
   const { contactName } = useCrmContactName();
   const { leadTotal } = useCrmLeadSummary();
+  const { renewalSubtitle } = useCrmRenewalSummary();
   const { title, subtitle } = getPageMeta(pathname);
-  const resolvedSubtitle = resolveSubtitle(pathname, leadTotal, contactName, subtitle);
+  const resolvedSubtitle = resolveSubtitle(pathname, leadTotal, renewalSubtitle, contactName, subtitle);
 
   return (
     <header className={cn(CRM_HEADER_ROW_CLASS, 'gap-4 px-6')}>

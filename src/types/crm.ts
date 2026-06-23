@@ -247,13 +247,42 @@ export type CampaignSequence = {
   status: string;
 };
 
+export type RenewalRetentionBucket = 'healthy' | 'cancelling' | 'payment_issue' | 'churned';
+
+export type RenewalRisk = 'high' | 'med' | 'low';
+
+export type RenewalSummary = {
+  atRiskCount: number;
+  atRiskMrrPaise: number;
+  cancellingCount: number;
+  paymentIssueCount: number;
+  churnedCount: number;
+  churnedThisMonth: number;
+  autoRenewedThisMonth: number;
+  healthyCount: number;
+  nextCancellingLeadId?: string | null;
+  nextCancellingName?: string | null;
+  nextCancellingAccessAt?: string | null;
+};
+
 export type RenewalRow = {
-  id: string;
-  name: string;
-  program: string;
-  dueDate: string;
-  amount: string;
-  status: 'due' | 'achieved' | 'missed';
+  checkoutSessionId: string;
+  userId: string;
+  leadId?: string | null;
+  memberName: string;
+  memberInitials: string;
+  programName: string;
+  cohortName: string;
+  nextChargeAt?: string | null;
+  accessUntil?: string | null;
+  monthlyTotalPaise: number;
+  lifetimePaidPaise: number;
+  retentionBucket: RenewalRetentionBucket;
+  subscriptionStatus: string;
+  cancelAtPeriodEnd: boolean;
+  paymentMethodSummary?: string;
+  risk: RenewalRisk;
+  daysUntilCharge?: number | null;
 };
 
 export type RenewalAction = {
@@ -262,6 +291,8 @@ export type RenewalAction = {
   subtitle: string;
   count: number;
   accent: string;
+  cta?: string;
+  href?: string;
 };
 
 export type SettingsIntegration = {

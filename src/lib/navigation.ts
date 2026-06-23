@@ -48,7 +48,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/database': { title: 'Lead Database' },
   '/programs': { title: 'Program Management', subtitle: 'Cohorts, capacity & attendance' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
-  '/renewals': { title: 'Renewals & Retention', subtitle: '28 renewals due in 14 days' },
+  '/renewals': { title: 'Renewals & Retention', subtitle: 'Subscription retention monitoring' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/settings': { title: 'Settings', subtitle: 'Integrations, webhooks & team' },
 };
