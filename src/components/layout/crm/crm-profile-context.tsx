@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import type { Profile } from '@/types/profile';
 
 type CrmProfileContextValue = {
@@ -21,9 +21,9 @@ export function CrmProfileProvider({
   roleLabel,
   children,
 }: CrmProfileContextValue & { children: ReactNode }) {
-  return (
-    <CrmProfileContext.Provider value={{ profile, profileError, roleLabel }}>{children}</CrmProfileContext.Provider>
-  );
+  const value = useMemo(() => ({ profile, profileError, roleLabel }), [profile, profileError, roleLabel]);
+
+  return <CrmProfileContext.Provider value={value}>{children}</CrmProfileContext.Provider>;
 }
 
 export function useCrmProfile() {

@@ -138,7 +138,12 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
               <span className="hidden pl-1 text-[12.5px] font-semibold xl:invisible xl:block" aria-hidden="true">
                 Action
               </span>
-              <Button className="w-full xl:w-auto xl:whitespace-nowrap" onClick={handleCreate} disabled={pending}>
+              <Button
+                className="w-full xl:w-auto xl:whitespace-nowrap"
+                onClick={handleCreate}
+                loading={pending}
+                loadingLabel="Sending…"
+              >
                 Send invite
               </Button>
             </div>

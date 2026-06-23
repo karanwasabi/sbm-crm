@@ -191,8 +191,15 @@ export function PromoCreateDialog({ open, onOpenChange }: PromoCreateDialogProps
           <Button type="button" variant="light" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" variant="primary" size="sm" disabled={pending} onClick={handleSubmit}>
-            {pending ? 'Creating…' : 'Create promo code'}
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            loading={pending}
+            loadingLabel="Creating…"
+            onClick={handleSubmit}
+          >
+            Create promo code
           </Button>
         </DialogFooter>
       </DialogContent>

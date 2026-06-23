@@ -147,8 +147,15 @@ export function PromoNewTermDialog({
           <Button type="button" variant="light" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" variant="primary" size="sm" disabled={pending} onClick={handleSubmit}>
-            {pending ? 'Saving…' : confirmLabel}
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            loading={pending}
+            loadingLabel="Saving…"
+            onClick={handleSubmit}
+          >
+            {confirmLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

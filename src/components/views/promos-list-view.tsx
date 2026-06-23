@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { useMemo } from 'react';
+import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
 import {
   DataTable,
   DataTableBody,
@@ -16,7 +16,6 @@ import {
   PromoUsageCountHeader,
   PromoWindowDisplay,
 } from '@/components/promos/promo-display-cells';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
@@ -87,9 +86,12 @@ function PromoListTable({ items, emptyMessage }: { items: PromoListItem[]; empty
           items.map((item) => (
             <DataTableRow key={item.id}>
               <DataTableCell>
-                <Link href={`/promos/${item.id}`} className="font-semibold text-brand no-underline hover:underline">
+                <CrmTableLink
+                  href={`/promos/${item.id}`}
+                  className="font-semibold text-brand no-underline hover:underline"
+                >
                   {item.code}
-                </Link>
+                </CrmTableLink>
               </DataTableCell>
               <DataTableCell>
                 <PromoOfferDisplay discountType={item.discount_type} discountValue={item.discount_value} />
@@ -103,11 +105,12 @@ function PromoListTable({ items, emptyMessage }: { items: PromoListItem[]; empty
               <PromoUsageCountCell>{promoCount(item.applied_count)}</PromoUsageCountCell>
               <PromoUsageCountCell>{promoCount(item.redeemed_count)}</PromoUsageCountCell>
               <DataTableCell className="text-right">
-                <Link href={`/promos/${item.id}`}>
-                  <Button variant="light" size="sm">
-                    Edit
-                  </Button>
-                </Link>
+                <CrmTableLink
+                  href={`/promos/${item.id}`}
+                  className="inline-flex items-center justify-center rounded-2xl border-b-[3px] border-b-slate-200 bg-white px-4 py-2.25 text-xs font-semibold text-brand no-underline shadow-sm hover:bg-slate-50"
+                >
+                  Edit
+                </CrmTableLink>
               </DataTableCell>
             </DataTableRow>
           ))

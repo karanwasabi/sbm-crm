@@ -13,21 +13,19 @@ export type StageFilterOption = {
 
 type FilterBarProps = {
   activeStage: string;
-  onStageChange: (stage: string) => void;
   stageOptions: StageFilterOption[];
 };
 
-export function FilterBar({ activeStage, onStageChange, stageOptions }: FilterBarProps) {
+function stageHref(stageId: string): string {
+  return stageId === 'all' ? '/database' : `/database?stage=${encodeURIComponent(stageId)}`;
+}
+
+export function FilterBar({ activeStage, stageOptions }: FilterBarProps) {
   return (
     <Card padding="sm" className="p-4">
       <div className="flex flex-wrap items-center gap-2.5">
         {stageOptions.map((stage) => (
-          <FilterChip
-            key={stage.id}
-            active={activeStage === stage.id}
-            count={stage.count}
-            onClick={() => onStageChange(stage.id)}
-          >
+          <FilterChip key={stage.id} href={stageHref(stage.id)} active={activeStage === stage.id} count={stage.count}>
             {stage.label}
           </FilterChip>
         ))}

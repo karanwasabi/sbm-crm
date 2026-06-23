@@ -208,7 +208,7 @@ export function LeadIntakeView({ countries }: LeadIntakeViewProps) {
               <Button type="button" variant="ghost" size="md" onClick={resetForm} disabled={pending}>
                 Clear
               </Button>
-              <Button type="submit" variant="primary" disabled={pending || !canSave}>
+              <Button type="submit" variant="primary" loading={pending} loadingLabel="Saving…" disabled={!canSave}>
                 Save lead
               </Button>
             </div>

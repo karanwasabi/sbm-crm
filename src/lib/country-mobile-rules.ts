@@ -1,5 +1,5 @@
 import { Metadata } from 'libphonenumber-js/core';
-import { parsePhoneNumberFromString, type CountryCode } from 'libphonenumber-js/mobile';
+import type { CountryCode } from 'libphonenumber-js/mobile';
 import mobileMetadata from 'libphonenumber-js/mobile/metadata';
 
 export type MobileDigitLimits = {
@@ -72,7 +72,7 @@ export function sanitizeNationalDigits(raw: string, _dialIso: string): string {
   return raw.replace(/\D/g, '');
 }
 
-export function validateMobileNational(nationalDigits: string, dialIso: string, dialCode: string): string | null {
+export function validateMobileNational(nationalDigits: string, dialIso: string): string | null {
   if (!nationalDigits) return null;
   if (!dialIso) return 'Select a country code.';
 
@@ -84,20 +84,6 @@ export function validateMobileNational(nationalDigits: string, dialIso: string, 
   }
   if (nationalDigits.length < limits.min) {
     return null;
-  }
-
-  const country = asCountryCode(dialIso);
-  if (!country) return null;
-
-  const combined = `${dialCode}${nationalDigits}`;
-  const parsed = parsePhoneNumberFromString(combined, country);
-  if (!parsed?.isValid()) {
-    return rangeMessage;
-  }
-
-  const type = parsed.getType();
-  if (type && type !== 'MOBILE' && type !== 'FIXED_LINE_OR_MOBILE') {
-    return rangeMessage;
   }
 
   return null;

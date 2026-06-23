@@ -141,7 +141,7 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
               <Button variant="light" size="sm" onClick={() => setView('edit')} disabled={pending}>
                 Cancel
               </Button>
-              <Button variant="danger" size="sm" onClick={confirmRevoke} disabled={pending}>
+              <Button variant="danger" size="sm" onClick={confirmRevoke} loading={pending} loadingLabel="Revoking…">
                 Revoke access
               </Button>
             </DialogFooter>
@@ -211,7 +211,9 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
               <Button
                 variant="primary"
                 onClick={handleSave}
-                disabled={pending || isSelf || !member || (inactive && !hasSelectedRole)}
+                loading={pending}
+                loadingLabel="Saving…"
+                disabled={isSelf || !member || (inactive && !hasSelectedRole)}
               >
                 Save changes
               </Button>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useState, useTransition } from 'react';
 import { createPromoTermAction, deactivatePromoAction, deletePromoAction } from '@/app/(crm)/promos/actions';
 import {
@@ -13,7 +14,6 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
-import { PromoNewTermDialog } from '@/components/promos/promo-new-term-dialog';
 import {
   PromoOfferDisplay,
   PromoUsageCountCell,
@@ -37,6 +37,11 @@ import { useToast } from '@/components/ui/toast';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { formatDateTimeIST } from '@/lib/ist-datetime';
 import type { PromoDetail, PromoTerm, PromoTermInput } from '@/utils/api';
+
+const PromoNewTermDialog = dynamic(
+  () => import('@/components/promos/promo-new-term-dialog').then((module) => ({ default: module.PromoNewTermDialog })),
+  { ssr: false }
+);
 
 type PromoDetailViewProps = {
   promo: PromoDetail;
@@ -147,18 +152,20 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
           Back to promo codes
         </Link>
 
-        <PromoNewTermDialog
-          open={showNewTermDialog}
-          onOpenChange={setShowNewTermDialog}
-          sourceTerm={current}
-          onSubmit={handleCreateTerm}
-          description={
-            promo.summary.status === 'ended'
-              ? 'Reactivate this promo code with a new term. You can adjust the offer before confirming.'
-              : 'Create a new term with an updated offer. The current term will be closed automatically.'
-          }
-          confirmLabel={promo.summary.status === 'ended' ? 'Activate term' : 'Create term'}
-        />
+        {showNewTermDialog ? (
+          <PromoNewTermDialog
+            open={showNewTermDialog}
+            onOpenChange={setShowNewTermDialog}
+            sourceTerm={current}
+            onSubmit={handleCreateTerm}
+            description={
+              promo.summary.status === 'ended'
+                ? 'Reactivate this promo code with a new term. You can adjust the offer before confirming.'
+                : 'Create a new term with an updated offer. The current term will be closed automatically.'
+            }
+            confirmLabel={promo.summary.status === 'ended' ? 'Activate term' : 'Create term'}
+          />
+        ) : null}
 
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
           <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
@@ -182,8 +189,15 @@ export function PromoDetailView({ promo }: PromoDetailViewProps) {
               >
                 Cancel
               </Button>
-              <Button type="button" variant="danger" size="sm" disabled={pending} onClick={handleDelete}>
-                {pending ? 'Deleting…' : 'Delete permanently'}
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                loading={pending}
+                loadingLabel="Deleting…"
+                onClick={handleDelete}
+              >
+                Delete permanently
               </Button>
             </DialogFooter>
           </DialogContent>

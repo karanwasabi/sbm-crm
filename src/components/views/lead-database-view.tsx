@@ -1,8 +1,6 @@
 'use client';
 
 import { Download, Send, Upload } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { FilterBar } from '@/components/crm/filter-bar';
 import {
   DataTable,
@@ -13,6 +11,7 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -27,17 +26,11 @@ type LeadDatabaseViewProps = {
 };
 
 export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseViewProps) {
-  const router = useRouter();
   const stageOptions = buildStageFilterOptions(summary);
-
-  const handleStageChange = (stage: string) => {
-    const href = stage === 'all' ? '/database' : `/database?stage=${encodeURIComponent(stage)}`;
-    router.push(href);
-  };
 
   return (
     <CrmPageLayout>
-      <FilterBar activeStage={activeStage} onStageChange={handleStageChange} stageOptions={stageOptions} />
+      <FilterBar activeStage={activeStage} stageOptions={stageOptions} />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <p className="text-[13px] font-semibold text-slate-600">
@@ -108,11 +101,12 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
                   </DataTableCell>
                   <DataTableCell>{formatLeadAddedAt(lead.addedAt)}</DataTableCell>
                   <DataTableCell className="text-right">
-                    <Link href={`/customers/${lead.id}`}>
-                      <Button variant="light" size="sm">
-                        View
-                      </Button>
-                    </Link>
+                    <CrmTableLink
+                      href={`/customers/${lead.id}`}
+                      className="inline-flex items-center justify-center rounded-2xl border-b-[3px] border-b-slate-200 bg-white px-4 py-2.25 text-xs font-semibold text-brand no-underline shadow-sm hover:bg-slate-50"
+                    >
+                      View
+                    </CrmTableLink>
                   </DataTableCell>
                 </DataTableRow>
               ))

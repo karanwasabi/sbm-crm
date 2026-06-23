@@ -96,7 +96,7 @@ export function CallLogModal({ open, onClose, leadId, onSaved }: CallLogModalPro
               <Button variant="light" onClick={onClose} disabled={pending}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleSave} disabled={pending}>
+              <Button variant="primary" loading={pending} loadingLabel="Saving…" onClick={handleSave}>
                 Save log
               </Button>
             </div>

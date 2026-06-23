@@ -42,17 +42,17 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   let profileError: string | null = null;
   let leadTotal = 0;
 
-  try {
-    profile = await getLatestProfile();
-  } catch (error) {
+  const [profileResult, summaryResult] = await Promise.allSettled([getLatestProfile(), getLeadSummary()]);
+
+  if (profileResult.status === 'fulfilled') {
+    profile = profileResult.value;
+  } else {
+    const error = profileResult.reason;
     profileError = error instanceof ApiError ? error.message : 'Failed to load profile.';
   }
 
-  try {
-    const summary = await getLeadSummary();
-    leadTotal = summary.total;
-  } catch {
-    leadTotal = 0;
+  if (summaryResult.status === 'fulfilled') {
+    leadTotal = summaryResult.value.total;
   }
 
   const staffUser = {

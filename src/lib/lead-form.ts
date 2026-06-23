@@ -1,8 +1,7 @@
-import { parsePhoneNumberFromString } from 'libphonenumber-js/mobile';
+import { getMobileDigitLimits, validateMobileNational } from '@/lib/country-mobile-rules';
 import type { ManualLeadSource } from '@/types/crm';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
-
-const E164_PATTERN = /^\+[1-9]\d{6,14}$/;
+import { parseWhatsapp } from '@/lib/phone-number';
 
 export type LeadFormValues = {
   firstName: string;
@@ -15,6 +14,22 @@ export type LeadFormValues = {
   notes: string;
   dpdpConsent: boolean;
 };
+
+function validatePhone(phone: string): string | null {
+  const trimmed = phone.trim();
+  if (!trimmed) return null;
+
+  const parsed = parseWhatsapp(trimmed);
+  if (!parsed.dialIso) return 'Select a country code for the phone number.';
+  if (!parsed.nationalNumber) return 'Enter a valid mobile number.';
+
+  const limits = getMobileDigitLimits(parsed.dialIso);
+  if (parsed.nationalNumber.length < limits.min) {
+    return 'Enter a valid mobile number.';
+  }
+
+  return validateMobileNational(parsed.nationalNumber, parsed.dialIso);
+}
 
 export function buildLeadPayload(
   values: LeadFormValues
@@ -37,12 +52,9 @@ export function buildLeadPayload(
 
   const phone = values.phone.trim();
   if (phone) {
-    if (!E164_PATTERN.test(phone)) {
-      return { ok: false, error: 'Enter a valid mobile number with country code.' };
-    }
-    const parsed = parsePhoneNumberFromString(phone);
-    if (!parsed?.isValid()) {
-      return { ok: false, error: 'Enter a valid mobile number.' };
+    const phoneError = validatePhone(phone);
+    if (phoneError) {
+      return { ok: false, error: phoneError };
     }
   }
 

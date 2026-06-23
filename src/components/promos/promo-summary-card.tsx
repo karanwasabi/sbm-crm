@@ -164,7 +164,14 @@ export function PromoSummaryCard({
               </Button>
             ) : null}
             {isActive ? (
-              <Button type="button" variant="light" size="sm" disabled={pending} onClick={onDeactivate}>
+              <Button
+                type="button"
+                variant="light"
+                size="sm"
+                loading={pending}
+                loadingLabel="Deactivating…"
+                onClick={onDeactivate}
+              >
                 Deactivate
               </Button>
             ) : null}

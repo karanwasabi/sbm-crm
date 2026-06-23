@@ -119,8 +119,8 @@ export function PhoneInput({
   const digitHint = useMemo(() => getMobileDigitHint(dialIso), [dialIso]);
   const validationError = useMemo(() => {
     if (!nationalNumber) return null;
-    return validateMobileNational(nationalNumber, dialIso, dialCode);
-  }, [nationalNumber, dialIso, dialCode]);
+    return validateMobileNational(nationalNumber, dialIso);
+  }, [nationalNumber, dialIso]);
 
   const updateCombined = (nextDial: string, nextIso: string, nextNational: string) => {
     const sanitized = nextIso ? sanitizeNationalDigits(nextNational, nextIso) : nextNational.replace(/\D/g, '');

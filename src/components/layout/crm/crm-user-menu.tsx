@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronDown, LogOut, User } from 'lucide-react';
+import { ChevronDown, Loader2, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
 import { signOut } from '@/app/(auth)/actions';
 import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
 import { cn } from '@/lib/cn';
@@ -22,6 +22,7 @@ type CrmUserMenuProps = {
 
 export function CrmUserMenu({ staffUser }: CrmUserMenuProps) {
   const [open, setOpen] = useState(false);
+  const [signingOut, startSignOut] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
   const displayName = displayNameFromEmail(staffUser.email);
 
@@ -75,14 +76,27 @@ export function CrmUserMenu({ staffUser }: CrmUserMenuProps) {
             <User size={16} className="text-slate-500" />
             Profile
           </Link>
-          <form action={signOut}>
+          <form
+            action={signOut}
+            onSubmit={(event) => {
+              event.preventDefault();
+              startSignOut(() => {
+                void signOut();
+              });
+            }}
+          >
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-canvas-cool"
+              disabled={signingOut}
+              className="flex w-full cursor-pointer items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-canvas-cool disabled:cursor-wait disabled:opacity-70"
             >
-              <LogOut size={16} className="text-slate-500" />
-              Sign out
+              {signingOut ? (
+                <Loader2 size={16} className="animate-spin text-slate-500" aria-hidden />
+              ) : (
+                <LogOut size={16} className="text-slate-500" />
+              )}
+              {signingOut ? 'Signing out…' : 'Sign out'}
             </button>
           </form>
         </div>

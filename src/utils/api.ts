@@ -3,6 +3,7 @@ import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
 import { createClient } from '@/utils/supabase/server';
+import { cache } from 'react';
 
 export class ApiError extends Error {
   constructor(
@@ -187,13 +188,13 @@ export async function patchProfile(body: ProfilePatch): Promise<Profile> {
   return response.json() as Promise<Profile>;
 }
 
-export async function fetchCountries(): Promise<Country[]> {
+export const fetchCountries = cache(async (): Promise<Country[]> => {
   const response = await requireApiFetch('/reference/countries');
   if (!response.ok) {
     throw new ApiError('Failed to load countries.', response.status);
   }
   return response.json() as Promise<Country[]>;
-}
+});
 
 export async function fetchCountryCities(countryCode: string): Promise<CountryCity[]> {
   const response = await requireApiFetch(`/reference/countries/${encodeURIComponent(countryCode)}/cities`);
@@ -276,7 +277,7 @@ export async function listLeads(stage?: string): Promise<import('@/types/crm').L
   return rows.map(mapLead);
 }
 
-export async function getLeadSummary(): Promise<import('@/types/crm').LeadSummary> {
+export const getLeadSummary = cache(async (): Promise<import('@/types/crm').LeadSummary> => {
   const response = await requireApiFetch('/admin/leads/summary');
   if (!response.ok) {
     throw new ApiError('Failed to load lead summary.', response.status);
@@ -289,7 +290,7 @@ export async function getLeadSummary(): Promise<import('@/types/crm').LeadSummar
     total: payload.total,
     byStage: payload.by_stage,
   };
-}
+});
 
 function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
   const base = mapLead(row);
