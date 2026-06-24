@@ -3,7 +3,7 @@
 > **TEMPORARY** — delete or archive when remaining mocks are wired or removed.  
 > Permanent integration plans live in [`meta-integrations-roadmap.md`](./meta-integrations-roadmap.md).
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 ---
 
@@ -29,17 +29,28 @@ Last updated: 2026-06-23
 
 ---
 
+## Communications (`/communications`) — Phase 1 real data
+
+| Element                                | Source                                       |
+| -------------------------------------- | -------------------------------------------- |
+| Email templates list + editor          | `GET/POST/PATCH /admin/comms/templates`      |
+| Template test send                     | `POST /admin/comms/templates/:id/send-test`  |
+| Marketing contact cap meter            | `GET /admin/comms/contacts/summary`          |
+| Customer 360 send email                | `POST /admin/comms/leads/:id/send`           |
+| Lead Database marketing filter + badge | `GET /admin/leads?marketing_contact_status=` |
+| Customer 360 marketing contact card    | `marketing_contact_status` on lead detail    |
+
+**Phase 1 not yet wired:**
+
+| Element                        | Notes                     |
+| ------------------------------ | ------------------------- |
+| Automations tab                | Placeholder until Phase 2 |
+| Performance tab (opens/clicks) | Phase 1.5 Resend webhooks |
+| Bulk “Message segment”         | Phase 3                   |
+
+---
+
 ## Active mocks (still imported by live views)
-
-### Communications (`/communications`)
-
-| Element            | File                                        | Notes              |
-| ------------------ | ------------------------------------------- | ------------------ |
-| Rule builder rules | `lib/mock/communications.ts` → `MOCK_RULES` | Entire page mocked |
-| Message templates  | `MOCK_TEMPLATES`                            | Entire page mocked |
-| Campaign sequences | `MOCK_SEQUENCES`                            | Entire page mocked |
-
-### Settings (`/settings`)
 
 | Element                          | Location            | Notes                                         |
 | -------------------------------- | ------------------- | --------------------------------------------- |
@@ -65,27 +76,29 @@ Last updated: 2026-06-23
 - `lib/mock/settings.ts` — deleted
 - `lib/mock/customers.ts` — deleted
 - `lib/mock/staff.ts` — deleted
+- `lib/mock/communications.ts` — deleted (communications Phase 1 wired)
 
 ---
 
 ## Real data elsewhere (unchanged)
 
-| Screen                              | Source                                            |
-| ----------------------------------- | ------------------------------------------------- |
-| Lead Database list + summary        | `listLeads`, `getLeadSummary`                     |
-| Lead Intake manual form             | `createManualLead` action                         |
-| Lead Intake Meta card + inbound     | `getMetaIntegrationStatus`, `getMetaInboundLeads` |
-| Customer 360                        | `getLead`, `getMemberEnrollments`                 |
-| Customer 360 attribution card       | When `lead_attribution` row exists                |
-| Settings webhook URL                | `PUBLIC_API_URL` on backend                       |
-| Settings team tab                   | `listStaff`                                       |
-| Programs, promos, renewals, cohorts | Real APIs                                         |
+| Screen                              | Source                                             |
+| ----------------------------------- | -------------------------------------------------- |
+| Lead Database list + summary        | `listLeads`, `getLeadSummary`                      |
+| Lead Intake manual form             | `createManualLead` action                          |
+| Lead Intake Meta card + inbound     | `getMetaIntegrationStatus`, `getMetaInboundLeads`  |
+| Customer 360                        | `getLead`, `getMemberEnrollments`, `sendLeadEmail` |
+| Customer 360 attribution card       | When `lead_attribution` row exists                 |
+| Settings webhook URL                | `PUBLIC_API_URL` on backend                        |
+| Settings team tab                   | `listStaff`                                        |
+| Programs, promos, renewals, cohorts | Real APIs                                          |
 
 ---
 
 ## Remaining prioritisation
 
-1. **Communications page** — Convonite (WhatsApp templates) + Resend (email); no SMS
-2. **Settings Razorpay card** — optional health check from backend
-3. **CAC column** — Meta Ads spend (native Meta app roadmap)
-4. **Lead Database** — selection + message segment when comms ships
+1. **Communications Phase 1.5** — Resend webhooks + delivery/click analytics
+2. **Communications Phase 2** — Automation workflow builder
+3. **Settings Razorpay card** — optional health check from backend
+4. **CAC column** — Meta Ads spend (native Meta app roadmap)
+5. **Lead Database** — bulk message segment (Phase 3)

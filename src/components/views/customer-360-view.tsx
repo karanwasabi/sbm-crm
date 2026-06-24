@@ -3,6 +3,8 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { MarketingContactCard } from '@/components/comms/marketing-contact-card';
+import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
 import { PaymentPendingBanner } from '@/components/crm/payment-pending-banner';
@@ -12,6 +14,7 @@ import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
 import { cn } from '@/lib/cn';
+import type { EmailTemplate } from '@/utils/api';
 import type { LeadDetail, ProgramHistoryItem } from '@/types/crm';
 
 const CallLogModal = dynamic(
@@ -22,13 +25,15 @@ const CallLogModal = dynamic(
 type Customer360ViewProps = {
   lead: LeadDetail;
   programHistory: ProgramHistoryItem[];
+  emailTemplates: EmailTemplate[];
 };
 
-export function Customer360View({ lead: initialLead, programHistory }: Customer360ViewProps) {
+export function Customer360View({ lead: initialLead, programHistory, emailTemplates }: Customer360ViewProps) {
   const router = useRouter();
   const { setContactName } = useCrmContactName();
   const [lead, setLead] = useState(initialLead);
   const [callModalOpen, setCallModalOpen] = useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
 
   useEffect(() => {
@@ -50,8 +55,15 @@ export function Customer360View({ lead: initialLead, programHistory }: Customer3
 
   return (
     <CrmPageLayout>
-      <ProfileHeader contact={contact} onLogCall={() => setCallModalOpen(true)} />
+      <ProfileHeader
+        contact={contact}
+        onLogCall={() => setCallModalOpen(true)}
+        onSendEmail={
+          emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
+        }
+      />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
+      <MarketingContactCard lead={lead} />
       {lead.attribution ? <LeadAttributionCard attribution={lead.attribution} /> : null}
       <div
         className={cn(
@@ -73,6 +85,13 @@ export function Customer360View({ lead: initialLead, programHistory }: Customer3
           }}
         />
       ) : null}
+      <SendEmailDialog
+        open={sendEmailOpen}
+        onClose={() => setSendEmailOpen(false)}
+        leadId={lead.id}
+        templates={emailTemplates}
+        onSent={refresh}
+      />
     </CrmPageLayout>
   );
 }

@@ -9,9 +9,10 @@ import type { ContactProfile } from '@/types/crm';
 type ProfileHeaderProps = {
   contact: ContactProfile;
   onLogCall?: () => void;
+  onSendEmail?: () => void;
 };
 
-export function ProfileHeader({ contact, onLogCall }: ProfileHeaderProps) {
+export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeaderProps) {
   const showMemberStats = contact.isMember && contact.clv != null;
 
   return (
@@ -106,6 +107,11 @@ export function ProfileHeader({ contact, onLogCall }: ProfileHeaderProps) {
               Log call
             </Button>
           )}
+          {onSendEmail ? (
+            <Button variant="light" size="sm" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={onSendEmail}>
+              Send email
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

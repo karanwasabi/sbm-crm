@@ -3,6 +3,7 @@
 import { Download, Send, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
 import { FilterBar } from '@/components/crm/filter-bar';
 import {
   DataTable,
@@ -27,9 +28,10 @@ type LeadDatabaseViewProps = {
   leads: Lead[];
   summary: LeadSummary;
   activeStage: string;
+  activeMarketingStatus: string;
 };
 
-export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseViewProps) {
+export function LeadDatabaseView({ leads, summary, activeStage, activeMarketingStatus }: LeadDatabaseViewProps) {
   const router = useRouter();
   const { setLeadTotal } = useCrmLeadSummary();
   const [importOpen, setImportOpen] = useState(false);
@@ -42,7 +44,7 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
 
   return (
     <CrmPageLayout>
-      <FilterBar activeStage={activeStage} stageOptions={stageOptions} />
+      <FilterBar activeStage={activeStage} stageOptions={stageOptions} activeMarketingStatus={activeMarketingStatus} />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <p className="text-[13px] font-semibold text-slate-600">
@@ -78,14 +80,14 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
             <DataTableHeaderCell className="w-9 pl-4.5">
               <input type="checkbox" className="h-3.5 w-3.5 accent-brand" />
             </DataTableHeaderCell>
-            {['Name', 'Stage', 'Program', 'Batch', 'Geography', 'Tags', 'Added', ''].map((h) => (
+            {['Name', 'Stage', 'Marketing', 'Program', 'Batch', 'Geography', 'Tags', 'Added', ''].map((h) => (
               <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
             ))}
           </DataTableHead>
           <DataTableBody>
             {leads.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={9} className="py-10 text-center text-sm text-slate-500">
+                <DataTableCell colSpan={10} className="py-10 text-center text-sm text-slate-500">
                   No leads yet. Add one from Lead Intake or import Meta CSV.
                 </DataTableCell>
               </DataTableRow>
@@ -105,6 +107,9 @@ export function LeadDatabaseView({ leads, summary, activeStage }: LeadDatabaseVi
                   </DataTableCell>
                   <DataTableCell>
                     <StagePill stage={lead.stage} />
+                  </DataTableCell>
+                  <DataTableCell>
+                    <MarketingContactBadge status={lead.marketingContactStatus} />
                   </DataTableCell>
                   <DataTableCell className="font-semibold">{lead.interest}</DataTableCell>
                   <DataTableCell>{lead.batch}</DataTableCell>

@@ -221,6 +221,9 @@ type ApiLeadResponse = {
   enriched: boolean;
   dedup: boolean;
   added_at: string;
+  marketing_contact_status?: import('@/types/crm').MarketingContactStatus;
+  marketing_contact_synced_at?: string | null;
+  marketing_unsubscribed_at?: string | null;
   manual_source?: import('@/types/crm').ManualLeadSource;
   notes?: string | null;
   member_user_id?: string | null;
@@ -263,6 +266,9 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     enriched: row.enriched,
     dedup: row.dedup,
     addedAt: row.added_at,
+    marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
+    marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
+    marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
   };
 }
 
@@ -281,8 +287,16 @@ export async function createLead(input: import('@/types/crm').CreateLeadInput): 
   return mapLead(row);
 }
 
-export async function listLeads(stage?: string): Promise<import('@/types/crm').Lead[]> {
-  const query = stage && stage !== 'all' ? `?stage=${encodeURIComponent(stage)}` : '';
+export async function listLeads(
+  stage?: string,
+  marketingContactStatus?: string
+): Promise<import('@/types/crm').Lead[]> {
+  const params = new URLSearchParams();
+  if (stage && stage !== 'all') params.set('stage', stage);
+  if (marketingContactStatus && marketingContactStatus !== 'all') {
+    params.set('marketing_contact_status', marketingContactStatus);
+  }
+  const query = params.toString() ? `?${params.toString()}` : '';
   const response = await requireApiFetch(`/admin/leads${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load leads.', response.status);
@@ -941,3 +955,173 @@ export async function importMetaLeadsCSV(file: File): Promise<import('@/types/cr
     errors: payload?.errors ?? [],
   };
 }
+
+export type EmailTemplate = {
+  id: string;
+  name: string;
+  classification: 'transactional' | 'marketing';
+  layout: import('@/lib/email-template-types').EmailTemplateLayout;
+  subject: string;
+  contentJson: import('@/lib/email-template-types').EmailBlock[];
+  htmlCompiled: string;
+  textCompiled: string;
+  status: 'draft' | 'active' | 'archived';
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MarketingContactsSummary = {
+  used: number;
+  limit: number;
+  planTier: string;
+  percentUsed: number;
+};
+
+function mapEmailTemplate(row: {
+  id: string;
+  name: string;
+  classification: string;
+  layout: string;
+  subject: string;
+  content_json: unknown;
+  html_compiled: string;
+  text_compiled: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}): EmailTemplate {
+  return {
+    id: row.id,
+    name: row.name,
+    classification: row.classification as EmailTemplate['classification'],
+    layout: row.layout as EmailTemplate['layout'],
+    subject: row.subject,
+    contentJson: Array.isArray(row.content_json) ? (row.content_json as EmailTemplate['contentJson']) : [],
+    htmlCompiled: row.html_compiled,
+    textCompiled: row.text_compiled,
+    status: row.status as EmailTemplate['status'],
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listEmailTemplates(): Promise<EmailTemplate[]> {
+  const response = await requireApiFetch('/admin/comms/templates');
+  if (!response.ok) {
+    throw new ApiError('Failed to load email templates.', response.status);
+  }
+  const rows = (await response.json()) as Parameters<typeof mapEmailTemplate>[0][];
+  return rows.map(mapEmailTemplate);
+}
+
+export async function getEmailTemplate(id: string): Promise<EmailTemplate> {
+  const response = await requireApiFetch(`/admin/comms/templates/${id}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load email template.', response.status);
+  }
+  return mapEmailTemplate((await response.json()) as Parameters<typeof mapEmailTemplate>[0]);
+}
+
+export async function createEmailTemplate(input: {
+  name: string;
+  classification: EmailTemplate['classification'];
+  layout: EmailTemplate['layout'];
+  subject: string;
+  contentJson: EmailTemplate['contentJson'];
+  htmlCompiled: string;
+  textCompiled: string;
+  status: EmailTemplate['status'];
+}): Promise<EmailTemplate> {
+  const response = await requireApiFetch('/admin/comms/templates', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.name,
+      classification: input.classification,
+      layout: input.layout,
+      subject: input.subject,
+      content_json: input.contentJson,
+      html_compiled: input.htmlCompiled,
+      text_compiled: input.textCompiled,
+      status: input.status,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to create template.', response.status);
+  }
+  return mapEmailTemplate((await response.json()) as Parameters<typeof mapEmailTemplate>[0]);
+}
+
+export async function updateEmailTemplate(
+  id: string,
+  input: {
+    name: string;
+    classification: EmailTemplate['classification'];
+    layout: EmailTemplate['layout'];
+    subject: string;
+    contentJson: EmailTemplate['contentJson'];
+    htmlCompiled: string;
+    textCompiled: string;
+    status: EmailTemplate['status'];
+  }
+): Promise<EmailTemplate> {
+  const response = await requireApiFetch(`/admin/comms/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: input.name,
+      classification: input.classification,
+      layout: input.layout,
+      subject: input.subject,
+      content_json: input.contentJson,
+      html_compiled: input.htmlCompiled,
+      text_compiled: input.textCompiled,
+      status: input.status,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update template.', response.status);
+  }
+  return mapEmailTemplate((await response.json()) as Parameters<typeof mapEmailTemplate>[0]);
+}
+
+export async function sendEmailTemplateTest(id: string, toEmail: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/comms/templates/${id}/send-test`, {
+    method: 'POST',
+    body: JSON.stringify({ to_email: toEmail }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to send test email.', response.status);
+  }
+}
+
+export async function sendLeadEmail(leadId: string, templateId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/comms/leads/${leadId}/send`, {
+    method: 'POST',
+    body: JSON.stringify({ template_id: templateId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to send email.', response.status);
+  }
+}
+
+export const getMarketingContactsSummary = cache(async (): Promise<MarketingContactsSummary> => {
+  const response = await requireApiFetch('/admin/comms/contacts/summary');
+  if (!response.ok) {
+    throw new ApiError('Failed to load marketing contact summary.', response.status);
+  }
+  const payload = (await response.json()) as {
+    used: number;
+    limit: number;
+    plan_tier: string;
+    percent_used: number;
+  };
+  return {
+    used: payload.used,
+    limit: payload.limit,
+    planTier: payload.plan_tier,
+    percentUsed: payload.percent_used,
+  };
+});

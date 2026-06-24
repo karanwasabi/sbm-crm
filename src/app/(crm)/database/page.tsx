@@ -15,19 +15,31 @@ const EMPTY_SUMMARY: LeadSummary = {
   },
 };
 
-export default async function DatabasePage({ searchParams }: { searchParams: Promise<{ stage?: string }> }) {
-  const { stage } = await searchParams;
+export default async function DatabasePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stage?: string; marketing?: string }>;
+}) {
+  const { stage, marketing } = await searchParams;
   const activeStage = stage?.trim() || 'all';
+  const activeMarketingStatus = marketing?.trim() || 'all';
 
   let leads: Lead[] = [];
   let summary = EMPTY_SUMMARY;
 
   try {
-    [leads, summary] = await Promise.all([listLeads(activeStage), getLeadSummary()]);
+    [leads, summary] = await Promise.all([listLeads(activeStage, activeMarketingStatus), getLeadSummary()]);
   } catch {
     leads = [];
     summary = EMPTY_SUMMARY;
   }
 
-  return <LeadDatabaseView leads={leads} summary={summary} activeStage={activeStage} />;
+  return (
+    <LeadDatabaseView
+      leads={leads}
+      summary={summary}
+      activeStage={activeStage}
+      activeMarketingStatus={activeMarketingStatus}
+    />
+  );
 }

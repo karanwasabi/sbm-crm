@@ -30,12 +30,17 @@ export type Lead = {
   enriched: boolean;
   dedup: boolean;
   addedAt: string;
+  marketingContactStatus: import('@/types/crm').MarketingContactStatus;
+  marketingContactSyncedAt?: string | null;
+  marketingUnsubscribedAt?: string | null;
 };
 
 export type LeadSummary = {
   total: number;
   byStage: Record<LifecycleStage, number>;
 };
+
+export type MarketingContactStatus = 'not_applicable' | 'no_consent' | 'eligible' | 'active' | 'unsubscribed';
 
 export type CreateLeadInput = {
   first_name: string;
