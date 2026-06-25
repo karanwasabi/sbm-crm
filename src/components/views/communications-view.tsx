@@ -47,7 +47,7 @@ export function CommunicationsView({ templates, marketingSummary }: Communicatio
         <Card>
           <SectionHead
             title="Email templates"
-            subtitle="MJML designer, variables, and test sends"
+            subtitle="MJML designer with variables"
             right={
               <Link
                 href="/communications/templates/new"
@@ -81,9 +81,19 @@ export function CommunicationsView({ templates, marketingSummary }: Communicatio
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <Pill tone={template.classification === 'marketing' ? 'brand' : 'neutral'}>
-                      {template.classification}
+                      {template.classification === 'marketing' ? 'Marketing' : 'Transactional'}
                     </Pill>
-                    <Pill tone={template.status === 'active' ? 'success' : 'neutral'}>{template.status}</Pill>
+                    <Pill
+                      tone={
+                        template.status === 'active' ? 'success' : template.status === 'archived' ? 'neutral' : 'warn'
+                      }
+                    >
+                      {template.status === 'active'
+                        ? 'Active'
+                        : template.status === 'archived'
+                          ? 'Archived'
+                          : 'Unpublished'}
+                    </Pill>
                   </div>
                 </Link>
               ))

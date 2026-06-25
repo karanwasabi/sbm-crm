@@ -1,6 +1,6 @@
 'use server';
 
-import { createEmailTemplate, sendEmailTemplateTest, updateEmailTemplate, type EmailTemplate } from '@/utils/api';
+import { createEmailTemplate, updateEmailTemplate, type EmailTemplate } from '@/utils/api';
 import type { EmailTemplateClassification, GrapesProjectData } from '@/lib/email-template-types';
 
 export type SaveEmailTemplateInput = {
@@ -26,8 +26,4 @@ export async function saveEmailTemplateAction(
     return updateEmailTemplate(templateId, payload);
   }
   return createEmailTemplate(payload);
-}
-
-export async function sendEmailTemplateTestAction(templateId: string, toEmail: string): Promise<void> {
-  await sendEmailTemplateTest(templateId, toEmail);
 }

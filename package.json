@@ -10,8 +10,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "sync-flags": "node scripts/sync-country-flags.mjs",
+    "sync-font-awesome": "node scripts/sync-font-awesome.mjs",
     "commitlint": "commitlint",
-    "prepare": "husky"
+    "prepare": "husky && node scripts/sync-font-awesome.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -20,6 +21,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
+    "font-awesome": "4.7.0",
     "grapesjs": "^0.23.2",
     "grapesjs-mjml": "^1.0.8",
     "grapesjs-tui-image-editor": "^1.0.2",

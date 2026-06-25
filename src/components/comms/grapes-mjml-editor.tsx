@@ -1,51 +1,211 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
+import { type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send } from 'lucide-react';
+import { Layers, LayoutGrid, Archive, Monitor, Palette, Redo2, Save, Smartphone, Tablet, Undo2 } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import grapesjs from 'grapesjs';
 import grapesjsMjml from 'grapesjs-mjml';
 import grapesjsTuiImageEditor from 'grapesjs-tui-image-editor';
 import 'grapesjs/dist/css/grapes.min.css';
+import '@/components/comms/grapes-font-awesome.css';
+import '@/components/comms/grapes-editor.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
-import { saveEmailTemplateAction, sendEmailTemplateTestAction } from '@/app/(crm)/communications/actions';
+import { saveEmailTemplateAction } from '@/app/(crm)/communications/actions';
 import {
   compileEditorHtml,
+  configureEditorSelectionUx,
   createAssetUploadHandler,
+  enableEditorComponentOutlines,
   fetchEmailAssets,
+  getEditorHistoryState,
+  initializeEditorSidebar,
   insertMergeToken,
   loadStarterMjml,
   protectLogoFromImageEditor,
+  redoEditorChange,
   registerSbmBlocks,
+  resetEditorHistoryBaseline,
+  runEditorPanelCommand,
+  setEditorCanvasDevice,
+  stripBuiltInEditorChrome,
+  undoEditorChange,
+  type CanvasDeviceId,
+  type SidebarPanelId,
 } from '@/lib/grapes-email-editor';
+import { EMAIL_FROM_ADDRESSES } from '@/lib/email-branding';
+import { substitutePreviewVariables } from '@/lib/email-preview-vars';
 import { getStarterMjml, isGrapesProjectData, stripHtmlToText } from '@/lib/email-mjml-starters';
-import { EMAIL_VARIABLES, type EmailTemplateClassification } from '@/lib/email-template-types';
+import {
+  EMAIL_VARIABLES,
+  type EmailTemplateClassification,
+  type EmailTemplateStatus,
+} from '@/lib/email-template-types';
+import { cn } from '@/lib/cn';
 import type { EmailTemplate } from '@/utils/api';
 
 type GrapesMjmlEditorProps = {
   template?: EmailTemplate;
-  staffEmail?: string;
 };
 
-export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps) {
+type PreviewDevice = CanvasDeviceId;
+
+const CLASSIFICATION_OPTIONS: Array<{ id: EmailTemplateClassification; label: string }> = [
+  { id: 'marketing', label: 'Marketing' },
+  { id: 'transactional', label: 'Transactional' },
+];
+
+const CLASSIFICATION_HELP: Record<EmailTemplateClassification, string> = {
+  marketing: 'Promotional — only for contacts with marketing consent.',
+  transactional: 'Account and program updates — not promotional.',
+};
+
+const CANVAS_DEVICE_OPTIONS: Array<{ id: CanvasDeviceId; label: string; icon: typeof Monitor }> = [
+  { id: 'desktop', label: 'Desktop', icon: Monitor },
+  { id: 'tablet', label: 'Tablet', icon: Tablet },
+  { id: 'mobile', label: 'Mobile', icon: Smartphone },
+];
+
+const PREVIEW_DEVICE_MAX_WIDTH: Record<CanvasDeviceId, string> = {
+  desktop: 'max-w-3xl',
+  tablet: 'max-w-[600px]',
+  mobile: 'max-w-[375px]',
+};
+
+const SIDEBAR_TAB_OPTIONS: Array<{ id: SidebarPanelId; label: string; icon: typeof LayoutGrid }> = [
+  { id: 'open-blocks', label: 'Blocks', icon: LayoutGrid },
+  { id: 'open-sm', label: 'Styles', icon: Palette },
+  { id: 'open-layers', label: 'Layers', icon: Layers },
+];
+
+type SegmentedOption<T extends string> = {
+  id: T;
+  label: string;
+  icon?: typeof Monitor;
+};
+
+function SegmentedSwitcher<T extends string>({
+  value,
+  options,
+  onChange,
+  disabled,
+  size = 'md',
+}: {
+  value: T;
+  options: SegmentedOption<T>[];
+  onChange: (id: T) => void;
+  disabled?: boolean;
+  size?: 'sm' | 'md';
+}) {
+  return (
+    <div
+      className={cn(
+        'inline-flex rounded-lg border border-slate-200 bg-slate-100/80 p-0.5',
+        size === 'sm' ? 'gap-0' : 'gap-0.5'
+      )}
+      role="tablist"
+    >
+      {options.map((option) => {
+        const Icon = option.icon;
+        const active = value === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            disabled={disabled}
+            onClick={() => onChange(option.id)}
+            className={cn(
+              'inline-flex items-center justify-center gap-1.5 rounded-md font-semibold transition-all',
+              size === 'sm' ? 'px-2 py-1 text-[11px]' : 'px-3 py-1.5 text-xs',
+              active
+                ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200/80'
+                : 'text-slate-500 hover:text-slate-800 disabled:opacity-50'
+            )}
+          >
+            {Icon ? <Icon className={size === 'sm' ? 'h-3 w-3' : 'h-3.5 w-3.5'} /> : null}
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function ToolbarIconButton({
+  label,
+  disabled,
+  onClick,
+  children,
+}: {
+  label: string;
+  disabled?: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={label}
+      className={cn(
+        'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors',
+        'hover:bg-slate-200/60 hover:text-slate-900',
+        'disabled:cursor-not-allowed disabled:text-slate-400 disabled:hover:bg-transparent disabled:hover:text-slate-400'
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   const router = useRouter();
   const editorRef = useRef<Editor | null>(null);
+  const editorReadyRef = useRef(false);
+  const editorShellRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [previewHtml, setPreviewHtml] = useState(template?.htmlCompiled ?? '');
+  const [previewHtml, setPreviewHtml] = useState(() => substitutePreviewVariables(template?.htmlCompiled ?? ''));
+  const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('desktop');
+  const [canvasDevice, setCanvasDevice] = useState<CanvasDeviceId>('desktop');
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const [sidebarTab, setSidebarTab] = useState<SidebarPanelId>('open-blocks');
 
   const [name, setName] = useState(template?.name ?? 'New email template');
   const [classification, setClassification] = useState<EmailTemplateClassification>(
     template?.classification ?? 'marketing'
   );
   const [subject, setSubject] = useState(template?.subject ?? 'A quick note from Slow Burn Method');
-  const [status, setStatus] = useState<'draft' | 'active' | 'archived'>(template?.status ?? 'draft');
-  const [testEmail, setTestEmail] = useState(staffEmail ?? '');
+  const [templateStatus, setTemplateStatus] = useState<EmailTemplateStatus>(
+    template?.status === 'archived' ? 'archived' : 'active'
+  );
+
+  const previewSubject = substitutePreviewVariables(subject);
+  const previewFrom = EMAIL_FROM_ADDRESSES[classification];
+
+  function refreshHistoryState(editor: Editor) {
+    const history = getEditorHistoryState(editor);
+    setCanUndo(history.canUndo);
+    setCanRedo(history.canRedo);
+  }
+
+  function refreshPreview(editor: Editor) {
+    try {
+      setPreviewHtml(substitutePreviewVariables(compileEditorHtml(editor)));
+    } catch {
+      // Editor may not be ready yet.
+    }
+  }
 
   useEffect(() => {
     if (!containerRef.current || editorRef.current) {
@@ -56,21 +216,19 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
 
     const editor = grapesjs.init({
       container: containerRef.current,
-      height: '640px',
+      height: '720px',
       width: 'auto',
       fromElement: false,
       storageManager: false,
       noticeOnUnload: false,
+      showOffsets: true,
+      undoManager: {
+        trackSelection: false,
+      },
       assetManager: {
         upload: false,
         autoAdd: true,
         assets: [],
-      },
-      deviceManager: {
-        devices: [
-          { id: 'desktop', name: 'Desktop', width: '' },
-          { id: 'mobile', name: 'Mobile', width: '375px', widthMedia: '480px' },
-        ],
       },
       plugins: [grapesjsMjml, grapesjsTuiImageEditor],
       pluginsOpts: {
@@ -78,31 +236,92 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
           resetDevices: true,
           resetBlocks: true,
           resetStyleManager: true,
+          useCustomTheme: false,
         },
         'grapesjs-tui-image-editor': {
           upload: true,
           addToAssets: true,
         },
       },
+      panels: {
+        defaults: [
+          { id: 'commands', buttons: [] },
+          { id: 'options', buttons: [] },
+          {
+            id: 'views',
+            buttons: [
+              {
+                id: 'open-sm',
+                className: 'fa fa-paint-brush',
+                command: 'open-sm',
+                active: false,
+                togglable: false,
+                attributes: { title: 'Styles' },
+              },
+              {
+                id: 'open-tm',
+                className: 'fa fa-cog',
+                command: 'open-tm',
+                togglable: false,
+                attributes: { title: 'Settings' },
+              },
+              {
+                id: 'open-layers',
+                className: 'fa fa-bars',
+                command: 'open-layers',
+                togglable: false,
+                attributes: { title: 'Layers' },
+              },
+              {
+                id: 'open-blocks',
+                className: 'fa fa-th-large',
+                command: 'open-blocks',
+                active: true,
+                togglable: false,
+                attributes: { title: 'Blocks' },
+              },
+            ],
+          },
+        ],
+      },
     });
 
     editorRef.current = editor;
+    editor.UndoManager.stop();
     registerSbmBlocks(editor);
     protectLogoFromImageEditor(editor);
+    const teardownSelectionUx = configureEditorSelectionUx(editor, {
+      getEditorShellEl: () => editorShellRef.current,
+      getEditorContainerEl: () => containerRef.current,
+      onComponentSelected: () => {
+        if (editorReadyRef.current) {
+          setSidebarTab('open-sm');
+        }
+      },
+      onComponentDeselected: () => {
+        if (editorReadyRef.current) {
+          setSidebarTab('open-blocks');
+        }
+      },
+    });
 
     const uploadHandler = createAssetUploadHandler(editor);
     editor.AssetManager.config.uploadFile = uploadHandler;
 
-    const refreshPreview = () => {
-      try {
-        setPreviewHtml(compileEditorHtml(editor));
-      } catch {
-        // Editor may not be ready yet.
-      }
-    };
+    editor.on('update', () => {
+      refreshPreview(editor);
+      refreshHistoryState(editor);
+    });
+    editor.on('load', () => {
+      stripBuiltInEditorChrome(editor);
+      enableEditorComponentOutlines(editor);
+      refreshPreview(editor);
+      refreshHistoryState(editor);
+    });
 
-    editor.on('update', refreshPreview);
-    editor.on('load', refreshPreview);
+    for (const panelId of ['open-blocks', 'open-sm', 'open-layers'] as const) {
+      editor.on(`run:${panelId}`, () => setSidebarTab(panelId));
+    }
 
     void (async () => {
       try {
@@ -122,15 +341,29 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
         loadStarterMjml(editor, getStarterMjml(classification));
       }
 
-      refreshPreview();
+      refreshPreview(editor);
+      stripBuiltInEditorChrome(editor);
+      enableEditorComponentOutlines(editor);
+      initializeEditorSidebar(editor);
+      setEditorCanvasDevice(editor, 'desktop');
+      setCanvasDevice('desktop');
+      resetEditorHistoryBaseline(editor);
+      editor.UndoManager.start();
+      refreshHistoryState(editor);
+      setSidebarTab('open-blocks');
+      editorReadyRef.current = true;
+      setEditorReady(true);
     })();
 
     return () => {
       disposed = true;
+      editorReadyRef.current = false;
+      setEditorReady(false);
+      teardownSelectionUx();
       editor.destroy();
       editorRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- init once; template/classification seed only on first mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- init once
   }, []);
 
   function applyClassificationStarter(next: EmailTemplateClassification) {
@@ -142,10 +375,10 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
 
     setClassification(next);
     loadStarterMjml(editor, getStarterMjml(next));
-    setPreviewHtml(compileEditorHtml(editor));
+    refreshPreview(editor);
   }
 
-  function buildSavePayload() {
+  function buildSavePayload(status: 'active' | 'archived' = 'active') {
     const editor = editorRef.current;
     if (!editor) {
       throw new Error('Editor is not ready yet.');
@@ -163,6 +396,36 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
     };
   }
 
+  function openSidebarTab(tab: SidebarPanelId) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setSidebarTab(tab);
+    runEditorPanelCommand(editor, tab);
+  }
+
+  function handleCanvasDevice(device: CanvasDeviceId) {
+    const editor = editorRef.current;
+    if (!editor) return;
+    setEditorCanvasDevice(editor, device);
+    setCanvasDevice(device);
+  }
+
+  function handleUndo() {
+    const editor = editorRef.current;
+    if (!editor || !canUndo) return;
+    undoEditorChange(editor);
+    refreshPreview(editor);
+    refreshHistoryState(editor);
+  }
+
+  function handleRedo() {
+    const editor = editorRef.current;
+    if (!editor || !canRedo) return;
+    redoEditorChange(editor);
+    refreshPreview(editor);
+    refreshHistoryState(editor);
+  }
+
   function handleSave() {
     setError(null);
     setMessage(null);
@@ -174,9 +437,11 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
 
     startTransition(async () => {
       try {
-        const payload = buildSavePayload();
+        const wasArchived = templateStatus === 'archived';
+        const payload = buildSavePayload('active');
         const saved = await saveEmailTemplateAction(template?.id ?? null, payload);
-        setMessage('Template saved.');
+        setTemplateStatus('active');
+        setMessage(wasArchived ? 'Template activated.' : 'Template saved.');
         if (!template?.id) {
           router.replace(`/communications/templates/${saved.id}`);
         } else {
@@ -188,30 +453,28 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
     });
   }
 
-  function handleTestSend() {
+  function handleArchive() {
     setError(null);
     setMessage(null);
 
-    if (!testEmail.trim()) {
-      setError('Enter an email address for the test send.');
+    if (!template?.id) {
+      return;
+    }
+
+    if (!name.trim()) {
+      setError('Template name is required.');
       return;
     }
 
     startTransition(async () => {
       try {
-        let templateId = template?.id ?? null;
-        if (!templateId) {
-          const saved = await saveEmailTemplateAction(null, buildSavePayload());
-          templateId = saved.id;
-          router.replace(`/communications/templates/${saved.id}`);
-        } else {
-          await saveEmailTemplateAction(templateId, buildSavePayload());
-        }
-
-        await sendEmailTemplateTestAction(templateId, testEmail.trim());
-        setMessage(`Test email sent to ${testEmail.trim()}.`);
+        const payload = buildSavePayload('archived');
+        await saveEmailTemplateAction(template.id, payload);
+        setTemplateStatus('archived');
+        setMessage('Template archived.');
+        router.refresh();
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to send test email.');
+        setError(err instanceof Error ? err.message : 'Failed to archive template.');
       }
     });
   }
@@ -219,112 +482,178 @@ export function GrapesMjmlEditor({ template, staffEmail }: GrapesMjmlEditorProps
   return (
     <div className="flex flex-col gap-4">
       <Card className="gap-4 p-4">
-        <SectionHead title="Template settings" subtitle="Name, classification, and subject line" />
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm font-semibold text-slate-700">Classification</span>
+                {template?.id && templateStatus === 'active' ? <Pill tone="success">Active</Pill> : null}
+                {template?.id && templateStatus === 'archived' ? <Pill tone="neutral">Archived</Pill> : null}
+              </div>
+              <div className="mt-1.5 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="shrink-0">
+                  <SegmentedSwitcher
+                    value={classification}
+                    options={CLASSIFICATION_OPTIONS}
+                    onChange={applyClassificationStarter}
+                    disabled={!!template?.id}
+                  />
+                  {template?.id ? (
+                    <span className="mt-1 block text-[11px] font-medium text-slate-400">Locked after save</span>
+                  ) : null}
+                </div>
+                <p className="max-w-md text-sm leading-snug font-medium text-slate-500">
+                  {CLASSIFICATION_HELP[classification]}
+                </p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {template?.id && templateStatus === 'active' ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  leftIcon={<Archive className="h-4 w-4" />}
+                  onClick={handleArchive}
+                  disabled={isPending}
+                  loading={isPending}
+                  loadingLabel="Archiving…"
+                >
+                  Archive
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                variant="primary"
+                leftIcon={<Save className="h-4 w-4" />}
+                onClick={handleSave}
+                disabled={isPending}
+                loading={isPending}
+                loadingLabel="Saving…"
+              >
+                {templateStatus === 'archived' ? 'Save & activate' : 'Save'}
+              </Button>
+            </div>
+          </div>
+          <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
             Name
             <input
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-800"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 ring-brand/20 outline-none focus:ring-2"
             />
           </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
-            Status
-            <select
-              value={status}
-              onChange={(event) => setStatus(event.target.value as typeof status)}
-              className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-800"
-            >
-              <option value="draft">draft</option>
-              <option value="active">active</option>
-              <option value="archived">archived</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
-            Classification
-            <select
-              value={classification}
-              onChange={(event) => applyClassificationStarter(event.target.value as EmailTemplateClassification)}
-              className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-800"
-            >
-              <option value="transactional">transactional</option>
-              <option value="marketing">marketing</option>
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700 md:col-span-2">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
             Subject
             <input
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
-              className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-800"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 ring-brand/20 outline-none focus:ring-2"
             />
           </label>
         </div>
+
+        {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+        {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
       </Card>
 
-      <Card className="gap-3 p-4">
-        <SectionHead title="Merge tags" subtitle="Select a text or button block, then insert a variable" />
-        <div className="flex flex-wrap gap-2">
-          {EMAIL_VARIABLES.map((variable) => (
-            <button
-              key={variable.token}
-              type="button"
-              onClick={() => {
-                const editor = editorRef.current;
-                if (!editor) return;
-                insertMergeToken(editor, variable.token);
-                setPreviewHtml(compileEditorHtml(editor));
-              }}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-bold text-slate-700 hover:border-brand/40"
-            >
-              {variable.label}
-            </button>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="overflow-hidden p-0">
-        <SectionHead
-          className="px-4 pt-4"
-          title="Email designer"
-          subtitle="MJML blocks, asset library, and image editor"
-        />
-        <div ref={containerRef} className="min-h-[640px] border-t border-slate-100" />
-      </Card>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="gap-3 p-4">
-          <SectionHead title="Preview" subtitle="Compiled HTML (mobile + desktop in designer above)" />
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
-            <iframe title="Email preview" srcDoc={previewHtml} className="h-[480px] w-full bg-white" />
-          </div>
-        </Card>
-
-        <Card className="gap-3 p-4">
-          <SectionHead title="Test send" subtitle="Saves first, then sends via Resend" />
-          <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
-            Send to
-            <input
-              value={testEmail}
-              onChange={(event) => setTestEmail(event.target.value)}
-              placeholder="you@slowburnmethod.in"
-              className="rounded-xl border border-slate-200 px-3 py-2 font-medium text-slate-800"
+      <div ref={editorShellRef}>
+        <Card className="p-0">
+          <div className="sbm-grapes-toolbar">
+            <SegmentedSwitcher
+              value={canvasDevice}
+              options={CANVAS_DEVICE_OPTIONS}
+              onChange={handleCanvasDevice}
+              disabled={!editorReady}
+              size="sm"
             />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button type="button" onClick={handleSave} disabled={isPending}>
-              Save template
-            </Button>
-            <Button type="button" variant="light" onClick={handleTestSend} disabled={isPending}>
-              <Send className="mr-1.5 h-4 w-4" />
-              Send test
-            </Button>
+
+            <div className="sbm-grapes-toolbar-divider" aria-hidden />
+
+            <div className="flex shrink-0 items-center gap-0.5">
+              <ToolbarIconButton label="Undo" disabled={!editorReady || !canUndo} onClick={handleUndo}>
+                <Undo2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </ToolbarIconButton>
+              <ToolbarIconButton label="Redo" disabled={!editorReady || !canRedo} onClick={handleRedo}>
+                <Redo2 className="h-3.5 w-3.5" strokeWidth={2.25} />
+              </ToolbarIconButton>
+            </div>
+
+            <div className="sbm-grapes-toolbar-divider" aria-hidden />
+
+            <div className="sbm-grapes-toolbar-variables">
+              <span className="shrink-0 text-xs font-semibold text-slate-500">Variables</span>
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
+                {EMAIL_VARIABLES.map((variable) => (
+                  <button
+                    key={variable.token}
+                    type="button"
+                    disabled={!editorReady}
+                    title={variable.token}
+                    onClick={() => {
+                      const editor = editorRef.current;
+                      if (!editor) return;
+                      insertMergeToken(editor, variable.token);
+                      refreshPreview(editor);
+                    }}
+                    className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 transition-colors hover:border-brand/30 hover:text-brand disabled:opacity-50"
+                  >
+                    {variable.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="sbm-grapes-toolbar-sidebar">
+              <SegmentedSwitcher
+                value={sidebarTab}
+                options={SIDEBAR_TAB_OPTIONS}
+                onChange={openSidebarTab}
+                disabled={!editorReady}
+                size="sm"
+              />
+            </div>
           </div>
-          {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
-          {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
+
+          <div ref={containerRef} className="sbm-grapes-editor" />
         </Card>
       </div>
+
+      <Card className="gap-4 p-4">
+        <SectionHead
+          title="Preview"
+          right={
+            <SegmentedSwitcher
+              value={previewDevice}
+              options={CANVAS_DEVICE_OPTIONS}
+              onChange={setPreviewDevice}
+              size="sm"
+            />
+          }
+        />
+        <div className="flex justify-center overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4">
+          <div
+            className={cn(
+              'w-full overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition-[max-width] duration-200',
+              PREVIEW_DEVICE_MAX_WIDTH[previewDevice]
+            )}
+          >
+            <div className="space-y-2 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+              <div className="grid grid-cols-[4.5rem_minmax(0,1fr)] gap-x-2 gap-y-0.5 text-sm">
+                <span className="font-semibold text-slate-500">From</span>
+                <span className="font-medium text-slate-800">{previewFrom}</span>
+                <span className="font-semibold text-slate-500">Subject</span>
+                <span className="font-medium text-slate-800">{previewSubject || '—'}</span>
+              </div>
+            </div>
+            <iframe
+              title="Email preview"
+              srcDoc={previewHtml}
+              sandbox=""
+              className="block h-[min(720px,75vh)] w-full border-0 bg-white"
+            />
+          </div>
+        </div>
+      </Card>
     </div>
   );
 }

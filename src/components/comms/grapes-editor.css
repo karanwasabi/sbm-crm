@@ -1,0 +1,310 @@
+/* GrapesJS + MJML inside Tailwind — light theme scoped to editor + portaled modals. */
+
+.sbm-grapes-editor,
+.gjs-mdl-container {
+  --gjs-primary-color: #ffffff;
+  --gjs-secondary-color: #64748b;
+  --gjs-tertiary-color: #804f7b;
+  --gjs-quaternary-color: #f45e43;
+  --gjs-font-color: #475569;
+  --gjs-font-color-active: #0f172a;
+  --gjs-main-color: #94a3b8;
+  --gjs-main-dark-color: #e2e8f0;
+  --gjs-secondary-dark-color: #f8fafc;
+  --gjs-main-light-color: rgba(0, 0, 0, 0.04);
+  --gjs-secondary-light-color: rgba(0, 0, 0, 0.55);
+}
+
+.sbm-grapes-editor {
+  position: relative;
+  height: 720px;
+  min-height: 720px;
+  overflow: visible;
+  --gjs-left-width: 15%;
+  --sbm-grapes-sidebar-width: 15%;
+  --gjs-canvas-top: 0px;
+
+  color: var(--gjs-font-color);
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.sbm-grapes-editor .gjs-editor-cont {
+  height: 100%;
+}
+
+.sbm-grapes-editor .gjs-pn-panel {
+  position: absolute;
+  display: inline-block;
+  box-sizing: border-box;
+}
+
+/* Labelled panel controls live in the card header — hide GrapesJS chrome */
+.sbm-grapes-editor .gjs-pn-views,
+.sbm-grapes-editor .gjs-pn-options,
+.sbm-grapes-editor .gjs-pn-commands,
+.sbm-grapes-editor .gjs-pn-panel.devices-c,
+.sbm-grapes-editor .gjs-pn-panel#devices-c {
+  display: none !important;
+}
+
+/* Views toolbar is hidden — drop reserved top padding in the sidebar */
+.sbm-grapes-editor .gjs-pn-views-container {
+  padding-top: 0 !important;
+}
+
+/* Tailwind preflight sets button { color: inherit } — restore GrapesJS panel buttons */
+.sbm-grapes-editor :where(.gjs-pn-btn, .gjs-pn-buttons button) {
+  appearance: none;
+  margin: 0;
+  padding: 5px;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  min-height: 30px;
+  color: #475569;
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* Font Awesome glyphs (panel buttons, layer carets, component toolbar) */
+.sbm-grapes-editor .fa {
+  font: normal normal normal 14px/1 FontAwesome;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.sbm-grapes-editor :where(.gjs-pn-btn.fa) {
+  font-size: 15px;
+  min-width: 30px;
+  text-align: center;
+  color: #475569;
+}
+
+.sbm-grapes-editor :where(.gjs-layer-caret.fa) {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.sbm-grapes-editor :where(.gjs-pn-btn:not(.fa), .gjs-pn-buttons button:not(.fa)) {
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.sbm-grapes-editor :where(.gjs-pn-btn, .gjs-pn-buttons button) svg,
+.sbm-grapes-editor :where(.gjs-pn-btn, .gjs-pn-buttons button) svg path {
+  display: block;
+  fill: currentColor;
+  color: inherit;
+  width: 18px;
+  height: 18px;
+  max-width: none;
+  pointer-events: none;
+}
+
+.sbm-grapes-editor .gjs-pn-active {
+  background: rgba(244, 94, 67, 0.12);
+  color: #c2410c;
+  border-radius: 4px;
+}
+
+.sbm-grapes-editor .gjs-pn-views-container {
+  background: #fff;
+  color: #334155;
+  border-left: 1px solid #e2e8f0;
+}
+
+.sbm-grapes-editor .gjs-layer {
+  color: #334155;
+}
+
+.sbm-grapes-editor .gjs-one-bg {
+  background-color: var(--gjs-primary-color);
+}
+
+.sbm-grapes-editor .gjs-two-color {
+  color: var(--gjs-secondary-color);
+}
+
+.sbm-grapes-editor .gjs-four-color,
+.sbm-grapes-editor .gjs-four-color-h:hover {
+  color: var(--gjs-quaternary-color);
+}
+
+.sbm-grapes-editor .gjs-cv-canvas {
+  background: #e2e8f0;
+}
+
+/* Blocks panel — light background, dark labels, coloured block icons */
+.sbm-grapes-editor .gjs-blocks-c {
+  background: #fff;
+  color: #333;
+  padding: 8px;
+}
+
+.sbm-grapes-editor .gjs-block {
+  color: #333;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  min-height: auto;
+  box-shadow: none;
+}
+
+.sbm-grapes-editor .gjs-block:hover {
+  border-color: var(--gjs-quaternary-color);
+}
+
+.sbm-grapes-editor .gjs-block__media {
+  color: var(--gjs-quaternary-color);
+}
+
+.sbm-grapes-editor .gjs-block-svg,
+.sbm-grapes-editor .gjs-block-svg-path {
+  fill: currentColor;
+}
+
+.sbm-grapes-editor .gjs-block-label {
+  color: #334155;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sbm-grapes-editor .gjs-title,
+.sbm-grapes-editor .gjs-block-category .gjs-title {
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  font-weight: 700;
+}
+
+/* Style / trait panels */
+.sbm-grapes-editor .gjs-sm-sector .gjs-sm-title,
+.sbm-grapes-editor .gjs-trt-trait {
+  color: #334155;
+}
+
+.sbm-grapes-editor :where(input, select, textarea) {
+  margin: 0;
+  min-height: 0;
+  box-shadow: none;
+  line-height: normal;
+  color: #1e293b;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+}
+
+.sbm-grapes-editor :where(input[type='text'], input[type='number'], select, textarea) {
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 4px 6px;
+}
+
+.sbm-grapes-editor :where(label) {
+  margin: 0;
+  color: #475569;
+}
+
+.sbm-grapes-editor :where(img) {
+  max-width: none;
+}
+
+/* Asset manager modal — rendered on document.body outside .sbm-grapes-editor */
+.gjs-mdl-container {
+  z-index: 100;
+}
+
+.gjs-mdl-container .gjs-mdl-dialog {
+  color: #334155;
+  text-shadow: none;
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.15);
+}
+
+.gjs-mdl-container .gjs-one-bg {
+  background-color: #ffffff;
+}
+
+.gjs-mdl-container .gjs-mdl-header {
+  border-bottom-color: #e2e8f0;
+}
+
+.gjs-mdl-container .gjs-mdl-title,
+.gjs-mdl-container .gjs-two-color {
+  color: #0f172a;
+}
+
+.gjs-mdl-container .gjs-am-file-uploader > form {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+.gjs-mdl-container .gjs-am-file-uploader #gjs-am-title {
+  color: #475569;
+}
+
+.gjs-mdl-container .gjs-am-assets-cont {
+  background: #f8fafc;
+  color: #334155;
+}
+
+.gjs-mdl-container .gjs-am-asset {
+  border-bottom-color: #e2e8f0;
+}
+
+.gjs-mdl-container .gjs-am-preview-cont {
+  background-color: #e2e8f0;
+}
+
+.gjs-mdl-container :where(input[type='text'], input[type='number'], select, textarea) {
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #1e293b;
+  padding: 4px 6px;
+}
+
+.gjs-mdl-container :where(button.gjs-btn-prim) {
+  background-color: #f45e43;
+  border: 0;
+  border-radius: 4px;
+  color: #fff;
+  cursor: pointer;
+  padding: 6px 10px;
+}
+
+/* Single-row toolbar above the editor */
+.sbm-grapes-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 8px 12px;
+}
+
+.sbm-grapes-toolbar-divider {
+  align-self: stretch;
+  width: 1px;
+  background: #e2e8f0;
+}
+
+.sbm-grapes-toolbar-variables {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+}
+
+.sbm-grapes-toolbar-sidebar {
+  flex-shrink: 0;
+  margin-left: auto;
+}
