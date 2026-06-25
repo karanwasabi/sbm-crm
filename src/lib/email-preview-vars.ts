@@ -8,7 +8,7 @@ export const EMAIL_PREVIEW_SAMPLE_VARS: Record<string, string> = {
   '{{member.program_name}}': 'Take Control',
   '{{member.cohort_name}}': 'Cohort 12',
   '{{links.portal}}': 'https://portal.slowburnmethod.in',
-  '{{links.unsubscribe}}': 'https://slowburnmethod.in/unsubscribe',
+  '{{links.unsubscribe}}': 'https://portal.slowburnmethod.in/unsubscribe?token=preview',
 };
 
 export function substitutePreviewVariables(
