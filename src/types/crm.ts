@@ -1,4 +1,4 @@
-export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'active' | 'completed' | 'renewal' | 'lost';
+export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'newbie' | 'member' | 'grace' | 'lapsed' | 'lost';
 
 export type LeadMedium = 'paid' | 'organic' | 'offline';
 
@@ -37,7 +37,7 @@ export type Lead = {
 
 export type LeadSummary = {
   total: number;
-  byStage: Record<LifecycleStage, number>;
+  byStage: Record<LifecycleStage, number> & { active?: number };
 };
 
 export type MarketingContactStatus = 'not_applicable' | 'no_consent' | 'eligible' | 'active' | 'unsubscribed';

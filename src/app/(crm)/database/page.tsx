@@ -8,10 +8,12 @@ const EMPTY_SUMMARY: LeadSummary = {
     inquiry: 0,
     engaged: 0,
     registered: 0,
-    active: 0,
-    completed: 0,
-    renewal: 0,
+    newbie: 0,
+    member: 0,
+    grace: 0,
+    lapsed: 0,
     lost: 0,
+    active: 0,
   },
 };
 

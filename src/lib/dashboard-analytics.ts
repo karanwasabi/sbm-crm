@@ -4,8 +4,8 @@ const FUNNEL_STAGES = [
   { stage: 'inquiry', label: 'Inquiry' },
   { stage: 'engaged', label: 'Engaged' },
   { stage: 'registered', label: 'Registered' },
-  { stage: 'active', label: 'Active' },
-  { stage: 'completed', label: 'Completed' },
+  { stage: 'newbie', label: 'Newbie' },
+  { stage: 'member', label: 'Member' },
 ] as const;
 
 export function emptyDashboardAnalytics(): DashboardAnalytics {

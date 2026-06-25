@@ -79,7 +79,7 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
       label: 'Active members',
       value: formatLeadCount(kpis.activeMembers),
       sub: `Across ${kpis.activeCohorts} cohort${kpis.activeCohorts === 1 ? '' : 's'}`,
-      accent: LIFECYCLE_STAGES.completed.color,
+      accent: LIFECYCLE_STAGES.member.color,
       icon: KPI_ICONS[2],
     },
     {
