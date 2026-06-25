@@ -54,11 +54,24 @@ function brandHeader(): string {
   return `<div style="background:#f8f9fe;border-bottom:1px solid #e2e8f0;padding:28px 32px;margin:-32px -32px 24px;text-align:center;">${brandLogoHtml()}</div>`;
 }
 
+function emailFooterHtml(classification: 'transactional' | 'marketing'): string {
+  const wrap = 'margin:24px 0 0;padding-top:20px;border-top:1px solid #e2e8f0;text-align:center;';
+  const lineStyle = 'margin:0;font-size:12px;line-height:1.6;color:#90a1b9;';
+  const linkStyle = 'color:#5C65CF;text-decoration:none;font-weight:600;';
+  const siteLink = `<a href="${EMAIL_WEBSITE_URL}" target="_blank" rel="noopener noreferrer" style="${linkStyle}">slowburnmethod.in</a>`;
+  const brandLine = `<p style="${lineStyle}">&copy; ${EMAIL_BRAND_NAME} &middot; ${siteLink}</p>`;
+
+  if (classification === 'marketing') {
+    const consentLine = `<p style="${lineStyle}margin-bottom:8px;">You’re on our list because you shared your details with ${EMAIL_BRAND_NAME}.</p>`;
+    const unsubscribeLine = `<p style="${lineStyle}margin-top:8px;"><a href="{{links.unsubscribe}}" style="${linkStyle}">Unsubscribe</a></p>`;
+    return `<div style="${wrap}">${consentLine}${brandLine}${unsubscribeLine}</div>`;
+  }
+
+  return `<div style="${wrap}">${brandLine}</div>`;
+}
+
 function shell(layout: EmailTemplateLayout, inner: string, classification: 'transactional' | 'marketing'): string {
-  const footer =
-    classification === 'marketing'
-      ? `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">You received this because you shared your details with ${EMAIL_BRAND_NAME}. <a href="{{links.unsubscribe}}" style="color:#5C65CF;">Unsubscribe</a></p>`
-      : `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">${EMAIL_BRAND_NAME} · This is a service email related to your account or request.</p>`;
+  const footer = emailFooterHtml(classification);
 
   const receiptHeader =
     layout === 'receipt'
