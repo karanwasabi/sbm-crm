@@ -1,4 +1,5 @@
 import type { EmailBlock, EmailTemplateLayout } from '@/lib/email-template-types';
+import { EMAIL_BRAND_NAME, EMAIL_LOGO_URL, EMAIL_WEBSITE_URL } from '@/lib/email-branding';
 
 const SAMPLE_VARS: Record<string, string> = {
   '{{lead.first_name}}': 'Alex',
@@ -45,23 +46,26 @@ function renderBlocksHtml(blocks: EmailBlock[]): string {
   return blocks.map(renderBlockHtml).join('');
 }
 
+function brandLogoHtml(): string {
+  return `<a href="${EMAIL_WEBSITE_URL}" style="text-decoration:none;display:inline-block;" target="_blank" rel="noopener noreferrer"><img src="${EMAIL_LOGO_URL}" alt="${EMAIL_BRAND_NAME}" width="220" style="display:block;margin:0 auto;width:220px;max-width:100%;height:auto;border:0;" /></a>`;
+}
+
+function brandHeader(): string {
+  return `<div style="background:#f8f9fe;border-bottom:1px solid #e2e8f0;padding:28px 32px;margin:-32px -32px 24px;text-align:center;">${brandLogoHtml()}</div>`;
+}
+
 function shell(layout: EmailTemplateLayout, inner: string, classification: 'transactional' | 'marketing'): string {
   const footer =
     classification === 'marketing'
-      ? `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">You received this because you shared your details with SBM. <a href="{{links.unsubscribe}}" style="color:#5C65CF;">Unsubscribe</a></p>`
-      : `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">SBM · This is a service email related to your account or request.</p>`;
-
-  const hero =
-    layout === 'hero'
-      ? `<div style="background:linear-gradient(135deg,#5C65CF,#8338EC);padding:28px;border-radius:16px 16px 0 0;color:#fff;"><p style="margin:0;font-size:13px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;">SBM</p></div>`
-      : '';
+      ? `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">You received this because you shared your details with ${EMAIL_BRAND_NAME}. <a href="{{links.unsubscribe}}" style="color:#5C65CF;">Unsubscribe</a></p>`
+      : `<p style="margin:24px 0 0;font-size:12px;line-height:1.5;color:#94a3b8;">${EMAIL_BRAND_NAME} · This is a service email related to your account or request.</p>`;
 
   const receiptHeader =
     layout === 'receipt'
       ? `<p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:#64748b;">Payment confirmation</p>`
       : '';
 
-  return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f8fafc;font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center"><table role="presentation" width="100%" style="max-width:600px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;" cellspacing="0" cellpadding="0"><tr><td style="padding:32px;">${hero}${receiptHeader}${inner}${footer}</td></tr></table></td></tr></table></body></html>`;
+  return `<!DOCTYPE html><html><body style="margin:0;padding:24px;background:#f8fafc;font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center"><table role="presentation" width="100%" style="max-width:600px;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;" cellspacing="0" cellpadding="0"><tr><td style="padding:32px;">${brandHeader()}${receiptHeader}${inner}${footer}</td></tr></table></td></tr></table></body></html>`;
 }
 
 export function compileEmailTemplate(input: {

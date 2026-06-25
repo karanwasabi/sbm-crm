@@ -40,7 +40,7 @@ export function TemplateEditorForm({ template, staffEmail }: TemplateEditorFormP
     template?.classification ?? 'marketing'
   );
   const [layout, setLayout] = useState<EmailTemplateLayout>(template?.layout ?? 'simple');
-  const [subject, setSubject] = useState(template?.subject ?? 'A quick note from SBM');
+  const [subject, setSubject] = useState(template?.subject ?? 'A quick note from Slow Burn Method');
   const [status, setStatus] = useState<'draft' | 'active' | 'archived'>(template?.status ?? 'draft');
   const [blocks, setBlocks] = useState<EmailBlock[]>(
     template?.contentJson?.length ? template.contentJson : DEFAULT_BLOCKS
@@ -90,7 +90,7 @@ export function TemplateEditorForm({ template, staffEmail }: TemplateEditorFormP
           : type === 'button'
             ? { type: 'button', text: 'Take action', url: '{{links.portal}}' }
             : type === 'image'
-              ? { type: 'image', src: 'https://placehold.co/600x240', alt: 'SBM' }
+              ? { type: 'image', src: 'https://placehold.co/600x240', alt: 'Slow Burn Method' }
               : { type: 'divider' };
     setBlocks((current) => [...current, next]);
   }
@@ -357,9 +357,11 @@ export function TemplateEditorForm({ template, staffEmail }: TemplateEditorFormP
       <Card className="h-fit xl:sticky xl:top-4">
         <SectionHead title="Preview" subtitle="Sample data substituted" />
         <p className="mb-3 text-sm font-bold text-slate-800">{compiled.subject}</p>
-        <div
-          className="overflow-hidden rounded-2xl border border-slate-100 bg-white"
-          dangerouslySetInnerHTML={{ __html: compiled.html }}
+        <iframe
+          title="Email preview"
+          srcDoc={compiled.html}
+          className="block h-[min(720px,75vh)] w-full rounded-2xl border border-slate-100 bg-white"
+          sandbox=""
         />
       </Card>
     </div>
