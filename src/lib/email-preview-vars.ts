@@ -11,7 +11,7 @@ export const EMAIL_PREVIEW_SAMPLE_VARS: Record<string, string> = {
   '{{member.program_name}}': 'Take Control',
   '{{member.cohort_name}}': 'Cohort 12',
   '{{member.cohort_starts_on}}': '3 July 2026',
-  '{{member.enrollment_status}}': 'active',
+  '{{member.enrollment_status}}': 'Currently enrolled',
   '{{links.portal}}': 'https://portal.slowburnmethod.in',
   '{{links.website}}': 'https://slowburnmethod.in',
   '{{links.unsubscribe}}': 'https://portal.slowburnmethod.in/unsubscribe?token=preview',
