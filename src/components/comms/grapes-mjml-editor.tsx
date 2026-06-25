@@ -17,6 +17,7 @@ import { SectionHead } from '@/components/ui/section-head';
 import { saveEmailTemplateAction } from '@/app/(crm)/communications/actions';
 import {
   compileEditorHtml,
+  cacheAllMergeTargetContent,
   configureEditorSelectionUx,
   createAssetUploadHandler,
   enableEditorComponentOutlines,
@@ -24,6 +25,7 @@ import {
   getEditorHistoryState,
   initializeEditorSidebar,
   insertMergeToken,
+  installMergeTokenEditorSupport,
   loadStarterMjml,
   protectLogoFromImageEditor,
   redoEditorChange,
@@ -290,6 +292,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     editor.UndoManager.stop();
     registerSbmBlocks(editor);
     protectLogoFromImageEditor(editor);
+    const teardownMergeTokens = installMergeTokenEditorSupport(editor);
     const teardownSelectionUx = configureEditorSelectionUx(editor, {
       getEditorShellEl: () => editorShellRef.current,
       getEditorContainerEl: () => containerRef.current,
@@ -348,6 +351,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       setEditorCanvasDevice(editor, 'desktop');
       setCanvasDevice('desktop');
       resetEditorHistoryBaseline(editor);
+      cacheAllMergeTargetContent(editor);
       editor.UndoManager.start();
       refreshHistoryState(editor);
       setSidebarTab('open-blocks');
@@ -359,6 +363,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       disposed = true;
       editorReadyRef.current = false;
       setEditorReady(false);
+      teardownMergeTokens();
       teardownSelectionUx();
       editor.destroy();
       editorRef.current = null;
@@ -589,7 +594,9 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
                     type="button"
                     disabled={!editorReady}
                     title={variable.token}
-                    onClick={() => {
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
                       const editor = editorRef.current;
                       if (!editor) return;
                       insertMergeToken(editor, variable.token);
