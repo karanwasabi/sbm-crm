@@ -5,11 +5,11 @@ export type EmailTemplateClassification = 'transactional' | 'marketing';
 export type EmailTemplateStatus = 'draft' | 'active' | 'archived';
 
 export type EmailBlock =
-  | { type: 'heading'; text: string }
-  | { type: 'paragraph'; text: string }
-  | { type: 'button'; text: string; url: string }
-  | { type: 'divider' }
-  | { type: 'image'; src: string; alt: string };
+  | { type: 'heading'; text: string; column?: 'main' | 'sidebar' }
+  | { type: 'paragraph'; text: string; column?: 'main' | 'sidebar' }
+  | { type: 'button'; text: string; url: string; column?: 'main' | 'sidebar' }
+  | { type: 'divider'; column?: 'main' | 'sidebar' }
+  | { type: 'image'; src: string; alt: string; column?: 'main' | 'sidebar' };
 
 export type EmailTemplateContent = {
   layout: EmailTemplateLayout;
@@ -19,12 +19,12 @@ export type EmailTemplateContent = {
 };
 
 export const EMAIL_LAYOUT_OPTIONS: Array<{ id: EmailTemplateLayout; label: string; description: string }> = [
-  { id: 'simple', label: 'Simple', description: 'Plain letter-style update' },
-  { id: 'hero', label: 'Hero', description: 'Headline with intro and CTA' },
-  { id: 'cta', label: 'CTA focus', description: 'Single action button' },
-  { id: 'two_column', label: 'Two column', description: 'Main content with sidebar tips' },
-  { id: 'receipt', label: 'Receipt', description: 'Transactional confirmation' },
-  { id: 'digest', label: 'Digest', description: 'Multi-section nurture email' },
+  { id: 'simple', label: 'Letter', description: 'Personal note — heading, body, one action' },
+  { id: 'hero', label: 'Hero', description: 'Bold headline band, then story + CTA' },
+  { id: 'cta', label: 'CTA focus', description: 'Centered message with a prominent button' },
+  { id: 'two_column', label: 'Main + sidebar', description: 'Story on the left, tips or extras on the right' },
+  { id: 'receipt', label: 'Confirmation', description: 'Structured details card for receipts & enrolment' },
+  { id: 'digest', label: 'Digest', description: 'Multiple sections with dividers between topics' },
 ];
 
 export const EMAIL_VARIABLES = [
