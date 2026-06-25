@@ -18,9 +18,7 @@ export function MarketingCapMeter({ summary }: MarketingCapMeterProps) {
           <p className="mt-1 text-lg font-extrabold text-slate-800 tabular-nums">
             {summary.used.toLocaleString('en-IN')} / {summary.limit.toLocaleString('en-IN')}
           </p>
-          <p className="mt-0.5 text-xs font-medium text-slate-500">
-            Resend {summary.planTier} plan · only active synced contacts count
-          </p>
+          <p className="mt-0.5 text-xs font-medium text-slate-500">Active marketing contacts synced from CRM sends</p>
         </div>
         <div className="min-w-[180px] flex-1">
           <div className="h-2 overflow-hidden rounded-full bg-slate-100">

@@ -973,7 +973,6 @@ export type EmailTemplate = {
 export type MarketingContactsSummary = {
   used: number;
   limit: number;
-  planTier: string;
   percentUsed: number;
 };
 
@@ -1115,13 +1114,11 @@ export const getMarketingContactsSummary = cache(async (): Promise<MarketingCont
   const payload = (await response.json()) as {
     used: number;
     limit: number;
-    plan_tier: string;
     percent_used: number;
   };
   return {
     used: payload.used,
     limit: payload.limit,
-    planTier: payload.plan_tier,
     percentUsed: payload.percent_used,
   };
 });

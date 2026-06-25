@@ -6,7 +6,6 @@ export default async function CommunicationsPage() {
   let marketingSummary: Awaited<ReturnType<typeof getMarketingContactsSummary>> = {
     used: 0,
     limit: 1000,
-    planTier: 'free',
     percentUsed: 0,
   };
 
