@@ -3,7 +3,7 @@
 > **TEMPORARY** — delete or archive when remaining mocks are wired or removed.  
 > Permanent integration plans live in [`meta-integrations-roadmap.md`](./meta-integrations-roadmap.md).
 
-Last updated: 2026-06-24
+Last updated: 2026-06-25
 
 ---
 
@@ -31,14 +31,14 @@ Last updated: 2026-06-24
 
 ## Communications (`/communications`) — Phase 1 real data
 
-| Element                                | Source                                       |
-| -------------------------------------- | -------------------------------------------- |
-| Email templates list + editor          | `GET/POST/PATCH /admin/comms/templates`      |
-| Template test send                     | `POST /admin/comms/templates/:id/send-test`  |
-| Marketing contact cap meter            | `GET /admin/comms/contacts/summary`          |
-| Customer 360 send email                | `POST /admin/comms/leads/:id/send`           |
-| Lead Database marketing filter + badge | `GET /admin/leads?marketing_contact_status=` |
-| Customer 360 marketing contact card    | `marketing_contact_status` on lead detail    |
+| Element                                | Source                                                           |
+| -------------------------------------- | ---------------------------------------------------------------- |
+| Email templates list + editor          | `GET/POST/PATCH /admin/comms/templates` + GrapesJS MJML designer |
+| Template test send                     | `POST /admin/comms/templates/:id/send-test`                      |
+| Marketing contact cap meter            | `GET /admin/comms/contacts/summary`                              |
+| Customer 360 send email                | `POST /admin/comms/leads/:id/send`                               |
+| Lead Database marketing filter + badge | `GET /admin/leads?marketing_contact_status=`                     |
+| Customer 360 marketing contact card    | `marketing_contact_status` on lead detail                        |
 
 **Phase 1 not yet wired:**
 

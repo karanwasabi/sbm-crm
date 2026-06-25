@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { TemplateEditorForm } from '@/components/comms/template-editor-form';
+import { GrapesMjmlEditor } from '@/components/comms/grapes-mjml-editor-lazy';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { getEmailTemplate } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
@@ -24,7 +24,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-slate-800">{template.name}</h1>
-          <p className="text-sm font-medium text-slate-500">Edit layout, content, and send a test email.</p>
+          <p className="text-sm font-medium text-slate-500">Edit design, content, and send a test email.</p>
         </div>
         <Link
           href="/communications"
@@ -33,7 +33,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
           Back
         </Link>
       </div>
-      <TemplateEditorForm template={template} staffEmail={user?.email ?? ''} />
+      <GrapesMjmlEditor template={template} staffEmail={user?.email ?? ''} />
     </CrmPageLayout>
   );
 }

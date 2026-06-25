@@ -47,7 +47,7 @@ export function CommunicationsView({ templates, marketingSummary }: Communicatio
         <Card>
           <SectionHead
             title="Email templates"
-            subtitle="Layouts, variables, and test sends"
+            subtitle="MJML designer, variables, and test sends"
             right={
               <Link
                 href="/communications/templates/new"

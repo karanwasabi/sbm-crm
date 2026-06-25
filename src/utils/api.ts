@@ -960,9 +960,9 @@ export type EmailTemplate = {
   id: string;
   name: string;
   classification: 'transactional' | 'marketing';
-  layout: import('@/lib/email-template-types').EmailTemplateLayout;
+  layout: 'simple' | 'hero' | 'cta' | 'two_column' | 'receipt' | 'digest';
   subject: string;
-  contentJson: import('@/lib/email-template-types').EmailBlock[];
+  contentJson: import('@/lib/email-template-types').GrapesProjectData;
   htmlCompiled: string;
   textCompiled: string;
   status: 'draft' | 'active' | 'archived';
@@ -989,13 +989,18 @@ function mapEmailTemplate(row: {
   created_at: string;
   updated_at: string;
 }): EmailTemplate {
+  const contentJson =
+    row.content_json && typeof row.content_json === 'object' && !Array.isArray(row.content_json)
+      ? (row.content_json as EmailTemplate['contentJson'])
+      : {};
+
   return {
     id: row.id,
     name: row.name,
     classification: row.classification as EmailTemplate['classification'],
     layout: row.layout as EmailTemplate['layout'],
     subject: row.subject,
-    contentJson: Array.isArray(row.content_json) ? (row.content_json as EmailTemplate['contentJson']) : [],
+    contentJson,
     htmlCompiled: row.html_compiled,
     textCompiled: row.text_compiled,
     status: row.status as EmailTemplate['status'],
