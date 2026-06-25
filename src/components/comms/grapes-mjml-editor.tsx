@@ -42,7 +42,7 @@ import { EMAIL_FROM_ADDRESSES } from '@/lib/email-branding';
 import { substitutePreviewVariables } from '@/lib/email-preview-vars';
 import { getStarterMjml, isGrapesProjectData, stripHtmlToText } from '@/lib/email-mjml-starters';
 import {
-  EMAIL_VARIABLES,
+  emailVariablesForClassification,
   type EmailTemplateClassification,
   type EmailTemplateStatus,
 } from '@/lib/email-template-types';
@@ -194,6 +194,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
 
   const previewSubject = substitutePreviewVariables(subject);
   const previewFrom = EMAIL_FROM_ADDRESSES[classification];
+  const templateVariables = emailVariablesForClassification(classification);
 
   function refreshHistoryState(editor: Editor) {
     const history = getEditorHistoryState(editor);
@@ -588,7 +589,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
             <div className="sbm-grapes-toolbar-variables">
               <span className="shrink-0 text-xs font-semibold text-slate-500">Variables</span>
               <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                {EMAIL_VARIABLES.map((variable) => (
+                {templateVariables.map((variable) => (
                   <button
                     key={variable.token}
                     type="button"
