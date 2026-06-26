@@ -58,7 +58,7 @@ Last updated: 2026-06-27
 
 **Deploy:** run migration `20260627120000_email_automations.sql`. Railway cron service: `SBM_CRON_JOB=automation-worker`, schedule `*/5 * * * *` (see `sbm-backend/.env.example`). Set `LEAD_INTEGRATION_ACTOR_ID` for stage events and automation sends.
 
-**Triggers:** `lead_created` (ingest + manual intake), `stage_changed` (inquiry→engaged), `checkout_started`.
+**Triggers:** `lead_created` (manual intake, ingest, portal signup via outbox), `stage_changed` (all lifecycle transitions including payment→newbie, mark lost, inquiry→engaged), `checkout_started` (Razorpay checkout open). Condition nodes retry async facts (`has_payment`, etc.) for up to 7 days.
 
 ## Communications — Phase 1.5 (delivery tracking)
 
