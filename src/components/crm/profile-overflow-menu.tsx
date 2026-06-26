@@ -1,0 +1,130 @@
+'use client';
+
+import { MoreVertical, Trash2 } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/button';
+
+type ProfileOverflowMenuProps = {
+  onPurge: () => void;
+};
+
+type MenuPosition = {
+  top: number;
+  left: number;
+};
+
+export function ProfileOverflowMenu({ onPurge }: ProfileOverflowMenuProps) {
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) {
+      setMenuPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 8,
+        left: rect.right,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return;
+      }
+      setOpen(false);
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
+
+  const menu =
+    open && menuPosition && mounted
+      ? createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{
+              position: 'fixed',
+              top: menuPosition.top,
+              left: menuPosition.left,
+              transform: 'translateX(-100%)',
+            }}
+            className="z-[200] w-max overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.28)]"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold whitespace-nowrap text-red-600 transition-colors hover:bg-red-50"
+              onClick={() => {
+                setOpen(false);
+                onPurge();
+              }}
+            >
+              <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+              Delete Lead
+            </button>
+          </div>,
+          document.body
+        )
+      : null;
+
+  return (
+    <>
+      <div ref={rootRef} className="relative shrink-0">
+        <div ref={triggerRef}>
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            className="px-3"
+            aria-expanded={open}
+            aria-haspopup="menu"
+            aria-label="More actions"
+            onClick={() => setOpen((value) => !value)}
+          >
+            <MoreVertical className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+      {menu}
+    </>
+  );
+}

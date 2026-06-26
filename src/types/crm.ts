@@ -39,7 +39,7 @@ export type Lead = {
 
 export type LeadSummary = {
   total: number;
-  byStage: Record<LifecycleStage, number> & { active?: number };
+  byStage: Record<LifecycleStage, number>;
 };
 
 export type MarketingContactStatus = 'not_applicable' | 'no_consent' | 'eligible' | 'active' | 'unsubscribed';
@@ -88,6 +88,7 @@ export type LeadDetail = Lead & {
   notes: string;
   memberUserId: string | null;
   canMarkLost: boolean;
+  canPurge: boolean;
   paymentPending: PaymentPending | null;
   attribution: LeadAttribution | null;
   timeline: TimelineEvent[];
@@ -115,6 +116,7 @@ export type ContactProfile = {
   notes: string;
   isMember: boolean;
   canMarkLost: boolean;
+  canPurge: boolean;
   marketingContactStatus: MarketingContactStatus;
   marketingContactSyncedAt?: string | null;
   marketingUnsubscribedAt?: string | null;

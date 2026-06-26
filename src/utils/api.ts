@@ -230,6 +230,7 @@ type ApiLeadResponse = {
   notes?: string | null;
   member_user_id?: string | null;
   can_mark_lost?: boolean;
+  can_purge?: boolean;
   payment_pending?: {
     checkout_session_id: string;
     program_name: string;
@@ -357,6 +358,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     notes: row.notes ?? '',
     memberUserId: row.member_user_id ?? null,
     canMarkLost: row.can_mark_lost ?? false,
+    canPurge: row.can_purge ?? false,
     paymentPending: row.payment_pending
       ? {
           checkoutSessionId: row.payment_pending.checkout_session_id,
@@ -415,6 +417,56 @@ export async function markLeadLost(id: string, reason?: string): Promise<import(
     throw new ApiError(payload?.error ?? 'Failed to mark lead as lost.', response.status);
   }
   return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export type LeadPurgeTestSignal = {
+  rule: string;
+  matched: boolean;
+  detail?: string;
+};
+
+export type LeadPurgePreview = {
+  lead_id: string;
+  email: string;
+  stage: string;
+  member_user_id?: string | null;
+  is_production: boolean;
+  test_signals: LeadPurgeTestSignal[];
+  has_test_signal: boolean;
+  blockers: string[];
+  checkout_sessions: number;
+  razorpay_subscription_ids: string[];
+  enrollment_count: number;
+  invoice_count: number;
+};
+
+export type LeadPurgeInput = {
+  confirmationEmail: string;
+  reason: string;
+};
+
+export async function getLeadPurgePreview(id: string): Promise<LeadPurgePreview> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(id)}/purge-preview`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load purge preview.', response.status);
+  }
+  return (await response.json()) as LeadPurgePreview;
+}
+
+export async function purgeLead(id: string, input: LeadPurgeInput): Promise<{ audit_id: string; email: string }> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(id)}/purge`, {
+    method: 'POST',
+    body: JSON.stringify({
+      confirmation_email: input.confirmationEmail,
+      reason: input.reason,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to purge account.', response.status);
+  }
+  return (await response.json()) as { audit_id: string; email: string };
 }
 
 type ApiProgramResponse = {

@@ -14,7 +14,6 @@ const EMPTY_SUMMARY: LeadSummary = {
     grace: 0,
     lapsed: 0,
     lost: 0,
-    active: 0,
   },
 };
 

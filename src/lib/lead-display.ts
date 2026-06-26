@@ -1,5 +1,5 @@
 import type { LifecycleStage, LeadSummary } from '@/types/crm';
-import { ACTIVE_MEMBER_FILTER, LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
+import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 
 export function formatLeadCount(count: number): string {
   if (count >= 1000) {
@@ -53,6 +53,7 @@ export function leadDetailToContactProfile(
     notes: lead.notes,
     isMember: Boolean(lead.memberUserId),
     canMarkLost: lead.canMarkLost,
+    canPurge: lead.canPurge,
     marketingContactStatus: lead.marketingContactStatus,
     marketingContactSyncedAt: lead.marketingContactSyncedAt,
     marketingUnsubscribedAt: lead.marketingUnsubscribedAt,
@@ -62,11 +63,6 @@ export function leadDetailToContactProfile(
 export function buildStageFilterOptions(summary: LeadSummary) {
   const stages: { id: string; label: string; count: string }[] = [
     { id: 'all', label: 'All', count: formatLeadCount(summary.total) },
-    {
-      id: ACTIVE_MEMBER_FILTER.id,
-      label: ACTIVE_MEMBER_FILTER.label,
-      count: formatLeadCount(summary.byStage.active ?? 0),
-    },
   ];
 
   (Object.keys(LIFECYCLE_STAGES) as LifecycleStage[]).forEach((stage) => {

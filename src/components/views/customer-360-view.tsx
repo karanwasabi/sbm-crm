@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
+import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
@@ -40,6 +41,7 @@ export function Customer360View({
   const [lead, setLead] = useState(initialLead);
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
+  const [purgeOpen, setPurgeOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
 
   useEffect(() => {
@@ -67,6 +69,7 @@ export function Customer360View({
         onSendEmail={
           emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
         }
+        onPurge={lead.canPurge ? () => setPurgeOpen(true) : undefined}
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
       <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
@@ -97,6 +100,15 @@ export function Customer360View({
         leadId={lead.id}
         templates={emailTemplates}
         onSent={refresh}
+      />
+      <LeadPurgeModal
+        open={purgeOpen}
+        onOpenChange={setPurgeOpen}
+        leadId={lead.id}
+        leadEmail={contact.email}
+        leadName={contact.name}
+        hasMemberAccount={lead.memberUserId != null}
+        onPurged={() => router.push('/database')}
       />
     </CrmPageLayout>
   );

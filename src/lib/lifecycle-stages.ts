@@ -16,11 +16,3 @@ export const LIFECYCLE_STAGES: Record<LifecycleStage, StageConfig> = {
   lapsed: { label: 'Lapsed', color: '#94A3B8', tint: '#F1F5F9' },
   lost: { label: 'Lost', color: '#F43F5E', tint: '#FEE2E5' },
 };
-
-/** Aggregate filter: paying members in good standing (newbie + member + grace). */
-export const ACTIVE_MEMBER_FILTER = {
-  id: 'active',
-  label: 'Active',
-} as const;
-
-export const ACTIVE_MEMBER_STAGES: LifecycleStage[] = ['newbie', 'member', 'grace'];

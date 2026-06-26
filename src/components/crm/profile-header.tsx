@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { Calendar, Globe, Mail, Phone, Star } from 'lucide-react';
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
+import { ProfileOverflowMenu } from '@/components/crm/profile-overflow-menu';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { StagePill } from '@/components/ui/stage-pill';
@@ -14,6 +15,7 @@ type ProfileHeaderProps = {
   contact: ContactProfile;
   onLogCall?: () => void;
   onSendEmail?: () => void;
+  onPurge?: () => void;
 };
 
 const HEADER_PILL_CLASS =
@@ -41,14 +43,16 @@ function marketingContactTitle(contact: ContactProfile): string | undefined {
   return parts.length > 1 ? parts.join(' · ') : parts[0];
 }
 
-export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeaderProps) {
+export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge }: ProfileHeaderProps) {
   const showMemberStats = contact.isMember && contact.clv != null;
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border-b-[6px] border-[#4149AA] bg-linear-to-br from-brand from-0% via-[#6A71E6] via-55% to-brand-press to-100% px-6 py-6 text-white shadow-[0_12px_30px_-8px_rgba(92,101,207,0.30)]">
-      <div aria-hidden className="absolute -top-12 -right-8 h-60 w-60 rounded-full bg-white/18 blur-[36px]" />
+    <div className="relative rounded-[28px] border-b-[6px] border-[#4149AA] bg-linear-to-br from-brand from-0% via-[#6A71E6] via-55% to-brand-press to-100% px-6 py-6 text-white shadow-[0_12px_30px_-8px_rgba(92,101,207,0.30)]">
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
+        <div className="absolute -top-12 -right-8 h-60 w-60 rounded-full bg-white/18 blur-[36px]" />
+      </div>
       <div className="relative z-1 flex items-center gap-5.5">
-        <Avatar initials={contact.initials} size="lg" tone="white" />
+        <Avatar initials={contact.initials} size="lg" tone="white" className="shrink-0" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-[26px] font-extrabold tracking-tight">{contact.name}</h2>
@@ -114,7 +118,7 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeader
             </div>
           )}
         </div>
-        <div className="flex shrink-0 flex-col items-stretch gap-2">
+        <div className="relative z-10 flex shrink-0 flex-nowrap items-center justify-end gap-2">
           {contact.phone && (
             <Button
               variant="light"
@@ -137,6 +141,7 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeader
               Send email
             </Button>
           ) : null}
+          {onPurge ? <ProfileOverflowMenu onPurge={onPurge} /> : null}
         </div>
       </div>
     </div>
