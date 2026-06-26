@@ -619,36 +619,6 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
         </div>
       </div>
 
-      {validationIssues.length > 0 ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
-          <p className="text-sm font-bold text-rose-800">
-            {validationIssues.length} issue{validationIssues.length === 1 ? '' : 's'} to fix before activating
-          </p>
-          <ul className="mt-2 space-y-1.5 text-sm text-rose-700">
-            {validationIssues.map((issue, index) => {
-              const node = nodes.find((n) => n.id === issue.node_id);
-              const label = validationIssueDisplay(issue, node?.data.nodeType);
-              const focusId = issue.node_id || nodes.find((n) => n.data.nodeType === 'trigger')?.id;
-              return (
-                <li key={`${issue.node_id}-${index}`}>
-                  {focusId ? (
-                    <button
-                      type="button"
-                      onClick={() => setSelectedNodeId(focusId)}
-                      className="text-left hover:underline"
-                    >
-                      {label}
-                    </button>
-                  ) : (
-                    label
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </div>
-      ) : null}
-
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-canvas-cool">
           <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-3 py-2">
