@@ -9,6 +9,7 @@ import {
   deactivateAutomation,
   deleteAutomation,
   testAutomation,
+  validateAutomation,
   type EmailTemplate,
   type Automation,
 } from '@/utils/api';
@@ -70,6 +71,10 @@ export async function saveAutomationAction(
 
 export async function activateAutomationAction(automationId: string): Promise<Automation> {
   return activateAutomation(automationId);
+}
+
+export async function validateAutomationAction(automationId: string) {
+  return validateAutomation(automationId);
 }
 
 export async function deactivateAutomationAction(automationId: string): Promise<Automation> {

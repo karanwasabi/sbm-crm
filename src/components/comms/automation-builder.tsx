@@ -36,6 +36,7 @@ import {
   LIFECYCLE_STAGE_OPTIONS,
   TRIGGER_LABELS,
   defaultAutomationGraph,
+  defaultStageTriggerConfig,
   nodeLabel,
 } from '@/lib/automation-types';
 import {
@@ -44,7 +45,9 @@ import {
   deleteAutomationAction,
   saveAutomationAction,
   testAutomationAction,
+  validateAutomationAction,
 } from '@/app/(crm)/communications/actions';
+import type { AutomationValidationIssue } from '@/utils/api';
 import { Pill } from '@/components/ui/pill';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 
@@ -221,10 +224,27 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
   const [name, setName] = useState(automation?.name ?? 'New nurture workflow');
   const [description, setDescription] = useState(automation?.description ?? '');
   const [triggerType, setTriggerType] = useState<AutomationTriggerType>(automation?.triggerType ?? 'lead_created');
+  const [triggerConfig, setTriggerConfig] = useState<Record<string, string>>(() => {
+    const raw = automation?.triggerConfig ?? {};
+    if (automation?.triggerType === 'stage_changed' || !automation) {
+      return {
+        ...defaultStageTriggerConfig(),
+        ...Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v)])),
+      };
+    }
+    return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v)]));
+  });
   const [status, setStatus] = useState(automation?.status ?? 'draft');
   const [testLeadId, setTestLeadId] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  const [validationIssues, setValidationIssues] = useState<AutomationValidationIssue[]>([]);
+  const [validationPassed, setValidationPassed] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  const invalidateValidation = useCallback(() => {
+    setValidationPassed(false);
+    setValidationIssues([]);
+  }, []);
 
   useEffect(() => {
     setNodes((current) =>
@@ -240,20 +260,27 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
         };
       })
     );
-  }, [triggerType, setNodes]);
+    invalidateValidation();
+  }, [triggerType, setNodes, invalidateValidation]);
+
+  useEffect(() => {
+    invalidateValidation();
+  }, [nodes, edges, triggerConfig, invalidateValidation]);
 
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      if (status === 'active') return;
       setEdges((eds) =>
         addEdge({ ...connection, id: `e-${connection.source}-${connection.target}-${Date.now()}` }, eds)
       );
     },
-    [setEdges]
+    [setEdges, status]
   );
 
   const addNode = (type: AutomationNodeType) => {
+    if (status === 'active') return;
     const id = `${type}-${Date.now()}`;
     const y = 120 + nodes.length * 120;
     let config: Record<string, unknown> = {};
@@ -315,6 +342,16 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
     };
   }, [nodes, edges, triggerType]);
 
+  const buildTriggerConfig = useCallback((): Record<string, unknown> => {
+    if (triggerType !== 'stage_changed') {
+      return {};
+    }
+    const config: Record<string, string> = {};
+    if (triggerConfig.from_stage) config.from_stage = triggerConfig.from_stage;
+    if (triggerConfig.to_stage) config.to_stage = triggerConfig.to_stage;
+    return config;
+  }, [triggerConfig, triggerType]);
+
   const persist = (nextStatus?: Automation['status']) =>
     startTransition(async () => {
       setMessage(null);
@@ -324,12 +361,13 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           name,
           description,
           triggerType,
-          triggerConfig: automation?.triggerConfig ?? {},
+          triggerConfig: buildTriggerConfig(),
           graphJson: graph,
           status: nextStatus ?? status,
         });
         setStatus(saved.status);
         setMessage('Draft saved.');
+        invalidateValidation();
         if (!automation?.id && typeof window !== 'undefined') {
           window.location.href = `/communications/automations/${saved.id}`;
         }
@@ -338,7 +376,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
       }
     });
 
-  const activate = () =>
+  const runValidate = () =>
     startTransition(async () => {
       setMessage(null);
       try {
@@ -347,7 +385,42 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           name,
           description,
           triggerType,
-          triggerConfig: automation?.triggerConfig ?? {},
+          triggerConfig: buildTriggerConfig(),
+          graphJson: graph,
+          status: status === 'draft' ? 'draft' : 'paused',
+        });
+        setStatus(saved.status);
+        const result = await validateAutomationAction(saved.id);
+        setValidationIssues(result.errors);
+        setValidationPassed(result.valid);
+        if (result.valid) {
+          setMessage('Workflow is valid.');
+        } else {
+          setMessage(`Found ${result.errors.length} issue${result.errors.length === 1 ? '' : 's'}.`);
+        }
+        if (!automation?.id && typeof window !== 'undefined') {
+          window.location.href = `/communications/automations/${saved.id}`;
+        }
+      } catch (error) {
+        setValidationPassed(false);
+        setMessage(error instanceof Error ? error.message : 'Validation failed.');
+      }
+    });
+
+  const activate = () =>
+    startTransition(async () => {
+      if (!validationPassed) {
+        setMessage('Validate the workflow before activating.');
+        return;
+      }
+      setMessage(null);
+      try {
+        const graph = buildPayloadGraph();
+        const saved = await saveAutomationAction(automation?.id ?? null, {
+          name,
+          description,
+          triggerType,
+          triggerConfig: buildTriggerConfig(),
           graphJson: graph,
           status: status === 'draft' ? 'draft' : 'paused',
         });
@@ -429,14 +502,24 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
             {status === 'draft' ? 'Save draft' : 'Save changes'}
           </button>
           {status !== 'active' ? (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={activate}
-              className="rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
-            >
-              Activate
-            </button>
+            <>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={runValidate}
+                className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+              >
+                Validate
+              </button>
+              <button
+                type="button"
+                disabled={isPending || !validationPassed}
+                onClick={activate}
+                className="rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+              >
+                Activate
+              </button>
+            </>
           ) : (
             <button
               type="button"
@@ -467,8 +550,18 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
               Trigger
               <select
                 value={triggerType}
-                onChange={(e) => setTriggerType(e.target.value as AutomationTriggerType)}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                onChange={(e) => {
+                  const next = e.target.value as AutomationTriggerType;
+                  setTriggerType(next);
+                  if (next === 'stage_changed') {
+                    setTriggerConfig((current) => ({
+                      ...defaultStageTriggerConfig(),
+                      ...current,
+                    }));
+                  }
+                }}
+                disabled={status === 'active'}
+                className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
               >
                 {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
                   <option key={value} value={value}>
@@ -477,6 +570,42 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
                 ))}
               </select>
             </label>
+            {triggerType === 'stage_changed' ? (
+              <>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  From
+                  <select
+                    value={triggerConfig.from_stage ?? ''}
+                    onChange={(e) => setTriggerConfig((current) => ({ ...current, from_stage: e.target.value }))}
+                    disabled={status === 'active'}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
+                  >
+                    <option value="">Any stage</option>
+                    {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
+                      <option key={stage} value={stage}>
+                        {stage}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                  To
+                  <select
+                    value={triggerConfig.to_stage ?? ''}
+                    onChange={(e) => setTriggerConfig((current) => ({ ...current, to_stage: e.target.value }))}
+                    disabled={status === 'active'}
+                    className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
+                  >
+                    <option value="">Any stage</option>
+                    {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
+                      <option key={stage} value={stage}>
+                        {stage}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : null}
             <button
               type="button"
               onClick={() => addNode('wait')}
@@ -541,6 +670,24 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
               <NodeConfigPanel node={selectedNode} templates={templates} onChange={updateSelectedConfig} />
             </>
           )}
+
+          <div className="mt-4 border-t border-slate-100 pt-4">
+            <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Validation</p>
+            {validationIssues.length > 0 ? (
+              <ul className="mt-2 space-y-1 text-xs text-rose-600">
+                {validationIssues.map((issue, index) => (
+                  <li key={`${issue.node_id}-${index}`}>
+                    {issue.node_id ? `${issue.node_id}: ` : ''}
+                    {issue.message}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-1 text-xs text-slate-500">
+                Run Validate before activating. Edits clear the last result.
+              </p>
+            )}
+          </div>
 
           <div className="mt-4 border-t border-slate-100 pt-4">
             <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Test mode</p>

@@ -1364,6 +1364,27 @@ export async function activateAutomation(id: string): Promise<Automation> {
   return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
 }
 
+export type AutomationValidationIssue = {
+  node_id: string;
+  message: string;
+};
+
+export type AutomationValidationResult = {
+  valid: boolean;
+  errors: AutomationValidationIssue[];
+};
+
+export async function validateAutomation(id: string): Promise<AutomationValidationResult> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}/validate`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to validate automation.', response.status);
+  }
+  return (await response.json()) as AutomationValidationResult;
+}
+
 /** @deprecated Use activateAutomation */
 export async function publishAutomation(id: string): Promise<Automation> {
   return activateAutomation(id);

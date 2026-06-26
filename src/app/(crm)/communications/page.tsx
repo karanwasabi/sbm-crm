@@ -2,33 +2,18 @@ import { CommunicationsView } from '@/components/views/communications-view';
 import { getCommsAnalytics, getMarketingContactsSummary, listAutomations, listEmailTemplates } from '@/utils/api';
 
 export default async function CommunicationsPage() {
-  let templates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
-  let automations: Awaited<ReturnType<typeof listAutomations>> = [];
-  let marketingSummary: Awaited<ReturnType<typeof getMarketingContactsSummary>> = {
-    used: 0,
-    limit: 1000,
-    percentUsed: 0,
-  };
-  let analytics: Awaited<ReturnType<typeof getCommsAnalytics>> | null = null;
+  const [templatesResult, automationsResult, marketingResult, analyticsResult] = await Promise.allSettled([
+    listEmailTemplates(),
+    listAutomations(),
+    getMarketingContactsSummary(),
+    getCommsAnalytics(),
+  ]);
 
-  try {
-    [templates, automations, marketingSummary, analytics] = await Promise.all([
-      listEmailTemplates(),
-      listAutomations(),
-      getMarketingContactsSummary(),
-      getCommsAnalytics(),
-    ]);
-  } catch {
-    try {
-      [templates, marketingSummary] = await Promise.all([listEmailTemplates(), getMarketingContactsSummary()]);
-    } catch {
-      try {
-        automations = await listAutomations();
-      } catch {
-        // Page still renders with empty state if backend/migration not ready.
-      }
-    }
-  }
+  const templates = templatesResult.status === 'fulfilled' ? templatesResult.value : [];
+  const automations = automationsResult.status === 'fulfilled' ? automationsResult.value : [];
+  const marketingSummary =
+    marketingResult.status === 'fulfilled' ? marketingResult.value : { used: 0, limit: 1000, percentUsed: 0 };
+  const analytics = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
 
   return (
     <CommunicationsView

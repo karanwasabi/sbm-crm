@@ -112,6 +112,15 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   checkout_started: 'Checkout started',
 };
 
+export type AutomationStageTriggerConfig = {
+  from_stage?: string;
+  to_stage?: string;
+};
+
+export function defaultStageTriggerConfig(): AutomationStageTriggerConfig {
+  return { from_stage: 'inquiry', to_stage: 'engaged' };
+}
+
 export function defaultAutomationGraph(triggerType: AutomationTriggerType = 'lead_created'): AutomationGraph {
   return {
     nodes: [
