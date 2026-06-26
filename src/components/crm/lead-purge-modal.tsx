@@ -100,7 +100,7 @@ function PurgeProtectedAccountNotice() {
       <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
       <p>
         <span className="font-semibold">Account is protected.</span> Add the <span className="font-semibold">test</span>{' '}
-        label before deleting.
+        tag before deleting.
       </p>
     </div>
   );
