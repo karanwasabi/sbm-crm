@@ -4,18 +4,20 @@ import { Mail, Plus, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { MarketingCapMeter } from '@/components/comms/marketing-cap-meter';
+import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { Pill } from '@/components/ui/pill';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import type { EmailTemplate, MarketingContactsSummary } from '@/utils/api';
+import type { CommsAnalytics, EmailTemplate, MarketingContactsSummary } from '@/utils/api';
 
 type CommunicationsViewProps = {
   templates: EmailTemplate[];
   marketingSummary: MarketingContactsSummary;
+  analytics: CommsAnalytics | null;
 };
 
-export function CommunicationsView({ templates, marketingSummary }: CommunicationsViewProps) {
+export function CommunicationsView({ templates, marketingSummary, analytics }: CommunicationsViewProps) {
   const [tab, setTab] = useState<'templates' | 'automations' | 'performance'>('templates');
 
   return (
@@ -117,12 +119,16 @@ export function CommunicationsView({ templates, marketingSummary }: Communicatio
       ) : null}
 
       {tab === 'performance' ? (
-        <Card>
-          <SectionHead title="Performance" subtitle="Phase 1.5 — delivery and click tracking via Resend webhooks" />
-          <p className="text-sm text-slate-500">
-            Send logging is active. Open/click analytics will appear here once Resend webhooks are connected.
-          </p>
-        </Card>
+        analytics ? (
+          <CommsPerformancePanel analytics={analytics} />
+        ) : (
+          <Card>
+            <SectionHead title="Performance" subtitle="Delivery and engagement tracking" />
+            <p className="text-sm text-slate-500">
+              Analytics could not be loaded. Apply the latest backend migration and ensure the API is running.
+            </p>
+          </Card>
+        )
       ) : null}
     </CrmPageLayout>
   );

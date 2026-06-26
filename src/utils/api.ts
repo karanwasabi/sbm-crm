@@ -1127,3 +1127,122 @@ export const getMarketingContactsSummary = cache(async (): Promise<MarketingCont
     percentUsed: payload.percent_used,
   };
 });
+
+export type CommsAnalyticsTotals = {
+  sent: number;
+  delivered: number;
+  bounced: number;
+  opened: number;
+  clicked: number;
+  failed: number;
+  skipped: number;
+};
+
+export type CommsTemplatePerformance = {
+  templateId?: string;
+  templateName: string;
+  classification: 'transactional' | 'marketing';
+  sendCount: number;
+  sentCount: number;
+  failedCount: number;
+  skippedCount: number;
+  deliveredCount: number;
+  clickedCount: number;
+  openedCount: number;
+  bouncedCount: number;
+  openRate?: number;
+  clickRate?: number;
+};
+
+export type CommsSendIssue = {
+  id: string;
+  templateId?: string;
+  templateName: string;
+  classification: string;
+  recipientEmail: string;
+  status: string;
+  skipReason?: string;
+  subjectRendered: string;
+  createdAt: string;
+  sentAt?: string;
+};
+
+export type CommsAnalytics = {
+  totals: CommsAnalyticsTotals;
+  templates: CommsTemplatePerformance[];
+  recentIssues: CommsSendIssue[];
+  webhookUrl: string;
+  webhookEnabled: boolean;
+};
+
+export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
+  const response = await requireApiFetch('/admin/comms/analytics');
+  if (!response.ok) {
+    throw new ApiError('Failed to load email analytics.', response.status);
+  }
+  const payload = (await response.json()) as {
+    totals: CommsAnalyticsTotals;
+    templates: Array<{
+      template_id?: string;
+      template_name: string;
+      classification: 'transactional' | 'marketing';
+      send_count: number;
+      sent_count: number;
+      failed_count: number;
+      skipped_count: number;
+      delivered_count: number;
+      clicked_count: number;
+      opened_count: number;
+      bounced_count: number;
+      open_rate?: number;
+      click_rate?: number;
+    }>;
+    recent_issues: Array<{
+      id: string;
+      template_id?: string;
+      template_name: string;
+      classification: string;
+      recipient_email: string;
+      status: string;
+      skip_reason?: string;
+      subject_rendered: string;
+      created_at: string;
+      sent_at?: string;
+    }>;
+    webhook_url: string;
+    webhook_enabled: boolean;
+  };
+
+  return {
+    totals: payload.totals,
+    templates: payload.templates.map((row) => ({
+      templateId: row.template_id,
+      templateName: row.template_name,
+      classification: row.classification,
+      sendCount: row.send_count,
+      sentCount: row.sent_count,
+      failedCount: row.failed_count,
+      skippedCount: row.skipped_count,
+      deliveredCount: row.delivered_count,
+      clickedCount: row.clicked_count,
+      openedCount: row.opened_count,
+      bouncedCount: row.bounced_count,
+      openRate: row.open_rate,
+      clickRate: row.click_rate,
+    })),
+    recentIssues: payload.recent_issues.map((row) => ({
+      id: row.id,
+      templateId: row.template_id,
+      templateName: row.template_name,
+      classification: row.classification,
+      recipientEmail: row.recipient_email,
+      status: row.status,
+      skipReason: row.skip_reason,
+      subjectRendered: row.subject_rendered,
+      createdAt: row.created_at,
+      sentAt: row.sent_at,
+    })),
+    webhookUrl: payload.webhook_url,
+    webhookEnabled: payload.webhook_enabled,
+  };
+});

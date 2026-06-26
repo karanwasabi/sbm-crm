@@ -42,11 +42,20 @@ Last updated: 2026-06-25
 
 **Phase 1 not yet wired:**
 
-| Element                        | Notes                     |
-| ------------------------------ | ------------------------- |
-| Automations tab                | Placeholder until Phase 2 |
-| Performance tab (opens/clicks) | Phase 1.5 Resend webhooks |
-| Bulk “Message segment”         | Phase 3                   |
+| Element         | Notes                     |
+| --------------- | ------------------------- |
+| Automations tab | Placeholder until Phase 2 |
+
+## Communications — Phase 1.5 (delivery tracking)
+
+| Element                                          | Source                                        |
+| ------------------------------------------------ | --------------------------------------------- |
+| Performance tab KPIs + template table            | `GET /admin/comms/analytics`                  |
+| Resend webhook event storage                     | `POST /webhooks/resend` → `email_send_events` |
+| Customer 360 timeline (delivered/opened/clicked) | `ListEmailSendEventsByLead` on lead detail    |
+| Recent send log API                              | `GET /admin/comms/sends`                      |
+
+**Deploy:** run migration `20260626120000_email_send_events_webhook.sql`, set `RESEND_WEBHOOK_SECRET`, register webhook URL in Resend dashboard.
 
 ---
 
@@ -97,8 +106,7 @@ Last updated: 2026-06-25
 
 ## Remaining prioritisation
 
-1. **Communications Phase 1.5** — Resend webhooks + delivery/click analytics
-2. **Communications Phase 2** — Automation workflow builder
-3. **Settings Razorpay card** — optional health check from backend
-4. **CAC column** — Meta Ads spend (native Meta app roadmap)
-5. **Lead Database** — bulk message segment (Phase 3)
+1. **Communications Phase 2** — Automation workflow builder
+2. **Settings Razorpay card** — optional health check from backend
+3. **CAC column** — Meta Ads spend (native Meta app roadmap)
+4. **Lead Database** — bulk message segment (Phase 3)
