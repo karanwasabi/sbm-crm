@@ -9,27 +9,31 @@ export type KpiStripItem = {
   trend?: string;
   accent?: string;
   icon?: LucideIcon;
+  valueClassName?: string;
+  onClick?: () => void;
 };
 
 type KpiStripProps = {
   items: KpiStripItem[];
+  columnsClassName?: string;
 };
 
-export function KpiStrip({ items }: KpiStripProps) {
+export function KpiStrip({ items, columnsClassName = 'sm:grid-cols-2 xl:grid-cols-5' }: KpiStripProps) {
   return (
     <Card padding="none" className="overflow-hidden">
-      <div className="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5">
+      <div className={cn('grid grid-cols-1 divide-y divide-slate-100 sm:divide-x sm:divide-y-0', columnsClassName)}>
         {items.map((kpi) => {
           const Icon = kpi.icon;
           const accent = kpi.accent ?? '#5C65CF';
           const trendUp = kpi.trend?.startsWith('+');
           const trendDown = kpi.trend?.startsWith('-');
+          const className = cn(
+            'flex min-h-30 flex-col items-center justify-center gap-2 px-5 py-5 text-center sm:px-6',
+            kpi.onClick && 'w-full cursor-pointer transition hover:bg-canvas-cool/70'
+          );
 
-          return (
-            <div
-              key={kpi.label}
-              className="flex min-h-30 flex-col items-center justify-center gap-2 px-5 py-5 text-center sm:px-6"
-            >
+          const content = (
+            <>
               {Icon ? (
                 <div
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
@@ -44,7 +48,12 @@ export function KpiStrip({ items }: KpiStripProps) {
               </p>
 
               <div className="flex flex-wrap items-center justify-center gap-2">
-                <p className="text-2xl leading-none font-extrabold tracking-tight text-slate-800 tabular-nums">
+                <p
+                  className={cn(
+                    'text-2xl leading-none font-extrabold tracking-tight text-slate-800 tabular-nums',
+                    kpi.valueClassName
+                  )}
+                >
                   {kpi.value}
                 </p>
                 {kpi.trend ? (
@@ -64,6 +73,20 @@ export function KpiStrip({ items }: KpiStripProps) {
               {kpi.sub ? (
                 <p className="max-w-48 text-[11px] leading-snug font-medium text-slate-500">{kpi.sub}</p>
               ) : null}
+            </>
+          );
+
+          if (kpi.onClick) {
+            return (
+              <button key={kpi.label} type="button" onClick={kpi.onClick} className={className}>
+                {content}
+              </button>
+            );
+          }
+
+          return (
+            <div key={kpi.label} className={className}>
+              {content}
             </div>
           );
         })}

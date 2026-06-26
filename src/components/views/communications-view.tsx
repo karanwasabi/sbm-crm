@@ -3,7 +3,7 @@
 import { Mail, Plus, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
-import { MarketingCapMeter } from '@/components/comms/marketing-cap-meter';
+import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
@@ -21,10 +21,16 @@ type CommunicationsViewProps = {
 
 export function CommunicationsView({ templates, automations, marketingSummary, analytics }: CommunicationsViewProps) {
   const [tab, setTab] = useState<'templates' | 'automations' | 'performance'>('templates');
+  const activeAutomationCount = automations.filter((automation) => automation.status === 'active').length;
 
   return (
     <CrmPageLayout className="gap-4">
-      <MarketingCapMeter summary={marketingSummary} />
+      <CommsHeaderStats
+        marketingSummary={marketingSummary}
+        analytics={analytics}
+        activeAutomationCount={activeAutomationCount}
+        onOpenPerformance={() => setTab('performance')}
+      />
 
       <div className="flex flex-wrap gap-2">
         {(
@@ -51,7 +57,6 @@ export function CommunicationsView({ templates, automations, marketingSummary, a
         <Card>
           <SectionHead
             title="Email templates"
-            subtitle="MJML designer with variables"
             right={
               <Link
                 href="/communications/templates/new"
