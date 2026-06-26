@@ -1,5 +1,8 @@
-import { Card } from '@/components/ui/card';
-import { SectionHead } from '@/components/ui/section-head';
+import {
+  DashboardChartBody,
+  DashboardChartCard,
+  DashboardChartHeader,
+} from '@/components/crm/charts/dashboard-chart-card';
 import { cn } from '@/lib/cn';
 import { formatFunnelShare } from '@/lib/dashboard-display';
 import type { FunnelStep } from '@/types/crm';
@@ -7,75 +10,113 @@ import type { FunnelStep } from '@/types/crm';
 type FunnelChartProps = {
   steps: FunnelStep[];
   title?: string;
-  subtitle?: string;
   className?: string;
-  compact?: boolean;
 };
 
-export function FunnelChart({
-  steps,
-  title = 'Lifecycle funnel',
-  subtitle = 'All contacts by stage',
-  className,
-  compact = false,
-}: FunnelChartProps) {
-  const max = Math.max(1, ...steps.map((step) => step.count));
+const LIFECYCLE_LEGEND_COLUMNS = [
+  ['inquiry', 'engaged', 'registered', 'newbie'],
+  ['member', 'grace', 'lapsed', 'lost'],
+] as const;
+
+function LifecycleStageCell({ step, total }: { step: FunnelStep; total: number }) {
+  const shareLabel = formatFunnelShare(step.count, Math.max(total, 1));
+  const isEmpty = step.count === 0;
+
+  return (
+    <div
+      className={cn(
+        'grid grid-cols-[2.5rem_minmax(0,1fr)_3.25rem] items-center gap-x-2 overflow-hidden rounded-lg border border-slate-100/90 bg-white px-2 py-1.5',
+        isEmpty && 'opacity-60'
+      )}
+      title={`${step.label}: ${step.count.toLocaleString()} (${shareLabel})`}
+    >
+      <span
+        className={cn(
+          'pr-1 text-right text-[10px] font-semibold tabular-nums',
+          isEmpty ? 'text-slate-300' : 'text-slate-500'
+        )}
+      >
+        {shareLabel}
+      </span>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="h-3.5 w-0.5 shrink-0 rounded-full" style={{ backgroundColor: step.color }} aria-hidden />
+        <span className={cn('truncate text-[10px] font-semibold', isEmpty ? 'text-slate-400' : 'text-slate-700')}>
+          {step.label}
+        </span>
+      </div>
+      <span
+        className={cn(
+          'text-right text-[10px] font-extrabold tabular-nums',
+          isEmpty ? 'text-slate-400' : 'text-slate-800'
+        )}
+      >
+        {step.count.toLocaleString()}
+      </span>
+    </div>
+  );
+}
+
+function LifecycleStageLegend({ steps, total }: { steps: FunnelStep[]; total: number }) {
+  const stepsByStage = new Map(steps.map((step) => [step.stage, step]));
+
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      {LIFECYCLE_LEGEND_COLUMNS.map((columnStages, columnIndex) => (
+        <div key={columnIndex} className="flex min-w-0 flex-col gap-1">
+          {columnStages.map((stage) => {
+            const step = stepsByStage.get(stage);
+            if (!step) {
+              return null;
+            }
+            return <LifecycleStageCell key={step.stage} step={step} total={total} />;
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function FunnelChart({ steps, title = 'Lifecycle funnel', className }: FunnelChartProps) {
+  const total = steps.reduce((sum, step) => sum + step.count, 0);
 
   if (steps.length === 0) {
     return (
-      <Card className={cn('h-full', className)}>
-        <SectionHead title={title} subtitle={subtitle} />
+      <DashboardChartCard className={className}>
+        <DashboardChartHeader title={title} metric="0" />
         <p className="text-sm text-slate-500">No leads in CRM yet.</p>
-      </Card>
+      </DashboardChartCard>
     );
   }
 
   return (
-    <Card className={cn('h-full', className)}>
-      <SectionHead title={title} subtitle={subtitle} className={compact ? 'mb-2.5' : undefined} />
-      <div className={cn('flex flex-col', compact ? 'gap-2' : 'gap-2.5')}>
-        {steps.map((step) => {
-          const share = step.count / max;
-          const barWidth = step.count > 0 ? Math.max(share * 100, 3) : 0;
-          const shareLabel = formatFunnelShare(step.count, max);
-          const showShareInside = step.count > 0 && share >= 0.18;
-          const showShareOutside = step.count > 0 && !showShareInside;
-
-          return (
-            <div key={step.label}>
-              <div className={cn('mb-1 flex items-baseline justify-between gap-2', compact && 'mb-0.5')}>
-                <span className={cn('font-bold text-slate-700', compact ? 'text-[11px]' : 'text-xs')}>
-                  {step.label}
-                </span>
-                <div className="flex shrink-0 items-baseline gap-1.5">
-                  {showShareOutside ? (
-                    <span className="text-[10px] font-semibold text-slate-500 tabular-nums">{shareLabel}</span>
-                  ) : null}
-                  <span className={cn('font-extrabold text-slate-800 tabular-nums', compact ? 'text-xs' : 'text-sm')}>
-                    {step.count.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-              <div
-                className={cn('relative overflow-hidden rounded-full bg-slate-100', compact ? 'h-[18px]' : 'h-[22px]')}
-              >
-                {step.count > 0 ? (
-                  <div
-                    className="absolute top-0 bottom-0 left-0 rounded-full border-b-[3px] border-black/14"
-                    style={{ width: `${barWidth}%`, background: step.color }}
-                  >
-                    {showShareInside ? (
-                      <span className="flex h-full items-center pl-3 text-[11px] font-bold tracking-wide text-white">
-                        {shareLabel}
-                      </span>
-                    ) : null}
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
+    <DashboardChartCard className={className}>
+      <DashboardChartHeader title={title} metric={total.toLocaleString()} />
+      <DashboardChartBody>
+        <div className="flex flex-col gap-2.5">
+          <div
+            className="flex h-5 overflow-hidden rounded-full bg-slate-100"
+            role="img"
+            aria-label="Lead distribution by lifecycle stage"
+          >
+            {steps.map((step) => {
+              if (step.count === 0) {
+                return null;
+              }
+              const width = (step.count / total) * 100;
+              const shareLabel = formatFunnelShare(step.count, total);
+              return (
+                <div
+                  key={step.stage}
+                  className="h-full shrink-0 border-r border-white/25 last:border-r-0"
+                  style={{ width: `${width}%`, background: step.color, minWidth: '3px' }}
+                  title={`${step.label}: ${step.count.toLocaleString()} (${shareLabel})`}
+                />
+              );
+            })}
+          </div>
+          <LifecycleStageLegend steps={steps} total={total} />
+        </div>
+      </DashboardChartBody>
+    </DashboardChartCard>
   );
 }

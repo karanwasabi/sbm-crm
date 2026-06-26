@@ -142,9 +142,11 @@ export type DashboardKpi = {
 };
 
 export type FunnelStep = {
+  stage: string;
   label: string;
   count: number;
   color: string;
+  tint: string;
 };
 
 export type SourcePerformanceRow = {

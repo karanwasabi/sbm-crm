@@ -1,42 +1,63 @@
-import { Card } from '@/components/ui/card';
-import { SectionHead } from '@/components/ui/section-head';
 import { cn } from '@/lib/cn';
 import type { GeoItem } from '@/types/crm';
+import {
+  DashboardChartBody,
+  DashboardChartCard,
+  DashboardChartHeader,
+} from '@/components/crm/charts/dashboard-chart-card';
 
 type DonutChartProps = {
   items: GeoItem[];
   totalLabel?: string;
   title?: string;
-  subtitle?: string;
   className?: string;
-  compact?: boolean;
+  maxLegendItems?: number;
 };
+
+function trimGeoLegend(items: GeoItem[], maxItems: number): GeoItem[] {
+  if (items.length <= maxItems) {
+    return items;
+  }
+
+  const visible = items.slice(0, maxItems - 1);
+  const rest = items.slice(maxItems - 1);
+  const othersPct = rest.reduce((sum, item) => sum + item.pct, 0);
+
+  return [
+    ...visible,
+    {
+      city: 'Others',
+      pct: othersPct,
+      color: '#94A3B8',
+    },
+  ];
+}
 
 export function DonutChart({
   items,
-  totalLabel = '12.4k',
+  totalLabel = '0',
   title = 'Geography',
-  subtitle = 'Lead distribution',
   className,
-  compact = false,
+  maxLegendItems = 5,
 }: DonutChartProps) {
   if (items.length === 0) {
     return (
-      <Card className={cn('h-full', className)}>
-        <SectionHead title={title} subtitle={subtitle} className={compact ? 'mb-2.5' : undefined} />
+      <DashboardChartCard className={className}>
+        <DashboardChartHeader title={title} metric="0" />
         <p className="text-sm text-slate-500">No location data on leads yet.</p>
-      </Card>
+      </DashboardChartCard>
     );
   }
 
-  const size = compact ? 96 : 140;
-  const R = compact ? 36 : 56;
+  const legendItems = trimGeoLegend(items, maxLegendItems);
+  const size = 120;
+  const R = 46;
   const C = size / 2;
-  const innerR = compact ? 22 : 32;
+  const innerR = 30;
 
   let cum = 0;
 
-  const segments = items.map((item) => {
+  const segments = legendItems.map((item) => {
     const start = cum * Math.PI * 2 - Math.PI / 2;
     cum += item.pct;
     const end = cum * Math.PI * 2 - Math.PI / 2;
@@ -52,63 +73,33 @@ export function DonutChart({
   });
 
   return (
-    <Card className={cn('h-full', className)}>
-      <SectionHead title={title} subtitle={subtitle} className={compact ? 'mb-2.5' : undefined} />
-      <div
-        className={cn(compact ? 'flex flex-col items-center gap-3' : 'grid grid-cols-[140px_1fr] items-center gap-4.5')}
-      >
-        <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="shrink-0">
-          {segments.map((seg, i) => (
-            <path key={i} d={seg.d} fill={seg.color} />
-          ))}
-          <circle cx={C} cy={C} r={innerR} fill="#fff" />
-          <text
-            x={C}
-            y={C - (compact ? 1 : 2)}
-            textAnchor="middle"
-            fontSize={compact ? '14' : '18'}
-            fontWeight="800"
-            fill="#1E293B"
-          >
-            {totalLabel}
-          </text>
-          <text
-            x={C}
-            y={C + (compact ? 10 : 12)}
-            textAnchor="middle"
-            fontSize={compact ? '7' : '8'}
-            fontWeight="700"
-            letterSpacing="0.16em"
-            fill="#64748B"
-          >
-            LEADS
-          </text>
-        </svg>
-        <div className={cn('flex flex-col gap-2', compact && 'w-full')}>
-          {items.map((item) => (
-            <div key={item.city} className="flex min-w-0 items-center gap-2">
-              <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: item.color }} />
-              <span
-                className={cn(
-                  'min-w-0 flex-1 truncate font-semibold text-slate-700',
-                  compact ? 'text-[11px]' : 'text-[12.5px]'
-                )}
-                title={item.city}
-              >
-                {item.city}
-              </span>
-              <span
-                className={cn(
-                  'shrink-0 font-bold text-slate-800 tabular-nums',
-                  compact ? 'text-[11px]' : 'text-[12.5px]'
-                )}
-              >
-                {Math.round(item.pct * 100)}%
-              </span>
-            </div>
-          ))}
+    <DashboardChartCard className={className}>
+      <DashboardChartHeader title={title} metric={totalLabel} />
+      <DashboardChartBody>
+        <div className="flex items-center gap-4">
+          <div className="flex shrink-0 items-center justify-center">
+            <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} className="shrink-0" aria-hidden>
+              {segments.map((seg, i) => (
+                <path key={i} d={seg.d} fill={seg.color} />
+              ))}
+              <circle cx={C} cy={C} r={innerR} fill="#fff" />
+            </svg>
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-center gap-1.5">
+            {legendItems.map((item) => (
+              <div key={item.city} className="grid grid-cols-[0.5rem_1fr_2.25rem] items-center gap-x-2">
+                <span className="h-2 w-2 shrink-0 rounded-sm" style={{ background: item.color }} aria-hidden />
+                <span className="min-w-0 truncate text-[11px] font-semibold text-slate-700" title={item.city}>
+                  {item.city}
+                </span>
+                <span className="text-right text-[11px] font-extrabold text-slate-800 tabular-nums">
+                  {Math.round(item.pct * 100)}%
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
-    </Card>
+      </DashboardChartBody>
+    </DashboardChartCard>
   );
 }

@@ -10,8 +10,9 @@ import {
   formatLeadCount,
   formatPeriodTrend,
   formatThousandsFromPaise,
-  lakhsToThousands,
+  normalizeRevenueWeeks,
 } from '@/lib/dashboard-display';
+import { normalizeDashboardFunnel } from '@/lib/dashboard-analytics';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import type { DashboardAnalytics, FunnelStep, GeoItem, LifecycleStage, SourcePerformanceRow } from '@/types/crm';
 
@@ -25,19 +26,25 @@ type DashboardViewProps = {
   analyticsError?: string | null;
 };
 
-function funnelColor(stage: string): string {
+function funnelStageStyle(stage: string): { color: string; tint: string } {
   if (stage in LIFECYCLE_STAGES) {
-    return LIFECYCLE_STAGES[stage as LifecycleStage].color;
+    const config = LIFECYCLE_STAGES[stage as LifecycleStage];
+    return { color: config.color, tint: config.tint };
   }
-  return '#64748B';
+  return { color: '#64748B', tint: '#F1F5F9' };
 }
 
 function buildFunnelSteps(analytics: DashboardAnalytics): FunnelStep[] {
-  return analytics.funnel.map((step) => ({
-    label: step.label,
-    count: step.count,
-    color: funnelColor(step.stage),
-  }));
+  return normalizeDashboardFunnel(analytics.funnel).map((step) => {
+    const { color, tint } = funnelStageStyle(step.stage);
+    return {
+      stage: step.stage,
+      label: step.label,
+      count: step.count,
+      color,
+      tint,
+    };
+  });
 }
 
 function buildGeoItems(analytics: DashboardAnalytics): GeoItem[] {
@@ -99,10 +106,7 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
     },
   ];
 
-  const revenueData = analytics.revenueWeekly.map((week) => ({
-    week: week.weekLabel,
-    revenue: lakhsToThousands(week.revenueLakhs),
-  }));
+  const revenueData = normalizeRevenueWeeks(analytics.revenueWeekly);
 
   return (
     <CrmPageLayout className="gap-4.5">
@@ -114,22 +118,15 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
 
       <KpiStrip items={kpiItems} />
 
-      <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-        <FunnelChart
-          compact
-          className="min-w-0"
-          steps={buildFunnelSteps(analytics)}
-          title="Lifecycle funnel"
-          subtitle="By stage"
-        />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+        <FunnelChart className="min-w-0" steps={buildFunnelSteps(analytics)} title="Lifecycle funnel" />
         <BarChart className="min-w-0" data={revenueData} />
         <DonutChart
-          compact
           className="min-w-0"
           items={buildGeoItems(analytics)}
           totalLabel={geoTotalLabel(analytics)}
           title="Geography"
-          subtitle="By city or country"
+          maxLegendItems={5}
         />
       </div>
 

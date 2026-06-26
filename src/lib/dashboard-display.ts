@@ -90,3 +90,41 @@ export function formatFunnelShare(count: number, max: number): string {
   const pct = Math.round((count / max) * 100);
   return `${pct}%`;
 }
+
+export const REVENUE_WEEK_SLOTS = 8;
+
+function weekStartUTC(date: Date): Date {
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+  const weekday = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() - (weekday - 1));
+  return d;
+}
+
+export function formatWeekRangeLabel(start: Date): string {
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  const month = (d: Date) => d.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+  if (start.getUTCMonth() === end.getUTCMonth()) {
+    return `${month(start)} ${start.getUTCDate()}–${end.getUTCDate()}`;
+  }
+  return `${month(start)} ${start.getUTCDate()} – ${month(end)} ${end.getUTCDate()}`;
+}
+
+export function normalizeRevenueWeeks(
+  rows: Array<{ weekLabel: string; revenueLakhs: number }>,
+  slotCount = REVENUE_WEEK_SLOTS
+): Array<{ week: string; revenue: number }> {
+  const trailing = rows.slice(-slotCount);
+  const paddedCount = slotCount - trailing.length;
+  const currentWeek = weekStartUTC(new Date());
+
+  return Array.from({ length: slotCount }, (_, index) => {
+    const start = new Date(currentWeek);
+    start.setUTCDate(start.getUTCDate() - 7 * (slotCount - 1 - index));
+    const revenue = index >= paddedCount ? lakhsToThousands(trailing[index - paddedCount].revenueLakhs) : 0;
+    return {
+      week: formatWeekRangeLabel(start),
+      revenue,
+    };
+  });
+}
