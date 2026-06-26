@@ -1,15 +1,6 @@
-import { ProfileView } from '@/components/profile/profile-view';
-import { fetchCountries } from '@/utils/api';
+import { redirect } from 'next/navigation';
+import { SETTINGS_PROFILE_HREF } from '@/lib/navigation';
 
-import type { Country } from '@/types/reference';
-
-export default async function ProfilePage() {
-  let countries: Country[] = [];
-  try {
-    countries = await fetchCountries();
-  } catch {
-    countries = [];
-  }
-
-  return <ProfileView countries={countries} />;
+export default function ProfilePage() {
+  redirect(SETTINGS_PROFILE_HREF);
 }

@@ -169,6 +169,11 @@ export type MetaIntegrationStatus = {
   metaLeads7d: number;
 };
 
+export type RazorpayIntegrationStatus = {
+  configured: boolean;
+  webhookConfigured: boolean;
+};
+
 export type LeadAttribution = {
   source: string;
   integration: string | null;
@@ -211,14 +216,6 @@ export type DashboardAnalytics = {
 export type GeoItem = {
   city: string;
   pct: number;
-  color: string;
-};
-
-export type CommsHealthItem = {
-  channel: string;
-  sent: number;
-  delivered: number;
-  openRate: number;
   color: string;
 };
 

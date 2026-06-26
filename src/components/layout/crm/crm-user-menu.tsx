@@ -2,6 +2,7 @@
 
 import { ChevronDown, Loader2, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
+import { SETTINGS_PROFILE_HREF } from '@/lib/navigation';
 import { useEffect, useRef, useState, useTransition } from 'react';
 import { signOut } from '@/app/(auth)/actions';
 import type { CrmStaffUser } from '@/components/layout/crm/crm-shell';
@@ -68,7 +69,7 @@ export function CrmUserMenu({ staffUser }: CrmUserMenuProps) {
             <div className="mt-0.5 truncate text-[11px] text-slate-400 capitalize">{staffUser.roleLabel}</div>
           </div>
           <Link
-            href="/profile"
+            href={SETTINGS_PROFILE_HREF}
             role="menuitem"
             onClick={() => setOpen(false)}
             className="flex items-center gap-2.5 px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-canvas-cool"

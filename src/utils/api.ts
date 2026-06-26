@@ -1018,6 +1018,21 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
   };
 }
 
+export async function getRazorpayIntegrationStatus(): Promise<import('@/types/crm').RazorpayIntegrationStatus> {
+  const response = await requireApiFetch('/admin/integrations/razorpay/status');
+  if (!response.ok) {
+    throw new ApiError('Failed to load Razorpay integration status.', response.status);
+  }
+  const payload = (await response.json()) as {
+    configured: boolean;
+    webhook_configured: boolean;
+  };
+  return {
+    configured: payload.configured,
+    webhookConfigured: payload.webhook_configured,
+  };
+}
+
 export async function getMetaInboundLeads(limit = 20): Promise<import('@/types/crm').InboundLead[]> {
   const response = await requireApiFetch(`/admin/integrations/meta/inbound?limit=${limit}`);
   if (!response.ok) {

@@ -141,18 +141,18 @@ export function RenewalsView({ summary, rows, activeBucket }: RenewalsViewProps)
           />
         </div>
         {isTableLoading ? (
-          <TableSkeleton columns={7} rows={5} showHeader embedded />
+          <TableSkeleton columns={6} rows={5} showHeader embedded />
         ) : (
           <DataTable>
             <DataTableHead>
-              {['Member', 'Cohort', 'Next charge / access', 'CLV', 'Status', 'Risk', 'Automation'].map((h) => (
+              {['Member', 'Cohort', 'Next charge / access', 'CLV', 'Status', 'Risk'].map((h) => (
                 <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
               ))}
             </DataTableHead>
             <DataTableBody>
               {rows.length === 0 ? (
                 <DataTableRow>
-                  <DataTableCell colSpan={7} className="py-10 text-center text-sm text-slate-500">
+                  <DataTableCell colSpan={6} className="py-10 text-center text-sm text-slate-500">
                     No members match this filter.
                   </DataTableCell>
                 </DataTableRow>
@@ -182,7 +182,6 @@ export function RenewalsView({ summary, rows, activeBucket }: RenewalsViewProps)
                         {riskLabel(row.risk)}
                       </span>
                     </DataTableCell>
-                    <DataTableCell className="text-slate-400">—</DataTableCell>
                   </DataTableRow>
                 ))
               )}

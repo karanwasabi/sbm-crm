@@ -5,7 +5,7 @@ Reference doc for when additional Meta access becomes available. The CRM UI is b
 **Current state (no automation):**
 
 - Import leads: CRM → Lead Database → **Import CSV (Meta)** (export from Meta Leads Center)
-- Webhook endpoint: `POST {PUBLIC_API_URL}/webhooks/leads` (see CRM → Settings → Webhooks)
+- Webhook endpoint: `POST {PUBLIC_API_URL}/webhooks/leads` (documented in this file — not shown in CRM Settings)
 - Backend env: `LEAD_INGESTION_API_KEY`, `LEAD_INTEGRATION_ACTOR_ID`, `PUBLIC_API_URL`
 - Optional: `META_CAPI_PIXEL_ID` + `META_CAPI_ACCESS_TOKEN` (production only) for server-side conversion events
 
@@ -55,7 +55,7 @@ Use when you have **Full control** of the Meta business portfolio, or the busine
 ### If portfolio access is still blocked
 
 - [ ] Business owner completes LeadSync connection in their account
-- [ ] Owner shares webhook URL + API key from CRM Settings (no need to grant you Full control)
+- [ ] Owner shares webhook URL + API key from backend env / this doc (no need to grant you Full control)
 
 ---
 

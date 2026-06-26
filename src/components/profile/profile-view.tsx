@@ -1,12 +1,10 @@
 'use client';
 
 import { Cake, Lock, Mail } from 'lucide-react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { updateProfile } from '@/app/(crm)/profile/actions';
 import { useCrmProfile } from '@/components/layout/crm/crm-profile-context';
-import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import {
   LazyCityCombobox,
   LazyCountryCombobox,
@@ -222,7 +220,7 @@ export function ProfileView({ countries }: ProfileViewProps) {
   const canSave = isDirty && !dateOfBirthError;
 
   return (
-    <CrmPageLayout>
+    <div className="flex flex-col gap-4.5">
       {profileError ? (
         <Card>
           <p className="text-sm font-medium text-danger-press">{profileError}</p>
@@ -399,6 +397,6 @@ export function ProfileView({ countries }: ProfileViewProps) {
           </Button>
         </div>
       </Card>
-    </CrmPageLayout>
+    </div>
   );
 }

@@ -12,6 +12,7 @@ import { Card } from '@/components/ui/card';
 import { Eyebrow } from '@/components/ui/eyebrow';
 import { SectionHead } from '@/components/ui/section-head';
 import { PASSWORD_REQUIREMENTS_COPY } from '@/lib/password-requirements';
+import { SETTINGS_PROFILE_HREF } from '@/lib/navigation';
 import type { ChangePasswordField, ChangePasswordState } from '@/types/change-password';
 
 const initialState: ChangePasswordState = { error: null, success: false };
@@ -19,7 +20,7 @@ const initialState: ChangePasswordState = { error: null, success: false };
 function BackLink() {
   return (
     <Link
-      href="/profile"
+      href={SETTINGS_PROFILE_HREF}
       className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 no-underline hover:text-slate-700"
     >
       <ArrowLeft size={16} />
@@ -80,7 +81,7 @@ export function ChangePasswordForm() {
           <p className="text-sm leading-relaxed text-slate-600">
             Use your new password the next time you sign in on another device. This session stays active.
           </p>
-          <Button variant="primary" size="md" className="mt-5" onClick={() => router.push('/profile')}>
+          <Button variant="primary" size="md" className="mt-5" onClick={() => router.push(SETTINGS_PROFILE_HREF)}>
             Return to profile
           </Button>
         </Card>

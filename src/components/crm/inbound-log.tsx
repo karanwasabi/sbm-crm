@@ -11,20 +11,26 @@ export function InboundLog({ leads }: InboundLogProps) {
     <Card>
       <SectionHead title="Recent inbound" subtitle="Attributed leads · most recent first" />
       <div className="flex flex-col gap-2">
-        {leads.map((lead) => (
-          <div
-            key={lead.id}
-            className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-canvas-cool px-3.5 py-2.5"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-semibold text-slate-800">{lead.name}</div>
-              <div className="text-[11px] text-slate-500">
-                {lead.source} · {lead.medium} · {lead.campaign}
+        {leads.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-200 bg-canvas-cool px-4 py-6 text-center text-sm text-slate-500">
+            No inbound leads yet. Imports and webhooks will appear here.
+          </p>
+        ) : (
+          leads.map((lead) => (
+            <div
+              key={lead.id}
+              className="flex items-center gap-3 rounded-2xl border border-slate-100 bg-canvas-cool px-3.5 py-2.5"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold text-slate-800">{lead.name}</div>
+                <div className="text-[11px] text-slate-500">
+                  {lead.source} · {lead.medium} · {lead.campaign}
+                </div>
               </div>
+              <span className="shrink-0 text-[11px] font-medium text-slate-400">{lead.time}</span>
             </div>
-            <span className="shrink-0 text-[11px] font-medium text-slate-400">{lead.time}</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </Card>
   );
