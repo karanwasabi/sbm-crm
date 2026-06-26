@@ -10,11 +10,20 @@ import {
   deleteAutomation,
   testAutomation,
   validateAutomation,
+  listAutomationEnrollments,
+  getAutomationEnrollmentLog,
   type EmailTemplate,
   type Automation,
+  type AutomationTestRunResult,
 } from '@/utils/api';
+import type {
+  AutomationGraph,
+  AutomationTriggerType,
+  AutomationStatus,
+  AutomationEnrollment,
+  AutomationRunLogEntry,
+} from '@/lib/automation-types';
 import type { EmailTemplateClassification, GrapesProjectData } from '@/lib/email-template-types';
-import type { AutomationGraph, AutomationTriggerType, AutomationStatus } from '@/lib/automation-types';
 
 export type SaveEmailTemplateInput = {
   name: string;
@@ -81,8 +90,19 @@ export async function deactivateAutomationAction(automationId: string): Promise<
   return deactivateAutomation(automationId);
 }
 
-export async function testAutomationAction(automationId: string, leadId: string): Promise<void> {
-  await testAutomation(automationId, leadId);
+export async function testAutomationAction(automationId: string, leadId: string): Promise<AutomationTestRunResult> {
+  return testAutomation(automationId, leadId);
+}
+
+export async function listAutomationEnrollmentsAction(
+  automationId: string,
+  testMode?: boolean
+): Promise<AutomationEnrollment[]> {
+  return listAutomationEnrollments(automationId, { testMode });
+}
+
+export async function getAutomationEnrollmentLogAction(enrollmentId: string): Promise<AutomationRunLogEntry[]> {
+  return getAutomationEnrollmentLog(enrollmentId);
 }
 
 export async function deleteAutomationAction(automationId: string): Promise<void> {

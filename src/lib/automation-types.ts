@@ -81,6 +81,20 @@ export type AutomationEnrollment = {
   completedAt?: string;
 };
 
+export type AutomationRunLogEntry = {
+  id: number;
+  nodeId: string;
+  nodeType: string;
+  outcome: string;
+  details: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type AutomationTestRunResult = {
+  status: string;
+  enrollmentId: string;
+};
+
 export const AUTOMATION_CONDITION_FIELDS = [
   { value: 'lifecycle_stage', label: 'Lifecycle stage' },
   { value: 'program_interest', label: 'Program interest' },
@@ -219,4 +233,62 @@ export function validationIssueDisplay(
   }
   const step = nodeType ? nodeLabel(nodeType) : 'Step';
   return `${step}: ${issue.message}`;
+}
+
+export function automationEnrollmentStatusLabel(status: string): string {
+  switch (status) {
+    case 'active':
+      return 'Active';
+    case 'waiting':
+      return 'Waiting';
+    case 'completed':
+      return 'Completed';
+    case 'failed':
+      return 'Failed';
+    case 'cancelled':
+      return 'Cancelled';
+    default:
+      return status;
+  }
+}
+
+export function automationRunOutcomeLabel(outcome: string): string {
+  switch (outcome) {
+    case 'email_sent':
+      return 'Email step';
+    case 'waiting':
+      return 'Scheduled wait';
+    case 'wait_completed':
+      return 'Wait finished';
+    case 'condition_evaluated':
+      return 'Conditions checked';
+    case 'completed':
+      return 'Finished';
+    case 'send_failed':
+      return 'Send failed';
+    default:
+      return outcome.replaceAll('_', ' ');
+  }
+}
+
+export function formatAutomationRunDetails(details: Record<string, unknown>): string | null {
+  if (details.dry_run === true) {
+    return 'Dry run — no email sent';
+  }
+  if (typeof details.skip_reason === 'string' && details.skip_reason) {
+    return `Skipped: ${details.skip_reason}`;
+  }
+  if (details.match === true) {
+    return 'Conditions matched (Yes path)';
+  }
+  if (details.match === false) {
+    return 'Conditions did not match (No path)';
+  }
+  if (typeof details.until === 'string') {
+    return `Continues after ${new Date(details.until).toLocaleString()}`;
+  }
+  if (typeof details.template_id === 'string' && details.template_id) {
+    return `Template ${details.template_id}`;
+  }
+  return null;
 }

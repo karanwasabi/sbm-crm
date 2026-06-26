@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { AutomationBuilder } from '@/components/comms/automation-builder';
+import { AutomationDetailView } from '@/components/comms/automation-detail-view';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { getAutomation, listEmailTemplates } from '@/utils/api';
 
@@ -25,7 +25,7 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
           Back
         </Link>
       </div>
-      <AutomationBuilder automation={automation} templates={templates} />
+      <AutomationDetailView automation={automation} templates={templates} />
     </CrmPageLayout>
   );
 }

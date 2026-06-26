@@ -20,13 +20,13 @@ import {
 import { Clock, GitBranch, Mail, Play, Square, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { EmailTemplate } from '@/utils/api';
+import type { EmailTemplate, Automation } from '@/utils/api';
 import type {
-  Automation,
   AutomationCondition,
   AutomationConditionGroupData,
   AutomationGraph,
   AutomationNodeType,
+  AutomationRunLogEntry,
   AutomationSendEmailData,
   AutomationTriggerType,
   AutomationWaitData,
@@ -44,10 +44,12 @@ import {
   activateAutomationAction,
   deactivateAutomationAction,
   deleteAutomationAction,
+  getAutomationEnrollmentLogAction,
   saveAutomationAction,
   testAutomationAction,
   validateAutomationAction,
 } from '@/app/(crm)/communications/actions';
+import { AutomationRunLogList } from '@/components/comms/automation-run-log-list';
 import type { AutomationValidationIssue } from '@/utils/api';
 import {
   AutomationValidationErrorsContext,
@@ -241,9 +243,10 @@ function flowToGraph(nodes: Node<BuilderNodeData>[], edges: Edge[]): AutomationG
 type AutomationBuilderProps = {
   automation: Automation | null;
   templates: EmailTemplate[];
+  onTestComplete?: () => void;
 };
 
-export function AutomationBuilder({ automation, templates }: AutomationBuilderProps) {
+export function AutomationBuilder({ automation, templates, onTestComplete }: AutomationBuilderProps) {
   const router = useRouter();
   const initialGraph = automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created');
   const initialFlow = useMemo(() => graphToFlow(initialGraph, templates), [initialGraph, templates]);
@@ -266,6 +269,8 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
   });
   const [status, setStatus] = useState(automation?.status ?? 'draft');
   const [testLeadId, setTestLeadId] = useState('');
+  const [testRunLog, setTestRunLog] = useState<AutomationRunLogEntry[]>([]);
+  const [testEnrollmentId, setTestEnrollmentId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [validationIssues, setValidationIssues] = useState<AutomationValidationIssue[]>([]);
   const [validationPassed, setValidationPassed] = useState(false);
@@ -529,9 +534,15 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
         return;
       }
       setMessage(null);
+      setTestRunLog([]);
+      setTestEnrollmentId(null);
       try {
-        await testAutomationAction(automation.id, testLeadId.trim());
-        setMessage('Dry-run started — check enrollment log (no emails sent).');
+        const result = await testAutomationAction(automation.id, testLeadId.trim());
+        const log = await getAutomationEnrollmentLogAction(result.enrollmentId);
+        setTestEnrollmentId(result.enrollmentId);
+        setTestRunLog(log);
+        setMessage('Test run completed — no emails were sent.');
+        onTestComplete?.();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Test failed.');
       }
@@ -800,6 +811,12 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
             >
               Run test
             </button>
+            {testEnrollmentId ? (
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Test results</p>
+                <AutomationRunLogList entries={testRunLog} emptyMessage="No steps logged for this test run." />
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

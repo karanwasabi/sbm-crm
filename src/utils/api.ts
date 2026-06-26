@@ -1248,6 +1248,7 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
 });
 
 export type Automation = import('@/lib/automation-types').Automation;
+export type AutomationTestRunResult = import('@/lib/automation-types').AutomationTestRunResult;
 
 function mapAutomation(row: {
   id: string;
@@ -1426,7 +1427,7 @@ export async function deleteAutomation(id: string): Promise<void> {
   }
 }
 
-export async function testAutomation(id: string, leadId: string): Promise<void> {
+export async function testAutomation(id: string, leadId: string): Promise<AutomationTestRunResult> {
   const response = await requireApiFetch(`/admin/comms/automations/${id}/test`, {
     method: 'POST',
     body: JSON.stringify({ lead_id: leadId }),
@@ -1435,12 +1436,30 @@ export async function testAutomation(id: string, leadId: string): Promise<void> 
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to run automation test.', response.status);
   }
+  const payload = (await response.json()) as { status?: string; enrollment_id?: string };
+  if (!payload.enrollment_id) {
+    throw new ApiError('Test run completed but enrollment id was missing.', 500);
+  }
+  return {
+    status: payload.status ?? 'test_run_completed',
+    enrollmentId: payload.enrollment_id,
+  };
 }
 
 export async function listAutomationEnrollments(
-  automationId: string
+  automationId: string,
+  options?: { testMode?: boolean }
 ): Promise<import('@/lib/automation-types').AutomationEnrollment[]> {
-  const response = await requireApiFetch(`/admin/comms/automations/${automationId}/enrollments`);
+  const params = new URLSearchParams();
+  if (options?.testMode === true) {
+    params.set('test_mode', 'true');
+  } else if (options?.testMode === false) {
+    params.set('test_mode', 'false');
+  }
+  const query = params.toString();
+  const response = await requireApiFetch(
+    `/admin/comms/automations/${automationId}/enrollments${query ? `?${query}` : ''}`
+  );
   if (!response.ok) {
     throw new ApiError('Failed to load enrollments.', response.status);
   }
@@ -1471,5 +1490,30 @@ export async function listAutomationEnrollments(
     testMode: row.test_mode,
     enrolledAt: row.enrolled_at,
     completedAt: row.completed_at,
+  }));
+}
+
+export async function getAutomationEnrollmentLog(
+  enrollmentId: string
+): Promise<import('@/lib/automation-types').AutomationRunLogEntry[]> {
+  const response = await requireApiFetch(`/admin/comms/automation-enrollments/${enrollmentId}/log`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load enrollment run log.', response.status);
+  }
+  const rows = (await response.json()) as Array<{
+    id: number;
+    node_id: string;
+    node_type: string;
+    outcome: string;
+    details: Record<string, unknown> | null;
+    created_at: string;
+  }>;
+  return rows.map((row) => ({
+    id: row.id,
+    nodeId: row.node_id,
+    nodeType: row.node_type,
+    outcome: row.outcome,
+    details: row.details ?? {},
+    createdAt: row.created_at,
   }));
 }
