@@ -105,6 +105,9 @@ export type ContactProfile = {
   notes: string;
   isMember: boolean;
   canMarkLost: boolean;
+  marketingContactStatus: MarketingContactStatus;
+  marketingContactSyncedAt?: string | null;
+  marketingUnsubscribedAt?: string | null;
   clv?: string;
   programs?: number;
   loggingPct?: number;

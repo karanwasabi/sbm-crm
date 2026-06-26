@@ -53,6 +53,9 @@ export function leadDetailToContactProfile(
     notes: lead.notes,
     isMember: Boolean(lead.memberUserId),
     canMarkLost: lead.canMarkLost,
+    marketingContactStatus: lead.marketingContactStatus,
+    marketingContactSyncedAt: lead.marketingContactSyncedAt,
+    marketingUnsubscribedAt: lead.marketingUnsubscribedAt,
   };
 }
 

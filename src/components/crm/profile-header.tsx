@@ -1,9 +1,12 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import { Calendar, Globe, Mail, Phone, Star } from 'lucide-react';
+import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { StagePill } from '@/components/ui/stage-pill';
+import { cn } from '@/lib/cn';
 import type { ContactProfile } from '@/types/crm';
 
 type ProfileHeaderProps = {
@@ -11,6 +14,31 @@ type ProfileHeaderProps = {
   onLogCall?: () => void;
   onSendEmail?: () => void;
 };
+
+const HEADER_PILL_CLASS =
+  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.25 text-[10px] font-bold tracking-wide normal-case';
+
+function HeaderMetaPill({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
+  return (
+    <span
+      title={title}
+      className={cn('border-b-2 border-black/22 bg-black/18 text-white', HEADER_PILL_CLASS, className)}
+    >
+      {children}
+    </span>
+  );
+}
+
+function marketingContactTitle(contact: ContactProfile): string | undefined {
+  const parts: string[] = ['Resend marketing audience'];
+  if (contact.marketingContactSyncedAt) {
+    parts.push(`Synced ${new Date(contact.marketingContactSyncedAt).toLocaleString('en-IN')}`);
+  }
+  if (contact.marketingUnsubscribedAt) {
+    parts.push(`Unsubscribed ${new Date(contact.marketingUnsubscribedAt).toLocaleString('en-IN')}`);
+  }
+  return parts.length > 1 ? parts.join(' · ') : parts[0];
+}
 
 export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeaderProps) {
   const showMemberStats = contact.isMember && contact.clv != null;
@@ -23,23 +51,19 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeader
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-[26px] font-extrabold tracking-tight">{contact.name}</h2>
-            <StagePill stage={contact.stage} />
-            {contact.batch && contact.batch !== '—' && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border-b-2 border-black/22 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
-                {contact.batch}
-              </span>
-            )}
-            {contact.tags.includes('vip') && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border-b-2 border-[#C28C00] bg-motivation px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] text-slate-900 uppercase">
+            <StagePill stage={contact.stage} className="tracking-wide normal-case" />
+            <HeaderMetaPill title={marketingContactTitle(contact)}>
+              Marketing:{' '}
+              {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
+            </HeaderMetaPill>
+            {contact.batch && contact.batch !== '—' ? <HeaderMetaPill>{contact.batch}</HeaderMetaPill> : null}
+            {contact.tags.includes('vip') ? (
+              <span className={cn('border-b-2 border-[#C28C00] bg-motivation text-slate-900', HEADER_PILL_CLASS)}>
                 <Star className="h-2.75 w-2.75 fill-slate-900" />
                 VIP
               </span>
-            )}
-            {!contact.isMember && (
-              <span className="inline-flex items-center rounded-full border-b-2 border-black/22 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
-                Not a member yet
-              </span>
-            )}
+            ) : null}
+            {!contact.isMember ? <HeaderMetaPill>Not a member yet</HeaderMetaPill> : null}
           </div>
           <div className="mt-2.5 flex flex-wrap gap-5.5 text-xs opacity-92">
             <span className="inline-flex items-center gap-1.5">

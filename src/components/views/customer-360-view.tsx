@@ -3,7 +3,6 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { MarketingContactCard } from '@/components/comms/marketing-contact-card';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
@@ -63,7 +62,6 @@ export function Customer360View({ lead: initialLead, programHistory, emailTempla
         }
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
-      <MarketingContactCard lead={lead} />
       {lead.attribution ? <LeadAttributionCard attribution={lead.attribution} /> : null}
       <div
         className={cn(

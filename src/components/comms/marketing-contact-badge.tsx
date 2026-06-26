@@ -16,6 +16,8 @@ type MarketingContactBadgeProps = {
 };
 
 export function MarketingContactBadge({ status, className }: MarketingContactBadgeProps) {
+  const label = MARKETING_CONTACT_STATUS_LABELS[status] ?? status;
+
   return (
     <span
       className={cn(
@@ -24,7 +26,7 @@ export function MarketingContactBadge({ status, className }: MarketingContactBad
         className
       )}
     >
-      {MARKETING_CONTACT_STATUS_LABELS[status] ?? status}
+      {label}
     </span>
   );
 }
