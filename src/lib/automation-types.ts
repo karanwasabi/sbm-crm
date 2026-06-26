@@ -209,3 +209,14 @@ export function nodeLabel(type: AutomationNodeType): string {
       return type;
   }
 }
+
+export function validationIssueDisplay(
+  issue: { node_id: string; message: string },
+  nodeType?: AutomationNodeType
+): string {
+  if (!issue.node_id) {
+    return issue.message;
+  }
+  const step = nodeType ? nodeLabel(nodeType) : 'Step';
+  return `${step}: ${issue.message}`;
+}

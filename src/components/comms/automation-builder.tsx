@@ -38,6 +38,7 @@ import {
   defaultAutomationGraph,
   defaultStageTriggerConfig,
   nodeLabel,
+  validationIssueDisplay,
 } from '@/lib/automation-types';
 import {
   activateAutomationAction,
@@ -55,18 +56,31 @@ type BuilderNodeData = {
   nodeType: AutomationNodeType;
   label: string;
   config: Record<string, unknown>;
+  hasError?: boolean;
+  errorMessage?: string;
 };
+
+function nodeShellClass(selected: boolean, hasError?: boolean) {
+  if (hasError) {
+    return 'border-rose-500 bg-rose-50 ring-2 ring-rose-300';
+  }
+  if (selected) {
+    return 'border-brand ring-2 ring-brand/20';
+  }
+  return 'border-slate-200';
+}
 
 function TriggerNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
   return (
     <div
-      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${selected ? 'border-brand ring-2 ring-brand/20' : 'border-slate-200'}`}
+      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
     >
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-brand uppercase">
         <Play className="h-3.5 w-3.5" />
         Trigger
       </div>
       <p className="mt-1 text-sm font-semibold text-slate-800">{data.label}</p>
+      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
       <Handle type="source" position={Position.Bottom} className="!bg-brand" />
     </div>
   );
@@ -76,7 +90,7 @@ function WaitNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
   const wait = data.config as AutomationWaitData;
   return (
     <div
-      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${selected ? 'border-brand ring-2 ring-brand/20' : 'border-slate-200'}`}
+      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-amber-700 uppercase">
@@ -86,6 +100,7 @@ function WaitNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {wait.duration_value} {wait.duration_unit}
       </p>
+      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
       <Handle type="source" position={Position.Bottom} className="!bg-brand" />
     </div>
   );
@@ -95,7 +110,7 @@ function ConditionNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
   const group = data.config as AutomationConditionGroupData;
   return (
     <div
-      className={`min-w-[200px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${selected ? 'border-brand ring-2 ring-brand/20' : 'border-slate-200'}`}
+      className={`min-w-[200px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-violet-700 uppercase">
@@ -105,6 +120,7 @@ function ConditionNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {group.conditions.length} rule{group.conditions.length === 1 ? '' : 's'} ({group.logic.toUpperCase()})
       </p>
+      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
       <div className="mt-3 flex justify-between text-[10px] font-bold tracking-wide text-slate-500 uppercase">
         <span>No</span>
         <span>Yes</span>
@@ -118,7 +134,7 @@ function ConditionNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
 function SendEmailNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
   return (
     <div
-      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${selected ? 'border-brand ring-2 ring-brand/20' : 'border-slate-200'}`}
+      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-sky-700 uppercase">
@@ -126,21 +142,23 @@ function SendEmailNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
         Send email
       </div>
       <p className="mt-1 truncate text-sm font-semibold text-slate-800">{data.label}</p>
+      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
       <Handle type="source" position={Position.Bottom} className="!bg-brand" />
     </div>
   );
 }
 
-function EndNode({ selected }: NodeProps<Node<BuilderNodeData>>) {
+function EndNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
   return (
     <div
-      className={`min-w-[120px] rounded-2xl border bg-slate-50 px-4 py-3 shadow-sm ${selected ? 'border-brand ring-2 ring-brand/20' : 'border-slate-200'}`}
+      className={`min-w-[120px] rounded-2xl border px-4 py-3 shadow-sm ${data.hasError ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-300' : 'border-slate-200 bg-slate-50'} ${selected && !data.hasError ? 'border-brand ring-2 ring-brand/20' : ''}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-slate-500 uppercase">
         <Square className="h-3.5 w-3.5" />
         End
       </div>
+      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
     </div>
   );
 }
@@ -246,6 +264,30 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
     setValidationIssues([]);
   }, []);
 
+  const displayNodes = useMemo(() => {
+    if (validationIssues.length === 0) {
+      return nodes;
+    }
+
+    const triggerId = nodes.find((node) => node.data.nodeType === 'trigger')?.id;
+    const errorByNode = new Map<string, string>();
+    for (const issue of validationIssues) {
+      const nodeId = issue.node_id || triggerId;
+      if (!nodeId) continue;
+      const existing = errorByNode.get(nodeId);
+      errorByNode.set(nodeId, existing ? `${existing} · ${issue.message}` : issue.message);
+    }
+
+    return nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        hasError: errorByNode.has(node.id),
+        errorMessage: errorByNode.get(node.id),
+      },
+    }));
+  }, [nodes, validationIssues]);
+
   useEffect(() => {
     setNodes((current) =>
       current.map((node) => {
@@ -267,7 +309,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
     invalidateValidation();
   }, [nodes, edges, triggerConfig, invalidateValidation]);
 
-  const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
+  const selectedNode = displayNodes.find((node) => node.id === selectedNodeId) ?? null;
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -393,6 +435,12 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
         const result = await validateAutomationAction(saved.id);
         setValidationIssues(result.errors);
         setValidationPassed(result.valid);
+        const focusIssue = result.errors.find((issue) => issue.node_id);
+        const triggerNodeId = nodes.find((node) => node.data.nodeType === 'trigger')?.id;
+        const focusNodeId = focusIssue?.node_id ?? (result.errors.length > 0 ? triggerNodeId : undefined);
+        if (focusNodeId) {
+          setSelectedNodeId(focusNodeId);
+        }
         if (result.valid) {
           setMessage('Workflow is valid.');
         } else {
@@ -637,7 +685,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           </div>
           <div className="h-[560px]">
             <ReactFlow
-              nodes={nodes}
+              nodes={displayNodes}
               edges={edges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
@@ -674,14 +722,30 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           <div className="mt-4 border-t border-slate-100 pt-4">
             <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Validation</p>
             {validationIssues.length > 0 ? (
-              <ul className="mt-2 space-y-1 text-xs text-rose-600">
-                {validationIssues.map((issue, index) => (
-                  <li key={`${issue.node_id}-${index}`}>
-                    {issue.node_id ? `${issue.node_id}: ` : ''}
-                    {issue.message}
-                  </li>
-                ))}
+              <ul className="mt-2 space-y-1.5 text-xs text-rose-600">
+                {validationIssues.map((issue, index) => {
+                  const node = nodes.find((n) => n.id === issue.node_id);
+                  const label = validationIssueDisplay(issue, node?.data.nodeType);
+                  const focusId = issue.node_id || nodes.find((n) => n.data.nodeType === 'trigger')?.id;
+                  return (
+                    <li key={`${issue.node_id}-${index}`}>
+                      {focusId ? (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedNodeId(focusId)}
+                          className="text-left hover:underline"
+                        >
+                          {label}
+                        </button>
+                      ) : (
+                        label
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
+            ) : validationPassed ? (
+              <p className="mt-1 text-xs font-medium text-emerald-600">Ready to activate.</p>
             ) : (
               <p className="mt-1 text-xs text-slate-500">
                 Run Validate before activating. Edits clear the last result.
