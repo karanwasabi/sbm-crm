@@ -56,7 +56,7 @@ Last updated: 2026-06-27
 | Enrollment viewer API             | `GET /admin/comms/automations/:id/enrollments`       |
 | Execution engine + worker         | `cmd/automation-worker` polls due enrollments        |
 
-**Deploy:** run migration `20260627120000_email_automations.sql`, schedule `automation-worker` (e.g. every 1–5 min via Railway cron). Set `LEAD_INTEGRATION_ACTOR_ID` for stage events and automation sends.
+**Deploy:** run migration `20260627120000_email_automations.sql`. Railway cron service: `SBM_CRON_JOB=automation-worker`, schedule `*/5 * * * *` (see `sbm-backend/.env.example`). Set `LEAD_INTEGRATION_ACTOR_ID` for stage events and automation sends.
 
 **Triggers:** `lead_created` (ingest + manual intake), `stage_changed` (inquiry→engaged), `checkout_started`.
 
@@ -123,4 +123,4 @@ Last updated: 2026-06-27
 1. **Communications Phase 3** — Bulk segment send from Lead Database
 2. **Settings Razorpay card** — optional health check from backend
 3. **CAC column** — Meta Ads spend (native Meta app roadmap)
-4. **Automation worker cron** — schedule `automation-worker` on Railway (every 1–5 min)
+4. **Automation worker cron** — Railway service with `SBM_CRON_JOB=automation-worker` (every 5 min)

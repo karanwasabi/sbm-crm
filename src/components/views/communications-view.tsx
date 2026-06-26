@@ -9,7 +9,7 @@ import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { Pill } from '@/components/ui/pill';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import { TRIGGER_LABELS } from '@/lib/automation-types';
+import { AutomationListRow } from '@/components/comms/automation-list-row';
 import type { Automation, CommsAnalytics, EmailTemplate, MarketingContactsSummary } from '@/utils/api';
 
 type CommunicationsViewProps = {
@@ -133,44 +133,7 @@ export function CommunicationsView({ templates, automations, marketingSummary, a
                 </p>
               </div>
             ) : (
-              automations.map((automation) => (
-                <Link
-                  key={automation.id}
-                  href={`/communications/automations/${automation.id}`}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
-                      <Workflow className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-800">{automation.name}</p>
-                      <p className="truncate text-xs font-medium text-slate-500">
-                        {TRIGGER_LABELS[automation.triggerType]} · v{automation.graphVersion}
-                      </p>
-                    </div>
-                  </div>
-                  <Pill
-                    tone={
-                      automation.status === 'active'
-                        ? 'success'
-                        : automation.status === 'paused'
-                          ? 'warn'
-                          : automation.status === 'archived'
-                            ? 'neutral'
-                            : 'brand'
-                    }
-                  >
-                    {automation.status === 'active'
-                      ? 'Active'
-                      : automation.status === 'paused'
-                        ? 'Paused'
-                        : automation.status === 'archived'
-                          ? 'Archived'
-                          : 'Draft'}
-                  </Pill>
-                </Link>
-              ))
+              automations.map((automation) => <AutomationListRow key={automation.id} automation={automation} />)
             )}
           </div>
         </Card>

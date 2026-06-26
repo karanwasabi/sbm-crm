@@ -6,6 +6,7 @@ import {
   createAutomation,
   updateAutomation,
   publishAutomation,
+  deleteAutomation,
   testAutomation,
   type EmailTemplate,
   type Automation,
@@ -72,4 +73,8 @@ export async function publishAutomationAction(automationId: string): Promise<Aut
 
 export async function testAutomationAction(automationId: string, leadId: string): Promise<void> {
   await testAutomation(automationId, leadId);
+}
+
+export async function deleteAutomationAction(automationId: string): Promise<void> {
+  await deleteAutomation(automationId);
 }

@@ -1364,6 +1364,16 @@ export async function publishAutomation(id: string): Promise<Automation> {
   return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
 }
 
+export async function deleteAutomation(id: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to delete automation.', response.status);
+  }
+}
+
 export async function testAutomation(id: string, leadId: string): Promise<void> {
   const response = await requireApiFetch(`/admin/comms/automations/${id}/test`, {
     method: 'POST',

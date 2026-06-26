@@ -19,6 +19,7 @@ import {
 } from '@xyflow/react';
 import { Clock, GitBranch, Mail, Play, Square, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { EmailTemplate } from '@/utils/api';
 import type {
   Automation,
@@ -38,6 +39,7 @@ import {
   nodeLabel,
 } from '@/lib/automation-types';
 import {
+  deleteAutomationAction,
   publishAutomationAction,
   saveAutomationAction,
   testAutomationAction,
@@ -207,6 +209,7 @@ type AutomationBuilderProps = {
 };
 
 export function AutomationBuilder({ automation, templates }: AutomationBuilderProps) {
+  const router = useRouter();
   const initialGraph = automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created');
   const initialFlow = useMemo(() => graphToFlow(initialGraph, templates), [initialGraph, templates]);
 
@@ -369,6 +372,20 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
       }
     });
 
+  const removeDraft = () =>
+    startTransition(async () => {
+      if (!automation?.id || status !== 'draft') return;
+      if (!window.confirm(`Delete draft "${name}"? This cannot be undone.`)) return;
+      setMessage(null);
+      try {
+        await deleteAutomationAction(automation.id);
+        router.push('/communications');
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Delete failed.');
+      }
+    });
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3">
@@ -411,6 +428,16 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           >
             Publish
           </button>
+          {automation?.id && status === 'draft' ? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={removeDraft}
+              className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600"
+            >
+              Delete draft
+            </button>
+          ) : null}
         </div>
       </div>
 
