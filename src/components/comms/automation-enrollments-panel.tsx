@@ -20,6 +20,8 @@ import type { AutomationEnrollment, AutomationRunLogEntry } from '@/lib/automati
 type AutomationEnrollmentsPanelProps = {
   automationId: string;
   refreshToken?: number;
+  activeTab?: EnrollmentTab;
+  onTabChange?: (tab: EnrollmentTab) => void;
 };
 
 type EnrollmentTab = 'production' | 'test';
@@ -42,13 +44,29 @@ function enrollmentStatusTone(status: string): 'success' | 'warn' | 'neutral' | 
   }
 }
 
-export function AutomationEnrollmentsPanel({ automationId, refreshToken = 0 }: AutomationEnrollmentsPanelProps) {
-  const [tab, setTab] = useState<EnrollmentTab>('production');
+export function AutomationEnrollmentsPanel({
+  automationId,
+  refreshToken = 0,
+  activeTab,
+  onTabChange,
+}: AutomationEnrollmentsPanelProps) {
+  const [tab, setTab] = useState<EnrollmentTab>(activeTab ?? 'production');
   const [enrollments, setEnrollments] = useState<AutomationEnrollment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [logsByEnrollment, setLogsByEnrollment] = useState<Record<string, AutomationRunLogEntry[]>>({});
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (activeTab) {
+      setTab(activeTab);
+    }
+  }, [activeTab]);
+
+  const selectTab = (next: EnrollmentTab) => {
+    setTab(next);
+    onTabChange?.(next);
+  };
 
   const loadEnrollments = useCallback(() => {
     startTransition(async () => {
@@ -98,14 +116,14 @@ export function AutomationEnrollmentsPanel({ automationId, refreshToken = 0 }: A
           <div className="flex rounded-full border border-slate-200 bg-canvas-cool p-0.5">
             <button
               type="button"
-              onClick={() => setTab('production')}
+              onClick={() => selectTab('production')}
               className={`rounded-full px-3 py-1 text-xs font-bold ${tab === 'production' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
             >
               Live
             </button>
             <button
               type="button"
-              onClick={() => setTab('test')}
+              onClick={() => selectTab('test')}
               className={`rounded-full px-3 py-1 text-xs font-bold ${tab === 'test' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
             >
               Test runs

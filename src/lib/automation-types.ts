@@ -272,6 +272,9 @@ export function automationRunOutcomeLabel(outcome: string): string {
 }
 
 export function formatAutomationRunDetails(details: Record<string, unknown>): string | null {
+  if (details.dry_run === true && details.skipped_wait === true) {
+    return 'Dry run — wait skipped';
+  }
   if (details.dry_run === true) {
     return 'Dry run — no email sent';
   }

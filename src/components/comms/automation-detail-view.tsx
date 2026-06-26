@@ -13,15 +13,24 @@ type AutomationDetailViewProps = {
 
 export function AutomationDetailView({ automation, templates }: AutomationDetailViewProps) {
   const [enrollmentRefreshToken, setEnrollmentRefreshToken] = useState(0);
+  const [enrollmentTab, setEnrollmentTab] = useState<'production' | 'test'>('production');
 
   return (
     <div className="flex flex-col gap-6">
       <AutomationBuilder
         automation={automation}
         templates={templates}
-        onTestComplete={() => setEnrollmentRefreshToken((value) => value + 1)}
+        onTestComplete={() => {
+          setEnrollmentTab('test');
+          setEnrollmentRefreshToken((value) => value + 1);
+        }}
       />
-      <AutomationEnrollmentsPanel automationId={automation.id} refreshToken={enrollmentRefreshToken} />
+      <AutomationEnrollmentsPanel
+        automationId={automation.id}
+        refreshToken={enrollmentRefreshToken}
+        activeTab={enrollmentTab}
+        onTabChange={setEnrollmentTab}
+      />
     </div>
   );
 }
