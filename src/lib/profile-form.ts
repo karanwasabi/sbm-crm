@@ -1,7 +1,7 @@
-import { getMobileDigitLimits, validateMobileNational } from '@/lib/country-mobile-rules';
 import { validateDateOfBirth } from '@/lib/date-of-birth';
 import { parseWhatsapp } from '@/lib/phone-number';
 import { normalizeProfileTimezoneForDb } from '@/lib/profile-timezone';
+import { validateWhatsappNumber } from '@/lib/whatsapp-validation';
 import type { MealPreference, ProfilePatch, Sex } from '@/types/profile';
 
 export type ProfileFormValues = {
@@ -74,19 +74,9 @@ export function buildProfilePatch(formData: FormData, options: ProfileFormParseO
   if (values.mealPreference) patch.meal_preference = values.mealPreference as MealPreference;
 
   if (values.whatsapp) {
-    const parsed = parseWhatsapp(values.whatsapp);
-    if (!parsed.dialIso) {
-      return { ok: false, error: 'Select a country code for WhatsApp.' };
-    }
-    if (parsed.nationalNumber) {
-      const limits = getMobileDigitLimits(parsed.dialIso);
-      if (parsed.nationalNumber.length < limits.min) {
-        return { ok: false, error: 'Enter a valid WhatsApp number.' };
-      }
-      const whatsappError = validateMobileNational(parsed.nationalNumber, parsed.dialIso);
-      if (whatsappError) {
-        return { ok: false, error: whatsappError };
-      }
+    const whatsappError = validateWhatsappNumber(values.whatsapp);
+    if (whatsappError) {
+      return { ok: false, error: whatsappError };
     }
   }
   patch.whatsapp = values.whatsapp;

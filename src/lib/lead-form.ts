@@ -1,7 +1,6 @@
-import { getMobileDigitLimits, validateMobileNational } from '@/lib/country-mobile-rules';
 import type { ManualLeadSource } from '@/types/crm';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
-import { parseWhatsapp } from '@/lib/phone-number';
+import { validateOptionalPhoneNumber } from '@/lib/whatsapp-validation';
 
 export type LeadFormValues = {
   firstName: string;
@@ -17,19 +16,7 @@ export type LeadFormValues = {
 };
 
 function validatePhone(phone: string): string | null {
-  const trimmed = phone.trim();
-  if (!trimmed) return null;
-
-  const parsed = parseWhatsapp(trimmed);
-  if (!parsed.dialIso) return 'Select a country code for the phone number.';
-  if (!parsed.nationalNumber) return 'Enter a valid mobile number.';
-
-  const limits = getMobileDigitLimits(parsed.dialIso);
-  if (parsed.nationalNumber.length < limits.min) {
-    return 'Enter a valid mobile number.';
-  }
-
-  return validateMobileNational(parsed.nationalNumber, parsed.dialIso);
+  return validateOptionalPhoneNumber(phone);
 }
 
 export function buildLeadPayload(

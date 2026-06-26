@@ -52,6 +52,17 @@ export function getMobileDigitLimits(iso: string): MobileDigitLimits {
   }
 }
 
+export function getAllowedMobileLengths(iso: string): number[] {
+  const country = asCountryCode(iso);
+  if (!country) return [];
+
+  try {
+    return getMobilePossibleLengths(country) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 function formatDigitRangeMessage(limits: MobileDigitLimits): string {
   if (limits.min === limits.max) {
     return `Enter ${limits.max} digits without the country code.`;
@@ -72,18 +83,27 @@ export function sanitizeNationalDigits(raw: string, _dialIso: string): string {
   return raw.replace(/\D/g, '');
 }
 
-export function validateMobileNational(nationalDigits: string, dialIso: string): string | null {
+export function validateMobileNational(
+  nationalDigits: string,
+  dialIso: string,
+  options: { complete?: boolean } = {}
+): string | null {
+  const complete = options.complete ?? false;
   if (!nationalDigits) return null;
   if (!dialIso) return 'Select a country code.';
 
   const limits = getMobileDigitLimits(dialIso);
   const rangeMessage = formatDigitRangeMessage(limits);
+  const allowedLengths = getAllowedMobileLengths(dialIso);
 
   if (nationalDigits.length > limits.max) {
     return rangeMessage;
   }
   if (nationalDigits.length < limits.min) {
-    return null;
+    return complete ? rangeMessage : null;
+  }
+  if (complete && allowedLengths.length > 0 && !allowedLengths.includes(nationalDigits.length)) {
+    return rangeMessage;
   }
 
   return null;
