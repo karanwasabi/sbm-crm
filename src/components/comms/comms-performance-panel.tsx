@@ -1,6 +1,22 @@
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
+import {
+  DataTable,
+  DataTableBody,
+  DataTableCell,
+  DataTableHead,
+  DataTableHeaderCell,
+  DataTableRow,
+} from '@/components/crm/data-table';
+import { emailSendStatusLabel, emailSendStatusTone, formatCommsWhen } from '@/lib/comms-display';
+import {
+  TRIGGER_LABELS,
+  automationStatusLabel,
+  automationStatusPillTone,
+  type AutomationStatus,
+} from '@/lib/automation-types';
 import type { CommsAnalytics } from '@/utils/api';
 
 type CommsPerformancePanelProps = {
@@ -23,7 +39,7 @@ function formatRate(value?: number) {
 }
 
 export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps) {
-  const { totals, templates, recentIssues, webhookUrl, webhookEnabled } = analytics;
+  const { totals, templates, automations, recentSends, recentIssues, webhookUrl, webhookEnabled } = analytics;
 
   return (
     <div className="flex flex-col gap-4">
@@ -38,8 +54,8 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
         />
         <code className="block rounded-xl bg-slate-50 px-3 py-2 text-xs break-all text-slate-700">{webhookUrl}</code>
         <p className="mt-2 text-xs text-slate-500">
-          Subscribe to email.sent, email.delivered, email.bounced, email.opened, and email.clicked in the Resend
-          dashboard.
+          Subscribe to email.sent, email.delivered, email.bounced, email.opened, email.clicked, and email.complained in
+          the Resend dashboard.
         </p>
       </Card>
 
@@ -51,6 +67,99 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
         <StatCard label="Bounced" value={totals.bounced} />
         <StatCard label="Failed / skipped" value={totals.failed + totals.skipped} />
       </div>
+
+      <Card>
+        <SectionHead title="Recent sends" subtitle="Last 30 emails from the CRM" />
+        {recentSends.length === 0 ? (
+          <p className="text-sm text-slate-500">No sends recorded yet.</p>
+        ) : (
+          <DataTable>
+            <DataTableHead>
+              <DataTableHeaderCell>When</DataTableHeaderCell>
+              <DataTableHeaderCell>Recipient</DataTableHeaderCell>
+              <DataTableHeaderCell>Subject</DataTableHeaderCell>
+              <DataTableHeaderCell>Template</DataTableHeaderCell>
+              <DataTableHeaderCell>Status</DataTableHeaderCell>
+            </DataTableHead>
+            <DataTableBody>
+              {recentSends.map((send) => (
+                <DataTableRow key={send.id}>
+                  <DataTableCell>
+                    <span className="text-xs text-slate-600">{formatCommsWhen(send.sentAt ?? send.createdAt)}</span>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <span className="text-sm font-medium text-slate-800">{send.recipientEmail}</span>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <span className="line-clamp-1 text-sm text-slate-700">{send.subjectRendered || '—'}</span>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-xs font-medium text-slate-600">{send.templateName || '—'}</span>
+                      <Pill tone={send.classification === 'marketing' ? 'brand' : 'neutral'}>
+                        {send.classification === 'marketing' ? 'Marketing' : 'Transactional'}
+                      </Pill>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <Pill tone={emailSendStatusTone(send.status)}>{emailSendStatusLabel(send.status)}</Pill>
+                    {send.skipReason ? <p className="mt-1 text-[11px] text-slate-500">{send.skipReason}</p> : null}
+                  </DataTableCell>
+                </DataTableRow>
+              ))}
+            </DataTableBody>
+          </DataTable>
+        )}
+      </Card>
+
+      <Card>
+        <SectionHead title="Automations" subtitle="Live enrollment counts per workflow" />
+        {automations.length === 0 ? (
+          <p className="text-sm text-slate-500">No automations yet.</p>
+        ) : (
+          <DataTable>
+            <DataTableHead>
+              <DataTableHeaderCell>Workflow</DataTableHeaderCell>
+              <DataTableHeaderCell>Trigger</DataTableHeaderCell>
+              <DataTableHeaderCell>Status</DataTableHeaderCell>
+              <DataTableHeaderCell className="text-right">Active</DataTableHeaderCell>
+              <DataTableHeaderCell className="text-right">Waiting</DataTableHeaderCell>
+              <DataTableHeaderCell className="text-right">Completed</DataTableHeaderCell>
+              <DataTableHeaderCell className="text-right">Failed</DataTableHeaderCell>
+              <DataTableHeaderCell className="text-right">Total</DataTableHeaderCell>
+            </DataTableHead>
+            <DataTableBody>
+              {automations.map((row) => (
+                <DataTableRow key={row.automationId}>
+                  <DataTableCell>
+                    <Link
+                      href={`/communications/automations/${row.automationId}`}
+                      className="text-sm font-semibold text-slate-800 hover:text-brand"
+                    >
+                      {row.name}
+                    </Link>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <span className="text-xs text-slate-600">
+                      {TRIGGER_LABELS[row.triggerType as keyof typeof TRIGGER_LABELS] ?? row.triggerType}
+                    </span>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <Pill tone={automationStatusPillTone(row.status as AutomationStatus)}>
+                      {automationStatusLabel(row.status as AutomationStatus)}
+                    </Pill>
+                  </DataTableCell>
+                  <DataTableCell className="text-right tabular-nums">{row.activeCount}</DataTableCell>
+                  <DataTableCell className="text-right tabular-nums">{row.waitingCount}</DataTableCell>
+                  <DataTableCell className="text-right tabular-nums">{row.completedCount}</DataTableCell>
+                  <DataTableCell className="text-right tabular-nums">{row.failedCount}</DataTableCell>
+                  <DataTableCell className="text-right tabular-nums">{row.totalEnrollments}</DataTableCell>
+                </DataTableRow>
+              ))}
+            </DataTableBody>
+          </DataTable>
+        )}
+      </Card>
 
       <Card>
         <SectionHead title="By template" subtitle="Delivery and engagement per template" />

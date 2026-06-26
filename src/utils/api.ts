@@ -1167,9 +1167,27 @@ export type CommsSendIssue = {
   sentAt?: string;
 };
 
+export type CommsSend = CommsSendIssue & {
+  resendEmailId?: string;
+};
+
+export type CommsAutomationStats = {
+  automationId: string;
+  name: string;
+  status: string;
+  triggerType: string;
+  activeCount: number;
+  waitingCount: number;
+  completedCount: number;
+  failedCount: number;
+  totalEnrollments: number;
+};
+
 export type CommsAnalytics = {
   totals: CommsAnalyticsTotals;
   templates: CommsTemplatePerformance[];
+  automations: CommsAutomationStats[];
+  recentSends: CommsSend[];
   recentIssues: CommsSendIssue[];
   webhookUrl: string;
   webhookEnabled: boolean;
@@ -1209,9 +1227,59 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
       created_at: string;
       sent_at?: string;
     }>;
+    automations: Array<{
+      automation_id: string;
+      name: string;
+      status: string;
+      trigger_type: string;
+      active_count: number;
+      waiting_count: number;
+      completed_count: number;
+      failed_count: number;
+      total_enrollments: number;
+    }>;
+    recent_sends: Array<{
+      id: string;
+      template_id?: string;
+      template_name: string;
+      classification: string;
+      recipient_email: string;
+      status: string;
+      skip_reason?: string;
+      subject_rendered: string;
+      resend_email_id?: string;
+      created_at: string;
+      sent_at?: string;
+    }>;
     webhook_url: string;
     webhook_enabled: boolean;
   };
+
+  const mapSendRow = (row: {
+    id: string;
+    template_id?: string;
+    template_name: string;
+    classification: string;
+    recipient_email: string;
+    status: string;
+    skip_reason?: string;
+    subject_rendered: string;
+    resend_email_id?: string;
+    created_at: string;
+    sent_at?: string;
+  }): CommsSend => ({
+    id: row.id,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    classification: row.classification,
+    recipientEmail: row.recipient_email,
+    status: row.status,
+    skipReason: row.skip_reason,
+    subjectRendered: row.subject_rendered,
+    resendEmailId: row.resend_email_id,
+    createdAt: row.created_at,
+    sentAt: row.sent_at,
+  });
 
   return {
     totals: payload.totals,
@@ -1230,18 +1298,19 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
       openRate: row.open_rate,
       clickRate: row.click_rate,
     })),
-    recentIssues: payload.recent_issues.map((row) => ({
-      id: row.id,
-      templateId: row.template_id,
-      templateName: row.template_name,
-      classification: row.classification,
-      recipientEmail: row.recipient_email,
+    automations: (payload.automations ?? []).map((row) => ({
+      automationId: row.automation_id,
+      name: row.name,
       status: row.status,
-      skipReason: row.skip_reason,
-      subjectRendered: row.subject_rendered,
-      createdAt: row.created_at,
-      sentAt: row.sent_at,
+      triggerType: row.trigger_type,
+      activeCount: row.active_count,
+      waitingCount: row.waiting_count,
+      completedCount: row.completed_count,
+      failedCount: row.failed_count,
+      totalEnrollments: row.total_enrollments,
     })),
+    recentSends: (payload.recent_sends ?? []).map(mapSendRow),
+    recentIssues: (payload.recent_issues ?? []).map((row) => mapSendRow(row)),
     webhookUrl: payload.webhook_url,
     webhookEnabled: payload.webhook_enabled,
   };
