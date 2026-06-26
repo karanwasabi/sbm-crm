@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, Info, Loader2 } from 'lucide-react';
+import { AlertTriangle, Info, Loader2, ShieldAlert } from 'lucide-react';
 import { useEffect, useState, useTransition } from 'react';
 import { purgeLeadAction, getLeadPurgePreviewAction } from '@/app/(crm)/customers/actions';
 import { Skeleton } from '@/components/loading/skeleton';
@@ -94,19 +94,29 @@ function PurgeInputSkeleton({ hasMemberAccount }: { hasMemberAccount: boolean })
   );
 }
 
+function PurgeProtectedAccountNotice() {
+  return (
+    <div className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-950">
+      <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+      <p>
+        <span className="font-semibold">Account is protected.</span> Add the <span className="font-semibold">test</span>{' '}
+        label before deleting.
+      </p>
+    </div>
+  );
+}
+
 function PurgeInfoContent({
   hasMember,
   previewError,
-  showImpact,
-  needsTestTag,
   preview,
 }: {
   hasMember: boolean;
   previewError: string | null;
-  showImpact: boolean;
-  needsTestTag: boolean;
   preview: LeadPurgePreview | null;
 }) {
+  const blockers = preview?.blockers ?? [];
+
   return (
     <div className="space-y-3">
       {hasMember ? (
@@ -135,15 +145,10 @@ function PurgeInfoContent({
         <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">{previewError}</p>
       ) : null}
 
-      {showImpact ? (
-        <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-          {needsTestTag ? (
-            <p className="font-semibold text-amber-800">
-              Cannot delete in production. Mark this lead as a test account first.
-            </p>
-          ) : null}
-          {preview?.blockers.map((blocker) => (
-            <p key={blocker} className="font-semibold text-red-700">
+      {blockers.length > 0 ? (
+        <div className="space-y-2 rounded-xl border border-red-100 bg-red-50 p-3 text-sm text-red-700">
+          {blockers.map((blocker) => (
+            <p key={blocker} className="font-semibold">
               {blocker}
             </p>
           ))}
@@ -195,11 +200,12 @@ export function LeadPurgeModal({
   const reasonValid = reason.trim().length > 0;
   const emailMatches = confirmationEmail.trim().toLowerCase() === leadEmail.trim().toLowerCase();
   const hasBlockers = (preview?.blockers.length ?? 0) > 0;
-  const needsTestTag = Boolean(preview?.is_production && !preview.has_test_signal);
+  const blockedByTestTag = Boolean(preview?.is_production && !preview.has_test_signal);
+  const showTestTagNotice = blockedByTestTag;
   const hasMember = preview ? Boolean(preview.member_user_id) : hasMemberAccount;
   const emailConfirmValid = hasMember ? emailMatches : true;
-  const canSubmit = reasonValid && emailConfirmValid && !hasBlockers && !needsTestTag && !loadingPreview && !purging;
-  const showImpact = preview && (hasBlockers || needsTestTag);
+  const canSubmit =
+    reasonValid && emailConfirmValid && !hasBlockers && !showTestTagNotice && !loadingPreview && !purging;
   const showMemberLayout = loadingPreview ? hasMemberAccount : hasMember;
 
   const handlePurge = () => {
@@ -235,13 +241,7 @@ export function LeadPurgeModal({
             <PurgeInfoLoading hasMemberAccount={hasMemberAccount} />
           ) : (
             <div className="animate-in duration-200 fade-in">
-              <PurgeInfoContent
-                hasMember={hasMember}
-                previewError={previewError}
-                showImpact={Boolean(showImpact)}
-                needsTestTag={needsTestTag}
-                preview={preview}
-              />
+              <PurgeInfoContent hasMember={hasMember} previewError={previewError} preview={preview} />
             </div>
           )}
         </section>
@@ -250,45 +250,58 @@ export function LeadPurgeModal({
           {loadingPreview ? (
             <PurgeInputSkeleton hasMemberAccount={hasMemberAccount} />
           ) : (
-            <div className="animate-in space-y-4 duration-200 fade-in">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold tracking-wide text-slate-500 uppercase" htmlFor="purge-reason">
-                  Reason
-                </label>
-                <Textarea
-                  id="purge-reason"
-                  value={reason}
-                  onChange={(event) => setReason(event.target.value)}
-                  rows={3}
-                  placeholder={purgeReasonPlaceholder(hasMember)}
-                  className="resize-none rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3.25 text-sm font-medium text-slate-800 outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20"
-                />
-              </div>
-
-              {hasMember ? (
+            <div className="relative animate-in duration-200 fade-in">
+              <div
+                className={showTestTagNotice ? 'pointer-events-none invisible space-y-4' : 'space-y-4'}
+                aria-hidden={showTestTagNotice}
+              >
                 <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="text-xs font-bold tracking-wide text-slate-500 uppercase" htmlFor="purge-email">
-                      Confirm email
-                    </label>
-                    <code className="rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
-                      {leadEmail}
-                    </code>
-                  </div>
-                  <TextInput
-                    id="purge-email"
-                    value={confirmationEmail}
-                    onChange={setConfirmationEmail}
-                    placeholder="Type the email above"
-                    autoComplete="off"
+                  <label className="text-xs font-bold tracking-wide text-slate-500 uppercase" htmlFor="purge-reason">
+                    Reason
+                  </label>
+                  <Textarea
+                    id="purge-reason"
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                    rows={3}
+                    placeholder={purgeReasonPlaceholder(hasMember)}
+                    tabIndex={showTestTagNotice ? -1 : undefined}
+                    className="resize-none rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3.25 text-sm font-medium text-slate-800 outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand/20"
                   />
                 </div>
-              ) : null}
 
-              {submitError ? (
-                <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
-                  {submitError}
-                </p>
+                {hasMember ? (
+                  <div className="space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="text-xs font-bold tracking-wide text-slate-500 uppercase" htmlFor="purge-email">
+                        Confirm email
+                      </label>
+                      <code className="rounded border border-slate-100 bg-slate-50 px-1.5 py-0.5 font-mono text-[11px] text-slate-600">
+                        {leadEmail}
+                      </code>
+                    </div>
+                    <TextInput
+                      id="purge-email"
+                      value={confirmationEmail}
+                      onChange={setConfirmationEmail}
+                      placeholder="Type the email above"
+                      autoComplete="off"
+                      tabIndex={showTestTagNotice ? -1 : undefined}
+                    />
+                  </div>
+                ) : null}
+
+                {submitError ? (
+                  <p className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700">
+                    {submitError}
+                  </p>
+                ) : null}
+              </div>
+
+              {showTestTagNotice ? (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <PurgeProtectedAccountNotice />
+                </div>
               ) : null}
             </div>
           )}
