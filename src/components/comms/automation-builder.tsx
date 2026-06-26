@@ -51,6 +51,7 @@ import {
   validateAutomationAction,
 } from '@/app/(crm)/communications/actions';
 import { AutomationRunLogList } from '@/components/comms/automation-run-log-list';
+import { AutomationConfirmDialog, type AutomationConfirmAction } from '@/components/comms/automation-confirm-dialog';
 import type { AutomationValidationIssue } from '@/utils/api';
 import {
   AutomationValidationErrorsContext,
@@ -276,6 +277,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
   const [message, setMessage] = useState<string | null>(null);
   const [validationIssues, setValidationIssues] = useState<AutomationValidationIssue[]>([]);
   const [validationPassed, setValidationPassed] = useState(false);
+  const [confirmAction, setConfirmAction] = useState<AutomationConfirmAction | null>(null);
   const [isPending, startTransition] = useTransition();
   const isArchived = status === 'archived';
   const isLocked = status === 'active' || isArchived;
@@ -524,14 +526,14 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
       }
     });
 
-  const deactivate = () =>
+  const confirmDeactivate = () =>
     startTransition(async () => {
       if (!automation?.id || status !== 'active') return;
-      if (!window.confirm(`Deactivate "${name}"? New leads will not enroll until you activate again.`)) return;
       setMessage(null);
       try {
         const updated = await deactivateAutomationAction(automation.id);
         setStatus(updated.status);
+        setConfirmAction(null);
         setMessage('Workflow deactivated.');
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Deactivate failed.');
@@ -559,20 +561,14 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
       }
     });
 
-  const archive = () =>
+  const confirmArchive = () =>
     startTransition(async () => {
       if (!automation?.id || status !== 'paused') return;
-      if (
-        !window.confirm(
-          `Archive "${name}"? It will be hidden from the automations list. Enrollment history is preserved.`
-        )
-      ) {
-        return;
-      }
       setMessage(null);
       try {
         const updated = await archiveAutomationAction(automation.id);
         setStatus(updated.status);
+        setConfirmAction(null);
         setMessage('Workflow archived.');
         router.refresh();
       } catch (error) {
@@ -580,13 +576,13 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
       }
     });
 
-  const removeDraft = () =>
+  const confirmDelete = () =>
     startTransition(async () => {
       if (!automation?.id || status !== 'draft') return;
-      if (!window.confirm(`Delete draft "${name}"? This cannot be undone.`)) return;
       setMessage(null);
       try {
         await deleteAutomationAction(automation.id);
+        setConfirmAction(null);
         router.push('/communications');
         router.refresh();
       } catch (error) {
@@ -594,8 +590,26 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
       }
     });
 
+  const handleConfirmAction = () => {
+    if (confirmAction === 'archive') confirmArchive();
+    else if (confirmAction === 'delete') confirmDelete();
+    else if (confirmAction === 'deactivate') confirmDeactivate();
+  };
+
   return (
     <div className="flex flex-col gap-4">
+      {confirmAction ? (
+        <AutomationConfirmDialog
+          action={confirmAction}
+          open
+          onOpenChange={(open) => {
+            if (!open) setConfirmAction(null);
+          }}
+          automationName={name}
+          pending={isPending}
+          onConfirm={handleConfirmAction}
+        />
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3">
         <div className="min-w-0 flex-1">
           <input
@@ -648,7 +662,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
             <button
               type="button"
               disabled={isPending}
-              onClick={deactivate}
+              onClick={() => setConfirmAction('deactivate')}
               className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
             >
               Deactivate
@@ -658,7 +672,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
             <button
               type="button"
               disabled={isPending}
-              onClick={archive}
+              onClick={() => setConfirmAction('archive')}
               className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600"
             >
               Archive
@@ -668,7 +682,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
             <button
               type="button"
               disabled={isPending}
-              onClick={removeDraft}
+              onClick={() => setConfirmAction('delete')}
               className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600"
             >
               Delete draft
