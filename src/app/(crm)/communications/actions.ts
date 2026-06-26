@@ -1,7 +1,17 @@
 'use server';
 
-import { createEmailTemplate, updateEmailTemplate, type EmailTemplate } from '@/utils/api';
+import {
+  createEmailTemplate,
+  updateEmailTemplate,
+  createAutomation,
+  updateAutomation,
+  publishAutomation,
+  testAutomation,
+  type EmailTemplate,
+  type Automation,
+} from '@/utils/api';
 import type { EmailTemplateClassification, GrapesProjectData } from '@/lib/email-template-types';
+import type { AutomationGraph, AutomationTriggerType, AutomationStatus } from '@/lib/automation-types';
 
 export type SaveEmailTemplateInput = {
   name: string;
@@ -26,4 +36,40 @@ export async function saveEmailTemplateAction(
     return updateEmailTemplate(templateId, payload);
   }
   return createEmailTemplate(payload);
+}
+
+export type SaveAutomationInput = {
+  name: string;
+  description: string;
+  triggerType: AutomationTriggerType;
+  triggerConfig: Record<string, unknown>;
+  graphJson: AutomationGraph;
+  status: AutomationStatus;
+};
+
+export async function saveAutomationAction(
+  automationId: string | null,
+  input: SaveAutomationInput
+): Promise<Automation> {
+  const payload = {
+    name: input.name,
+    description: input.description,
+    triggerType: input.triggerType,
+    triggerConfig: input.triggerConfig,
+    graphJson: input.graphJson,
+    status: input.status,
+  };
+
+  if (automationId) {
+    return updateAutomation(automationId, payload);
+  }
+  return createAutomation(payload);
+}
+
+export async function publishAutomationAction(automationId: string): Promise<Automation> {
+  return publishAutomation(automationId);
+}
+
+export async function testAutomationAction(automationId: string, leadId: string): Promise<void> {
+  await testAutomation(automationId, leadId);
 }

@@ -9,15 +9,17 @@ import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { Pill } from '@/components/ui/pill';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import type { CommsAnalytics, EmailTemplate, MarketingContactsSummary } from '@/utils/api';
+import { TRIGGER_LABELS } from '@/lib/automation-types';
+import type { Automation, CommsAnalytics, EmailTemplate, MarketingContactsSummary } from '@/utils/api';
 
 type CommunicationsViewProps = {
   templates: EmailTemplate[];
+  automations: Automation[];
   marketingSummary: MarketingContactsSummary;
   analytics: CommsAnalytics | null;
 };
 
-export function CommunicationsView({ templates, marketingSummary, analytics }: CommunicationsViewProps) {
+export function CommunicationsView({ templates, automations, marketingSummary, analytics }: CommunicationsViewProps) {
   const [tab, setTab] = useState<'templates' | 'automations' | 'performance'>('templates');
 
   return (
@@ -106,14 +108,70 @@ export function CommunicationsView({ templates, marketingSummary, analytics }: C
 
       {tab === 'automations' ? (
         <Card>
-          <SectionHead title="Automations" subtitle="Phase 2 — visual workflow builder" />
-          <div className="flex flex-col items-center gap-3 py-10 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-              <Workflow className="h-5 w-5" />
-            </div>
-            <p className="max-w-md text-sm font-medium text-slate-600">
-              Delay-based nurture workflows are coming next. Templates and manual sends are live now.
-            </p>
+          <SectionHead
+            title="Automations"
+            subtitle="Delay-based nurture workflows with conditions"
+            right={
+              <Link
+                href="/communications/automations/new"
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                New automation
+              </Link>
+            }
+          />
+          <div className="flex flex-col gap-2">
+            {automations.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                  <Workflow className="h-5 w-5" />
+                </div>
+                <p className="max-w-md text-sm font-medium text-slate-600">
+                  Build visual nurture flows — wait, check conditions, send emails — triggered when leads are created or
+                  start checkout.
+                </p>
+              </div>
+            ) : (
+              automations.map((automation) => (
+                <Link
+                  key={automation.id}
+                  href={`/communications/automations/${automation.id}`}
+                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700">
+                      <Workflow className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-800">{automation.name}</p>
+                      <p className="truncate text-xs font-medium text-slate-500">
+                        {TRIGGER_LABELS[automation.triggerType]} · v{automation.graphVersion}
+                      </p>
+                    </div>
+                  </div>
+                  <Pill
+                    tone={
+                      automation.status === 'active'
+                        ? 'success'
+                        : automation.status === 'paused'
+                          ? 'warn'
+                          : automation.status === 'archived'
+                            ? 'neutral'
+                            : 'brand'
+                    }
+                  >
+                    {automation.status === 'active'
+                      ? 'Active'
+                      : automation.status === 'paused'
+                        ? 'Paused'
+                        : automation.status === 'archived'
+                          ? 'Archived'
+                          : 'Draft'}
+                  </Pill>
+                </Link>
+              ))
+            )}
           </div>
         </Card>
       ) : null}

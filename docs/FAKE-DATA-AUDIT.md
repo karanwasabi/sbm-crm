@@ -3,7 +3,7 @@
 > **TEMPORARY** — delete or archive when remaining mocks are wired or removed.  
 > Permanent integration plans live in [`meta-integrations-roadmap.md`](./meta-integrations-roadmap.md).
 
-Last updated: 2026-06-25
+Last updated: 2026-06-27
 
 ---
 
@@ -42,9 +42,23 @@ Last updated: 2026-06-25
 
 **Phase 1 not yet wired:**
 
-| Element         | Notes                     |
-| --------------- | ------------------------- |
-| Automations tab | Placeholder until Phase 2 |
+| Element | Notes            |
+| ------- | ---------------- |
+| —       | Phase 1 complete |
+
+## Communications — Phase 2 (automations)
+
+| Element                           | Source                                               |
+| --------------------------------- | ---------------------------------------------------- |
+| Automations list + builder canvas | `GET/PATCH /admin/comms/automations` + React Flow UI |
+| Publish workflow                  | `POST /admin/comms/automations/:id/publish`          |
+| Test mode (dry run)               | `POST /admin/comms/automations/:id/test`             |
+| Enrollment viewer API             | `GET /admin/comms/automations/:id/enrollments`       |
+| Execution engine + worker         | `cmd/automation-worker` polls due enrollments        |
+
+**Deploy:** run migration `20260627120000_email_automations.sql`, schedule `automation-worker` (e.g. every 1–5 min via Railway cron). Set `LEAD_INTEGRATION_ACTOR_ID` for stage events and automation sends.
+
+**Triggers:** `lead_created` (ingest + manual intake), `stage_changed` (inquiry→engaged), `checkout_started`.
 
 ## Communications — Phase 1.5 (delivery tracking)
 
@@ -106,7 +120,7 @@ Last updated: 2026-06-25
 
 ## Remaining prioritisation
 
-1. **Communications Phase 2** — Automation workflow builder
+1. **Communications Phase 3** — Bulk segment send from Lead Database
 2. **Settings Razorpay card** — optional health check from backend
 3. **CAC column** — Meta Ads spend (native Meta app roadmap)
-4. **Lead Database** — bulk message segment (Phase 3)
+4. **Automation worker cron** — schedule `automation-worker` on Railway (every 1–5 min)

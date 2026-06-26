@@ -1,8 +1,9 @@
 import { CommunicationsView } from '@/components/views/communications-view';
-import { getCommsAnalytics, getMarketingContactsSummary, listEmailTemplates } from '@/utils/api';
+import { getCommsAnalytics, getMarketingContactsSummary, listAutomations, listEmailTemplates } from '@/utils/api';
 
 export default async function CommunicationsPage() {
   let templates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
+  let automations: Awaited<ReturnType<typeof listAutomations>> = [];
   let marketingSummary: Awaited<ReturnType<typeof getMarketingContactsSummary>> = {
     used: 0,
     limit: 1000,
@@ -11,8 +12,9 @@ export default async function CommunicationsPage() {
   let analytics: Awaited<ReturnType<typeof getCommsAnalytics>> | null = null;
 
   try {
-    [templates, marketingSummary, analytics] = await Promise.all([
+    [templates, automations, marketingSummary, analytics] = await Promise.all([
       listEmailTemplates(),
+      listAutomations(),
       getMarketingContactsSummary(),
       getCommsAnalytics(),
     ]);
@@ -20,9 +22,20 @@ export default async function CommunicationsPage() {
     try {
       [templates, marketingSummary] = await Promise.all([listEmailTemplates(), getMarketingContactsSummary()]);
     } catch {
-      // Page still renders with empty state if backend/migration not ready.
+      try {
+        automations = await listAutomations();
+      } catch {
+        // Page still renders with empty state if backend/migration not ready.
+      }
     }
   }
 
-  return <CommunicationsView templates={templates} marketingSummary={marketingSummary} analytics={analytics} />;
+  return (
+    <CommunicationsView
+      templates={templates}
+      automations={automations}
+      marketingSummary={marketingSummary}
+      analytics={analytics}
+    />
+  );
 }

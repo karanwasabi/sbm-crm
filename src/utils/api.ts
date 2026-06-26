@@ -1246,3 +1246,168 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
     webhookEnabled: payload.webhook_enabled,
   };
 });
+
+export type Automation = import('@/lib/automation-types').Automation;
+
+function mapAutomation(row: {
+  id: string;
+  name: string;
+  description: string;
+  trigger_type: string;
+  trigger_config: unknown;
+  graph_json: unknown;
+  status: string;
+  graph_version: number;
+  created_at: string;
+  updated_at: string;
+}): Automation {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    triggerType: row.trigger_type as Automation['triggerType'],
+    triggerConfig:
+      row.trigger_config && typeof row.trigger_config === 'object' && !Array.isArray(row.trigger_config)
+        ? (row.trigger_config as Record<string, unknown>)
+        : {},
+    graphJson:
+      row.graph_json && typeof row.graph_json === 'object' && !Array.isArray(row.graph_json)
+        ? (row.graph_json as Automation['graphJson'])
+        : { nodes: [], edges: [] },
+    status: row.status as Automation['status'],
+    graphVersion: row.graph_version,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listAutomations(): Promise<Automation[]> {
+  const response = await requireApiFetch('/admin/comms/automations');
+  if (!response.ok) {
+    throw new ApiError('Failed to load automations.', response.status);
+  }
+  const rows = (await response.json()) as Parameters<typeof mapAutomation>[0][];
+  return rows.map(mapAutomation);
+}
+
+export async function getAutomation(id: string): Promise<Automation> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load automation.', response.status);
+  }
+  return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
+}
+
+export async function createAutomation(input: {
+  name: string;
+  description: string;
+  triggerType: Automation['triggerType'];
+  triggerConfig: Record<string, unknown>;
+  graphJson: Automation['graphJson'];
+  status: Automation['status'];
+}): Promise<Automation> {
+  const response = await requireApiFetch('/admin/comms/automations', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.name,
+      description: input.description,
+      trigger_type: input.triggerType,
+      trigger_config: input.triggerConfig,
+      graph_json: input.graphJson,
+      status: input.status,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to create automation.', response.status);
+  }
+  return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
+}
+
+export async function updateAutomation(
+  id: string,
+  input: {
+    name: string;
+    description: string;
+    triggerType: Automation['triggerType'];
+    triggerConfig: Record<string, unknown>;
+    graphJson: Automation['graphJson'];
+    status: Automation['status'];
+  }
+): Promise<Automation> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: input.name,
+      description: input.description,
+      trigger_type: input.triggerType,
+      trigger_config: input.triggerConfig,
+      graph_json: input.graphJson,
+      status: input.status,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update automation.', response.status);
+  }
+  return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
+}
+
+export async function publishAutomation(id: string): Promise<Automation> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}/publish`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to publish automation.', response.status);
+  }
+  return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
+}
+
+export async function testAutomation(id: string, leadId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}/test`, {
+    method: 'POST',
+    body: JSON.stringify({ lead_id: leadId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to run automation test.', response.status);
+  }
+}
+
+export async function listAutomationEnrollments(
+  automationId: string
+): Promise<import('@/lib/automation-types').AutomationEnrollment[]> {
+  const response = await requireApiFetch(`/admin/comms/automations/${automationId}/enrollments`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load enrollments.', response.status);
+  }
+  const rows = (await response.json()) as Array<{
+    id: string;
+    automation_id: string;
+    lead_id: string;
+    lead_name: string;
+    lead_email: string;
+    lifecycle_stage: string;
+    status: string;
+    current_node_id: string;
+    next_run_at?: string;
+    test_mode: boolean;
+    enrolled_at: string;
+    completed_at?: string;
+  }>;
+  return rows.map((row) => ({
+    id: row.id,
+    automationId: row.automation_id,
+    leadId: row.lead_id,
+    leadName: row.lead_name,
+    leadEmail: row.lead_email,
+    lifecycleStage: row.lifecycle_stage,
+    status: row.status,
+    currentNodeId: row.current_node_id,
+    nextRunAt: row.next_run_at,
+    testMode: row.test_mode,
+    enrolledAt: row.enrolled_at,
+    completedAt: row.completed_at,
+  }));
+}
