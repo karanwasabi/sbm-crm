@@ -1,6 +1,6 @@
 'use client';
 
-import { Download, Send, Upload } from 'lucide-react';
+import { Download, Upload } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
@@ -95,9 +95,6 @@ export function LeadDatabaseView({
           title="Requires Meta Marketing API access"
         >
           Lookalike export (Meta)
-        </Button>
-        <Button variant="primary" size="sm" leftIcon={<Send className="h-3.5 w-3.5" />} disabled>
-          Message segment
         </Button>
       </div>
 

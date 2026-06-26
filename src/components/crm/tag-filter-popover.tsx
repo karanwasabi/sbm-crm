@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/cn';
-import { formatTagSlugsParam, tagSlugToLabel } from '@/lib/lead-tags';
+import { buildLeadDatabaseHref } from '@/lib/lead-database-url';
+import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagFilterMode, TagSuggestion } from '@/types/crm';
 
 type TagFilterPopoverProps = {
@@ -17,16 +18,6 @@ type TagFilterPopoverProps = {
   activeTagMode: TagFilterMode;
   suggestions: TagSuggestion[];
 };
-
-function buildHref(stageId: string, marketingStatus: string, tags: string[], tagMode: TagFilterMode): string {
-  const params = new URLSearchParams();
-  if (stageId !== 'all') params.set('stage', stageId);
-  if (marketingStatus !== 'all') params.set('marketing', marketingStatus);
-  if (tags.length > 0) params.set('tags', formatTagSlugsParam(tags));
-  if (tags.length > 0 && tagMode === 'or') params.set('tag_mode', 'or');
-  const query = params.toString();
-  return query ? `/database?${query}` : '/database';
-}
 
 export function TagFilterPopover({
   activeStage,
@@ -43,14 +34,14 @@ export function TagFilterPopover({
   const suggestionMap = useMemo(() => new Map(suggestions.map((item) => [item.slug, item])), [suggestions]);
 
   const apply = () => {
-    router.push(buildHref(activeStage, activeMarketingStatus, draftTags, draftMode));
+    router.push(buildLeadDatabaseHref(activeStage, activeMarketingStatus, draftTags, draftMode));
     setOpen(false);
   };
 
   const clear = () => {
     setDraftTags([]);
     setDraftMode('and');
-    router.push(buildHref(activeStage, activeMarketingStatus, [], 'and'));
+    router.push(buildLeadDatabaseHref(activeStage, activeMarketingStatus, [], 'and'));
     setOpen(false);
   };
 
