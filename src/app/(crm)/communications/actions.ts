@@ -7,6 +7,7 @@ import {
   updateAutomation,
   activateAutomation,
   deactivateAutomation,
+  archiveAutomation,
   deleteAutomation,
   testAutomation,
   validateAutomation,
@@ -88,6 +89,10 @@ export async function validateAutomationAction(automationId: string) {
 
 export async function deactivateAutomationAction(automationId: string): Promise<Automation> {
   return deactivateAutomation(automationId);
+}
+
+export async function archiveAutomationAction(automationId: string): Promise<Automation> {
+  return archiveAutomation(automationId);
 }
 
 export async function testAutomationAction(automationId: string, leadId: string): Promise<AutomationTestRunResult> {

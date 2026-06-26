@@ -1,10 +1,10 @@
 'use client';
 
-import { Trash2, Workflow } from 'lucide-react';
+import { Archive, Trash2, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
-import { deleteAutomationAction } from '@/app/(crm)/communications/actions';
+import { archiveAutomationAction, deleteAutomationAction } from '@/app/(crm)/communications/actions';
 import { Pill } from '@/components/ui/pill';
 import { TRIGGER_LABELS, automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 import type { Automation } from '@/utils/api';
@@ -17,6 +17,7 @@ export function AutomationListRow({ automation }: AutomationListRowProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const isDraft = automation.status === 'draft';
+  const isInactive = automation.status === 'paused';
 
   const onDelete = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -25,6 +26,23 @@ export function AutomationListRow({ automation }: AutomationListRowProps) {
     if (!window.confirm(`Delete draft "${automation.name}"? This cannot be undone.`)) return;
     startTransition(async () => {
       await deleteAutomationAction(automation.id);
+      router.refresh();
+    });
+  };
+
+  const onArchive = (event: React.MouseEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!isInactive) return;
+    if (
+      !window.confirm(
+        `Archive "${automation.name}"? It will be hidden from this list. Enrollment history is preserved.`
+      )
+    ) {
+      return;
+    }
+    startTransition(async () => {
+      await archiveAutomationAction(automation.id);
       router.refresh();
     });
   };
@@ -46,6 +64,17 @@ export function AutomationListRow({ automation }: AutomationListRowProps) {
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
+        {isInactive ? (
+          <button
+            type="button"
+            disabled={isPending}
+            onClick={onArchive}
+            className="rounded-full p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 disabled:opacity-50"
+            aria-label={`Archive ${automation.name}`}
+          >
+            <Archive className="h-4 w-4" />
+          </button>
+        ) : null}
         {isDraft ? (
           <button
             type="button"

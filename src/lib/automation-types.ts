@@ -135,6 +135,28 @@ export function defaultStageTriggerConfig(): AutomationStageTriggerConfig {
   return { from_stage: 'inquiry', to_stage: 'engaged' };
 }
 
+/** Parse saved stage trigger config. Empty string = "Any stage" (not a default). */
+export function normalizeStageTriggerConfig(
+  raw?: Record<string, unknown> | AutomationStageTriggerConfig | null,
+  options?: { applyDefaults?: boolean }
+): Record<string, string> {
+  const applyDefaults = options?.applyDefaults ?? false;
+  if (applyDefaults && (!raw || Object.keys(raw).length === 0)) {
+    const defaults = defaultStageTriggerConfig();
+    return {
+      from_stage: defaults.from_stage ?? '',
+      to_stage: defaults.to_stage ?? '',
+    };
+  }
+
+  const from = raw?.from_stage;
+  const to = raw?.to_stage;
+  return {
+    from_stage: from != null && String(from).trim() !== '' ? String(from) : '',
+    to_stage: to != null && String(to).trim() !== '' ? String(to) : '',
+  };
+}
+
 export function defaultAutomationGraph(triggerType: AutomationTriggerType = 'lead_created'): AutomationGraph {
   return {
     nodes: [

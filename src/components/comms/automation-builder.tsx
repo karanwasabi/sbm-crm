@@ -36,12 +36,13 @@ import {
   LIFECYCLE_STAGE_OPTIONS,
   TRIGGER_LABELS,
   defaultAutomationGraph,
-  defaultStageTriggerConfig,
+  normalizeStageTriggerConfig,
   nodeLabel,
   validationIssueDisplay,
 } from '@/lib/automation-types';
 import {
   activateAutomationAction,
+  archiveAutomationAction,
   deactivateAutomationAction,
   deleteAutomationAction,
   getAutomationEnrollmentLogAction,
@@ -258,14 +259,15 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
   const [description, setDescription] = useState(automation?.description ?? '');
   const [triggerType, setTriggerType] = useState<AutomationTriggerType>(automation?.triggerType ?? 'lead_created');
   const [triggerConfig, setTriggerConfig] = useState<Record<string, string>>(() => {
-    const raw = automation?.triggerConfig ?? {};
-    if (automation?.triggerType === 'stage_changed' || !automation) {
-      return {
-        ...defaultStageTriggerConfig(),
-        ...Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v)])),
-      };
+    if (automation?.triggerType === 'stage_changed') {
+      return normalizeStageTriggerConfig(automation.triggerConfig);
     }
-    return Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, String(v)]));
+    if (!automation) {
+      return normalizeStageTriggerConfig(undefined, { applyDefaults: true });
+    }
+    return Object.fromEntries(
+      Object.entries(automation.triggerConfig ?? {}).map(([key, value]) => [key, String(value)])
+    );
   });
   const [status, setStatus] = useState(automation?.status ?? 'draft');
   const [testLeadId, setTestLeadId] = useState('');
@@ -275,6 +277,8 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
   const [validationIssues, setValidationIssues] = useState<AutomationValidationIssue[]>([]);
   const [validationPassed, setValidationPassed] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const isArchived = status === 'archived';
+  const isLocked = status === 'active' || isArchived;
 
   const invalidateValidation = useCallback(() => {
     setValidationPassed(false);
@@ -342,17 +346,17 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (status === 'active') return;
+      if (isLocked) return;
       invalidateValidation();
       setEdges((eds) =>
         addEdge({ ...connection, id: `e-${connection.source}-${connection.target}-${Date.now()}` }, eds)
       );
     },
-    [setEdges, status, invalidateValidation]
+    [setEdges, isLocked, invalidateValidation]
   );
 
   const addNode = (type: AutomationNodeType) => {
-    if (status === 'active') return;
+    if (isLocked) return;
     invalidateValidation();
     const id = `${type}-${Date.now()}`;
     const y = 120 + nodes.length * 120;
@@ -421,11 +425,18 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
     if (triggerType !== 'stage_changed') {
       return {};
     }
-    const config: Record<string, string> = {};
-    if (triggerConfig.from_stage) config.from_stage = triggerConfig.from_stage;
-    if (triggerConfig.to_stage) config.to_stage = triggerConfig.to_stage;
-    return config;
+    return {
+      from_stage: triggerConfig.from_stage ?? '',
+      to_stage: triggerConfig.to_stage ?? '',
+    };
   }, [triggerConfig, triggerType]);
+
+  const syncSavedAutomation = useCallback((saved: Automation) => {
+    setStatus(saved.status);
+    if (saved.triggerType === 'stage_changed') {
+      setTriggerConfig(normalizeStageTriggerConfig(saved.triggerConfig));
+    }
+  }, []);
 
   const persist = (nextStatus?: Automation['status']) =>
     startTransition(async () => {
@@ -440,11 +451,11 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
           graphJson: graph,
           status: nextStatus ?? status,
         });
-        setStatus(saved.status);
+        syncSavedAutomation(saved);
         setMessage('Draft saved.');
         invalidateValidation();
-        if (!automation?.id && typeof window !== 'undefined') {
-          window.location.href = `/communications/automations/${saved.id}`;
+        if (!automation?.id) {
+          router.replace(`/communications/automations/${saved.id}`);
         }
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Save failed.');
@@ -464,7 +475,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
           graphJson: graph,
           status: status === 'draft' ? 'draft' : 'paused',
         });
-        setStatus(saved.status);
+        syncSavedAutomation(saved);
         const result = await validateAutomationAction(saved.id);
         setValidationIssues(result.errors);
         setValidationPassed(result.valid);
@@ -479,8 +490,8 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
         } else {
           setMessage(`Found ${result.errors.length} issue${result.errors.length === 1 ? '' : 's'}.`);
         }
-        if (!automation?.id && typeof window !== 'undefined') {
-          window.location.href = `/communications/automations/${saved.id}`;
+        if (!automation?.id) {
+          router.replace(`/communications/automations/${saved.id}`);
         }
       } catch (error) {
         setValidationPassed(false);
@@ -548,6 +559,27 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
       }
     });
 
+  const archive = () =>
+    startTransition(async () => {
+      if (!automation?.id || status !== 'paused') return;
+      if (
+        !window.confirm(
+          `Archive "${name}"? It will be hidden from the automations list. Enrollment history is preserved.`
+        )
+      ) {
+        return;
+      }
+      setMessage(null);
+      try {
+        const updated = await archiveAutomationAction(automation.id);
+        setStatus(updated.status);
+        setMessage('Workflow archived.');
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Archive failed.');
+      }
+    });
+
   const removeDraft = () =>
     startTransition(async () => {
       if (!automation?.id || status !== 'draft') return;
@@ -569,26 +601,30 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-transparent text-lg font-extrabold text-slate-800 outline-none"
+            disabled={isLocked}
+            className="w-full bg-transparent text-lg font-extrabold text-slate-800 outline-none disabled:opacity-70"
           />
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"
-            className="mt-1 w-full bg-transparent text-sm text-slate-500 outline-none"
+            disabled={isLocked}
+            className="mt-1 w-full bg-transparent text-sm text-slate-500 outline-none disabled:opacity-70"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Pill tone={automationStatusPillTone(status)}>{automationStatusLabel(status)}</Pill>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={() => persist()}
-            className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
-          >
-            {status === 'draft' ? 'Save draft' : 'Save changes'}
-          </button>
-          {status !== 'active' ? (
+          {!isArchived ? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => persist()}
+              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+            >
+              {status === 'draft' ? 'Save draft' : 'Save changes'}
+            </button>
+          ) : null}
+          {!isArchived && status !== 'active' ? (
             <>
               <button
                 type="button"
@@ -607,7 +643,8 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
                 Activate
               </button>
             </>
-          ) : (
+          ) : null}
+          {!isArchived && status === 'active' ? (
             <button
               type="button"
               disabled={isPending}
@@ -616,7 +653,17 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
             >
               Deactivate
             </button>
-          )}
+          ) : null}
+          {!isArchived && status === 'paused' ? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={archive}
+              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600"
+            >
+              Archive
+            </button>
+          ) : null}
           {automation?.id && status === 'draft' ? (
             <button
               type="button"
@@ -630,6 +677,13 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
         </div>
       </div>
 
+      {isArchived ? (
+        <p className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          This workflow is archived and read-only. It is hidden from the automations list; enrollment history below is
+          preserved.
+        </p>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-canvas-cool">
           <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-3 py-2">
@@ -641,13 +695,15 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
                   const next = e.target.value as AutomationTriggerType;
                   setTriggerType(next);
                   if (next === 'stage_changed') {
-                    setTriggerConfig((current) => ({
-                      ...defaultStageTriggerConfig(),
-                      ...current,
-                    }));
+                    setTriggerConfig((current) => {
+                      if ('from_stage' in current || 'to_stage' in current) {
+                        return current;
+                      }
+                      return normalizeStageTriggerConfig(undefined, { applyDefaults: true });
+                    });
                   }
                 }}
-                disabled={status === 'active'}
+                disabled={isLocked}
                 className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
               >
                 {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
@@ -664,7 +720,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
                   <select
                     value={triggerConfig.from_stage ?? ''}
                     onChange={(e) => setTriggerConfig((current) => ({ ...current, from_stage: e.target.value }))}
-                    disabled={status === 'active'}
+                    disabled={isLocked}
                     className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                   >
                     <option value="">Any stage</option>
@@ -680,7 +736,7 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
                   <select
                     value={triggerConfig.to_stage ?? ''}
                     onChange={(e) => setTriggerConfig((current) => ({ ...current, to_stage: e.target.value }))}
-                    disabled={status === 'active'}
+                    disabled={isLocked}
                     className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                   >
                     <option value="">Any stage</option>
@@ -794,30 +850,32 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
             )}
           </div>
 
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Test mode</p>
-            <p className="mt-1 text-xs text-slate-500">Dry-run against a lead — logs steps without sending email.</p>
-            <input
-              value={testLeadId}
-              onChange={(e) => setTestLeadId(e.target.value)}
-              placeholder="Lead UUID"
-              className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-            />
-            <button
-              type="button"
-              disabled={isPending || !automation?.id}
-              onClick={runTest}
-              className="mt-2 w-full rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
-            >
-              Run test
-            </button>
-            {testEnrollmentId ? (
-              <div className="mt-3">
-                <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Test results</p>
-                <AutomationRunLogList entries={testRunLog} emptyMessage="No steps logged for this test run." />
-              </div>
-            ) : null}
-          </div>
+          {!isArchived ? (
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Test mode</p>
+              <p className="mt-1 text-xs text-slate-500">Dry-run against a lead — logs steps without sending email.</p>
+              <input
+                value={testLeadId}
+                onChange={(e) => setTestLeadId(e.target.value)}
+                placeholder="Lead UUID"
+                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+              />
+              <button
+                type="button"
+                disabled={isPending || !automation?.id}
+                onClick={runTest}
+                className="mt-2 w-full rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+              >
+                Run test
+              </button>
+              {testEnrollmentId ? (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Test results</p>
+                  <AutomationRunLogList entries={testRunLog} emptyMessage="No steps logged for this test run." />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 

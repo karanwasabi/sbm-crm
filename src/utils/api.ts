@@ -1515,6 +1515,17 @@ export async function deactivateAutomation(id: string): Promise<Automation> {
   return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
 }
 
+export async function archiveAutomation(id: string): Promise<Automation> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}/archive`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to archive automation.', response.status);
+  }
+  return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
+}
+
 export async function deleteAutomation(id: string): Promise<void> {
   const response = await requireApiFetch(`/admin/comms/automations/${id}`, {
     method: 'DELETE',
