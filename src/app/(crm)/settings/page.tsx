@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { SettingsView } from '@/components/views/settings-view';
-import { getMetaIntegrationStatus, listStaff, type StaffList } from '@/utils/api';
+import { getMetaIntegrationStatus, listPurgeAuditEvents, listStaff, type StaffList } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import type { MetaIntegrationStatus } from '@/types/crm';
 
@@ -17,7 +17,8 @@ const EMPTY_STATUS: MetaIntegrationStatus = {
   metaLeads7d: 0,
 };
 
-export default async function SettingsPage() {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+  const { tab } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,6 +30,8 @@ export default async function SettingsPage() {
 
   let staff = emptyStaff;
   let integrationStatus = EMPTY_STATUS;
+  let purgeAuditItems: Awaited<ReturnType<typeof listPurgeAuditEvents>>['items'] = [];
+  let purgeAuditTotal = 0;
 
   try {
     staff = await listStaff();
@@ -42,5 +45,23 @@ export default async function SettingsPage() {
     integrationStatus = EMPTY_STATUS;
   }
 
-  return <SettingsView staff={staff} currentUserId={user.id} integrationStatus={integrationStatus} />;
+  try {
+    const purgeAudit = await listPurgeAuditEvents({ limit: 50, offset: 0 });
+    purgeAuditItems = purgeAudit.items;
+    purgeAuditTotal = purgeAudit.total;
+  } catch {
+    purgeAuditItems = [];
+    purgeAuditTotal = 0;
+  }
+
+  return (
+    <SettingsView
+      staff={staff}
+      currentUserId={user.id}
+      integrationStatus={integrationStatus}
+      initialTab={tab}
+      purgeAuditItems={purgeAuditItems}
+      purgeAuditTotal={purgeAuditTotal}
+    />
+  );
 }

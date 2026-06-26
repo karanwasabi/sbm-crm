@@ -9,18 +9,38 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { buildMetaIntegrationCard } from '@/lib/meta-integration';
+import { PurgeAuditPanel } from '@/components/views/purge-audit-view';
 import { TeamManagement } from '@/components/views/team-management';
 import type { MetaIntegrationStatus } from '@/types/crm';
-import type { StaffList } from '@/utils/api';
+import type { PurgeAuditListItem, StaffList } from '@/utils/api';
+
+const SETTINGS_TABS = ['Integrations', 'Webhooks', 'Team', 'Purge audit'] as const;
+type SettingsTab = (typeof SETTINGS_TABS)[number];
+
+function resolveSettingsTab(tab?: string): SettingsTab {
+  if (tab === 'purge-audit' || tab === 'Purge audit') return 'Purge audit';
+  if (tab && SETTINGS_TABS.includes(tab as SettingsTab)) return tab as SettingsTab;
+  return 'Integrations';
+}
 
 type SettingsViewProps = {
   staff: StaffList;
   currentUserId: string;
   integrationStatus: MetaIntegrationStatus;
+  initialTab?: string;
+  purgeAuditItems: PurgeAuditListItem[];
+  purgeAuditTotal: number;
 };
 
-export function SettingsView({ staff, currentUserId, integrationStatus }: SettingsViewProps) {
-  const [activeTab, setActiveTab] = useState('Integrations');
+export function SettingsView({
+  staff,
+  currentUserId,
+  integrationStatus,
+  initialTab,
+  purgeAuditItems,
+  purgeAuditTotal,
+}: SettingsViewProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => resolveSettingsTab(initialTab));
   const [copied, setCopied] = useState(false);
 
   const metaCard = buildMetaIntegrationCard(integrationStatus);
@@ -37,7 +57,7 @@ export function SettingsView({ staff, currentUserId, integrationStatus }: Settin
 
   return (
     <CrmPageLayout>
-      <TabBar tabs={['Integrations', 'Webhooks', 'Team']} active={activeTab} onChange={setActiveTab} />
+      <TabBar tabs={[...SETTINGS_TABS]} active={activeTab} onChange={(tab) => setActiveTab(tab as SettingsTab)} />
 
       {activeTab === 'Integrations' && (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -93,6 +113,8 @@ export function SettingsView({ staff, currentUserId, integrationStatus }: Settin
       )}
 
       {activeTab === 'Team' && <TeamManagement staff={staff} currentUserId={currentUserId} />}
+
+      {activeTab === 'Purge audit' && <PurgeAuditPanel initialItems={purgeAuditItems} total={purgeAuditTotal} />}
     </CrmPageLayout>
   );
 }

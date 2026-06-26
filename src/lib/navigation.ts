@@ -50,7 +50,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: 'Subscription retention monitoring' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
-  '/settings': { title: 'Settings', subtitle: 'Integrations, webhooks & team' },
+  '/settings': { title: 'Settings', subtitle: 'Integrations, webhooks, team & purge audit' },
 };
 
 export function getPageMeta(pathname: string): CrmPageMeta {

@@ -469,6 +469,120 @@ export async function purgeLead(id: string, input: LeadPurgeInput): Promise<{ au
   return (await response.json()) as { audit_id: string; email: string };
 }
 
+export type PurgeAuditListItem = {
+  id: string;
+  email: string;
+  lead_id: string;
+  user_id?: string | null;
+  purged_by: string;
+  purged_by_name: string;
+  purged_at: string;
+  environment: string;
+  reason: string;
+  outcome: 'completed' | 'failed' | 'partial';
+  error_message?: string | null;
+  total_paid_paise?: number;
+  total_upfront_paise?: number;
+  total_charged_paise?: number;
+};
+
+export type PurgeBillingCheckoutSnapshot = {
+  checkout_session_id: string;
+  upfront_total_paise: number;
+  upfront_base_paise?: number;
+  gst_paise?: number;
+  paid_at?: string;
+  program_name?: string;
+  cohort_name?: string;
+  access_until?: string;
+  razorpay_subscription_id?: string;
+  razorpay_payment_id?: string;
+  promo_code?: string;
+};
+
+export type PurgeBillingChargeSnapshot = {
+  razorpay_payment_id?: string;
+  amount_paise: number;
+  gst_paise?: number;
+  status: string;
+  charged_at?: string;
+};
+
+export type PurgeBillingSnapshot = {
+  checkout_session_ids?: string[];
+  enrollment_ids?: string[];
+  invoice_numbers?: string[];
+  total_charged_paise?: number;
+  total_upfront_paise?: number;
+  total_paid_paise?: number;
+  checkouts?: PurgeBillingCheckoutSnapshot[];
+  recurring_charges?: PurgeBillingChargeSnapshot[];
+};
+
+export type PurgeRazorpaySubscriptionSnapshot = {
+  subscription_id: string;
+  customer_id?: string;
+  final_status: string;
+  tokens_revoked?: string[];
+};
+
+export type PurgeRazorpaySnapshot = {
+  subscription_ids?: string[];
+  subscriptions?: PurgeRazorpaySubscriptionSnapshot[];
+};
+
+export type PurgeAuditDetail = PurgeAuditListItem & {
+  force_override: boolean;
+  test_signals: LeadPurgeTestSignal[];
+  razorpay_snapshot: PurgeRazorpaySnapshot;
+  billing_snapshot: PurgeBillingSnapshot;
+};
+
+export type PurgeAuditListResponse = {
+  items: PurgeAuditListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export async function listPurgeAuditEvents(params?: {
+  limit?: number;
+  offset?: number;
+}): Promise<PurgeAuditListResponse> {
+  const search = new URLSearchParams();
+  if (params?.limit != null) search.set('limit', String(params.limit));
+  if (params?.offset != null) search.set('offset', String(params.offset));
+  const query = search.toString();
+  const response = await requireApiFetch(`/admin/purge-events${query ? `?${query}` : ''}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load purge audit.', response.status);
+  }
+  return (await response.json()) as PurgeAuditListResponse;
+}
+
+export async function getPurgeAuditEvent(id: string): Promise<PurgeAuditDetail> {
+  const response = await requireApiFetch(`/admin/purge-events/${encodeURIComponent(id)}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load purge event.', response.status);
+  }
+  const raw = (await response.json()) as Omit<
+    PurgeAuditDetail,
+    'test_signals' | 'razorpay_snapshot' | 'billing_snapshot'
+  > & {
+    test_signals: LeadPurgeTestSignal[] | unknown;
+    razorpay_snapshot: PurgeRazorpaySnapshot | unknown;
+    billing_snapshot: PurgeBillingSnapshot | unknown;
+  };
+  return {
+    ...raw,
+    test_signals: Array.isArray(raw.test_signals) ? raw.test_signals : [],
+    razorpay_snapshot: (raw.razorpay_snapshot ?? {}) as PurgeRazorpaySnapshot,
+    billing_snapshot: (raw.billing_snapshot ?? {}) as PurgeBillingSnapshot,
+  };
+}
+
 type ApiProgramResponse = {
   id: string;
   slug: string;
