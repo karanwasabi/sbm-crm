@@ -1,7 +1,7 @@
 import { LeadIntakeView } from '@/components/views/lead-intake-view';
-import type { InboundLead, MetaIntegrationStatus } from '@/types/crm';
+import type { InboundLead, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
 import type { Country } from '@/types/reference';
-import { fetchCountries, getMetaInboundLeads, getMetaIntegrationStatus } from '@/utils/api';
+import { fetchCountries, getMetaInboundLeads, getMetaIntegrationStatus, listTagSuggestions } from '@/utils/api';
 
 const EMPTY_STATUS: MetaIntegrationStatus = {
   connected: false,
@@ -18,6 +18,7 @@ export default async function LeadsPage() {
   let countries: Country[] = [];
   let integrationStatus = EMPTY_STATUS;
   let inboundLeads: InboundLead[] = [];
+  let tagSuggestions: TagSuggestion[] = [];
 
   try {
     countries = await fetchCountries();
@@ -32,5 +33,18 @@ export default async function LeadsPage() {
     inboundLeads = [];
   }
 
-  return <LeadIntakeView countries={countries} integrationStatus={integrationStatus} inboundLeads={inboundLeads} />;
+  try {
+    tagSuggestions = await listTagSuggestions();
+  } catch {
+    tagSuggestions = [];
+  }
+
+  return (
+    <LeadIntakeView
+      countries={countries}
+      integrationStatus={integrationStatus}
+      inboundLeads={inboundLeads}
+      tagSuggestions={tagSuggestions}
+    />
+  );
 }

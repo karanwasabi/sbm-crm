@@ -28,6 +28,7 @@ import type { Lead, LeadSummary, TagFilterMode, TagSuggestion } from '@/types/cr
 type LeadDatabaseViewProps = {
   leads: Lead[];
   summary: LeadSummary;
+  loadError?: string | null;
   activeStage: string;
   activeMarketingStatus: string;
   activeTags: string[];
@@ -38,6 +39,7 @@ type LeadDatabaseViewProps = {
 export function LeadDatabaseView({
   leads,
   summary,
+  loadError = null,
   activeStage,
   activeMarketingStatus,
   activeTags,
@@ -56,6 +58,12 @@ export function LeadDatabaseView({
 
   return (
     <CrmPageLayout>
+      {loadError ? (
+        <Card className="border-danger-press/30 bg-danger/5 p-4 text-sm text-danger-press">
+          Could not load leads: {loadError}. Your data is still in the database — this is usually a backend or migration
+          issue, not deleted records.
+        </Card>
+      ) : null}
       <FilterBar
         activeStage={activeStage}
         stageOptions={stageOptions}

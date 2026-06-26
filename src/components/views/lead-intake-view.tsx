@@ -6,6 +6,7 @@ import { useState, useTransition } from 'react';
 import { createManualLead } from '@/app/(crm)/leads/actions';
 import { InboundLog } from '@/components/crm/inbound-log';
 import { IntegrationCard } from '@/components/crm/integration-card';
+import { LeadTagEditor } from '@/components/leads/lead-tag-editor';
 import { LazyCityCombobox, LazyCountryCombobox, LazyPhoneInput } from '@/components/profile/lazy-profile-fields';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { Button } from '@/components/ui/button';
@@ -22,7 +23,7 @@ import { isManualLeadSource } from '@/lib/lead-form';
 import { buildMetaIntegrationCard } from '@/lib/meta-integration';
 import { toTitleCase } from '@/lib/title-case';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
-import type { InboundLead, MetaIntegrationStatus } from '@/types/crm';
+import type { InboundLead, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
 import type { Country } from '@/types/reference';
 
 const INTEGRATION_ICONS = {
@@ -40,7 +41,7 @@ const EMPTY_FORM = {
   city: '',
   manualSource: '' as const,
   notes: '',
-  manualTags: '',
+  manualTags: [] as string[],
   consent: false,
 };
 
@@ -48,15 +49,17 @@ type LeadIntakeViewProps = {
   countries: Country[];
   integrationStatus: MetaIntegrationStatus;
   inboundLeads: InboundLead[];
+  tagSuggestions: TagSuggestion[];
 };
 
-export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: LeadIntakeViewProps) {
+export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tagSuggestions }: LeadIntakeViewProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [phoneSyncToken, setPhoneSyncToken] = useState(0);
+  const [tagError, setTagError] = useState<string | null>(null);
 
   const metaIntegration = buildMetaIntegrationCard(integrationStatus);
 
@@ -70,6 +73,7 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: L
   const resetForm = () => {
     setForm(EMPTY_FORM);
     setError(null);
+    setTagError(null);
     setPhoneSyncToken((token) => token + 1);
   };
 
@@ -108,7 +112,7 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: L
   return (
     <CrmPageLayout>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.2fr_1fr]">
-        <Card>
+        <Card className="overflow-visible">
           <SectionHead title="Manual lead entry" subtitle="Offline events, walk-ins, IG DMs" />
           <Eyebrow className="mb-3">New lead</Eyebrow>
           <form className="flex flex-col gap-3.5" onSubmit={handleSubmit}>
@@ -168,35 +172,44 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: L
               </Field>
             </div>
 
-            <Field label="Source">
-              <select
-                value={form.manualSource}
-                onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    manualSource: event.target.value as typeof form.manualSource,
-                  }))
-                }
-                disabled={pending}
-                className="w-full rounded-[14px] border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-800 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
-              >
-                <option value="">Select source</option>
-                {MANUAL_LEAD_SOURCE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <Field label="Source">
+                <select
+                  value={form.manualSource}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      manualSource: event.target.value as typeof form.manualSource,
+                    }))
+                  }
+                  disabled={pending}
+                  className="h-11 w-full rounded-[14px] border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-800 outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                >
+                  <option value="">Select source</option>
+                  {MANUAL_LEAD_SOURCE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
-            <Field label="Tags (optional)" hint="Comma-separated. Source still adds system tags automatically.">
-              <TextInput
-                value={form.manualTags}
-                onChange={(value) => setForm((current) => ({ ...current, manualTags: value }))}
-                placeholder="e.g. VIP, Summer cohort"
-                disabled={pending}
-              />
-            </Field>
+              <Field
+                label="Tags"
+                hint="Optional. Source adds system tags on save."
+                error={tagError}
+                className="overflow-visible"
+              >
+                <LeadTagEditor
+                  bordered
+                  manualTags={form.manualTags}
+                  suggestions={tagSuggestions}
+                  disabled={pending}
+                  onError={setTagError}
+                  onManualTagsChange={(manualTags) => setForm((current) => ({ ...current, manualTags }))}
+                />
+              </Field>
+            </div>
 
             <Field label="Notes">
               <Textarea

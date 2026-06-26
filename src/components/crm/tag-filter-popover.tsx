@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/cn';
 import { formatTagSlugsParam, tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagFilterMode, TagSuggestion } from '@/types/crm';
 
@@ -64,14 +65,18 @@ export function TagFilterPopover({
         }
       }}
     >
-      <PopoverTrigger type="button" className="inline-flex">
-        <Button
-          variant={activeTags.length > 0 ? 'primary' : 'light'}
-          size="sm"
-          leftIcon={<Tag className="h-3.5 w-3.5" />}
-        >
-          Tags{activeTags.length > 0 ? ` (${activeTags.length})` : ''}
-        </Button>
+      <PopoverTrigger
+        type="button"
+        className={cn(
+          'inline-flex cursor-pointer items-center justify-center gap-2 border-x-0 border-t-0 border-b-[3px] font-semibold transition-all duration-100 outline-none',
+          'rounded-2xl px-4 py-2.25 text-xs',
+          activeTags.length > 0
+            ? 'border-b-brand-press bg-brand text-white shadow-brand'
+            : 'border-b-slate-200 bg-white text-brand shadow-sm'
+        )}
+      >
+        <Tag className="h-3.5 w-3.5" />
+        Tags{activeTags.length > 0 ? ` (${activeTags.length})` : ''}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by tags</p>

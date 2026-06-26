@@ -32,16 +32,22 @@ export default async function DatabasePage({
   let leads: Lead[] = [];
   let summary = EMPTY_SUMMARY;
   let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
+  let loadError: string | null = null;
 
   try {
-    [leads, summary, tagSuggestions] = await Promise.all([
+    [leads, summary] = await Promise.all([
       listLeads(activeStage, activeMarketingStatus, { tags: activeTags, tagMode: activeTagMode }),
       getLeadSummary(),
-      listTagSuggestions(),
     ]);
-  } catch {
+  } catch (error) {
     leads = [];
     summary = EMPTY_SUMMARY;
+    loadError = error instanceof Error ? error.message : 'Failed to load leads.';
+  }
+
+  try {
+    tagSuggestions = await listTagSuggestions();
+  } catch {
     tagSuggestions = [];
   }
 
@@ -49,6 +55,7 @@ export default async function DatabasePage({
     <LeadDatabaseView
       leads={leads}
       summary={summary}
+      loadError={loadError}
       activeStage={activeStage}
       activeMarketingStatus={activeMarketingStatus}
       activeTags={activeTags}
