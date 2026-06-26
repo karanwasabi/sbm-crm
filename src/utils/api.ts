@@ -1382,7 +1382,22 @@ export async function validateAutomation(id: string): Promise<AutomationValidati
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to validate automation.', response.status);
   }
-  return (await response.json()) as AutomationValidationResult;
+  return normalizeValidationResult(await response.json());
+}
+
+function normalizeValidationResult(raw: unknown): AutomationValidationResult {
+  const payload = (raw ?? {}) as Record<string, unknown>;
+  const errors = Array.isArray(payload.errors) ? payload.errors : [];
+  return {
+    valid: Boolean(payload.valid),
+    errors: errors.map((item) => {
+      const row = (item ?? {}) as Record<string, unknown>;
+      return {
+        node_id: String(row.node_id ?? row.nodeId ?? ''),
+        message: String(row.message ?? 'This step needs attention.'),
+      };
+    }),
+  };
 }
 
 /** @deprecated Use activateAutomation */

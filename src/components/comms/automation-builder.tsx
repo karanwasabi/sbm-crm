@@ -18,7 +18,7 @@ import {
   type NodeProps,
 } from '@xyflow/react';
 import { Clock, GitBranch, Mail, Play, Square, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { EmailTemplate } from '@/utils/api';
 import type {
@@ -49,6 +49,10 @@ import {
   validateAutomationAction,
 } from '@/app/(crm)/communications/actions';
 import type { AutomationValidationIssue } from '@/utils/api';
+import {
+  AutomationValidationErrorsContext,
+  useAutomationNodeValidation,
+} from '@/components/comms/automation-validation-context';
 import { Pill } from '@/components/ui/pill';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 
@@ -56,8 +60,6 @@ type BuilderNodeData = {
   nodeType: AutomationNodeType;
   label: string;
   config: Record<string, unknown>;
-  hasError?: boolean;
-  errorMessage?: string;
 };
 
 function nodeShellClass(selected: boolean, hasError?: boolean) {
@@ -70,27 +72,31 @@ function nodeShellClass(selected: boolean, hasError?: boolean) {
   return 'border-slate-200';
 }
 
-function TriggerNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
+function TriggerNode({ id, data, selected }: NodeProps<Node<BuilderNodeData>>) {
+  const errorMessage = useAutomationNodeValidation(id);
+  const hasError = Boolean(errorMessage);
   return (
     <div
-      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
+      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, hasError)}`}
     >
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-brand uppercase">
         <Play className="h-3.5 w-3.5" />
         Trigger
       </div>
       <p className="mt-1 text-sm font-semibold text-slate-800">{data.label}</p>
-      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
+      {errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{errorMessage}</p> : null}
       <Handle type="source" position={Position.Bottom} className="!bg-brand" />
     </div>
   );
 }
 
-function WaitNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
+function WaitNode({ id, data, selected }: NodeProps<Node<BuilderNodeData>>) {
   const wait = data.config as AutomationWaitData;
+  const errorMessage = useAutomationNodeValidation(id);
+  const hasError = Boolean(errorMessage);
   return (
     <div
-      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
+      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, hasError)}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-amber-700 uppercase">
@@ -100,17 +106,19 @@ function WaitNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {wait.duration_value} {wait.duration_unit}
       </p>
-      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
+      {errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{errorMessage}</p> : null}
       <Handle type="source" position={Position.Bottom} className="!bg-brand" />
     </div>
   );
 }
 
-function ConditionNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
+function ConditionNode({ id, data, selected }: NodeProps<Node<BuilderNodeData>>) {
   const group = data.config as AutomationConditionGroupData;
+  const errorMessage = useAutomationNodeValidation(id);
+  const hasError = Boolean(errorMessage);
   return (
     <div
-      className={`min-w-[200px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
+      className={`min-w-[200px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, hasError)}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-violet-700 uppercase">
@@ -120,7 +128,7 @@ function ConditionNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {group.conditions.length} rule{group.conditions.length === 1 ? '' : 's'} ({group.logic.toUpperCase()})
       </p>
-      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
+      {errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{errorMessage}</p> : null}
       <div className="mt-3 flex justify-between text-[10px] font-bold tracking-wide text-slate-500 uppercase">
         <span>No</span>
         <span>Yes</span>
@@ -131,10 +139,12 @@ function ConditionNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
   );
 }
 
-function SendEmailNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
+function SendEmailNode({ id, data, selected }: NodeProps<Node<BuilderNodeData>>) {
+  const errorMessage = useAutomationNodeValidation(id);
+  const hasError = Boolean(errorMessage);
   return (
     <div
-      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, data.hasError)}`}
+      className={`min-w-[180px] rounded-2xl border bg-white px-4 py-3 shadow-sm ${nodeShellClass(!!selected, hasError)}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-sky-700 uppercase">
@@ -142,23 +152,25 @@ function SendEmailNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
         Send email
       </div>
       <p className="mt-1 truncate text-sm font-semibold text-slate-800">{data.label}</p>
-      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
+      {errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{errorMessage}</p> : null}
       <Handle type="source" position={Position.Bottom} className="!bg-brand" />
     </div>
   );
 }
 
-function EndNode({ data, selected }: NodeProps<Node<BuilderNodeData>>) {
+function EndNode({ id, data, selected }: NodeProps<Node<BuilderNodeData>>) {
+  const errorMessage = useAutomationNodeValidation(id);
+  const hasError = Boolean(errorMessage);
   return (
     <div
-      className={`min-w-[120px] rounded-2xl border px-4 py-3 shadow-sm ${data.hasError ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-300' : 'border-slate-200 bg-slate-50'} ${selected && !data.hasError ? 'border-brand ring-2 ring-brand/20' : ''}`}
+      className={`min-w-[120px] rounded-2xl border px-4 py-3 shadow-sm ${hasError ? 'border-rose-500 bg-rose-50 ring-2 ring-rose-300' : 'border-slate-200 bg-slate-50'} ${selected && !hasError ? 'border-brand ring-2 ring-brand/20' : ''}`}
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-slate-500 uppercase">
         <Square className="h-3.5 w-3.5" />
         End
       </div>
-      {data.errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{data.errorMessage}</p> : null}
+      {errorMessage ? <p className="mt-1 text-xs font-medium text-rose-600">{errorMessage}</p> : null}
     </div>
   );
 }
@@ -264,29 +276,37 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
     setValidationIssues([]);
   }, []);
 
-  const displayNodes = useMemo(() => {
-    if (validationIssues.length === 0) {
-      return nodes;
-    }
-
+  const validationErrorByNode = useMemo(() => {
+    const map = new Map<string, string>();
     const triggerId = nodes.find((node) => node.data.nodeType === 'trigger')?.id;
-    const errorByNode = new Map<string, string>();
     for (const issue of validationIssues) {
       const nodeId = issue.node_id || triggerId;
-      if (!nodeId) continue;
-      const existing = errorByNode.get(nodeId);
-      errorByNode.set(nodeId, existing ? `${existing} · ${issue.message}` : issue.message);
+      if (!nodeId || !issue.message) continue;
+      const existing = map.get(nodeId);
+      map.set(nodeId, existing ? `${existing} · ${issue.message}` : issue.message);
     }
-
-    return nodes.map((node) => ({
-      ...node,
-      data: {
-        ...node.data,
-        hasError: errorByNode.has(node.id),
-        errorMessage: errorByNode.get(node.id),
-      },
-    }));
+    return map;
   }, [nodes, validationIssues]);
+
+  const graphStructureKey = useMemo(
+    () =>
+      JSON.stringify({
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          type: node.data.nodeType,
+          config: node.data.config,
+        })),
+        edges: edges.map((edge) => ({
+          source: edge.source,
+          target: edge.target,
+          handle: edge.sourceHandle ?? '',
+        })),
+        triggerConfig,
+      }),
+    [nodes, edges, triggerConfig]
+  );
+
+  const lastGraphStructureKey = useRef(graphStructureKey);
 
   useEffect(() => {
     setNodes((current) =>
@@ -306,23 +326,29 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
   }, [triggerType, setNodes, invalidateValidation]);
 
   useEffect(() => {
+    if (lastGraphStructureKey.current === graphStructureKey) {
+      return;
+    }
+    lastGraphStructureKey.current = graphStructureKey;
     invalidateValidation();
-  }, [nodes, edges, triggerConfig, invalidateValidation]);
+  }, [graphStructureKey, invalidateValidation]);
 
-  const selectedNode = displayNodes.find((node) => node.id === selectedNodeId) ?? null;
+  const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
 
   const onConnect = useCallback(
     (connection: Connection) => {
       if (status === 'active') return;
+      invalidateValidation();
       setEdges((eds) =>
         addEdge({ ...connection, id: `e-${connection.source}-${connection.target}-${Date.now()}` }, eds)
       );
     },
-    [setEdges, status]
+    [setEdges, status, invalidateValidation]
   );
 
   const addNode = (type: AutomationNodeType) => {
     if (status === 'active') return;
+    invalidateValidation();
     const id = `${type}-${Date.now()}`;
     const y = 120 + nodes.length * 120;
     let config: Record<string, unknown> = {};
@@ -351,6 +377,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
 
   const updateSelectedConfig = (config: Record<string, unknown>, label?: string) => {
     if (!selectedNodeId) return;
+    invalidateValidation();
     setNodes((current) =>
       current.map((node) =>
         node.id === selectedNodeId
@@ -369,6 +396,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
 
   const removeSelectedNode = () => {
     if (!selectedNodeId) return;
+    invalidateValidation();
     setNodes((current) => current.filter((node) => node.id !== selectedNodeId));
     setEdges((current) => current.filter((edge) => edge.source !== selectedNodeId && edge.target !== selectedNodeId));
     setSelectedNodeId(null);
@@ -591,6 +619,36 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
         </div>
       </div>
 
+      {validationIssues.length > 0 ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <p className="text-sm font-bold text-rose-800">
+            {validationIssues.length} issue{validationIssues.length === 1 ? '' : 's'} to fix before activating
+          </p>
+          <ul className="mt-2 space-y-1.5 text-sm text-rose-700">
+            {validationIssues.map((issue, index) => {
+              const node = nodes.find((n) => n.id === issue.node_id);
+              const label = validationIssueDisplay(issue, node?.data.nodeType);
+              const focusId = issue.node_id || nodes.find((n) => n.data.nodeType === 'trigger')?.id;
+              return (
+                <li key={`${issue.node_id}-${index}`}>
+                  {focusId ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedNodeId(focusId)}
+                      className="text-left hover:underline"
+                    >
+                      {label}
+                    </button>
+                  ) : (
+                    label
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-canvas-cool">
           <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-3 py-2">
@@ -684,20 +742,22 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
             </button>
           </div>
           <div className="h-[560px]">
-            <ReactFlow
-              nodes={displayNodes}
-              edges={edges}
-              onNodesChange={onNodesChange}
-              onEdgesChange={onEdgesChange}
-              onConnect={onConnect}
-              nodeTypes={nodeTypes}
-              onNodeClick={(_, node) => setSelectedNodeId(node.id)}
-              fitView
-            >
-              <Background gap={16} size={1} color="#E2E8F0" />
-              <MiniMap pannable zoomable />
-              <Controls />
-            </ReactFlow>
+            <AutomationValidationErrorsContext.Provider value={validationErrorByNode}>
+              <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                nodeTypes={nodeTypes}
+                onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                fitView
+              >
+                <Background gap={16} size={1} color="#E2E8F0" />
+                <MiniMap pannable zoomable />
+                <Controls />
+              </ReactFlow>
+            </AutomationValidationErrorsContext.Provider>
           </div>
         </div>
 
