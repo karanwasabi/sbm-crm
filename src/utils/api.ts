@@ -217,6 +217,8 @@ type ApiLeadResponse = {
   medium: import('@/types/crm').LeadMedium;
   interest: string;
   batch: string;
+  system_tags: string[];
+  manual_tags: string[];
   tags: string[];
   enriched: boolean;
   dedup: boolean;
@@ -262,6 +264,8 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     medium: row.medium ?? 'offline',
     interest: row.interest || '—',
     batch: row.batch || '—',
+    systemTags: row.system_tags ?? [],
+    manualTags: row.manual_tags ?? [],
     tags: row.tags ?? [],
     enriched: row.enriched,
     dedup: row.dedup,
@@ -289,12 +293,17 @@ export async function createLead(input: import('@/types/crm').CreateLeadInput): 
 
 export async function listLeads(
   stage?: string,
-  marketingContactStatus?: string
+  marketingContactStatus?: string,
+  options?: { tags?: string[]; tagMode?: import('@/types/crm').TagFilterMode }
 ): Promise<import('@/types/crm').Lead[]> {
   const params = new URLSearchParams();
   if (stage && stage !== 'all') params.set('stage', stage);
   if (marketingContactStatus && marketingContactStatus !== 'all') {
     params.set('marketing_contact_status', marketingContactStatus);
+  }
+  if (options?.tags?.length) {
+    params.set('tags', options.tags.join(','));
+    if (options.tagMode === 'or') params.set('tag_mode', 'or');
   }
   const query = params.toString() ? `?${params.toString()}` : '';
   const response = await requireApiFetch(`/admin/leads${query}`);
@@ -303,6 +312,26 @@ export async function listLeads(
   }
   const rows = (await response.json()) as ApiLeadResponse[];
   return rows.map(mapLead);
+}
+
+export async function listTagSuggestions(): Promise<import('@/types/crm').TagSuggestion[]> {
+  const response = await requireApiFetch('/admin/tags');
+  if (!response.ok) {
+    throw new ApiError('Failed to load tags.', response.status);
+  }
+  return (await response.json()) as import('@/types/crm').TagSuggestion[];
+}
+
+export async function updateLeadTags(leadId: string, manualTags: string[]): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/tags`, {
+    method: 'PATCH',
+    body: JSON.stringify({ manual_tags: manualTags }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update tags.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }
 
 export const getLeadSummary = cache(async (): Promise<import('@/types/crm').LeadSummary> => {

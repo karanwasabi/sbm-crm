@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
+import { LeadTagsCard } from '@/components/leads/lead-tags-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
 import { PaymentPendingBanner } from '@/components/crm/payment-pending-banner';
 import { ProfileHeader } from '@/components/crm/profile-header';
@@ -14,7 +15,7 @@ import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
 import { cn } from '@/lib/cn';
 import type { EmailTemplate } from '@/utils/api';
-import type { LeadDetail, ProgramHistoryItem } from '@/types/crm';
+import type { LeadDetail, ProgramHistoryItem, TagSuggestion } from '@/types/crm';
 
 const CallLogModal = dynamic(
   () => import('@/components/crm/call-log-modal').then((module) => ({ default: module.CallLogModal })),
@@ -25,9 +26,15 @@ type Customer360ViewProps = {
   lead: LeadDetail;
   programHistory: ProgramHistoryItem[];
   emailTemplates: EmailTemplate[];
+  tagSuggestions: TagSuggestion[];
 };
 
-export function Customer360View({ lead: initialLead, programHistory, emailTemplates }: Customer360ViewProps) {
+export function Customer360View({
+  lead: initialLead,
+  programHistory,
+  emailTemplates,
+  tagSuggestions,
+}: Customer360ViewProps) {
   const router = useRouter();
   const { setContactName } = useCrmContactName();
   const [lead, setLead] = useState(initialLead);
@@ -62,6 +69,7 @@ export function Customer360View({ lead: initialLead, programHistory, emailTempla
         }
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
+      <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
       {lead.attribution ? <LeadAttributionCard attribution={lead.attribution} /> : null}
       <div
         className={cn(

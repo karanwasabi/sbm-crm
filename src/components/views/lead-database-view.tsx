@@ -22,16 +22,28 @@ import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { StagePill } from '@/components/ui/stage-pill';
 import { buildStageFilterOptions, formatLeadAddedAt } from '@/lib/lead-display';
-import type { Lead, LeadSummary } from '@/types/crm';
+import { tagSlugToLabel } from '@/lib/lead-tags';
+import type { Lead, LeadSummary, TagFilterMode, TagSuggestion } from '@/types/crm';
 
 type LeadDatabaseViewProps = {
   leads: Lead[];
   summary: LeadSummary;
   activeStage: string;
   activeMarketingStatus: string;
+  activeTags: string[];
+  activeTagMode: TagFilterMode;
+  tagSuggestions: TagSuggestion[];
 };
 
-export function LeadDatabaseView({ leads, summary, activeStage, activeMarketingStatus }: LeadDatabaseViewProps) {
+export function LeadDatabaseView({
+  leads,
+  summary,
+  activeStage,
+  activeMarketingStatus,
+  activeTags,
+  activeTagMode,
+  tagSuggestions,
+}: LeadDatabaseViewProps) {
   const router = useRouter();
   const { setLeadTotal } = useCrmLeadSummary();
   const [importOpen, setImportOpen] = useState(false);
@@ -44,7 +56,14 @@ export function LeadDatabaseView({ leads, summary, activeStage, activeMarketingS
 
   return (
     <CrmPageLayout>
-      <FilterBar activeStage={activeStage} stageOptions={stageOptions} activeMarketingStatus={activeMarketingStatus} />
+      <FilterBar
+        activeStage={activeStage}
+        stageOptions={stageOptions}
+        activeMarketingStatus={activeMarketingStatus}
+        activeTags={activeTags}
+        activeTagMode={activeTagMode}
+        tagSuggestions={tagSuggestions}
+      />
 
       <div className="flex flex-wrap items-center gap-2.5">
         <p className="text-[13px] font-semibold text-slate-600">
@@ -121,7 +140,7 @@ export function LeadDatabaseView({ leads, summary, activeStage, activeMarketingS
                       ) : (
                         lead.tags.map((tag) => (
                           <Pill key={tag} tone="brand">
-                            {tag}
+                            {tagSlugToLabel(tag)}
                           </Pill>
                         ))
                       )}

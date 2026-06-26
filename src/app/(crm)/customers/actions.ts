@@ -2,7 +2,17 @@
 
 import type { ContactOutcome } from '@/types/crm';
 import { contactOutcomeMarksLost } from '@/types/crm';
-import { ApiError, createLeadContactEvent, markLeadLost, sendLeadEmail } from '@/utils/api';
+import { ApiError, createLeadContactEvent, markLeadLost, sendLeadEmail, updateLeadTags } from '@/utils/api';
+
+export async function updateLeadTagsAction(leadId: string, manualTags: string[]): Promise<{ error: string | null }> {
+  try {
+    await updateLeadTags(leadId, manualTags);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to update tags.';
+    return { error: message };
+  }
+}
 
 export async function logLeadCall(
   leadId: string,

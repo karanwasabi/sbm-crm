@@ -40,6 +40,7 @@ const EMPTY_FORM = {
   city: '',
   manualSource: '' as const,
   notes: '',
+  manualTags: '',
   consent: false,
 };
 
@@ -86,6 +87,7 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: L
         city: form.city,
         manualSource: isManualLeadSource(form.manualSource) ? form.manualSource : '',
         notes: form.notes,
+        manualTags: form.manualTags,
         dpdpConsent: form.consent,
       });
 
@@ -185,6 +187,15 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads }: L
                   </option>
                 ))}
               </select>
+            </Field>
+
+            <Field label="Tags (optional)" hint="Comma-separated. Source still adds system tags automatically.">
+              <TextInput
+                value={form.manualTags}
+                onChange={(value) => setForm((current) => ({ ...current, manualTags: value }))}
+                placeholder="e.g. VIP, Summer cohort"
+                disabled={pending}
+              />
             </Field>
 
             <Field label="Notes">

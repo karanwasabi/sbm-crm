@@ -1,6 +1,7 @@
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
-import { getLeadSummary, listLeads } from '@/utils/api';
-import type { Lead, LeadSummary } from '@/types/crm';
+import { getLeadSummary, listLeads, listTagSuggestions } from '@/utils/api';
+import { parseTagSlugsParam } from '@/lib/lead-tags';
+import type { Lead, LeadSummary, TagFilterMode } from '@/types/crm';
 
 const EMPTY_SUMMARY: LeadSummary = {
   total: 0,
@@ -20,20 +21,28 @@ const EMPTY_SUMMARY: LeadSummary = {
 export default async function DatabasePage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; marketing?: string }>;
+  searchParams: Promise<{ stage?: string; marketing?: string; tags?: string; tag_mode?: string }>;
 }) {
-  const { stage, marketing } = await searchParams;
+  const { stage, marketing, tags, tag_mode } = await searchParams;
   const activeStage = stage?.trim() || 'all';
   const activeMarketingStatus = marketing?.trim() || 'all';
+  const activeTags = parseTagSlugsParam(tags);
+  const activeTagMode: TagFilterMode = tag_mode?.trim() === 'or' ? 'or' : 'and';
 
   let leads: Lead[] = [];
   let summary = EMPTY_SUMMARY;
+  let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
 
   try {
-    [leads, summary] = await Promise.all([listLeads(activeStage, activeMarketingStatus), getLeadSummary()]);
+    [leads, summary, tagSuggestions] = await Promise.all([
+      listLeads(activeStage, activeMarketingStatus, { tags: activeTags, tagMode: activeTagMode }),
+      getLeadSummary(),
+      listTagSuggestions(),
+    ]);
   } catch {
     leads = [];
     summary = EMPTY_SUMMARY;
+    tagSuggestions = [];
   }
 
   return (
@@ -42,6 +51,9 @@ export default async function DatabasePage({
       summary={summary}
       activeStage={activeStage}
       activeMarketingStatus={activeMarketingStatus}
+      activeTags={activeTags}
+      activeTagMode={activeTagMode}
+      tagSuggestions={tagSuggestions}
     />
   );
 }

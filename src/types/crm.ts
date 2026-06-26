@@ -26,6 +26,8 @@ export type Lead = {
   medium: LeadMedium;
   interest: string;
   batch: string;
+  systemTags: string[];
+  manualTags: string[];
   tags: string[];
   enriched: boolean;
   dedup: boolean;
@@ -51,8 +53,16 @@ export type CreateLeadInput = {
   city?: string;
   manual_source: ManualLeadSource;
   notes?: string;
+  manual_tags?: string[];
   dpdp_consent: boolean;
 };
+
+export type TagSuggestion = {
+  slug: string;
+  label: string;
+};
+
+export type TagFilterMode = 'and' | 'or';
 
 export type CreateLeadState = {
   error: string | null;

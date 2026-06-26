@@ -1,3 +1,4 @@
+import { normalizeManualTagInputs } from '@/lib/lead-tags';
 import { getMobileDigitLimits, validateMobileNational } from '@/lib/country-mobile-rules';
 import type { ManualLeadSource } from '@/types/crm';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
@@ -12,6 +13,7 @@ export type LeadFormValues = {
   city: string;
   manualSource: ManualLeadSource | '';
   notes: string;
+  manualTags: string;
   dpdpConsent: boolean;
 };
 
@@ -62,6 +64,14 @@ export function buildLeadPayload(
   const countryCode = values.countryCode.trim().toUpperCase();
   const city = values.city.trim();
   const notes = values.notes.trim();
+  const manualTagInputs = values.manualTags
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const manualTags = manualTagInputs.length > 0 ? normalizeManualTagInputs(manualTagInputs) : null;
+  if (manualTags && !manualTags.ok) {
+    return { ok: false, error: manualTags.error };
+  }
 
   return {
     ok: true,
@@ -74,6 +84,7 @@ export function buildLeadPayload(
       ...(city ? { city } : {}),
       manual_source: values.manualSource,
       ...(notes ? { notes } : {}),
+      ...(manualTags?.slugs.length ? { manual_tags: manualTags.slugs } : {}),
       dpdp_consent: true,
     },
   };

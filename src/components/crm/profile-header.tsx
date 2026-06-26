@@ -7,6 +7,7 @@ import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { StagePill } from '@/components/ui/stage-pill';
 import { cn } from '@/lib/cn';
+import { leadHasTag } from '@/lib/lead-tags';
 import type { ContactProfile } from '@/types/crm';
 
 type ProfileHeaderProps = {
@@ -57,7 +58,7 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail }: ProfileHeader
               {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
             </HeaderMetaPill>
             {contact.batch && contact.batch !== '—' ? <HeaderMetaPill>{contact.batch}</HeaderMetaPill> : null}
-            {contact.tags.includes('vip') ? (
+            {leadHasTag(contact.tags, 'vip') ? (
               <span className={cn('border-b-2 border-[#C28C00] bg-motivation text-slate-900', HEADER_PILL_CLASS)}>
                 <Star className="h-2.75 w-2.75 fill-slate-900" />
                 VIP
