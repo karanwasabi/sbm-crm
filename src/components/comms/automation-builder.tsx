@@ -39,12 +39,14 @@ import {
   nodeLabel,
 } from '@/lib/automation-types';
 import {
+  activateAutomationAction,
+  deactivateAutomationAction,
   deleteAutomationAction,
-  publishAutomationAction,
   saveAutomationAction,
   testAutomationAction,
 } from '@/app/(crm)/communications/actions';
 import { Pill } from '@/components/ui/pill';
+import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 
 type BuilderNodeData = {
   nodeType: AutomationNodeType;
@@ -327,7 +329,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           status: nextStatus ?? status,
         });
         setStatus(saved.status);
-        setMessage(nextStatus === 'active' ? 'Workflow published.' : 'Draft saved.');
+        setMessage('Draft saved.');
         if (!automation?.id && typeof window !== 'undefined') {
           window.location.href = `/communications/automations/${saved.id}`;
         }
@@ -336,7 +338,7 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
       }
     });
 
-  const publish = () =>
+  const activate = () =>
     startTransition(async () => {
       setMessage(null);
       try {
@@ -347,13 +349,27 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           triggerType,
           triggerConfig: automation?.triggerConfig ?? {},
           graphJson: graph,
-          status: 'draft',
+          status: status === 'draft' ? 'draft' : 'paused',
         });
-        await publishAutomationAction(saved.id);
-        setStatus('active');
-        setMessage('Workflow is live.');
+        const activated = await activateAutomationAction(saved.id);
+        setStatus(activated.status);
+        setMessage('Workflow is active.');
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Publish failed.');
+        setMessage(error instanceof Error ? error.message : 'Activate failed.');
+      }
+    });
+
+  const deactivate = () =>
+    startTransition(async () => {
+      if (!automation?.id || status !== 'active') return;
+      if (!window.confirm(`Deactivate "${name}"? New leads will not enroll until you activate again.`)) return;
+      setMessage(null);
+      try {
+        const updated = await deactivateAutomationAction(automation.id);
+        setStatus(updated.status);
+        setMessage('Workflow deactivated.');
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Deactivate failed.');
       }
     });
 
@@ -403,31 +419,34 @@ export function AutomationBuilder({ automation, templates }: AutomationBuilderPr
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Pill tone={status === 'active' ? 'success' : status === 'paused' ? 'warn' : 'neutral'}>
-            {status === 'active'
-              ? 'Active'
-              : status === 'paused'
-                ? 'Paused'
-                : status === 'archived'
-                  ? 'Archived'
-                  : 'Draft'}
-          </Pill>
+          <Pill tone={automationStatusPillTone(status)}>{automationStatusLabel(status)}</Pill>
           <button
             type="button"
             disabled={isPending}
             onClick={() => persist()}
             className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
           >
-            Save draft
+            {status === 'draft' ? 'Save draft' : 'Save changes'}
           </button>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={publish}
-            className="rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
-          >
-            Publish
-          </button>
+          {status !== 'active' ? (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={activate}
+              className="rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
+            >
+              Activate
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={deactivate}
+              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
+            >
+              Deactivate
+            </button>
+          )}
           {automation?.id && status === 'draft' ? (
             <button
               type="button"

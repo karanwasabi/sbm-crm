@@ -5,7 +5,8 @@ import {
   updateEmailTemplate,
   createAutomation,
   updateAutomation,
-  publishAutomation,
+  activateAutomation,
+  deactivateAutomation,
   deleteAutomation,
   testAutomation,
   type EmailTemplate,
@@ -67,8 +68,12 @@ export async function saveAutomationAction(
   return createAutomation(payload);
 }
 
-export async function publishAutomationAction(automationId: string): Promise<Automation> {
-  return publishAutomation(automationId);
+export async function activateAutomationAction(automationId: string): Promise<Automation> {
+  return activateAutomation(automationId);
+}
+
+export async function deactivateAutomationAction(automationId: string): Promise<Automation> {
+  return deactivateAutomation(automationId);
 }
 
 export async function testAutomationAction(automationId: string, leadId: string): Promise<void> {

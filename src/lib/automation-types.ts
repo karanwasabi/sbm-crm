@@ -158,6 +158,32 @@ export function defaultAutomationGraph(triggerType: AutomationTriggerType = 'lea
   };
 }
 
+export function automationStatusLabel(status: AutomationStatus): string {
+  switch (status) {
+    case 'active':
+      return 'Active';
+    case 'paused':
+      return 'Inactive';
+    case 'archived':
+      return 'Archived';
+    default:
+      return 'Draft';
+  }
+}
+
+export function automationStatusPillTone(status: AutomationStatus): 'success' | 'warn' | 'neutral' | 'brand' {
+  switch (status) {
+    case 'active':
+      return 'success';
+    case 'paused':
+      return 'warn';
+    case 'archived':
+      return 'neutral';
+    default:
+      return 'brand';
+  }
+}
+
 export function nodeLabel(type: AutomationNodeType): string {
   switch (type) {
     case 'trigger':

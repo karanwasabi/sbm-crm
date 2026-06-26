@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 import { deleteAutomationAction } from '@/app/(crm)/communications/actions';
 import { Pill } from '@/components/ui/pill';
-import { TRIGGER_LABELS } from '@/lib/automation-types';
+import { TRIGGER_LABELS, automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 import type { Automation } from '@/utils/api';
 
 type AutomationListRowProps = {
@@ -57,25 +57,7 @@ export function AutomationListRow({ automation }: AutomationListRowProps) {
             <Trash2 className="h-4 w-4" />
           </button>
         ) : null}
-        <Pill
-          tone={
-            automation.status === 'active'
-              ? 'success'
-              : automation.status === 'paused'
-                ? 'warn'
-                : automation.status === 'archived'
-                  ? 'neutral'
-                  : 'brand'
-          }
-        >
-          {automation.status === 'active'
-            ? 'Active'
-            : automation.status === 'paused'
-              ? 'Paused'
-              : automation.status === 'archived'
-                ? 'Archived'
-                : 'Draft'}
-        </Pill>
+        <Pill tone={automationStatusPillTone(automation.status)}>{automationStatusLabel(automation.status)}</Pill>
       </div>
     </Link>
   );

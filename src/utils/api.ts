@@ -1353,13 +1353,29 @@ export async function updateAutomation(
   return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
 }
 
-export async function publishAutomation(id: string): Promise<Automation> {
-  const response = await requireApiFetch(`/admin/comms/automations/${id}/publish`, {
+export async function activateAutomation(id: string): Promise<Automation> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}/activate`, {
     method: 'POST',
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new ApiError(payload?.error ?? 'Failed to publish automation.', response.status);
+    throw new ApiError(payload?.error ?? 'Failed to activate automation.', response.status);
+  }
+  return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
+}
+
+/** @deprecated Use activateAutomation */
+export async function publishAutomation(id: string): Promise<Automation> {
+  return activateAutomation(id);
+}
+
+export async function deactivateAutomation(id: string): Promise<Automation> {
+  const response = await requireApiFetch(`/admin/comms/automations/${id}/deactivate`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to deactivate automation.', response.status);
   }
   return mapAutomation((await response.json()) as Parameters<typeof mapAutomation>[0]);
 }

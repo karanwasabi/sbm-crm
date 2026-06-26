@@ -51,7 +51,7 @@ Last updated: 2026-06-27
 | Element                           | Source                                               |
 | --------------------------------- | ---------------------------------------------------- |
 | Automations list + builder canvas | `GET/PATCH /admin/comms/automations` + React Flow UI |
-| Publish workflow                  | `POST /admin/comms/automations/:id/publish`          |
+| Activate / deactivate workflow    | `POST .../activate` · `POST .../deactivate`          |
 | Test mode (dry run)               | `POST /admin/comms/automations/:id/test`             |
 | Enrollment viewer API             | `GET /admin/comms/automations/:id/enrollments`       |
 | Execution engine + worker         | `cmd/automation-worker` polls due enrollments        |
