@@ -6,6 +6,7 @@ import { fetchCountries, getMetaInboundLeads, getMetaIntegrationStatus, listTagS
 const EMPTY_STATUS: MetaIntegrationStatus = {
   connected: false,
   provider: null,
+  automationAvailable: false,
   webhookConfigured: false,
   webhookUrl: '',
   leadsToday: 0,

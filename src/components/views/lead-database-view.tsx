@@ -1,8 +1,6 @@
 'use client';
 
-import { Download, Upload } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
 import { FilterBar } from '@/components/crm/filter-bar';
 import {
@@ -13,11 +11,9 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
-import { MetaCsvImportDialog } from '@/components/leads/meta-csv-import-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
 import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { StagePill } from '@/components/ui/stage-pill';
@@ -46,9 +42,7 @@ export function LeadDatabaseView({
   activeTagMode,
   tagSuggestions,
 }: LeadDatabaseViewProps) {
-  const router = useRouter();
   const { setLeadTotal } = useCrmLeadSummary();
-  const [importOpen, setImportOpen] = useState(false);
   const stageOptions = buildStageFilterOptions(summary);
 
   useEffect(() => {
@@ -78,24 +72,6 @@ export function LeadDatabaseView({
           Showing <strong className="text-slate-800">{leads.length}</strong> of {summary.total} contacts ·{' '}
           <span className="ml-1.5">0 selected</span>
         </p>
-        <div className="flex-1" />
-        <Button
-          variant="light"
-          size="sm"
-          leftIcon={<Upload className="h-3.5 w-3.5" />}
-          onClick={() => setImportOpen(true)}
-        >
-          Import CSV (Meta)
-        </Button>
-        <Button
-          variant="light"
-          size="sm"
-          leftIcon={<Download className="h-3.5 w-3.5" />}
-          disabled
-          title="Requires Meta Marketing API access"
-        >
-          Lookalike export (Meta)
-        </Button>
       </div>
 
       <Card padding="none">
@@ -166,15 +142,6 @@ export function LeadDatabaseView({
           </DataTableBody>
         </DataTable>
       </Card>
-
-      <MetaCsvImportDialog
-        open={importOpen}
-        onClose={() => setImportOpen(false)}
-        onImported={() => {
-          setImportOpen(false);
-          router.refresh();
-        }}
-      />
     </CrmPageLayout>
   );
 }

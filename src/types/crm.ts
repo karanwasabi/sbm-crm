@@ -161,6 +161,7 @@ export type SourcePerformanceRow = {
 export type MetaIntegrationStatus = {
   connected: boolean;
   provider: string | null;
+  automationAvailable: boolean;
   webhookConfigured: boolean;
   webhookUrl: string;
   leadsToday: number;

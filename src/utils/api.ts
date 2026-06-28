@@ -999,6 +999,7 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
   const payload = (await response.json()) as {
     connected: boolean;
     provider: string | null;
+    automation_available: boolean;
     webhook_configured: boolean;
     webhook_url: string;
     leads_today: number;
@@ -1009,6 +1010,7 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
   return {
     connected: payload.connected,
     provider: payload.provider,
+    automationAvailable: payload.automation_available,
     webhookConfigured: payload.webhook_configured,
     webhookUrl: payload.webhook_url,
     leadsToday: payload.leads_today,

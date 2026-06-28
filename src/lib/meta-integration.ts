@@ -8,13 +8,20 @@ export function buildMetaIntegrationCard(status: MetaIntegrationStatus): Integra
 
   const recent = status.metaLeads7d > 0 ? ` · ${status.metaLeads7d} in last 7 days` : '';
 
-  const automationNote = status.connected
-    ? 'Automated intake connected'
-    : 'Manual CSV import only · automation not connected';
+  let automationNote: string;
+  if (!status.automationAvailable) {
+    automationNote = 'Live automation on production only';
+  } else if (status.connected) {
+    automationNote = 'LeadSync automated intake connected';
+  } else if (status.webhookConfigured) {
+    automationNote = 'Webhook configured · awaiting first lead';
+  } else {
+    automationNote = 'Configure LeadSync webhook on production';
+  }
 
   const cardStatus: Integration['status'] = status.connected
     ? 'connected'
-    : status.metaLeadsTotal > 0
+    : status.webhookConfigured || status.metaLeadsTotal > 0
       ? 'warning'
       : 'error';
 

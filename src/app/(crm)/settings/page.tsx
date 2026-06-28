@@ -17,6 +17,7 @@ const emptyStaff: StaffList = { active: [], inactive: [] };
 const EMPTY_STATUS: MetaIntegrationStatus = {
   connected: false,
   provider: null,
+  automationAvailable: false,
   webhookConfigured: false,
   webhookUrl: '',
   leadsToday: 0,
