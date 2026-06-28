@@ -30,7 +30,11 @@ export function toTagSlug(input: string): string | null {
 export function tagSlugToLabel(slug: string): string {
   const trimmed = slug.trim();
   if (!trimmed) return '';
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+  return trimmed
+    .split('-')
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('-');
 }
 
 export function normalizeManualTagInputs(inputs: string[]): TagNormalizeResult {
@@ -70,4 +74,29 @@ export function parseTagSlugsParam(value: string | undefined): string[] {
 
 export function formatTagSlugsParam(slugs: string[]): string {
   return slugs.join(',');
+}
+
+export function previewIntakeFormTag(
+  name: string,
+  existingForms: Array<{ id: string; slug: string; formTag: string }>,
+  exceptFormId?: string | null
+): string | null {
+  const base = toTagSlug(name);
+  if (!base) return null;
+
+  const taken = new Set<string>();
+  for (const form of existingForms) {
+    if (exceptFormId && form.id === exceptFormId) continue;
+    taken.add(form.slug);
+    taken.add(form.formTag);
+  }
+
+  for (let i = 0; i < 100; i++) {
+    const candidate = i === 0 ? base : `${base}-${i + 1}`;
+    if (!taken.has(candidate)) {
+      return candidate;
+    }
+  }
+
+  return null;
 }

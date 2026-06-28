@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { archiveIntakeFormAction, saveIntakeForm } from '@/app/(crm)/leads/actions';
-import { LeadTagEditor } from '@/components/leads/lead-tag-editor';
+import { LeadTagEditor, TagChip } from '@/components/leads/lead-tag-editor';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,7 +12,7 @@ import { SectionHead } from '@/components/ui/section-head';
 import { TextInput } from '@/components/ui/text-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
-import { tagSlugToLabel } from '@/lib/lead-tags';
+import { previewIntakeFormTag, tagSlugToLabel } from '@/lib/lead-tags';
 import type { IntakeForm, TagSuggestion } from '@/types/crm';
 
 type IntakeFormsTabProps = {
@@ -55,6 +55,17 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
   }, [forms, statusFilter]);
 
   const selectedForm = useMemo(() => forms.find((form) => form.id === selectedId) ?? null, [forms, selectedId]);
+
+  const previewFormTag = useMemo(() => {
+    const trimmedName = draft.name.trim();
+    if (!trimmedName) return null;
+
+    if (view === 'edit' && selectedForm && trimmedName === selectedForm.name.trim()) {
+      return selectedForm.formTag;
+    }
+
+    return previewIntakeFormTag(trimmedName, forms, view === 'edit' ? selectedId : null);
+  }, [draft.name, forms, selectedForm, selectedId, view]);
 
   const openCreate = () => {
     setDraft(EMPTY_DRAFT);
@@ -146,19 +157,27 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
   if (view === 'create' || view === 'edit') {
     return (
       <Card className="max-w-3xl">
-        <SectionHead
-          title={view === 'create' ? 'Create intake form' : 'Edit intake form'}
-          subtitle="Required fields are always collected: first name, last name, email, phone"
-        />
+        <SectionHead title={view === 'create' ? 'Create intake form' : 'Edit intake form'} />
         <div className="flex flex-col gap-3.5">
-          <Field label="Form name">
-            <TextInput
-              value={draft.name}
-              onChange={(value) => setDraft((current) => ({ ...current, name: value }))}
-              placeholder="e.g. Summer workshop signup"
-              disabled={pending}
-            />
-          </Field>
+          <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+            <Field label="Form name">
+              <TextInput
+                value={draft.name}
+                onChange={(value) => setDraft((current) => ({ ...current, name: value }))}
+                placeholder="e.g. Summer workshop signup"
+                disabled={pending}
+              />
+            </Field>
+            <Field label="Form tag">
+              <div className="flex min-h-10 items-center">
+                {previewFormTag ? (
+                  <TagChip label={tagSlugToLabel(previewFormTag)} locked />
+                ) : (
+                  <p className="text-sm text-slate-500">—</p>
+                )}
+              </div>
+            </Field>
+          </div>
           <Field label="Description" hint="Optional. Shown on the public form.">
             <Textarea
               value={draft.description}
@@ -197,7 +216,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
 
           <Field
             label="Extra tags"
-            hint="Optional. A form tag is generated from the name and applied to every submission."
+            hint="Optional. Applied in addition to the form tag above."
             error={tagError}
             className="overflow-visible"
           >
