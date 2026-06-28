@@ -338,6 +338,7 @@ type ApiIntakeFormResponse = {
   id: string;
   slug: string;
   name: string;
+  title: string;
   description?: string | null;
   form_tag: string;
   extra_tags: string[];
@@ -356,6 +357,7 @@ function mapIntakeForm(row: ApiIntakeFormResponse): import('@/types/crm').Intake
     id: row.id,
     slug: row.slug,
     name: row.name,
+    title: row.title,
     description: row.description ?? undefined,
     formTag: row.form_tag,
     extraTags: row.extra_tags ?? [],

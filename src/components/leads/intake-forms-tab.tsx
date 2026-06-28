@@ -25,6 +25,7 @@ type ViewMode = 'list' | 'create' | 'edit' | 'detail';
 
 const EMPTY_DRAFT = {
   name: '',
+  title: '',
   description: '',
   extraTags: [] as string[],
   showCountry: false,
@@ -78,6 +79,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
   const openEdit = (form: IntakeForm) => {
     setDraft({
       name: form.name,
+      title: form.title,
       description: form.description ?? '',
       extraTags: form.extraTags,
       showCountry: form.showCountry,
@@ -100,6 +102,10 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
       setError('Form name is required.');
       return;
     }
+    if (!draft.title.trim()) {
+      setError('Title is required.');
+      return;
+    }
     if (tagError) {
       setError(tagError);
       return;
@@ -109,6 +115,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
       const result = await saveIntakeForm(
         {
           name: draft.name.trim(),
+          title: draft.title.trim(),
           ...(draft.description.trim() ? { description: draft.description.trim() } : {}),
           extra_tags: draft.extraTags,
           show_country: draft.showCountry,
@@ -164,7 +171,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
               <TextInput
                 value={draft.name}
                 onChange={(value) => setDraft((current) => ({ ...current, name: value }))}
-                placeholder="e.g. Summer workshop signup"
+                placeholder="e.g. Summer workshop Q2"
                 disabled={pending}
               />
             </Field>
@@ -178,6 +185,14 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
               </div>
             </Field>
           </div>
+          <Field label="Title">
+            <TextInput
+              value={draft.title}
+              onChange={(value) => setDraft((current) => ({ ...current, title: value }))}
+              placeholder="e.g. Register your interest"
+              disabled={pending}
+            />
+          </Field>
           <Field label="Description" hint="Optional. Shown on the public form.">
             <Textarea
               value={draft.description}
@@ -252,6 +267,8 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
         <div className="flex flex-col gap-3">
           {selectedForm.description ? <p className="text-sm text-slate-600">{selectedForm.description}</p> : null}
           <dl className="grid grid-cols-[8rem_1fr] gap-x-4 gap-y-2 text-sm">
+            <dt className="font-semibold text-slate-500">Title</dt>
+            <dd className="text-slate-800">{selectedForm.title}</dd>
             <dt className="font-semibold text-slate-500">Form tag</dt>
             <dd className="text-slate-800">{tagSlugToLabel(selectedForm.formTag)}</dd>
             <dt className="font-semibold text-slate-500">Public URL</dt>

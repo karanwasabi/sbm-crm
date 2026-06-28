@@ -137,6 +137,7 @@ export type IntakeForm = {
   id: string;
   slug: string;
   name: string;
+  title: string;
   description?: string;
   formTag: string;
   extraTags: string[];
@@ -152,6 +153,7 @@ export type IntakeForm = {
 
 export type UpsertIntakeFormInput = {
   name: string;
+  title: string;
   description?: string;
   extra_tags?: string[];
   show_country: boolean;
