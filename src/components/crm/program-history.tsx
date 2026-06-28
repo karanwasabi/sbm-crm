@@ -8,20 +8,62 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
-import type { ProgramHistoryItem } from '@/types/crm';
+import { attributionFormLabel, attributionSourceLabel } from '@/lib/lead-attribution';
+import type { LeadAttribution, ProgramHistoryItem } from '@/types/crm';
 
 type ProgramHistoryProps = {
   items: ProgramHistoryItem[];
+  interest?: string;
+  batch?: string;
+  attribution?: LeadAttribution | null;
 };
 
-export function ProgramHistory({ items }: ProgramHistoryProps) {
+function label(value: string | null | undefined) {
+  return value && value.trim() ? value : '—';
+}
+
+export function ProgramHistory({ items, interest, batch, attribution }: ProgramHistoryProps) {
+  const showSummary = Boolean(interest?.trim() || batch?.trim() || attribution);
+  const formLabel = attribution ? attributionFormLabel(attribution) : null;
+
   return (
     <Card padding="none" className="w-full">
       <div className="p-5">
-        <SectionHead title="Programs & payments" subtitle="Full enrollment history" />
+        <SectionHead title="Programs & payments" subtitle="Interest, source, and enrollment history" />
+        {showSummary ? (
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div>
+              <dt className="text-slate-500">Program interest</dt>
+              <dd className="font-semibold text-slate-800">{label(interest)}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Batch</dt>
+              <dd className="font-semibold text-slate-800">{label(batch)}</dd>
+            </div>
+            {attribution ? (
+              <>
+                <div>
+                  <dt className="text-slate-500">Source</dt>
+                  <dd className="font-semibold text-slate-800">{attributionSourceLabel(attribution)}</dd>
+                </div>
+                {formLabel ? (
+                  <div>
+                    <dt className="text-slate-500">Form</dt>
+                    <dd className="font-semibold text-slate-800">{formLabel}</dd>
+                  </div>
+                ) : attribution.campaign ? (
+                  <div>
+                    <dt className="text-slate-500">Campaign</dt>
+                    <dd className="font-semibold text-slate-800">{attribution.campaign}</dd>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
+          </dl>
+        ) : null}
       </div>
       {items.length === 0 ? (
-        <p className="px-5 pb-5 text-sm text-slate-500">No programs yet.</p>
+        <p className="px-5 pb-5 text-sm text-slate-500">No enrollments yet.</p>
       ) : (
         <DataTable>
           <DataTableHead>

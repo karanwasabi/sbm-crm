@@ -284,9 +284,12 @@ export type RazorpayIntegrationStatus = {
 
 export type LeadAttribution = {
   source: string;
+  sourceLabel: string;
   integration: string | null;
   campaign: string | null;
   formId: string | null;
+  intakeFormTitle: string | null;
+  intakeFormName: string | null;
   platform: string | null;
   externalId: string | null;
 };

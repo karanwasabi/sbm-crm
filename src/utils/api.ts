@@ -240,9 +240,12 @@ type ApiLeadResponse = {
   timeline?: import('@/types/crm').TimelineEvent[];
   attribution?: {
     source: string;
+    source_label: string;
     integration: string | null;
     campaign: string | null;
     form_id: string | null;
+    intake_form_title: string | null;
+    intake_form_name: string | null;
     platform: string | null;
     external_id: string | null;
   } | null;
@@ -736,9 +739,12 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     attribution: row.attribution
       ? {
           source: row.attribution.source,
+          sourceLabel: row.attribution.source_label ?? row.attribution.source,
           integration: row.attribution.integration,
           campaign: row.attribution.campaign,
           formId: row.attribution.form_id,
+          intakeFormTitle: row.attribution.intake_form_title,
+          intakeFormName: row.attribution.intake_form_name,
           platform: row.attribution.platform,
           externalId: row.attribution.external_id,
         }

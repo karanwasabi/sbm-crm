@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
-import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
@@ -77,7 +76,6 @@ export function Customer360View({
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
       <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
       <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
-      {lead.attribution ? <LeadAttributionCard attribution={lead.attribution} /> : null}
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',
@@ -100,7 +98,12 @@ export function Customer360View({
             suggestions={lead.fieldSuggestions}
             onUpdated={refresh}
           />
-          <ProgramHistory items={programHistory} />
+          <ProgramHistory
+            items={programHistory}
+            interest={lead.interest}
+            batch={lead.batch}
+            attribution={lead.attribution}
+          />
         </div>
       </div>
       {callModalOpen ? (
