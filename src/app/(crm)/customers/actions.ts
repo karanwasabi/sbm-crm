@@ -4,7 +4,10 @@ import type { ContactOutcome } from '@/types/crm';
 import { contactOutcomeMarksLost } from '@/types/crm';
 import {
   ApiError,
+  applyLeadFieldSuggestion as applyLeadFieldSuggestionApi,
   createLeadContactEvent,
+  dismissLeadContactDuplicate,
+  dismissLeadFieldSuggestion as dismissLeadFieldSuggestionApi,
   getLeadPurgePreview,
   markLeadLost,
   purgeLead,
@@ -19,6 +22,45 @@ export async function updateLeadTagsAction(leadId: string, manualTags: string[])
     return { error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to update tags.';
+    return { error: message };
+  }
+}
+
+export async function dismissLeadContactDuplicateAction(
+  leadId: string,
+  linkId: number
+): Promise<{ error: string | null }> {
+  try {
+    await dismissLeadContactDuplicate(leadId, linkId);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to dismiss duplicate.';
+    return { error: message };
+  }
+}
+
+export async function applyLeadFieldSuggestion(
+  leadId: string,
+  suggestionId: number
+): Promise<{ error: string | null }> {
+  try {
+    await applyLeadFieldSuggestionApi(leadId, suggestionId);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to apply suggestion.';
+    return { error: message };
+  }
+}
+
+export async function dismissLeadFieldSuggestion(
+  leadId: string,
+  suggestionId: number
+): Promise<{ error: string | null }> {
+  try {
+    await dismissLeadFieldSuggestionApi(leadId, suggestionId);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to dismiss suggestion.';
     return { error: message };
   }
 }

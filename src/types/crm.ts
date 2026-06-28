@@ -55,6 +55,60 @@ export type CreateLeadInput = {
   notes?: string;
   manual_tags?: string[];
   dpdp_consent: boolean;
+  force_separate?: boolean;
+};
+
+export type FieldSuggestion = {
+  id: number;
+  field: 'name' | 'phone' | 'city' | 'country';
+  currentValue: string;
+  suggestedValue: string;
+  sourceLabel: string;
+  editable: boolean;
+  status: 'pending' | 'dismissed' | 'applied';
+  lastSeenAt: string;
+};
+
+export type ContactDuplicate = {
+  linkId: number;
+  otherLeadId: string;
+  otherLeadName: string;
+  otherLeadEmail: string;
+  otherLeadPhone: string;
+  otherLeadStage: LifecycleStage;
+  matchType: 'phone' | 'email';
+  matchValue: string;
+  isPayingMember: boolean;
+};
+
+export type IntakeFieldConflict = {
+  field: string;
+  currentValue: string;
+  intakeValue: string;
+  mergeAllowed: boolean;
+};
+
+export type IntakeMergeOptions = {
+  profileMergeAllowed: boolean;
+  allowedFields: string[];
+  attachInquiryOnly: boolean;
+  blockReason?: string;
+  targetIsPayingMember: boolean;
+};
+
+export type IntakeDuplicateCheckResult = {
+  matchFound: boolean;
+  matchType?: 'email' | 'phone';
+  existing?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    stage: LifecycleStage;
+    isPaying: boolean;
+  };
+  conflicts?: IntakeFieldConflict[];
+  mergeOptions?: IntakeMergeOptions;
 };
 
 export type TagSuggestion = {
@@ -91,6 +145,8 @@ export type LeadDetail = Lead & {
   canPurge: boolean;
   paymentPending: PaymentPending | null;
   attribution: LeadAttribution | null;
+  fieldSuggestions: FieldSuggestion[];
+  contactDuplicates: ContactDuplicate[];
   timeline: TimelineEvent[];
 };
 

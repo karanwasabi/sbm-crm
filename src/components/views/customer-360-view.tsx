@@ -6,6 +6,8 @@ import dynamic from 'next/dynamic';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
+import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
+import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
 import { PaymentPendingBanner } from '@/components/crm/payment-pending-banner';
@@ -72,6 +74,8 @@ export function Customer360View({
         onPurge={lead.canPurge ? () => setPurgeOpen(true) : undefined}
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
+      <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
+      <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />
       <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
       {lead.attribution ? <LeadAttributionCard attribution={lead.attribution} /> : null}
       <div

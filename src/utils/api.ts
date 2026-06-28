@@ -246,6 +246,27 @@ type ApiLeadResponse = {
     platform: string | null;
     external_id: string | null;
   } | null;
+  field_suggestions?: {
+    id: number;
+    field: 'name' | 'phone' | 'city' | 'country';
+    current_value: string;
+    suggested_value: string;
+    source_label: string;
+    editable: boolean;
+    status: 'pending' | 'dismissed' | 'applied';
+    last_seen_at: string;
+  }[];
+  contact_duplicates?: {
+    link_id: number;
+    other_lead_id: string;
+    other_lead_name: string;
+    other_lead_email: string;
+    other_lead_phone: string;
+    other_lead_stage: import('@/types/crm').LifecycleStage;
+    match_type: 'phone' | 'email';
+    match_value: string;
+    is_paying_member: boolean;
+  }[];
 };
 
 function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
@@ -290,6 +311,148 @@ export async function createLead(input: import('@/types/crm').CreateLeadInput): 
 
   const row = (await response.json()) as ApiLeadResponse;
   return mapLead(row);
+}
+
+export async function checkIntakeDuplicate(input: {
+  first_name: string;
+  last_name?: string;
+  email: string;
+  phone?: string;
+  country_code?: string;
+  city?: string;
+}): Promise<import('@/types/crm').IntakeDuplicateCheckResult> {
+  const response = await requireApiFetch('/admin/leads/intake/check-duplicate', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to check duplicate.', response.status);
+  }
+  const payload = (await response.json()) as {
+    match_found: boolean;
+    match_type?: 'email' | 'phone';
+    existing?: {
+      id: string;
+      name: string;
+      email: string;
+      phone: string;
+      stage: import('@/types/crm').LifecycleStage;
+      is_paying: boolean;
+    };
+    conflicts?: {
+      field: string;
+      current_value: string;
+      intake_value: string;
+      merge_allowed: boolean;
+    }[];
+    merge_options?: {
+      profile_merge_allowed: boolean;
+      allowed_fields: string[];
+      attach_inquiry_only: boolean;
+      block_reason?: string;
+      target_is_paying_member: boolean;
+    };
+  };
+  return {
+    matchFound: payload.match_found,
+    matchType: payload.match_type,
+    existing: payload.existing
+      ? {
+          id: payload.existing.id,
+          name: payload.existing.name,
+          email: payload.existing.email,
+          phone: payload.existing.phone,
+          stage: payload.existing.stage,
+          isPaying: payload.existing.is_paying,
+        }
+      : undefined,
+    conflicts: payload.conflicts?.map((c) => ({
+      field: c.field,
+      currentValue: c.current_value,
+      intakeValue: c.intake_value,
+      mergeAllowed: c.merge_allowed,
+    })),
+    mergeOptions: payload.merge_options
+      ? {
+          profileMergeAllowed: payload.merge_options.profile_merge_allowed,
+          allowedFields: payload.merge_options.allowed_fields,
+          attachInquiryOnly: payload.merge_options.attach_inquiry_only,
+          blockReason: payload.merge_options.block_reason,
+          targetIsPayingMember: payload.merge_options.target_is_paying_member,
+        }
+      : undefined,
+  };
+}
+
+export async function mergeIntakeLead(input: {
+  target_lead_id: string;
+  mode: 'profile' | 'attach_inquiry';
+  first_name: string;
+  last_name?: string;
+  email: string;
+  phone?: string;
+  country_code?: string;
+  city?: string;
+  manual_source: import('@/types/crm').ManualLeadSource;
+  manual_tags?: string[];
+  notes?: string;
+  apply_fields?: string[];
+}): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch('/admin/leads/intake/merge', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to merge lead.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export async function applyLeadFieldSuggestion(
+  leadId: string,
+  suggestionId: number
+): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/suggestions/${suggestionId}/apply`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to apply suggestion.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export async function dismissLeadFieldSuggestion(
+  leadId: string,
+  suggestionId: number
+): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/suggestions/${suggestionId}/dismiss`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to dismiss suggestion.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export async function dismissLeadContactDuplicate(
+  leadId: string,
+  linkId: number
+): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/contact-duplicates/${linkId}/dismiss`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to dismiss duplicate link.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }
 
 export async function listLeads(
@@ -350,6 +513,37 @@ export const getLeadSummary = cache(async (): Promise<import('@/types/crm').Lead
   };
 });
 
+function mapFieldSuggestions(
+  rows: NonNullable<ApiLeadResponse['field_suggestions']>
+): import('@/types/crm').FieldSuggestion[] {
+  return rows.map((row) => ({
+    id: row.id,
+    field: row.field,
+    currentValue: row.current_value,
+    suggestedValue: row.suggested_value,
+    sourceLabel: row.source_label,
+    editable: row.editable,
+    status: row.status,
+    lastSeenAt: row.last_seen_at,
+  }));
+}
+
+function mapContactDuplicates(
+  rows: NonNullable<ApiLeadResponse['contact_duplicates']>
+): import('@/types/crm').ContactDuplicate[] {
+  return rows.map((row) => ({
+    linkId: row.link_id,
+    otherLeadId: row.other_lead_id,
+    otherLeadName: row.other_lead_name,
+    otherLeadEmail: row.other_lead_email,
+    otherLeadPhone: row.other_lead_phone,
+    otherLeadStage: row.other_lead_stage,
+    matchType: row.match_type,
+    matchValue: row.match_value,
+    isPayingMember: row.is_paying_member,
+  }));
+}
+
 function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
   const base = mapLead(row);
   return {
@@ -377,6 +571,8 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
           externalId: row.attribution.external_id,
         }
       : null,
+    fieldSuggestions: row.field_suggestions ? mapFieldSuggestions(row.field_suggestions) : [],
+    contactDuplicates: row.contact_duplicates ? mapContactDuplicates(row.contact_duplicates) : [],
     timeline: row.timeline ?? [],
   };
 }

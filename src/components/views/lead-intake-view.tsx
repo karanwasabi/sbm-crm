@@ -3,7 +3,8 @@
 import { Globe, MessageCircle, Share2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { createManualLead } from '@/app/(crm)/leads/actions';
+import { createManualLead, checkManualLeadDuplicate, mergeManualLeadIntake } from '@/app/(crm)/leads/actions';
+import { DuplicateLeadMergeDialog } from '@/components/leads/duplicate-lead-merge-dialog';
 import { InboundLog } from '@/components/crm/inbound-log';
 import { IntegrationCard } from '@/components/crm/integration-card';
 import { LeadTagEditor } from '@/components/leads/lead-tag-editor';
@@ -23,7 +24,7 @@ import { isManualLeadSource } from '@/lib/lead-form';
 import { buildMetaIntegrationCard } from '@/lib/meta-integration';
 import { toTitleCase } from '@/lib/title-case';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
-import type { InboundLead, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
+import type { InboundLead, IntakeDuplicateCheckResult, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
 import type { Country } from '@/types/reference';
 
 const INTEGRATION_ICONS = {
@@ -60,6 +61,21 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
   const [form, setForm] = useState(EMPTY_FORM);
   const [phoneSyncToken, setPhoneSyncToken] = useState(0);
   const [tagError, setTagError] = useState<string | null>(null);
+  const [duplicateCheck, setDuplicateCheck] = useState<IntakeDuplicateCheckResult | null>(null);
+  const [duplicateDialogOpen, setDuplicateDialogOpen] = useState(false);
+
+  const formValues = {
+    firstName: form.firstName,
+    lastName: form.lastName,
+    email: form.email,
+    phone: form.phone,
+    countryCode: form.countryCode,
+    city: form.city,
+    manualSource: isManualLeadSource(form.manualSource) ? form.manualSource : ('' as const),
+    notes: form.notes,
+    manualTags: form.manualTags,
+    dpdpConsent: form.consent,
+  };
 
   const metaIntegration = buildMetaIntegrationCard(integrationStatus);
 
@@ -81,20 +97,26 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
     event.preventDefault();
     setError(null);
 
-    startTransition(async () => {
-      const result = await createManualLead({
-        firstName: form.firstName,
-        lastName: form.lastName,
-        email: form.email,
-        phone: form.phone,
-        countryCode: form.countryCode,
-        city: form.city,
-        manualSource: isManualLeadSource(form.manualSource) ? form.manualSource : '',
-        notes: form.notes,
-        manualTags: form.manualTags,
-        dpdpConsent: form.consent,
-      });
+    if (!isManualLeadSource(form.manualSource)) {
+      setError('Source is required.');
+      return;
+    }
 
+    startTransition(async () => {
+      const duplicateResult = await checkManualLeadDuplicate(formValues);
+      if (!duplicateResult.ok) {
+        setError(duplicateResult.error);
+        toast({ message: duplicateResult.error, variant: 'error' });
+        return;
+      }
+
+      if (duplicateResult.result.matchFound) {
+        setDuplicateCheck(duplicateResult.result);
+        setDuplicateDialogOpen(true);
+        return;
+      }
+
+      const result = await createManualLead(formValues);
       if (result.error) {
         setError(result.error);
         toast({ message: result.error, variant: 'error' });
@@ -102,6 +124,64 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
       }
 
       toast({ message: 'Lead saved', variant: 'success' });
+      resetForm();
+      router.refresh();
+    });
+  };
+
+  const handleMergeProfile = (applyFields: string[]) => {
+    if (!duplicateCheck?.existing) return;
+    startTransition(async () => {
+      const result = await mergeManualLeadIntake(formValues, duplicateCheck.existing!.id, 'profile', applyFields);
+      if (result.error) {
+        setError(result.error);
+        toast({ message: result.error, variant: 'error' });
+        return;
+      }
+      setDuplicateDialogOpen(false);
+      setDuplicateCheck(null);
+      toast({ message: 'Lead merged', variant: 'success' });
+      resetForm();
+      if (result.leadId) {
+        router.push(`/customers/${result.leadId}`);
+      } else {
+        router.refresh();
+      }
+    });
+  };
+
+  const handleAttachInquiry = () => {
+    if (!duplicateCheck?.existing) return;
+    startTransition(async () => {
+      const result = await mergeManualLeadIntake(formValues, duplicateCheck.existing!.id, 'attach_inquiry', []);
+      if (result.error) {
+        setError(result.error);
+        toast({ message: result.error, variant: 'error' });
+        return;
+      }
+      setDuplicateDialogOpen(false);
+      setDuplicateCheck(null);
+      toast({ message: 'Inquiry added to existing lead', variant: 'success' });
+      resetForm();
+      if (result.leadId) {
+        router.push(`/customers/${result.leadId}`);
+      } else {
+        router.refresh();
+      }
+    });
+  };
+
+  const handleCreateSeparate = () => {
+    startTransition(async () => {
+      const result = await createManualLead(formValues, { forceSeparate: true });
+      if (result.error) {
+        setError(result.error);
+        toast({ message: result.error, variant: 'error' });
+        return;
+      }
+      setDuplicateDialogOpen(false);
+      setDuplicateCheck(null);
+      toast({ message: 'Separate flagged lead created', variant: 'success' });
       resetForm();
       router.refresh();
     });
@@ -257,6 +337,18 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
           <InboundLog leads={inboundLeads} />
         </div>
       </div>
+      {duplicateCheck && isManualLeadSource(form.manualSource) ? (
+        <DuplicateLeadMergeDialog
+          open={duplicateDialogOpen}
+          checkResult={duplicateCheck}
+          form={{ ...formValues, manualSource: form.manualSource }}
+          onClose={() => setDuplicateDialogOpen(false)}
+          onMergeProfile={handleMergeProfile}
+          onAttachInquiry={handleAttachInquiry}
+          onCreateSeparate={handleCreateSeparate}
+          pending={pending}
+        />
+      ) : null}
     </CrmPageLayout>
   );
 }
