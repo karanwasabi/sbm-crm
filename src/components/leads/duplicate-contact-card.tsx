@@ -90,7 +90,7 @@ export function DuplicateContactCard({ lead, duplicates, onUpdated }: DuplicateC
                   </table>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href={`/customers/${dup.otherLeadId}`}>
+                  <Link href={`/customers/${dup.otherLeadId}`} target="_blank" rel="noopener noreferrer">
                     <Button type="button" size="sm" variant="light">
                       View other lead
                     </Button>

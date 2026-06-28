@@ -345,7 +345,7 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
           onClose={() => setDuplicateDialogOpen(false)}
           onMergeProfile={handleMergeProfile}
           onAttachInquiry={handleAttachInquiry}
-          onCreateSeparate={handleCreateSeparate}
+          onCreateSeparate={duplicateCheck.matchType === 'phone' ? handleCreateSeparate : undefined}
           pending={pending}
         />
       ) : null}

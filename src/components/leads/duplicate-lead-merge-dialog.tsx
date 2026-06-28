@@ -16,7 +16,7 @@ type DuplicateLeadMergeDialogProps = {
   onClose: () => void;
   onMergeProfile: (applyFields: string[]) => void;
   onAttachInquiry: () => void;
-  onCreateSeparate: () => void;
+  onCreateSeparate?: () => void;
   pending: boolean;
 };
 
@@ -78,7 +78,12 @@ export function DuplicateLeadMergeDialog({
     });
   };
 
-  const matchLabel = checkResult.matchType === 'phone' ? 'phone number' : 'email';
+  const isEmailMatch = checkResult.matchType === 'email';
+  const allowSeparateLead = checkResult.matchType === 'phone' && Boolean(onCreateSeparate);
+
+  const subtitle = isEmailMatch
+    ? 'This email is already on file. Review the existing lead and choose how to record this inquiry.'
+    : 'This phone number matches an existing lead. Review the record below and choose how to proceed.';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
@@ -86,9 +91,7 @@ export function DuplicateLeadMergeDialog({
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h3 className="text-lg font-bold text-slate-900">Lead already exists</h3>
-            <p className="mt-1 text-sm text-slate-600">
-              This {matchLabel} matches an existing lead. Choose how to proceed—you cannot save blindly.
-            </p>
+            <p className="mt-1 text-sm text-slate-600">{subtitle}</p>
           </div>
           <button
             type="button"
@@ -103,8 +106,11 @@ export function DuplicateLeadMergeDialog({
           <div className="mb-4 flex gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              <strong>This person has paid.</strong> Profile data cannot be changed from intake. Add the inquiry as a
-              note or create a separate flagged lead if this is a different person.
+              <strong>This person has paid.</strong> Profile details cannot be updated from intake. Please add this
+              inquiry as a note on their profile so the team can follow up.
+              {!isEmailMatch && allowSeparateLead
+                ? ' If you believe this is a different person sharing the same phone number, you may create a separate flagged lead.'
+                : null}
             </p>
           </div>
         ) : null}
@@ -118,7 +124,12 @@ export function DuplicateLeadMergeDialog({
             Stage: {LIFECYCLE_STAGES[existing.stage].label}
             {existing.isPaying ? ' · Paying member' : ''}
           </p>
-          <Link href={`/customers/${existing.id}`} className="mt-2 inline-block text-sm font-semibold text-indigo-600">
+          <Link
+            href={`/customers/${existing.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-block text-sm font-semibold text-indigo-600"
+          >
             Open Customer 360
           </Link>
         </div>
@@ -176,28 +187,30 @@ export function DuplicateLeadMergeDialog({
             </Button>
           ) : null}
 
-          {!confirmSeparate ? (
-            <Button type="button" variant="ghost" disabled={pending} onClick={() => setConfirmSeparate(true)}>
-              Create separate lead (flagged)
-            </Button>
-          ) : (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-              <p className="text-sm text-amber-950">
-                {existing.isPaying
-                  ? 'This phone/email is shared with a paying member. Only confirm if you are sure this is a different person.'
-                  : 'This will create a new lead flagged as a possible duplicate.'}
-              </p>
-              <Button
-                type="button"
-                className="mt-2 w-full"
-                variant="light"
-                disabled={pending}
-                onClick={onCreateSeparate}
-              >
-                Confirm create separate lead
+          {allowSeparateLead ? (
+            !confirmSeparate ? (
+              <Button type="button" variant="ghost" disabled={pending} onClick={() => setConfirmSeparate(true)}>
+                Create separate lead (flagged)
               </Button>
-            </div>
-          )}
+            ) : (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-sm text-amber-950">
+                  {existing.isPaying
+                    ? 'This phone number is shared with a paying member. Only continue if you are confident this is a different person.'
+                    : 'This will create a new lead flagged as a possible duplicate. The phone number will remain linked for review.'}
+                </p>
+                <Button
+                  type="button"
+                  className="mt-2 w-full"
+                  variant="light"
+                  disabled={pending}
+                  onClick={onCreateSeparate}
+                >
+                  Confirm create separate lead
+                </Button>
+              </div>
+            )
+          ) : null}
         </div>
       </div>
     </div>
