@@ -44,7 +44,7 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
 
 export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/': { title: 'Dashboard', subtitle: 'Reporting & performance overview' },
-  '/leads': { title: 'Lead Intake', subtitle: 'Capture and route inbound leads' },
+  '/leads': { title: 'Lead Intake', subtitle: 'Manual intake, public forms & Meta inbound' },
   '/database': { title: 'Lead Database' },
   '/programs': { title: 'Program Management', subtitle: 'Cohort queue, phases & members' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },

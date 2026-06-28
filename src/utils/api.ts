@@ -334,6 +334,97 @@ export async function createLead(input: import('@/types/crm').CreateLeadInput): 
   return mapLead(row);
 }
 
+type ApiIntakeFormResponse = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  form_tag: string;
+  extra_tags: string[];
+  show_country: boolean;
+  show_city: boolean;
+  show_notes: boolean;
+  status: 'active' | 'archived';
+  public_url: string;
+  created_at: string;
+  updated_at: string;
+  archived_at?: string | null;
+};
+
+function mapIntakeForm(row: ApiIntakeFormResponse): import('@/types/crm').IntakeForm {
+  return {
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    description: row.description ?? undefined,
+    formTag: row.form_tag,
+    extraTags: row.extra_tags ?? [],
+    showCountry: row.show_country,
+    showCity: row.show_city,
+    showNotes: row.show_notes,
+    status: row.status,
+    publicUrl: row.public_url,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+    archivedAt: row.archived_at ?? undefined,
+  };
+}
+
+export async function listIntakeForms(status?: 'active' | 'archived'): Promise<import('@/types/crm').IntakeForm[]> {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  const response = await requireApiFetch(`/admin/intake-forms${query}`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load intake forms.');
+  }
+  const rows = (await response.json()) as ApiIntakeFormResponse[];
+  return rows.map(mapIntakeForm);
+}
+
+export async function getIntakeForm(id: string): Promise<import('@/types/crm').IntakeForm> {
+  const response = await requireApiFetch(`/admin/intake-forms/${encodeURIComponent(id)}`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load intake form.');
+  }
+  return mapIntakeForm((await response.json()) as ApiIntakeFormResponse);
+}
+
+export async function createIntakeForm(
+  input: import('@/types/crm').UpsertIntakeFormInput
+): Promise<import('@/types/crm').IntakeForm> {
+  const response = await requireApiFetch('/admin/intake-forms', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to create intake form.');
+  }
+  return mapIntakeForm((await response.json()) as ApiIntakeFormResponse);
+}
+
+export async function updateIntakeForm(
+  id: string,
+  input: import('@/types/crm').UpsertIntakeFormInput
+): Promise<import('@/types/crm').IntakeForm> {
+  const response = await requireApiFetch(`/admin/intake-forms/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to update intake form.');
+  }
+  return mapIntakeForm((await response.json()) as ApiIntakeFormResponse);
+}
+
+export async function archiveIntakeForm(id: string): Promise<import('@/types/crm').IntakeForm> {
+  const response = await requireApiFetch(`/admin/intake-forms/${encodeURIComponent(id)}/archive`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to archive intake form.');
+  }
+  return mapIntakeForm((await response.json()) as ApiIntakeFormResponse);
+}
+
 export async function checkIntakeDuplicate(input: {
   first_name: string;
   last_name?: string;

@@ -1,7 +1,13 @@
 import { LeadIntakeView } from '@/components/views/lead-intake-view';
-import type { InboundLead, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
+import type { InboundLead, IntakeForm, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
 import type { Country } from '@/types/reference';
-import { fetchCountries, getMetaInboundLeads, getMetaIntegrationStatus, listTagSuggestions } from '@/utils/api';
+import {
+  fetchCountries,
+  getMetaInboundLeads,
+  getMetaIntegrationStatus,
+  listIntakeForms,
+  listTagSuggestions,
+} from '@/utils/api';
 
 const EMPTY_STATUS: MetaIntegrationStatus = {
   connected: false,
@@ -15,11 +21,14 @@ const EMPTY_STATUS: MetaIntegrationStatus = {
   metaLeads7d: 0,
 };
 
-export default async function LeadsPage() {
+export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ tab?: string; form?: string }> }) {
+  const { tab, form } = await searchParams;
+
   let countries: Country[] = [];
   let integrationStatus = EMPTY_STATUS;
   let inboundLeads: InboundLead[] = [];
   let tagSuggestions: TagSuggestion[] = [];
+  let intakeForms: IntakeForm[] = [];
 
   try {
     countries = await fetchCountries();
@@ -40,12 +49,21 @@ export default async function LeadsPage() {
     tagSuggestions = [];
   }
 
+  try {
+    intakeForms = await listIntakeForms();
+  } catch {
+    intakeForms = [];
+  }
+
   return (
     <LeadIntakeView
       countries={countries}
       integrationStatus={integrationStatus}
       inboundLeads={inboundLeads}
       tagSuggestions={tagSuggestions}
+      intakeForms={intakeForms}
+      initialTab={tab}
+      initialFormId={form}
     />
   );
 }

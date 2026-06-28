@@ -1,8 +1,23 @@
 'use server';
 
 import { buildLeadPayload, type LeadFormValues } from '@/lib/lead-form';
-import type { CreateLeadState, IntakeDuplicateCheckResult, MetaCSVImportResult } from '@/types/crm';
-import { ApiError, checkIntakeDuplicate, createLead, importMetaLeadsCSV, mergeIntakeLead } from '@/utils/api';
+import type {
+  CreateLeadState,
+  IntakeDuplicateCheckResult,
+  IntakeForm,
+  MetaCSVImportResult,
+  UpsertIntakeFormInput,
+} from '@/types/crm';
+import {
+  ApiError,
+  archiveIntakeForm,
+  checkIntakeDuplicate,
+  createIntakeForm,
+  createLead,
+  importMetaLeadsCSV,
+  mergeIntakeLead,
+  updateIntakeForm,
+} from '@/utils/api';
 
 export async function checkManualLeadDuplicate(
   values: LeadFormValues
@@ -85,4 +100,27 @@ export async function createManualLead(
 
 export async function importMetaLeadsCSVAction(file: File): Promise<MetaCSVImportResult> {
   return importMetaLeadsCSV(file);
+}
+
+export async function saveIntakeForm(
+  input: UpsertIntakeFormInput,
+  formId?: string
+): Promise<{ error: string | null; form?: IntakeForm }> {
+  try {
+    const form = formId ? await updateIntakeForm(formId, input) : await createIntakeForm(input);
+    return { error: null, form };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save intake form.';
+    return { error: message };
+  }
+}
+
+export async function archiveIntakeFormAction(formId: string): Promise<{ error: string | null; form?: IntakeForm }> {
+  try {
+    const form = await archiveIntakeForm(formId);
+    return { error: null, form };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to archive intake form.';
+    return { error: message };
+  }
 }
