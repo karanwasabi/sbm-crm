@@ -129,27 +129,6 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
     });
   };
 
-  const handleMergeProfile = (applyFields: string[]) => {
-    if (!duplicateCheck?.existing) return;
-    startTransition(async () => {
-      const result = await mergeManualLeadIntake(formValues, duplicateCheck.existing!.id, 'profile', applyFields);
-      if (result.error) {
-        setError(result.error);
-        toast({ message: result.error, variant: 'error' });
-        return;
-      }
-      setDuplicateDialogOpen(false);
-      setDuplicateCheck(null);
-      toast({ message: 'Lead merged', variant: 'success' });
-      resetForm();
-      if (result.leadId) {
-        router.push(`/customers/${result.leadId}`);
-      } else {
-        router.refresh();
-      }
-    });
-  };
-
   const handleAttachInquiry = () => {
     if (!duplicateCheck?.existing) return;
     startTransition(async () => {
@@ -341,9 +320,7 @@ export function LeadIntakeView({ countries, integrationStatus, inboundLeads, tag
         <DuplicateLeadMergeDialog
           open={duplicateDialogOpen}
           checkResult={duplicateCheck}
-          form={{ ...formValues, manualSource: form.manualSource }}
           onClose={() => setDuplicateDialogOpen(false)}
-          onMergeProfile={handleMergeProfile}
           onAttachInquiry={handleAttachInquiry}
           onCreateSeparate={duplicateCheck.matchType === 'phone' ? handleCreateSeparate : undefined}
           pending={pending}

@@ -2,19 +2,15 @@
 
 import Link from 'next/link';
 import { AlertTriangle, X } from 'lucide-react';
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
-import type { IntakeDuplicateCheckResult, ManualLeadSource } from '@/types/crm';
-import type { LeadFormValues } from '@/lib/lead-form';
+import type { IntakeDuplicateCheckResult } from '@/types/crm';
 
 type DuplicateLeadMergeDialogProps = {
   open: boolean;
   checkResult: IntakeDuplicateCheckResult;
-  form: LeadFormValues & { manualSource: ManualLeadSource };
   onClose: () => void;
-  onMergeProfile: (applyFields: string[]) => void;
   onAttachInquiry: () => void;
   onCreateSeparate?: () => void;
   pending: boolean;
@@ -31,9 +27,7 @@ const FIELD_LABELS: Record<string, string> = {
 export function DuplicateLeadMergeDialog({
   open,
   checkResult,
-  form,
   onClose,
-  onMergeProfile,
   onAttachInquiry,
   onCreateSeparate,
   pending,
@@ -41,49 +35,24 @@ export function DuplicateLeadMergeDialog({
   const mergeOptions = checkResult.mergeOptions;
   const existing = checkResult.existing;
   const conflicts = checkResult.conflicts ?? [];
-
-  const defaultSelected = useMemo(() => {
-    const selected = new Set<string>();
-    for (const conflict of conflicts) {
-      if (conflict.mergeAllowed) {
-        selected.add(conflict.field);
-      }
-    }
-    return selected;
-  }, [conflicts]);
-
-  const [selectedFields, setSelectedFields] = useState<Set<string>>(defaultSelected);
   const [confirmSeparate, setConfirmSeparate] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setSelectedFields(new Set(defaultSelected));
       setConfirmSeparate(false);
     }
-  }, [open, defaultSelected]);
+  }, [open]);
 
   if (!open || !existing || !mergeOptions) {
     return null;
   }
 
-  const toggleField = (field: string) => {
-    setSelectedFields((current) => {
-      const next = new Set(current);
-      if (next.has(field)) {
-        next.delete(field);
-      } else {
-        next.add(field);
-      }
-      return next;
-    });
-  };
-
   const isEmailMatch = checkResult.matchType === 'email';
   const allowSeparateLead = checkResult.matchType === 'phone' && Boolean(onCreateSeparate);
 
   const subtitle = isEmailMatch
-    ? 'This email is already on file. Review the existing lead and choose how to record this inquiry.'
-    : 'This phone number matches an existing lead. Review the record below and choose how to proceed.';
+    ? 'This email is already on file. Add this inquiry to the existing lead—profile updates can be reviewed in Customer 360.'
+    : 'This phone number matches an existing lead. Add this inquiry to their profile, or create a separate flagged lead if this is a different person.';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
@@ -106,8 +75,8 @@ export function DuplicateLeadMergeDialog({
           <div className="mb-4 flex gap-2 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-900">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              <strong>This person has paid.</strong> Profile details cannot be updated from intake. Please add this
-              inquiry as a note on their profile so the team can follow up.
+              <strong>This person has paid.</strong> Their profile cannot be changed from intake. This inquiry will be
+              recorded on their profile for follow-up.
               {!isEmailMatch && allowSeparateLead
                 ? ' If you believe this is a different person sharing the same phone number, you may create a separate flagged lead.'
                 : null}
@@ -134,58 +103,38 @@ export function DuplicateLeadMergeDialog({
           </Link>
         </div>
 
-        {conflicts.length > 0 && mergeOptions.profileMergeAllowed ? (
+        {conflicts.length > 0 ? (
           <div className="mb-4">
-            <p className="mb-2 text-sm font-semibold text-slate-800">Field differences</p>
+            <p className="mb-1 text-sm font-semibold text-slate-800">Differs from profile</p>
+            {!mergeOptions.targetIsPayingMember ? (
+              <p className="mb-2 text-xs text-slate-500">
+                These values will be saved with this inquiry. You can apply them to the profile later in Customer 360.
+              </p>
+            ) : null}
             <div className="flex flex-col gap-2">
               {conflicts.map((conflict) => (
-                <label
-                  key={conflict.field}
-                  className={`flex items-start gap-3 rounded-xl border p-3 ${conflict.mergeAllowed ? 'border-slate-200' : 'border-slate-100 bg-slate-50 opacity-80'}`}
-                >
-                  <Checkbox
-                    checked={selectedFields.has(conflict.field)}
-                    disabled={!conflict.mergeAllowed || pending}
-                    onChange={() => toggleField(conflict.field)}
-                  />
-                  <div className="min-w-0 flex-1 text-sm">
-                    <p className="font-semibold text-slate-800">{FIELD_LABELS[conflict.field] ?? conflict.field}</p>
-                    <p className="text-slate-600">
-                      Current: <span className="font-medium text-slate-800">{conflict.currentValue || '—'}</span>
-                    </p>
-                    <p className="text-slate-600">
-                      From entry: <span className="font-medium text-slate-800">{conflict.intakeValue || '—'}</span>
-                    </p>
-                    {!conflict.mergeAllowed ? (
-                      <p className="mt-1 text-xs text-slate-500">Cannot change this field for this lead stage.</p>
-                    ) : null}
+                <div key={conflict.field} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                  <p className="font-semibold text-slate-800">{FIELD_LABELS[conflict.field] ?? conflict.field}</p>
+                  <div className="mt-1.5 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    <div>
+                      <p className="text-xs text-slate-500">On profile</p>
+                      <p className="font-medium text-slate-800">{conflict.currentValue || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-500">This inquiry</p>
+                      <p className="font-medium text-slate-800">{conflict.intakeValue || '—'}</p>
+                    </div>
                   </div>
-                </label>
+                </div>
               ))}
             </div>
-            {mergeOptions.blockReason ? (
-              <p className="mt-2 text-xs text-slate-500">{mergeOptions.blockReason}</p>
-            ) : null}
           </div>
         ) : null}
 
         <div className="flex flex-col gap-2">
-          {mergeOptions.attachInquiryOnly || mergeOptions.targetIsPayingMember ? (
-            <Button type="button" disabled={pending} onClick={onAttachInquiry}>
-              Add inquiry to this {existing.isPaying ? 'member' : 'lead'}
-            </Button>
-          ) : null}
-
-          {mergeOptions.profileMergeAllowed ? (
-            <Button
-              type="button"
-              variant="light"
-              disabled={pending || selectedFields.size === 0}
-              onClick={() => onMergeProfile(Array.from(selectedFields))}
-            >
-              Merge selected fields into existing lead
-            </Button>
-          ) : null}
+          <Button type="button" disabled={pending} onClick={onAttachInquiry}>
+            Add inquiry to this {existing.isPaying ? 'member' : 'lead'}
+          </Button>
 
           {allowSeparateLead ? (
             !confirmSeparate ? (

@@ -63,7 +63,9 @@ export type FieldSuggestion = {
   field: 'name' | 'phone' | 'city' | 'country';
   currentValue: string;
   suggestedValue: string;
+  source: 'leadsync' | 'native_meta' | 'manual_intake' | 'phone_match';
   sourceLabel: string;
+  contactEventId?: number | null;
   editable: boolean;
   status: 'pending' | 'dismissed' | 'applied';
   lastSeenAt: string;
@@ -79,6 +81,26 @@ export type ContactDuplicate = {
   matchType: 'phone' | 'email';
   matchValue: string;
   isPayingMember: boolean;
+};
+
+export type ManualIntakeRecord = {
+  id: number;
+  recordedAt: string;
+  mode: 'attach_inquiry' | 'profile';
+  sourceLabel: string;
+  profileName?: string;
+  profileEmail?: string;
+  profilePhone?: string;
+  profileCity?: string;
+  profileCountry?: string;
+  nameEntered?: string;
+  emailEntered?: string;
+  phoneEntered?: string;
+  cityEntered?: string;
+  countryEntered?: string;
+  tagsAdded?: string[];
+  profileFieldsUpdated?: string[];
+  staffNotes?: string;
 };
 
 export type IntakeFieldConflict = {
@@ -147,6 +169,7 @@ export type LeadDetail = Lead & {
   attribution: LeadAttribution | null;
   fieldSuggestions: FieldSuggestion[];
   contactDuplicates: ContactDuplicate[];
+  manualIntakeRecords: ManualIntakeRecord[];
   timeline: TimelineEvent[];
 };
 

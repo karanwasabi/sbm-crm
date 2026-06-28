@@ -16,7 +16,7 @@ type ProgramHistoryProps = {
 
 export function ProgramHistory({ items }: ProgramHistoryProps) {
   return (
-    <Card padding="none">
+    <Card padding="none" className="w-full">
       <div className="p-5">
         <SectionHead title="Programs & payments" subtitle="Full enrollment history" />
       </div>

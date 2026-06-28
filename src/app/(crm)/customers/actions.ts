@@ -5,6 +5,8 @@ import { contactOutcomeMarksLost } from '@/types/crm';
 import {
   ApiError,
   applyLeadFieldSuggestion as applyLeadFieldSuggestionApi,
+  applyManualIntakeSnapshot as applyManualIntakeSnapshotApi,
+  applyManualIntakeSubmitted as applyManualIntakeSubmittedApi,
   createLeadContactEvent,
   dismissLeadContactDuplicate,
   dismissLeadFieldSuggestion as dismissLeadFieldSuggestionApi,
@@ -48,6 +50,34 @@ export async function applyLeadFieldSuggestion(
     return { error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to apply suggestion.';
+    return { error: message };
+  }
+}
+
+export async function applyManualIntakeSnapshot(
+  leadId: string,
+  eventId: number,
+  field: 'name' | 'phone' | 'city' | 'country'
+): Promise<{ error: string | null }> {
+  try {
+    await applyManualIntakeSnapshotApi(leadId, eventId, field);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to apply profile value.';
+    return { error: message };
+  }
+}
+
+export async function applyManualIntakeSubmitted(
+  leadId: string,
+  eventId: number,
+  field: 'name' | 'phone' | 'city' | 'country'
+): Promise<{ error: string | null }> {
+  try {
+    await applyManualIntakeSubmittedApi(leadId, eventId, field);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to apply inquiry value.';
     return { error: message };
   }
 }

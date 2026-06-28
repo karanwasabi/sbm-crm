@@ -98,9 +98,6 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge }: Prof
               <span className="inline-flex items-center gap-1.5">Source · {contact.manualSourceLabel}</span>
             )}
           </div>
-          {contact.notes && (
-            <p className="mt-3 max-w-2xl text-sm leading-relaxed whitespace-pre-line text-white/90">{contact.notes}</p>
-          )}
           {showMemberStats && (
             <div className="mt-3.5 inline-flex items-center gap-4.5 rounded-2xl border-b-2 border-black/22 bg-black/16 px-4.5 py-3">
               <div>

@@ -251,7 +251,9 @@ type ApiLeadResponse = {
     field: 'name' | 'phone' | 'city' | 'country';
     current_value: string;
     suggested_value: string;
+    source: import('@/types/crm').FieldSuggestion['source'];
     source_label: string;
+    contact_event_id?: number | null;
     editable: boolean;
     status: 'pending' | 'dismissed' | 'applied';
     last_seen_at: string;
@@ -266,6 +268,25 @@ type ApiLeadResponse = {
     match_type: 'phone' | 'email';
     match_value: string;
     is_paying_member: boolean;
+  }[];
+  manual_intake_records?: {
+    id: number;
+    recorded_at: string;
+    mode: 'attach_inquiry' | 'profile';
+    source_label: string;
+    profile_name?: string;
+    profile_email?: string;
+    profile_phone?: string;
+    profile_city?: string;
+    profile_country?: string;
+    name_entered?: string;
+    email_entered?: string;
+    phone_entered?: string;
+    city_entered?: string;
+    country_entered?: string;
+    tags_added?: string[];
+    profile_fields_updated?: string[];
+    staff_notes?: string;
   }[];
 };
 
@@ -425,6 +446,38 @@ export async function applyLeadFieldSuggestion(
   return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }
 
+export async function applyManualIntakeSnapshot(
+  leadId: string,
+  eventId: number,
+  field: 'name' | 'phone' | 'city' | 'country'
+): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/manual-intake/${eventId}/apply-snapshot`,
+    { method: 'POST', body: JSON.stringify({ field }) }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to apply profile value.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+export async function applyManualIntakeSubmitted(
+  leadId: string,
+  eventId: number,
+  field: 'name' | 'phone' | 'city' | 'country'
+): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/manual-intake/${eventId}/apply-submitted`,
+    { method: 'POST', body: JSON.stringify({ field }) }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to apply inquiry value.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
 export async function dismissLeadFieldSuggestion(
   leadId: string,
   suggestionId: number
@@ -521,7 +574,9 @@ function mapFieldSuggestions(
     field: row.field,
     currentValue: row.current_value,
     suggestedValue: row.suggested_value,
+    source: row.source,
     sourceLabel: row.source_label,
+    contactEventId: row.contact_event_id ?? null,
     editable: row.editable,
     status: row.status,
     lastSeenAt: row.last_seen_at,
@@ -541,6 +596,30 @@ function mapContactDuplicates(
     matchType: row.match_type,
     matchValue: row.match_value,
     isPayingMember: row.is_paying_member,
+  }));
+}
+
+function mapManualIntakeRecords(
+  rows: NonNullable<ApiLeadResponse['manual_intake_records']>
+): import('@/types/crm').ManualIntakeRecord[] {
+  return rows.map((row) => ({
+    id: row.id,
+    recordedAt: row.recorded_at,
+    mode: row.mode,
+    sourceLabel: row.source_label,
+    profileName: row.profile_name,
+    profileEmail: row.profile_email,
+    profilePhone: row.profile_phone,
+    profileCity: row.profile_city,
+    profileCountry: row.profile_country,
+    nameEntered: row.name_entered,
+    emailEntered: row.email_entered,
+    phoneEntered: row.phone_entered,
+    cityEntered: row.city_entered,
+    countryEntered: row.country_entered,
+    tagsAdded: row.tags_added,
+    profileFieldsUpdated: row.profile_fields_updated,
+    staffNotes: row.staff_notes,
   }));
 }
 
@@ -573,6 +652,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
       : null,
     fieldSuggestions: row.field_suggestions ? mapFieldSuggestions(row.field_suggestions) : [],
     contactDuplicates: row.contact_duplicates ? mapContactDuplicates(row.contact_duplicates) : [],
+    manualIntakeRecords: row.manual_intake_records ? mapManualIntakeRecords(row.manual_intake_records) : [],
     timeline: row.timeline ?? [],
   };
 }

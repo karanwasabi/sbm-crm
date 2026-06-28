@@ -9,6 +9,7 @@ import { LeadAttributionCard } from '@/components/leads/lead-attribution-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
+import { ManualIntakeRecordsCard } from '@/components/crm/manual-intake-records-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
 import { PaymentPendingBanner } from '@/components/crm/payment-pending-banner';
 import { ProfileHeader } from '@/components/crm/profile-header';
@@ -75,17 +76,32 @@ export function Customer360View({
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
       <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
-      <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />
       <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
       {lead.attribution ? <LeadAttributionCard attribution={lead.attribution} /> : null}
       <div
         className={cn(
-          'grid grid-cols-1 gap-4 xl:grid-cols-[1fr_1fr]',
+          'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',
           isRefreshing && 'pointer-events-none opacity-60'
         )}
       >
         <ActivityTimeline events={lead.timeline} />
-        <ProgramHistory items={programHistory} />
+        <div className="flex w-full flex-col items-start gap-4">
+          <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />
+          <ManualIntakeRecordsCard
+            leadId={lead.id}
+            profile={{
+              name: lead.name,
+              phone: lead.phone,
+              city: lead.city,
+              countryCode: lead.countryCode,
+              stage: lead.stage,
+            }}
+            records={lead.manualIntakeRecords}
+            suggestions={lead.fieldSuggestions}
+            onUpdated={refresh}
+          />
+          <ProgramHistory items={programHistory} />
+        </div>
       </div>
       {callModalOpen ? (
         <CallLogModal
