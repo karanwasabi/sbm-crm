@@ -12,7 +12,9 @@ export const forgotPasswordMessages = {
 
 export const resetPasswordMessages = {
   title: 'Choose a new password',
+  inviteTitle: 'Set your password',
   subtitle: 'Enter a new password for your account.',
+  inviteSubtitle: 'Create a password to join the team and access the CRM.',
   passwordRequired: 'Please enter a new password.',
   passwordTooShort: 'Use at least 8 characters.',
   confirmRequired: 'Please confirm your password.',

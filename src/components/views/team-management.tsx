@@ -76,7 +76,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
       const normalizedEmail = email.trim().toLowerCase();
 
       try {
-        await createStaffAction({
+        const result = await createStaffAction({
           first_name: normalizedFirstName,
           last_name: normalizedLastName,
           email: normalizedEmail,
@@ -87,7 +87,10 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         setEmail('');
         setAdmin(true);
         setCoach(true);
-        toast({ message: `Invite sent to ${normalizedEmail}`, variant: 'success' });
+        toast({
+          message: result.promoted ? `${normalizedEmail} promoted to staff` : `Invite sent to ${normalizedEmail}`,
+          variant: 'success',
+        });
         router.refresh();
       } catch (createError) {
         toast({
@@ -107,7 +110,10 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
     <>
       <div className="flex flex-col gap-4">
         <Card>
-          <SectionHead title="Add staff member" />
+          <SectionHead
+            title="Add staff member"
+            subtitle="Staff automatically get member portal access. Assign Admin and/or Coach for CRM access."
+          />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)_auto]">
             <Field label="First name">
               <TextInput

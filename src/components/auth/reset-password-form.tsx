@@ -27,12 +27,35 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [errorFields, setErrorFields] = useState<ResetPasswordField[]>([]);
   const [success, setSuccess] = useState(false);
+  const [isInviteFlow, setIsInviteFlow] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
 
     const establishRecoverySession = async () => {
-      const code = new URLSearchParams(window.location.search).get('code');
+      const searchParams = new URLSearchParams(window.location.search);
+      const code = searchParams.get('code');
+      const tokenHash = searchParams.get('token_hash');
+      const type = searchParams.get('type');
+
+      if (tokenHash && (type === 'invite' || type === 'recovery')) {
+        setIsInviteFlow(type === 'invite');
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: type === 'invite' ? 'invite' : 'recovery',
+        });
+
+        if (verifyError) {
+          setError(resetPasswordMessages.invalidLink);
+          setIsCheckingSession(false);
+          return;
+        }
+
+        window.history.replaceState(null, '', window.location.pathname);
+        setIsReady(true);
+        setIsCheckingSession(false);
+        return;
+      }
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -41,6 +64,10 @@ export function ResetPasswordForm() {
           setError(resetPasswordMessages.invalidLink);
           setIsCheckingSession(false);
           return;
+        }
+
+        if (type === 'invite') {
+          setIsInviteFlow(true);
         }
 
         window.history.replaceState(null, '', window.location.pathname);
@@ -89,7 +116,7 @@ export function ResetPasswordForm() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
         setIsReady(true);
         setIsCheckingSession(false);
         setError(null);
@@ -210,9 +237,11 @@ export function ResetPasswordForm() {
         <SbmWordmark size="lg" />
       </div>
 
-      <h1 className="text-lg font-bold tracking-tight text-slate-800">{resetPasswordMessages.title}</h1>
+      <h1 className="text-lg font-bold tracking-tight text-slate-800">
+        {isInviteFlow ? resetPasswordMessages.inviteTitle : resetPasswordMessages.title}
+      </h1>
       <p className="mt-1.5 mb-5 text-[13px] leading-snug font-medium text-slate-500">
-        {resetPasswordMessages.subtitle}
+        {isInviteFlow ? resetPasswordMessages.inviteSubtitle : resetPasswordMessages.subtitle}
       </p>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">

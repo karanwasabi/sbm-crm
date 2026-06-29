@@ -98,6 +98,7 @@ export type StaffMember = {
   first_name: string | null;
   last_name: string | null;
   roles: StaffAccessRole[];
+  promoted?: boolean;
 };
 
 export type StaffList = {
