@@ -1,7 +1,10 @@
+import { Suspense } from 'react';
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
-import { parseLeadDatabaseFilters } from '@/lib/lead-database-url';
-import { getLeadFilterOptions, getLeadSummary, listLeads, listTagSuggestions } from '@/utils/api';
-import type { LeadFilterOptions, LeadListResult, LeadSummary } from '@/types/crm';
+import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
+import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
+import { getLeadFilterOptions, getLeadSummary, listTagSuggestions } from '@/utils/api';
+import type { LeadFilterOptions, LeadSummary } from '@/types/crm';
+import { LeadDatabaseTableLoader } from './lead-database-table-loader';
 
 const EMPTY_SUMMARY: LeadSummary = {
   total: 0,
@@ -17,14 +20,6 @@ const EMPTY_SUMMARY: LeadSummary = {
   },
 };
 
-const EMPTY_LIST: LeadListResult = {
-  items: [],
-  total: 0,
-  page: 1,
-  pageSize: 50,
-  totalPages: 0,
-};
-
 const EMPTY_FILTER_OPTIONS: LeadFilterOptions = {
   programs: [],
   batches: [],
@@ -38,24 +33,17 @@ export default async function DatabasePage({
 }) {
   const params = await searchParams;
   const filters = parseLeadDatabaseFilters(params);
+  const suspenseKey = buildLeadDatabaseHref(filters);
 
-  let listResult = EMPTY_LIST;
   let summary = EMPTY_SUMMARY;
   let filterOptions = EMPTY_FILTER_OPTIONS;
   let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
-  let loadError: string | null = null;
 
   try {
-    [listResult, summary, filterOptions] = await Promise.all([
-      listLeads(filters),
-      getLeadSummary(),
-      getLeadFilterOptions(),
-    ]);
-  } catch (error) {
-    listResult = EMPTY_LIST;
+    [summary, filterOptions] = await Promise.all([getLeadSummary(), getLeadFilterOptions()]);
+  } catch {
     summary = EMPTY_SUMMARY;
     filterOptions = EMPTY_FILTER_OPTIONS;
-    loadError = error instanceof Error ? error.message : 'Failed to load leads.';
   }
 
   try {
@@ -65,13 +53,10 @@ export default async function DatabasePage({
   }
 
   return (
-    <LeadDatabaseView
-      listResult={listResult}
-      summary={summary}
-      filters={filters}
-      filterOptions={filterOptions}
-      loadError={loadError}
-      tagSuggestions={tagSuggestions}
-    />
+    <LeadDatabaseView filters={filters} summary={summary} filterOptions={filterOptions} tagSuggestions={tagSuggestions}>
+      <Suspense key={suspenseKey} fallback={<LeadDatabaseTableFallback />}>
+        <LeadDatabaseTableLoader filters={filters} summary={summary} />
+      </Suspense>
+    </LeadDatabaseView>
   );
 }

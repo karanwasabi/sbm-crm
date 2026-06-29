@@ -141,14 +141,3 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   const query = params.toString();
   return query ? `/database?${query}` : '/database';
 }
-
-export function countActiveLeadDatabaseFilters(filters: LeadDatabaseFilters): number {
-  let count = 0;
-  if (filters.programs.length > 0) count++;
-  if (filters.batches.length > 0) count++;
-  if (filters.geography.length > 0) count++;
-  if (filters.addedFrom || filters.addedTo) count++;
-  if (filters.updatedFrom || filters.updatedTo) count++;
-  if (filters.sort !== 'created_at' || filters.order !== 'desc') count++;
-  return count;
-}

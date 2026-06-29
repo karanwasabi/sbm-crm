@@ -6,7 +6,7 @@ import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/cn';
+import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagFilterMode, TagSuggestion } from '@/types/crm';
@@ -47,22 +47,13 @@ export function TagFilterPopover({ filters, suggestions }: TagFilterPopoverProps
         }
       }}
     >
-      <PopoverTrigger
-        type="button"
-        className={cn(
-          'inline-flex cursor-pointer items-center justify-center gap-2 border-x-0 border-t-0 border-b-[3px] font-semibold transition-all duration-100 outline-none',
-          'rounded-2xl px-4 py-2.25 text-xs',
-          filters.tags.length > 0
-            ? 'border-b-brand-press bg-brand text-white shadow-brand'
-            : 'border-b-slate-200 bg-white text-brand shadow-sm'
-        )}
-      >
+      <PopoverTrigger type="button" className={filterPopoverTriggerClass(filters.tags.length > 0)}>
         <Tag className="h-3.5 w-3.5" />
         Tags{filters.tags.length > 0 ? ` (${filters.tags.length})` : ''}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by tags</p>
-        <p className="mt-1 text-xs text-slate-500">Select one or more tags. Slugs are stored in the URL.</p>
+        <p className="mt-1 text-xs text-slate-500">Select one or more tags.</p>
 
         <div className="mt-3 flex gap-2">
           <button
@@ -92,8 +83,8 @@ export function TagFilterPopover({ filters, suggestions }: TagFilterPopoverProps
               <button
                 key={item.slug}
                 type="button"
-                className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm ${
-                  selected ? 'bg-brand/10 text-brand' : 'text-slate-700 hover:bg-slate-50'
+                className={`flex w-full rounded-xl px-3 py-2 text-left text-sm ${
+                  selected ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
                 }`}
                 onClick={() =>
                   setDraftTags((current) =>
@@ -101,8 +92,7 @@ export function TagFilterPopover({ filters, suggestions }: TagFilterPopoverProps
                   )
                 }
               >
-                <span>{item.label}</span>
-                <span className="text-[10px] text-slate-400">{item.slug}</span>
+                {item.label}
               </button>
             );
           })}

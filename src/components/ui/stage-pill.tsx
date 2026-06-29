@@ -13,12 +13,12 @@ export function StagePill({ stage, className }: StagePillProps) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold tracking-[0.1em] uppercase',
+        'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase',
         className
       )}
       style={{ background: config.tint, color: config.color }}
     >
-      <span className="h-1.5 w-1.5 rounded-full" style={{ background: config.color }} />
+      <span className="h-1 w-1 shrink-0 rounded-full" style={{ background: config.color }} />
       {config.label}
     </span>
   );

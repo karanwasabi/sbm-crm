@@ -16,6 +16,13 @@ export function leadDatabaseSubtitle(total: number): string {
   return `${total.toLocaleString('en-IN')} leads`;
 }
 
+export function leadDatabaseRangeLabel(total: number, page: number, pageSize: number): string {
+  if (total === 0) return 'Showing 0 of 0';
+  const start = (page - 1) * pageSize + 1;
+  const end = Math.min(page * pageSize, total);
+  return `Showing ${start.toLocaleString('en-IN')}–${end.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')}`;
+}
+
 export function manualSourceLabel(source: import('@/types/crm').ManualLeadSource): string {
   return leadSourceLabel(source);
 }
@@ -76,17 +83,15 @@ export function formatLeadAddedAt(iso: string): string {
 export function formatLeadTimestamp(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  const datePart = date.toLocaleDateString('en-IN', {
-    month: 'short',
-    day: 'numeric',
-    year: '2-digit',
-  });
-  const timePart = date
-    .toLocaleTimeString('en-IN', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    })
-    .toLowerCase();
-  return `${datePart}, ${timePart}`;
+
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = String(date.getFullYear()).slice(-2);
+  const hours24 = date.getHours();
+  const hours12 = hours24 % 12 || 12;
+  const hour = String(hours12).padStart(2, '0');
+  const minute = String(date.getMinutes()).padStart(2, '0');
+  const ampm = hours24 < 12 ? 'am' : 'pm';
+
+  return `${day}/${month}/${year} ${hour}:${minute} ${ampm}`;
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { cn } from '@/lib/cn';
+import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 
 type MarketingFilterPopoverProps = {
@@ -38,18 +38,9 @@ export function MarketingFilterPopover({ filters }: MarketingFilterPopoverProps)
         if (next) setDraftStatus(filters.marketing);
       }}
     >
-      <PopoverTrigger
-        type="button"
-        className={cn(
-          'inline-flex cursor-pointer items-center justify-center gap-2 border-x-0 border-t-0 border-b-[3px] font-semibold transition-all duration-100 outline-none',
-          'rounded-2xl px-4 py-2.25 text-xs',
-          isFiltered
-            ? 'border-b-brand-press bg-brand text-white shadow-brand'
-            : 'border-b-slate-200 bg-white text-brand shadow-sm'
-        )}
-      >
+      <PopoverTrigger type="button" className={filterPopoverTriggerClass(isFiltered)}>
         <Megaphone className="h-3.5 w-3.5" />
-        Marketing{isFiltered ? ' · 1' : ''}
+        Marketing{isFiltered ? ' (1)' : ''}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by marketing contact</p>

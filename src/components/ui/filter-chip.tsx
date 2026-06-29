@@ -30,7 +30,7 @@ function FilterChipInner({ children, count, pending }: Pick<FilterChipProps, 'ch
 
 const chipClassName = (active?: boolean) =>
   cn(
-    'inline-flex cursor-pointer items-center gap-2 rounded-full px-3.5 py-1.75 text-xs font-semibold transition-colors',
+    'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 py-1.75 text-xs font-semibold transition-colors',
     active
       ? 'border-b-[3px] border-b-brand-press bg-brand text-white'
       : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'

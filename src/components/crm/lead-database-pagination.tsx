@@ -56,10 +56,3 @@ export function LeadDatabasePagination({ filters, total, page, pageSize, totalPa
     </div>
   );
 }
-
-export function leadDatabaseRangeLabel(total: number, page: number, pageSize: number): string {
-  if (total === 0) return 'Showing 0 of 0';
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, total);
-  return `Showing ${start.toLocaleString('en-IN')}–${end.toLocaleString('en-IN')} of ${total.toLocaleString('en-IN')}`;
-}

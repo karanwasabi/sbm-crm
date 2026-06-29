@@ -82,7 +82,7 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
   if (chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand/15 bg-brand/5 px-3 py-2">
       {chips.map((chip) => (
         <Link key={chip.key} href={chip.href} className="no-underline">
           <ActiveFilterTag label={chip.label} value={chip.value} onDismiss={() => undefined} />

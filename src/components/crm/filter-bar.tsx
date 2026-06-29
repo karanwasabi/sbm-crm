@@ -1,18 +1,15 @@
 'use client';
 
-import { Filter } from 'lucide-react';
+import { CalendarClock, CalendarPlus, Globe, GraduationCap, Layers } from 'lucide-react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
+import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-date-range-popover';
+import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-multi-select-popover';
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
 import { TagFilterPopover } from '@/components/crm/tag-filter-popover';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
-import {
-  buildLeadDatabaseHref,
-  countActiveLeadDatabaseFilters,
-  type LeadDatabaseFilters,
-} from '@/lib/lead-database-url';
-import type { TagSuggestion } from '@/types/crm';
-import { cn } from '@/lib/cn';
+import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
 
 export type StageFilterOption = {
   id: string;
@@ -23,45 +20,58 @@ export type StageFilterOption = {
 type FilterBarProps = {
   filters: LeadDatabaseFilters;
   stageOptions: StageFilterOption[];
+  filterOptions: LeadFilterOptions;
   tagSuggestions: TagSuggestion[];
-  onOpenFilters: () => void;
 };
 
-export function FilterBar({ filters, stageOptions, tagSuggestions, onOpenFilters }: FilterBarProps) {
-  const advancedCount = countActiveLeadDatabaseFilters(filters);
-
+export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions }: FilterBarProps) {
   return (
-    <Card padding="sm" className="space-y-3 p-4">
-      <LeadDatabaseSearch filters={filters} />
+    <Card padding="none" className="overflow-hidden">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
+        <LeadDatabaseSearch filters={filters} className="w-full max-w-96 flex-1" />
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <MarketingFilterPopover filters={filters} />
+          <LeadDatabaseMultiSelectPopover
+            label="Program"
+            icon={GraduationCap}
+            field="programs"
+            filters={filters}
+            options={filterOptions.programs}
+          />
+          <LeadDatabaseMultiSelectPopover
+            label="Batch"
+            icon={Layers}
+            field="batches"
+            filters={filters}
+            options={filterOptions.batches}
+          />
+          <LeadDatabaseMultiSelectPopover
+            label="Geography"
+            icon={Globe}
+            field="geography"
+            filters={filters}
+            options={filterOptions.geography}
+          />
+          <TagFilterPopover filters={filters} suggestions={tagSuggestions} />
+          <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
+          <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
+        </div>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
-        {stageOptions.map((stage) => (
-          <FilterChip
-            key={stage.id}
-            href={buildLeadDatabaseHref(filters, { stage: stage.id })}
-            active={filters.stage === stage.id}
-            count={stage.count}
-          >
-            {stage.label}
-          </FilterChip>
-        ))}
-        <div className="flex-1" />
-        <MarketingFilterPopover filters={filters} />
-        <TagFilterPopover filters={filters} suggestions={tagSuggestions} />
-        <button
-          type="button"
-          onClick={onOpenFilters}
-          className={cn(
-            'inline-flex cursor-pointer items-center justify-center gap-2 border-x-0 border-t-0 border-b-[3px] font-semibold transition-all duration-100 outline-none',
-            'rounded-2xl px-4 py-2.25 text-xs',
-            advancedCount > 0
-              ? 'border-b-brand-press bg-brand text-white shadow-brand'
-              : 'border-b-slate-200 bg-white text-brand shadow-sm'
-          )}
-        >
-          <Filter className="h-3.5 w-3.5" />
-          Filters{advancedCount > 0 ? ` (${advancedCount})` : ''}
-        </button>
+      <div className="flex items-center gap-3 bg-white px-4 py-2.5">
+        <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Stage</span>
+        <div className="-mx-1 flex min-w-0 flex-1 [scrollbar-width:thin] items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
+          {stageOptions.map((stage) => (
+            <FilterChip
+              key={stage.id}
+              href={buildLeadDatabaseHref(filters, { stage: stage.id })}
+              active={filters.stage === stage.id}
+              count={stage.count}
+            >
+              {stage.label}
+            </FilterChip>
+          ))}
+        </div>
       </div>
     </Card>
   );
