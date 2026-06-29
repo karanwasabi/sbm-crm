@@ -1561,8 +1561,10 @@ export type EmailTemplate = {
 
 export type MarketingContactsSummary = {
   used: number;
+  activeSubscribers: number;
   limit: number;
   percentUsed: number;
+  source: 'resend' | 'local';
 };
 
 function mapEmailTemplate(row: {
@@ -1719,13 +1721,17 @@ export const getMarketingContactsSummary = cache(async (): Promise<MarketingCont
   }
   const payload = (await response.json()) as {
     used: number;
+    active_subscribers: number;
     limit: number;
     percent_used: number;
+    source: 'resend' | 'local';
   };
   return {
     used: payload.used,
+    activeSubscribers: payload.active_subscribers,
     limit: payload.limit,
     percentUsed: payload.percent_used,
+    source: payload.source,
   };
 });
 

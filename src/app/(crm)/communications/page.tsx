@@ -12,7 +12,9 @@ export default async function CommunicationsPage() {
   const templates = templatesResult.status === 'fulfilled' ? templatesResult.value : [];
   const automations = automationsResult.status === 'fulfilled' ? automationsResult.value : [];
   const marketingSummary =
-    marketingResult.status === 'fulfilled' ? marketingResult.value : { used: 0, limit: 1000, percentUsed: 0 };
+    marketingResult.status === 'fulfilled'
+      ? marketingResult.value
+      : { used: 0, activeSubscribers: 0, limit: 1000, percentUsed: 0, source: 'local' as const };
   const analytics = analyticsResult.status === 'fulfilled' ? analyticsResult.value : null;
 
   return (

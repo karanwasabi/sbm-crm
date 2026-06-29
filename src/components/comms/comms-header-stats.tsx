@@ -32,9 +32,9 @@ export function CommsHeaderStats({
 
   const items: KpiStripItem[] = [
     {
-      label: 'Marketing contacts',
+      label: 'Resend contacts',
       value: marketingSummary.used.toLocaleString('en-IN'),
-      sub: `${Math.round(pct)}% of plan · ${marketingSummary.limit.toLocaleString('en-IN')} cap`,
+      sub: `${marketingSummary.activeSubscribers.toLocaleString('en-IN')} subscribed · ${Math.round(pct)}% of ${marketingSummary.limit.toLocaleString('en-IN')} cap`,
       accent: marketingAccent(pct),
       icon: Users,
     },
