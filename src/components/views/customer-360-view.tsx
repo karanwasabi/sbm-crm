@@ -16,6 +16,7 @@ import { ProgramHistory } from '@/components/crm/program-history';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
+import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
 import type { EmailTemplate } from '@/utils/api';
 import type { LeadDetail, ProgramHistoryItem, TagSuggestion } from '@/types/crm';
@@ -45,12 +46,13 @@ export function Customer360View({
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
+  const displayTimezone = useDisplayTimezone();
 
   useEffect(() => {
     setLead(initialLead);
   }, [initialLead]);
 
-  const contact = leadDetailToContactProfile(lead);
+  const contact = leadDetailToContactProfile(lead, displayTimezone);
 
   useEffect(() => {
     setContactName(contact.name);

@@ -393,6 +393,7 @@ export type TimelineEvent = {
   title: string;
   body?: string;
   meta: string;
+  occurredAt?: string;
   color: string;
 };
 

@@ -238,7 +238,15 @@ type ApiLeadResponse = {
     cohort_name: string;
     amount_paise: number;
   } | null;
-  timeline?: import('@/types/crm').TimelineEvent[];
+  timeline?: {
+    id: string;
+    kind: 'op' | 'comms';
+    title: string;
+    body?: string;
+    meta: string;
+    occurred_at?: string;
+    color: string;
+  }[];
   attribution?: {
     source: string;
     source_label: string;
@@ -761,6 +769,18 @@ function mapManualIntakeRecords(
   }));
 }
 
+function mapTimelineEvents(rows: NonNullable<ApiLeadResponse['timeline']>): import('@/types/crm').TimelineEvent[] {
+  return rows.map((row) => ({
+    id: row.id,
+    kind: row.kind,
+    title: row.title,
+    body: row.body,
+    meta: row.meta,
+    occurredAt: row.occurred_at,
+    color: row.color,
+  }));
+}
+
 function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
   const base = mapLead(row);
   return {
@@ -794,7 +814,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     fieldSuggestions: row.field_suggestions ? mapFieldSuggestions(row.field_suggestions) : [],
     contactDuplicates: row.contact_duplicates ? mapContactDuplicates(row.contact_duplicates) : [],
     manualIntakeRecords: row.manual_intake_records ? mapManualIntakeRecords(row.manual_intake_records) : [],
-    timeline: row.timeline ?? [],
+    timeline: row.timeline ? mapTimelineEvents(row.timeline) : [],
   };
 }
 

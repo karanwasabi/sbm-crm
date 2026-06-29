@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react';
 import { Calendar, Globe, Mail, Phone, Star } from 'lucide-react';
+import { formatActivityTimestamp } from '@/lib/datetime-display';
+import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
 import { ProfileOverflowMenu } from '@/components/crm/profile-overflow-menu';
 import { Avatar } from '@/components/ui/avatar';
@@ -32,18 +34,19 @@ function HeaderMetaPill({ children, className, title }: { children: ReactNode; c
   );
 }
 
-function marketingContactTitle(contact: ContactProfile): string | undefined {
+function marketingContactTitle(contact: ContactProfile, timezone: string): string | undefined {
   const parts: string[] = ['Resend marketing audience'];
   if (contact.marketingContactSyncedAt) {
-    parts.push(`Synced ${new Date(contact.marketingContactSyncedAt).toLocaleString('en-IN')}`);
+    parts.push(`Synced ${formatActivityTimestamp(contact.marketingContactSyncedAt, timezone)}`);
   }
   if (contact.marketingUnsubscribedAt) {
-    parts.push(`Unsubscribed ${new Date(contact.marketingUnsubscribedAt).toLocaleString('en-IN')}`);
+    parts.push(`Unsubscribed ${formatActivityTimestamp(contact.marketingUnsubscribedAt, timezone)}`);
   }
   return parts.length > 1 ? parts.join(' · ') : parts[0];
 }
 
 export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge }: ProfileHeaderProps) {
+  const displayTimezone = useDisplayTimezone();
   const showMemberStats = contact.isMember && contact.clv != null;
 
   return (
@@ -57,7 +60,7 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge }: Prof
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-[26px] font-extrabold tracking-tight">{contact.name}</h2>
             <StagePill stage={contact.stage} className="tracking-wide normal-case" />
-            <HeaderMetaPill title={marketingContactTitle(contact)}>
+            <HeaderMetaPill title={marketingContactTitle(contact, displayTimezone)}>
               Marketing:{' '}
               {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
             </HeaderMetaPill>

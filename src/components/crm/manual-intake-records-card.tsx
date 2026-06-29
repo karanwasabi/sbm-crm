@@ -8,6 +8,8 @@ import {
 } from '@/app/(crm)/customers/actions';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
+import { formatActivityTimestamp } from '@/lib/datetime-display';
+import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
 import type { FieldSuggestion, LifecycleStage, ManualIntakeRecord } from '@/types/crm';
 
@@ -35,18 +37,6 @@ type MatrixRow = {
   original: string;
   inquiries: string[];
 };
-
-function formatRecordedAt(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleString('en-IN', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
 
 function modeLabel(mode: ManualIntakeRecord['mode']): string {
   return mode === 'profile' ? 'Merged into profile' : 'Inquiry linked';
@@ -219,7 +209,7 @@ function ValueCell({
   );
 }
 
-function InquiryFootnote({ record, index }: { record: ManualIntakeRecord; index: number }) {
+function InquiryFootnote({ record, index, timezone }: { record: ManualIntakeRecord; index: number; timezone: string }) {
   const extras = [
     record.emailEntered ? { label: 'Email', value: record.emailEntered } : null,
     record.tagsAdded?.length ? { label: 'Tags', value: record.tagsAdded.join(', ') } : null,
@@ -235,7 +225,7 @@ function InquiryFootnote({ record, index }: { record: ManualIntakeRecord; index:
         Inquiry {index + 1} · {record.sourceLabel}
       </p>
       <p className="mt-0.5 text-[11px] text-slate-500">
-        {modeLabel(record.mode)} · {formatRecordedAt(record.recordedAt)}
+        {modeLabel(record.mode)} · {formatActivityTimestamp(record.recordedAt, timezone)}
       </p>
       {extras.length > 0 ? (
         <dl className="mt-2 flex flex-col gap-1">
@@ -259,6 +249,7 @@ export function ManualIntakeRecordsCard({
   onUpdated,
 }: ManualIntakeRecordsCardProps) {
   const [pending, startTransition] = useTransition();
+  const displayTimezone = useDisplayTimezone();
 
   const manualSuggestions = useMemo(() => suggestions.filter((s) => s.source === 'manual_intake'), [suggestions]);
 
@@ -353,7 +344,7 @@ export function ManualIntakeRecordsCard({
                   <th key={record.id} className="pr-3 pb-2 font-bold">
                     <span className="block">Inquiry {index + 1}</span>
                     <span className="mt-0.5 block text-[9px] font-medium tracking-normal text-slate-400 normal-case">
-                      {formatRecordedAt(record.recordedAt)}
+                      {formatActivityTimestamp(record.recordedAt, displayTimezone)}
                     </span>
                   </th>
                 ))}
@@ -403,7 +394,7 @@ export function ManualIntakeRecordsCard({
 
       <div className="mt-4 flex flex-col gap-2">
         {chronologicalRecords.map((record, index) => (
-          <InquiryFootnote key={record.id} record={record} index={index} />
+          <InquiryFootnote key={record.id} record={record} index={index} timezone={displayTimezone} />
         ))}
       </div>
     </Card>

@@ -1,4 +1,5 @@
 import { leadSourceLabel } from '@/lib/lead-sources';
+import { formatLeadTimestamp as formatLeadTimestampInTimezone } from '@/lib/datetime-display';
 import type { LifecycleStage, LeadSummary } from '@/types/crm';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 
@@ -36,7 +37,8 @@ export function initialsFromName(firstName: string, lastName: string, email: str
 }
 
 export function leadDetailToContactProfile(
-  lead: import('@/types/crm').LeadDetail
+  lead: import('@/types/crm').LeadDetail,
+  timezoneId?: string | null
 ): import('@/types/crm').ContactProfile {
   return {
     id: lead.id,
@@ -45,7 +47,7 @@ export function leadDetailToContactProfile(
     email: lead.email,
     phone: lead.phone,
     location: lead.location || '—',
-    joinedAt: formatLeadAddedAt(lead.addedAt),
+    joinedAt: formatLeadAddedAt(lead.addedAt, timezoneId),
     stage: lead.stage,
     batch: lead.batch,
     tags: lead.tags,
@@ -76,22 +78,10 @@ export function buildStageFilterOptions(summary: LeadSummary) {
   return stages;
 }
 
-export function formatLeadAddedAt(iso: string): string {
-  return formatLeadTimestamp(iso);
+export function formatLeadAddedAt(iso: string, timezoneId?: string | null): string {
+  return formatLeadTimestamp(iso, timezoneId);
 }
 
-export function formatLeadTimestamp(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = String(date.getFullYear()).slice(-2);
-  const hours24 = date.getHours();
-  const hours12 = hours24 % 12 || 12;
-  const hour = String(hours12).padStart(2, '0');
-  const minute = String(date.getMinutes()).padStart(2, '0');
-  const ampm = hours24 < 12 ? 'am' : 'pm';
-
-  return `${day}/${month}/${year} ${hour}:${minute} ${ampm}`;
+export function formatLeadTimestamp(iso: string, timezoneId?: string | null): string {
+  return formatLeadTimestampInTimezone(iso, timezoneId);
 }

@@ -1,12 +1,26 @@
+'use client';
+
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
+import { formatActivityTimestamp } from '@/lib/datetime-display';
+import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { TIMELINE_KIND_LABELS, type TimelineEvent } from '@/types/crm';
 
 type ActivityTimelineProps = {
   events: TimelineEvent[];
 };
 
+function formatTimelineMeta(event: TimelineEvent, timezone: string): string {
+  if (event.occurredAt) {
+    const timestamp = formatActivityTimestamp(event.occurredAt, timezone);
+    return event.meta ? `${timestamp} · ${event.meta}` : timestamp;
+  }
+  return event.meta;
+}
+
 export function ActivityTimeline({ events }: ActivityTimelineProps) {
+  const timezone = useDisplayTimezone();
+
   return (
     <Card>
       <SectionHead title="Activity timeline" subtitle="Newest first" />
@@ -30,7 +44,7 @@ export function ActivityTimeline({ events }: ActivityTimelineProps) {
                 </span>
               </div>
               {event.body && <p className="mt-0.5 text-[12.5px] whitespace-pre-line text-slate-600">{event.body}</p>}
-              <p className="mt-1 text-[11px] text-slate-400">{event.meta}</p>
+              <p className="mt-1 text-[11px] text-slate-400">{formatTimelineMeta(event, timezone)}</p>
             </div>
           </div>
         ))}

@@ -1,3 +1,4 @@
+import { LeadTimestamp } from '@/components/crm/lead-timestamp';
 import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
 import { LeadDatabasePagination } from '@/components/crm/lead-database-pagination';
 import { SortableHeader } from '@/components/crm/lead-database-sortable-header';
@@ -14,7 +15,7 @@ import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { StagePill } from '@/components/ui/stage-pill';
 import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
-import { formatLeadTimestamp, leadDatabaseRangeLabel } from '@/lib/lead-display';
+import { leadDatabaseRangeLabel } from '@/lib/lead-display';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { Lead, LeadListResult, LeadSummary } from '@/types/crm';
 
@@ -133,10 +134,10 @@ function LeadRow({ lead }: { lead: Lead }) {
         </div>
       </DataTableCell>
       <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600">
-        {formatLeadTimestamp(lead.addedAt)}
+        <LeadTimestamp iso={lead.addedAt} />
       </DataTableCell>
       <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600">
-        {formatLeadTimestamp(lead.updatedAt)}
+        <LeadTimestamp iso={lead.updatedAt} />
       </DataTableCell>
       <DataTableCell className="text-right">
         <CrmTableLink
