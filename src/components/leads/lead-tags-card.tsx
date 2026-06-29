@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { updateLeadTagsAction } from '@/app/(crm)/customers/actions';
 import { LeadTagEditor } from '@/components/leads/lead-tag-editor';
 import { Card } from '@/components/ui/card';
@@ -18,13 +18,28 @@ export function LeadTagsCard({ lead, suggestions }: LeadTagsCardProps) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [optimisticManualTags, setOptimisticManualTags] = useState<string[] | null>(null);
 
   const systemTags = useMemo(() => lead.systemTags, [lead.systemTags]);
+  const displayManualTags = optimisticManualTags ?? lead.manualTags;
+
+  const pendingAddSlugs = useMemo(() => {
+    if (!pending || !optimisticManualTags) return [];
+    return optimisticManualTags.filter((slug) => !lead.manualTags.includes(slug));
+  }, [pending, optimisticManualTags, lead.manualTags]);
+
+  useEffect(() => {
+    if (optimisticManualTags && !pending) {
+      setOptimisticManualTags(null);
+    }
+  }, [lead.manualTags, optimisticManualTags, pending]);
 
   const persistTags = (nextManualTags: string[], successMessage: string) => {
+    setOptimisticManualTags(nextManualTags);
     startTransition(async () => {
       const result = await updateLeadTagsAction(lead.id, nextManualTags);
       if (result.error) {
+        setOptimisticManualTags(null);
         setError(result.error);
         toast({ message: result.error, variant: 'error' });
         return;
@@ -41,9 +56,11 @@ export function LeadTagsCard({ lead, suggestions }: LeadTagsCardProps) {
 
       <LeadTagEditor
         systemTags={systemTags}
-        manualTags={lead.manualTags}
+        manualTags={displayManualTags}
         suggestions={suggestions}
         disabled={pending}
+        saving={pending && pendingAddSlugs.length > 0}
+        skeletonSlugs={pendingAddSlugs}
         onError={setError}
         onManualTagsChange={(next) => {
           const added = next.length > lead.manualTags.length;

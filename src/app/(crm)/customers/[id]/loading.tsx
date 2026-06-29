@@ -3,11 +3,13 @@ import { DetailHeroSkeleton } from '@/components/loading/detail-hero-skeleton';
 import { TableSkeleton } from '@/components/loading/table-skeleton';
 import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { Skeleton } from '@/components/loading/skeleton';
+import { LeadTagsCardSkeleton } from '@/components/leads/lead-tags-card-skeleton';
 
 export default function CustomerDetailLoading() {
   return (
     <CrmPageSkeleton>
       <DetailHeroSkeleton />
+      <LeadTagsCardSkeleton />
       <div className="grid gap-4 lg:grid-cols-2">
         <CardSkeleton padding="sm">
           <Skeleton className="mb-3 h-4 w-28" />

@@ -2,10 +2,15 @@
 
 import { Lock, Plus, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { Skeleton } from '@/components/loading/skeleton';
 import { cn } from '@/lib/cn';
 import { filterAndRankBySearch } from '@/lib/search-match';
 import { tagSlugToLabel, toTagSlug } from '@/lib/lead-tags';
 import type { TagSuggestion } from '@/types/crm';
+
+export function TagChipSkeleton({ className }: { className?: string }) {
+  return <Skeleton className={cn('h-7 w-20 rounded-full', className)} />;
+}
 
 export function TagChip({
   label,
@@ -54,6 +59,8 @@ type LeadTagEditorProps = {
   disabled?: boolean;
   bordered?: boolean;
   onError?: (message: string | null) => void;
+  skeletonSlugs?: string[];
+  saving?: boolean;
 };
 
 export function LeadTagEditor({
@@ -64,6 +71,8 @@ export function LeadTagEditor({
   disabled = false,
   bordered = false,
   onError,
+  skeletonSlugs = [],
+  saving = false,
 }: LeadTagEditorProps) {
   const listboxId = useId();
   const [draft, setDraft] = useState('');
@@ -137,72 +146,80 @@ export function LeadTagEditor({
         <TagChip key={`system-${slug}`} label={suggestionLabels.get(slug) ?? tagSlugToLabel(slug)} locked />
       ))}
 
-      {manualTags.map((slug) => (
-        <TagChip
-          key={`manual-${slug}`}
-          label={suggestionLabels.get(slug) ?? tagSlugToLabel(slug)}
-          onRemove={() => removeTag(slug)}
-          disabled={disabled}
-        />
-      ))}
+      {manualTags.map((slug) =>
+        skeletonSlugs.includes(slug) ? (
+          <TagChipSkeleton key={`manual-skel-${slug}`} />
+        ) : (
+          <TagChip
+            key={`manual-${slug}`}
+            label={suggestionLabels.get(slug) ?? tagSlugToLabel(slug)}
+            onRemove={() => removeTag(slug)}
+            disabled={disabled}
+          />
+        )
+      )}
 
       <div ref={rootRef} className="relative inline-block w-28 shrink-0 sm:w-32">
-        <div
-          className={cn(
-            'flex items-center gap-1.5 rounded-full border border-dashed border-slate-200 px-2.5 py-1 transition-colors',
-            'focus-within:border-brand/35 focus-within:bg-brand/3',
-            showMenu && 'border-brand/35 bg-brand/3',
-            disabled && 'opacity-50'
-          )}
-        >
-          <Plus className="h-3 w-3 shrink-0 text-slate-400" aria-hidden />
-          <input
-            value={draft}
-            onChange={(event) => {
-              setDraft(event.target.value);
-              setOpen(true);
-              onError?.(null);
-            }}
-            onFocus={() => setOpen(true)}
-            onKeyDown={(event) => {
-              if (event.key === 'ArrowDown') {
-                event.preventDefault();
-                if (filteredSuggestions.length > 0) {
-                  setOpen(true);
-                  setActiveIndex((index) => (index + 1) % filteredSuggestions.length);
-                }
-                return;
-              }
-              if (event.key === 'ArrowUp') {
-                event.preventDefault();
-                if (filteredSuggestions.length > 0) {
-                  setOpen(true);
-                  setActiveIndex((index) => (index - 1 + filteredSuggestions.length) % filteredSuggestions.length);
-                }
-                return;
-              }
-              if (event.key === 'Escape') {
-                setOpen(false);
-                return;
-              }
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                if (showMenu && filteredSuggestions[activeIndex]) {
-                  addTagBySlug(filteredSuggestions[activeIndex].slug);
+        {saving ? (
+          <TagChipSkeleton className="w-28 sm:w-32" />
+        ) : (
+          <div
+            className={cn(
+              'flex items-center gap-1.5 rounded-full border border-dashed border-slate-200 px-2.5 py-1 transition-colors',
+              'focus-within:border-brand/35 focus-within:bg-brand/3',
+              showMenu && 'border-brand/35 bg-brand/3',
+              disabled && 'opacity-50'
+            )}
+          >
+            <Plus className="h-3 w-3 shrink-0 text-slate-400" aria-hidden />
+            <input
+              value={draft}
+              onChange={(event) => {
+                setDraft(event.target.value);
+                setOpen(true);
+                onError?.(null);
+              }}
+              onFocus={() => setOpen(true)}
+              onKeyDown={(event) => {
+                if (event.key === 'ArrowDown') {
+                  event.preventDefault();
+                  if (filteredSuggestions.length > 0) {
+                    setOpen(true);
+                    setActiveIndex((index) => (index + 1) % filteredSuggestions.length);
+                  }
                   return;
                 }
-                addTagFromInput();
-              }
-            }}
-            placeholder="Add tag…"
-            disabled={disabled}
-            role="combobox"
-            aria-expanded={showMenu}
-            aria-autocomplete="list"
-            aria-controls={listboxId}
-            className="w-full min-w-0 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
-          />
-        </div>
+                if (event.key === 'ArrowUp') {
+                  event.preventDefault();
+                  if (filteredSuggestions.length > 0) {
+                    setOpen(true);
+                    setActiveIndex((index) => (index - 1 + filteredSuggestions.length) % filteredSuggestions.length);
+                  }
+                  return;
+                }
+                if (event.key === 'Escape') {
+                  setOpen(false);
+                  return;
+                }
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  if (showMenu && filteredSuggestions[activeIndex]) {
+                    addTagBySlug(filteredSuggestions[activeIndex].slug);
+                    return;
+                  }
+                  addTagFromInput();
+                }
+              }}
+              placeholder="Add tag…"
+              disabled={disabled}
+              role="combobox"
+              aria-expanded={showMenu}
+              aria-autocomplete="list"
+              aria-controls={listboxId}
+              className="w-full min-w-0 bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </div>
+        )}
 
         {showMenu ? (
           <div
