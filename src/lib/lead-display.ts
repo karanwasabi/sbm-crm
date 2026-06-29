@@ -1,3 +1,4 @@
+import { leadSourceLabel } from '@/lib/lead-sources';
 import type { LifecycleStage, LeadSummary } from '@/types/crm';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 
@@ -15,16 +16,8 @@ export function leadDatabaseSubtitle(total: number): string {
   return `${total.toLocaleString('en-IN')} leads`;
 }
 
-const MANUAL_SOURCE_LABELS: Record<import('@/types/crm').ManualLeadSource, string> = {
-  walk_in: 'Walk-in',
-  event_booth: 'Event booth',
-  phone_enquiry: 'Phone enquiry',
-  referral: 'Referral',
-  other: 'Other',
-};
-
 export function manualSourceLabel(source: import('@/types/crm').ManualLeadSource): string {
-  return MANUAL_SOURCE_LABELS[source] ?? source;
+  return leadSourceLabel(source);
 }
 
 export function initialsFromName(firstName: string, lastName: string, email: string): string {

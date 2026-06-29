@@ -1,17 +1,15 @@
+import { leadSourceLabel } from '@/lib/lead-sources';
 import type { LeadAttribution } from '@/types/crm';
 
 export function attributionSourceLabel(attribution: LeadAttribution): string {
+  const fromSlug = leadSourceLabel(attribution.source);
+  if (fromSlug && fromSlug !== attribution.source) {
+    return fromSlug;
+  }
   if (attribution.sourceLabel.trim()) {
-    return attribution.sourceLabel;
+    return attribution.sourceLabel.trim();
   }
-  switch (attribution.source) {
-    case 'lead_intake_form':
-      return 'Lead intake form';
-    case 'meta':
-      return 'Meta Lead Ads';
-    default:
-      return attribution.source || 'Unknown';
-  }
+  return fromSlug || 'Unknown';
 }
 
 export function attributionFormLabel(attribution: LeadAttribution): string | null {

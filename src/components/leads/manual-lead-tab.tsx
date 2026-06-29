@@ -156,7 +156,7 @@ export function ManualLeadTab({ countries, tagSuggestions }: ManualLeadTabProps)
   return (
     <>
       <Card className="max-w-4xl overflow-visible">
-        <SectionHead title="Manual lead entry" subtitle="Offline events, walk-ins, referrals" />
+        <SectionHead title="Manual lead entry" subtitle="Record offline and inbound leads with a source" />
         <Eyebrow className="mb-3">New lead</Eyebrow>
         <form className="flex flex-col gap-3.5" onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">

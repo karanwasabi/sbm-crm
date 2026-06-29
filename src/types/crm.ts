@@ -2,14 +2,16 @@ export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'newbie' | '
 
 export type LeadMedium = 'paid' | 'organic' | 'offline';
 
-export type ManualLeadSource = 'walk_in' | 'event_booth' | 'phone_enquiry' | 'referral' | 'other';
+export type ManualLeadSource = 'cr_handle' | 'meta' | 'quad' | 'referral' | 'interest_form' | 'old_students' | 'other';
 
 export const MANUAL_LEAD_SOURCE_OPTIONS: { value: ManualLeadSource; label: string }[] = [
-  { value: 'walk_in', label: 'Walk-in' },
-  { value: 'event_booth', label: 'Event booth' },
-  { value: 'phone_enquiry', label: 'Phone enquiry' },
-  { value: 'referral', label: 'Referral' },
-  { value: 'other', label: 'Other' },
+  { value: 'cr_handle', label: 'CR Handle Leads' },
+  { value: 'meta', label: 'Meta Leads' },
+  { value: 'quad', label: 'Quad Leads' },
+  { value: 'referral', label: 'Referral Leads' },
+  { value: 'interest_form', label: 'Interest Form Leads' },
+  { value: 'old_students', label: 'Old Students' },
+  { value: 'other', label: 'Other Leads' },
 ];
 
 export type Lead = {
