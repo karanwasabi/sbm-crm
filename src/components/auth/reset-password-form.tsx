@@ -40,6 +40,7 @@ export function ResetPasswordForm() {
 
       if (tokenHash && (type === 'invite' || type === 'recovery')) {
         setIsInviteFlow(type === 'invite');
+        await supabase.auth.signOut();
         const { error: verifyError } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
           type: type === 'invite' ? 'invite' : 'recovery',

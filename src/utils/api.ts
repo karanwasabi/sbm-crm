@@ -119,6 +119,7 @@ export type CreateStaffInput = {
   last_name?: string;
   email: string;
   roles: StaffAccessRole[];
+  invite_redirect_to?: string;
 };
 
 export async function createStaff(input: CreateStaffInput): Promise<StaffMember> {
