@@ -223,6 +223,7 @@ type ApiLeadResponse = {
   enriched: boolean;
   dedup: boolean;
   added_at: string;
+  updated_at?: string;
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus;
   marketing_contact_synced_at?: string | null;
   marketing_unsubscribed_at?: string | null;
@@ -316,6 +317,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     enriched: row.enriched,
     dedup: row.dedup,
     addedAt: row.added_at,
+    updatedAt: row.updated_at ?? row.added_at,
     marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
     marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
@@ -605,26 +607,66 @@ export async function dismissLeadContactDuplicate(
 }
 
 export async function listLeads(
-  stage?: string,
-  marketingContactStatus?: string,
-  options?: { tags?: string[]; tagMode?: import('@/types/crm').TagFilterMode }
-): Promise<import('@/types/crm').Lead[]> {
+  filters: import('@/lib/lead-database-url').LeadDatabaseFilters
+): Promise<import('@/types/crm').LeadListResult> {
   const params = new URLSearchParams();
-  if (stage && stage !== 'all') params.set('stage', stage);
-  if (marketingContactStatus && marketingContactStatus !== 'all') {
-    params.set('marketing_contact_status', marketingContactStatus);
+  if (filters.stage && filters.stage !== 'all') params.set('stage', filters.stage);
+  if (filters.marketing && filters.marketing !== 'all') {
+    params.set('marketing_contact_status', filters.marketing);
   }
-  if (options?.tags?.length) {
-    params.set('tags', options.tags.join(','));
-    if (options.tagMode === 'or') params.set('tag_mode', 'or');
+  if (filters.tags.length > 0) {
+    params.set('tags', filters.tags.join(','));
+    if (filters.tagMode === 'or') params.set('tag_mode', 'or');
   }
+  if (filters.q) params.set('q', filters.q);
+  if (filters.programs.length > 0) params.set('programs', filters.programs.join(','));
+  if (filters.batches.length > 0) params.set('batches', filters.batches.join(','));
+  if (filters.geography.length > 0) params.set('geography', filters.geography.join(','));
+  if (filters.addedFrom) params.set('added_from', filters.addedFrom);
+  if (filters.addedTo) params.set('added_to', filters.addedTo);
+  if (filters.updatedFrom) params.set('updated_from', filters.updatedFrom);
+  if (filters.updatedTo) params.set('updated_to', filters.updatedTo);
+  if (filters.sort !== 'created_at') params.set('sort', filters.sort);
+  if (filters.order !== 'desc') params.set('order', filters.order);
+  if (filters.page > 1) params.set('page', String(filters.page));
+  if (filters.pageSize !== 50) params.set('page_size', String(filters.pageSize));
+
   const query = params.toString() ? `?${params.toString()}` : '';
   const response = await requireApiFetch(`/admin/leads${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load leads.', response.status);
   }
-  const rows = (await response.json()) as ApiLeadResponse[];
-  return rows.map(mapLead);
+  const payload = (await response.json()) as {
+    items: ApiLeadResponse[];
+    total: number;
+    page: number;
+    page_size: number;
+    total_pages: number;
+  };
+  return {
+    items: payload.items.map(mapLead),
+    total: payload.total,
+    page: payload.page,
+    pageSize: payload.page_size,
+    totalPages: payload.total_pages,
+  };
+}
+
+export async function getLeadFilterOptions(): Promise<import('@/types/crm').LeadFilterOptions> {
+  const response = await requireApiFetch('/admin/leads/filter-options');
+  if (!response.ok) {
+    throw new ApiError('Failed to load lead filter options.', response.status);
+  }
+  const payload = (await response.json()) as {
+    programs: { value: string; count: number }[];
+    batches: { value: string; count: number }[];
+    geography: { value: string; count: number }[];
+  };
+  return {
+    programs: payload.programs ?? [],
+    batches: payload.batches ?? [],
+    geography: payload.geography ?? [],
+  };
 }
 
 export async function listTagSuggestions(): Promise<import('@/types/crm').TagSuggestion[]> {

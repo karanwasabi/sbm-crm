@@ -34,6 +34,7 @@ export type Lead = {
   enriched: boolean;
   dedup: boolean;
   addedAt: string;
+  updatedAt: string;
   marketingContactStatus: import('@/types/crm').MarketingContactStatus;
   marketingContactSyncedAt?: string | null;
   marketingUnsubscribedAt?: string | null;
@@ -42,6 +43,25 @@ export type Lead = {
 export type LeadSummary = {
   total: number;
   byStage: Record<LifecycleStage, number>;
+};
+
+export type LeadFilterOption = {
+  value: string;
+  count: number;
+};
+
+export type LeadFilterOptions = {
+  programs: LeadFilterOption[];
+  batches: LeadFilterOption[];
+  geography: LeadFilterOption[];
+};
+
+export type LeadListResult = {
+  items: Lead[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 export type MarketingContactStatus = 'not_applicable' | 'no_consent' | 'eligible' | 'active' | 'unsubscribed';

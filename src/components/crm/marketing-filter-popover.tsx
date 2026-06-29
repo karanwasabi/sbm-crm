@@ -6,36 +6,27 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/cn';
-import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS } from '@/lib/lead-database-url';
-import type { TagFilterMode } from '@/types/crm';
+import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 
 type MarketingFilterPopoverProps = {
-  activeStage: string;
-  activeMarketingStatus: string;
-  activeTags: string[];
-  activeTagMode: TagFilterMode;
+  filters: LeadDatabaseFilters;
 };
 
-export function MarketingFilterPopover({
-  activeStage,
-  activeMarketingStatus,
-  activeTags,
-  activeTagMode,
-}: MarketingFilterPopoverProps) {
+export function MarketingFilterPopover({ filters }: MarketingFilterPopoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [draftStatus, setDraftStatus] = useState(activeMarketingStatus);
+  const [draftStatus, setDraftStatus] = useState(filters.marketing);
 
-  const isFiltered = activeMarketingStatus !== 'all';
+  const isFiltered = filters.marketing !== 'all';
 
   const apply = () => {
-    router.push(buildLeadDatabaseHref(activeStage, draftStatus, activeTags, activeTagMode));
+    router.push(buildLeadDatabaseHref(filters, { marketing: draftStatus }));
     setOpen(false);
   };
 
   const clear = () => {
     setDraftStatus('all');
-    router.push(buildLeadDatabaseHref(activeStage, 'all', activeTags, activeTagMode));
+    router.push(buildLeadDatabaseHref(filters, { marketing: 'all' }));
     setOpen(false);
   };
 
@@ -44,7 +35,7 @@ export function MarketingFilterPopover({
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) setDraftStatus(activeMarketingStatus);
+        if (next) setDraftStatus(filters.marketing);
       }}
     >
       <PopoverTrigger
@@ -58,36 +49,29 @@ export function MarketingFilterPopover({
         )}
       >
         <Megaphone className="h-3.5 w-3.5" />
-        Marketing{isFiltered ? ' (1)' : ''}
+        Marketing{isFiltered ? ' · 1' : ''}
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-4" align="end">
+      <PopoverContent className="w-72 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by marketing contact</p>
-        <p className="mt-1 text-xs text-slate-500">Email marketing eligibility and subscription status.</p>
-
-        <div className="mt-3 max-h-56 space-y-1 overflow-y-auto">
-          {MARKETING_FILTER_OPTIONS.map((option) => {
-            const selected = draftStatus === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                className={cn(
-                  'flex w-full items-center rounded-xl px-3 py-2 text-left text-sm',
-                  selected ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
-                )}
-                onClick={() => setDraftStatus(option.id)}
-              >
-                {option.label}
-              </button>
-            );
-          })}
+        <div className="mt-3 space-y-1">
+          {MARKETING_FILTER_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={`flex w-full rounded-xl px-3 py-2 text-left text-sm ${
+                draftStatus === option.id ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
+              }`}
+              onClick={() => setDraftStatus(option.id)}
+            >
+              {option.label}
+            </button>
+          ))}
         </div>
-
         <div className="mt-4 flex items-center gap-2">
           <Button variant="primary" size="sm" onClick={apply}>
             Apply
           </Button>
-          {isFiltered || draftStatus !== 'all' ? (
+          {isFiltered ? (
             <Button variant="light" size="sm" leftIcon={<X className="h-3.5 w-3.5" />} onClick={clear}>
               Clear
             </Button>

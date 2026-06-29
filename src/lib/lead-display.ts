@@ -70,7 +70,23 @@ export function buildStageFilterOptions(summary: LeadSummary) {
 }
 
 export function formatLeadAddedAt(iso: string): string {
+  return formatLeadTimestamp(iso);
+}
+
+export function formatLeadTimestamp(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+  const datePart = date.toLocaleDateString('en-IN', {
+    month: 'short',
+    day: 'numeric',
+    year: '2-digit',
+  });
+  const timePart = date
+    .toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .toLowerCase();
+  return `${datePart}, ${timePart}`;
 }

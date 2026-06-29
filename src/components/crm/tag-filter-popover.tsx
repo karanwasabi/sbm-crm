@@ -7,41 +7,32 @@ import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/cn';
-import { buildLeadDatabaseHref } from '@/lib/lead-database-url';
+import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagFilterMode, TagSuggestion } from '@/types/crm';
 
 type TagFilterPopoverProps = {
-  activeStage: string;
-  activeMarketingStatus: string;
-  activeTags: string[];
-  activeTagMode: TagFilterMode;
+  filters: LeadDatabaseFilters;
   suggestions: TagSuggestion[];
 };
 
-export function TagFilterPopover({
-  activeStage,
-  activeMarketingStatus,
-  activeTags,
-  activeTagMode,
-  suggestions,
-}: TagFilterPopoverProps) {
+export function TagFilterPopover({ filters, suggestions }: TagFilterPopoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [draftTags, setDraftTags] = useState<string[]>(activeTags);
-  const [draftMode, setDraftMode] = useState<TagFilterMode>(activeTagMode);
+  const [draftTags, setDraftTags] = useState<string[]>(filters.tags);
+  const [draftMode, setDraftMode] = useState<TagFilterMode>(filters.tagMode);
 
   const suggestionMap = useMemo(() => new Map(suggestions.map((item) => [item.slug, item])), [suggestions]);
 
   const apply = () => {
-    router.push(buildLeadDatabaseHref(activeStage, activeMarketingStatus, draftTags, draftMode));
+    router.push(buildLeadDatabaseHref(filters, { tags: draftTags, tagMode: draftMode }));
     setOpen(false);
   };
 
   const clear = () => {
     setDraftTags([]);
     setDraftMode('and');
-    router.push(buildLeadDatabaseHref(activeStage, activeMarketingStatus, [], 'and'));
+    router.push(buildLeadDatabaseHref(filters, { tags: [], tagMode: 'and' }));
     setOpen(false);
   };
 
@@ -51,8 +42,8 @@ export function TagFilterPopover({
       onOpenChange={(next) => {
         setOpen(next);
         if (next) {
-          setDraftTags(activeTags);
-          setDraftMode(activeTagMode);
+          setDraftTags(filters.tags);
+          setDraftMode(filters.tagMode);
         }
       }}
     >
@@ -61,13 +52,13 @@ export function TagFilterPopover({
         className={cn(
           'inline-flex cursor-pointer items-center justify-center gap-2 border-x-0 border-t-0 border-b-[3px] font-semibold transition-all duration-100 outline-none',
           'rounded-2xl px-4 py-2.25 text-xs',
-          activeTags.length > 0
+          filters.tags.length > 0
             ? 'border-b-brand-press bg-brand text-white shadow-brand'
             : 'border-b-slate-200 bg-white text-brand shadow-sm'
         )}
       >
         <Tag className="h-3.5 w-3.5" />
-        Tags{activeTags.length > 0 ? ` (${activeTags.length})` : ''}
+        Tags{filters.tags.length > 0 ? ` (${filters.tags.length})` : ''}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by tags</p>
@@ -93,9 +84,6 @@ export function TagFilterPopover({
             Match any (OR)
           </button>
         </div>
-        <p className="mt-2 text-[11px] text-slate-500">
-          {draftMode === 'and' ? 'Must have all selected tags.' : 'Has any selected tag.'}
-        </p>
 
         <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
           {suggestions.map((item) => {
@@ -134,7 +122,7 @@ export function TagFilterPopover({
           <Button variant="primary" size="sm" onClick={apply}>
             Apply
           </Button>
-          {activeTags.length > 0 || draftTags.length > 0 ? (
+          {filters.tags.length > 0 || draftTags.length > 0 ? (
             <Button variant="light" size="sm" leftIcon={<X className="h-3.5 w-3.5" />} onClick={clear}>
               Clear
             </Button>

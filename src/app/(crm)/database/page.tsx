@@ -1,7 +1,7 @@
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
-import { getLeadSummary, listLeads, listTagSuggestions } from '@/utils/api';
-import { parseTagSlugsParam } from '@/lib/lead-tags';
-import type { Lead, LeadSummary, TagFilterMode } from '@/types/crm';
+import { parseLeadDatabaseFilters } from '@/lib/lead-database-url';
+import { getLeadFilterOptions, getLeadSummary, listLeads, listTagSuggestions } from '@/utils/api';
+import type { LeadFilterOptions, LeadListResult, LeadSummary } from '@/types/crm';
 
 const EMPTY_SUMMARY: LeadSummary = {
   total: 0,
@@ -17,30 +17,44 @@ const EMPTY_SUMMARY: LeadSummary = {
   },
 };
 
+const EMPTY_LIST: LeadListResult = {
+  items: [],
+  total: 0,
+  page: 1,
+  pageSize: 50,
+  totalPages: 0,
+};
+
+const EMPTY_FILTER_OPTIONS: LeadFilterOptions = {
+  programs: [],
+  batches: [],
+  geography: [],
+};
+
 export default async function DatabasePage({
   searchParams,
 }: {
-  searchParams: Promise<{ stage?: string; marketing?: string; tags?: string; tag_mode?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { stage, marketing, tags, tag_mode } = await searchParams;
-  const activeStage = stage?.trim() || 'all';
-  const activeMarketingStatus = marketing?.trim() || 'all';
-  const activeTags = parseTagSlugsParam(tags);
-  const activeTagMode: TagFilterMode = tag_mode?.trim() === 'or' ? 'or' : 'and';
+  const params = await searchParams;
+  const filters = parseLeadDatabaseFilters(params);
 
-  let leads: Lead[] = [];
+  let listResult = EMPTY_LIST;
   let summary = EMPTY_SUMMARY;
+  let filterOptions = EMPTY_FILTER_OPTIONS;
   let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
   let loadError: string | null = null;
 
   try {
-    [leads, summary] = await Promise.all([
-      listLeads(activeStage, activeMarketingStatus, { tags: activeTags, tagMode: activeTagMode }),
+    [listResult, summary, filterOptions] = await Promise.all([
+      listLeads(filters),
       getLeadSummary(),
+      getLeadFilterOptions(),
     ]);
   } catch (error) {
-    leads = [];
+    listResult = EMPTY_LIST;
     summary = EMPTY_SUMMARY;
+    filterOptions = EMPTY_FILTER_OPTIONS;
     loadError = error instanceof Error ? error.message : 'Failed to load leads.';
   }
 
@@ -52,13 +66,11 @@ export default async function DatabasePage({
 
   return (
     <LeadDatabaseView
-      leads={leads}
+      listResult={listResult}
       summary={summary}
+      filters={filters}
+      filterOptions={filterOptions}
       loadError={loadError}
-      activeStage={activeStage}
-      activeMarketingStatus={activeMarketingStatus}
-      activeTags={activeTags}
-      activeTagMode={activeTagMode}
       tagSuggestions={tagSuggestions}
     />
   );
