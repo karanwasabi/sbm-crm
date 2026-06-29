@@ -30,6 +30,8 @@ export type SaveEmailTemplateInput = {
   name: string;
   classification: EmailTemplateClassification;
   subject: string;
+  fromName?: string | null;
+  fromLocalPart?: string | null;
   contentJson: GrapesProjectData;
   htmlCompiled: string;
   textCompiled: string;

@@ -38,7 +38,13 @@ import {
   type CanvasDeviceId,
   type SidebarPanelId,
 } from '@/lib/grapes-email-editor';
-import { EMAIL_FROM_ADDRESSES } from '@/lib/email-branding';
+import {
+  emailFromDomain,
+  emailFromLocalPartPlaceholder,
+  emailFromNamePlaceholder,
+  formatEmailFromAddress,
+  normalizeEmailLocalPart,
+} from '@/lib/email-branding';
 import { substitutePreviewVariables } from '@/lib/email-preview-vars';
 import { getStarterMjml, isGrapesProjectData, stripHtmlToText } from '@/lib/email-mjml-starters';
 import {
@@ -46,6 +52,7 @@ import {
   type EmailTemplateClassification,
   type EmailTemplateStatus,
 } from '@/lib/email-template-types';
+import { toTitleCase } from '@/lib/title-case';
 import { cn } from '@/lib/cn';
 import type { EmailTemplate } from '@/utils/api';
 
@@ -188,12 +195,15 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     template?.classification ?? 'marketing'
   );
   const [subject, setSubject] = useState(template?.subject ?? 'A quick note from Slow Burn Method');
+  const [fromName, setFromName] = useState(template?.fromName ?? '');
+  const [fromLocalPart, setFromLocalPart] = useState(template?.fromLocalPart ?? '');
   const [templateStatus, setTemplateStatus] = useState<EmailTemplateStatus>(
     template?.status === 'archived' ? 'archived' : 'active'
   );
 
   const previewSubject = substitutePreviewVariables(subject);
-  const previewFrom = EMAIL_FROM_ADDRESSES[classification];
+  const previewFrom = formatEmailFromAddress(classification, fromName, fromLocalPart);
+  const fromDomain = emailFromDomain(classification);
   const templateVariables = emailVariablesForClassification(classification);
 
   function refreshHistoryState(editor: Editor) {
@@ -395,6 +405,8 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       name: name.trim(),
       classification,
       subject: subject.trim(),
+      fromName: fromName.trim() || null,
+      fromLocalPart: fromLocalPart.trim() || null,
       contentJson: editor.getProjectData() as Record<string, unknown>,
       htmlCompiled,
       textCompiled: stripHtmlToText(htmlCompiled),
@@ -556,6 +568,37 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 ring-brand/20 outline-none focus:ring-2"
             />
           </label>
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
+              From name
+              <input
+                value={fromName}
+                onChange={(event) => setFromName(toTitleCase(event.target.value))}
+                placeholder={emailFromNamePlaceholder()}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 ring-brand/20 outline-none focus:ring-2"
+              />
+            </label>
+            <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
+              From address
+              <div className="flex items-center overflow-hidden rounded-xl border border-slate-200 bg-white ring-brand/20 focus-within:ring-2">
+                <input
+                  value={fromLocalPart}
+                  onChange={(event) => setFromLocalPart(normalizeEmailLocalPart(event.target.value))}
+                  placeholder={emailFromLocalPartPlaceholder(classification)}
+                  className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 font-medium text-slate-800 outline-none"
+                  spellCheck={false}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                />
+                <span className="shrink-0 border-l border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium text-slate-500">
+                  @{fromDomain}
+                </span>
+              </div>
+            </label>
+          </div>
+          <p className="text-xs font-medium text-slate-400">
+            Leave blank to use the default sender for this classification.
+          </p>
         </div>
 
         {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}

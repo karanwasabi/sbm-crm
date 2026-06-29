@@ -1549,6 +1549,8 @@ export type EmailTemplate = {
   classification: 'transactional' | 'marketing';
   layout: 'simple' | 'hero' | 'cta' | 'two_column' | 'receipt' | 'digest';
   subject: string;
+  fromName?: string | null;
+  fromLocalPart?: string | null;
   contentJson: import('@/lib/email-template-types').GrapesProjectData;
   htmlCompiled: string;
   textCompiled: string;
@@ -1569,6 +1571,8 @@ function mapEmailTemplate(row: {
   classification: string;
   layout: string;
   subject: string;
+  from_name?: string | null;
+  from_local_part?: string | null;
   content_json: unknown;
   html_compiled: string;
   text_compiled: string;
@@ -1587,6 +1591,8 @@ function mapEmailTemplate(row: {
     classification: row.classification as EmailTemplate['classification'],
     layout: row.layout as EmailTemplate['layout'],
     subject: row.subject,
+    fromName: row.from_name ?? null,
+    fromLocalPart: row.from_local_part ?? null,
     contentJson,
     htmlCompiled: row.html_compiled,
     textCompiled: row.text_compiled,
@@ -1618,6 +1624,8 @@ export async function createEmailTemplate(input: {
   classification: EmailTemplate['classification'];
   layout: EmailTemplate['layout'];
   subject: string;
+  fromName?: string | null;
+  fromLocalPart?: string | null;
   contentJson: EmailTemplate['contentJson'];
   htmlCompiled: string;
   textCompiled: string;
@@ -1630,6 +1638,8 @@ export async function createEmailTemplate(input: {
       classification: input.classification,
       layout: input.layout,
       subject: input.subject,
+      from_name: input.fromName ?? '',
+      from_local_part: input.fromLocalPart ?? '',
       content_json: input.contentJson,
       html_compiled: input.htmlCompiled,
       text_compiled: input.textCompiled,
@@ -1650,6 +1660,8 @@ export async function updateEmailTemplate(
     classification: EmailTemplate['classification'];
     layout: EmailTemplate['layout'];
     subject: string;
+    fromName?: string | null;
+    fromLocalPart?: string | null;
     contentJson: EmailTemplate['contentJson'];
     htmlCompiled: string;
     textCompiled: string;
@@ -1663,6 +1675,8 @@ export async function updateEmailTemplate(
       classification: input.classification,
       layout: input.layout,
       subject: input.subject,
+      from_name: input.fromName ?? '',
+      from_local_part: input.fromLocalPart ?? '',
       content_json: input.contentJson,
       html_compiled: input.htmlCompiled,
       text_compiled: input.textCompiled,
