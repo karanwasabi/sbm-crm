@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import type { StaffAccessRole } from '@/lib/access';
 import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
+import { buildLeadListSearchParams } from '@/lib/lead-list-query';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
 import { createClient } from '@/utils/supabase/server';
@@ -619,28 +620,7 @@ export async function dismissLeadContactDuplicate(
 export async function listLeads(
   filters: import('@/lib/lead-database-url').LeadDatabaseFilters
 ): Promise<import('@/types/crm').LeadListResult> {
-  const params = new URLSearchParams();
-  if (filters.stage && filters.stage !== 'all') params.set('stage', filters.stage);
-  if (filters.marketing && filters.marketing !== 'all') {
-    params.set('marketing_contact_status', filters.marketing);
-  }
-  if (filters.tags.length > 0) {
-    params.set('tags', filters.tags.join(','));
-    if (filters.tagMode === 'or') params.set('tag_mode', 'or');
-  }
-  if (filters.q) params.set('q', filters.q);
-  if (filters.programs.length > 0) params.set('programs', filters.programs.join(','));
-  if (filters.batches.length > 0) params.set('batches', filters.batches.join(','));
-  if (filters.geography.length > 0) params.set('geography', filters.geography.join(','));
-  if (filters.addedFrom) params.set('added_from', filters.addedFrom);
-  if (filters.addedTo) params.set('added_to', filters.addedTo);
-  if (filters.updatedFrom) params.set('updated_from', filters.updatedFrom);
-  if (filters.updatedTo) params.set('updated_to', filters.updatedTo);
-  if (filters.sort !== 'created_at') params.set('sort', filters.sort);
-  if (filters.order !== 'desc') params.set('order', filters.order);
-  if (filters.page > 1) params.set('page', String(filters.page));
-  if (filters.pageSize !== 50) params.set('page_size', String(filters.pageSize));
-
+  const params = buildLeadListSearchParams(filters);
   const query = params.toString() ? `?${params.toString()}` : '';
   const response = await requireApiFetch(`/admin/leads${query}`);
   if (!response.ok) {

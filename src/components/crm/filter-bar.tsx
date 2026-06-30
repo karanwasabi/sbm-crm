@@ -7,6 +7,7 @@ import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-dat
 import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-multi-select-popover';
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
 import { TagFilterPopover } from '@/components/crm/tag-filter-popover';
+import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
@@ -72,6 +73,7 @@ export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions
             </FilterChip>
           ))}
         </div>
+        <LeadDatabaseExportButton />
       </div>
     </Card>
   );

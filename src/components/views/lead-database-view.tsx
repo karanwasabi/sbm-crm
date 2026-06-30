@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from 'react';
 import { FilterBar } from '@/components/crm/filter-bar';
+import { LeadDatabaseSelectionProvider } from '@/components/crm/lead-database-selection-context';
 import { LeadDatabaseActiveFilters } from '@/components/crm/lead-database-active-filters';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
@@ -27,17 +28,19 @@ export function LeadDatabaseView({ filters, summary, filterOptions, tagSuggestio
   }, [summary.total, setLeadTotal]);
 
   return (
-    <CrmPageLayout>
-      <FilterBar
-        filters={filters}
-        stageOptions={stageOptions}
-        filterOptions={filterOptions}
-        tagSuggestions={tagSuggestions}
-      />
+    <LeadDatabaseSelectionProvider filters={filters}>
+      <CrmPageLayout>
+        <FilterBar
+          filters={filters}
+          stageOptions={stageOptions}
+          filterOptions={filterOptions}
+          tagSuggestions={tagSuggestions}
+        />
 
-      <LeadDatabaseActiveFilters filters={filters} />
+        <LeadDatabaseActiveFilters filters={filters} />
 
-      {children}
-    </CrmPageLayout>
+        {children}
+      </CrmPageLayout>
+    </LeadDatabaseSelectionProvider>
   );
 }

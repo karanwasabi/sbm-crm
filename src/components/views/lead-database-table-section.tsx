@@ -1,6 +1,11 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import { LeadTimestamp } from '@/components/crm/lead-timestamp';
 import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
 import { LeadDatabasePagination } from '@/components/crm/lead-database-pagination';
+import { LeadDatabaseSelectionControls } from '@/components/crm/lead-database-selection-controls';
+import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
 import { SortableHeader } from '@/components/crm/lead-database-sortable-header';
 import {
   DataTable,
@@ -33,6 +38,8 @@ export function LeadDatabaseTableSection({
   loadError = null,
 }: LeadDatabaseTableSectionProps) {
   const { items: leads, total, page, pageSize, totalPages } = listResult;
+  const { togglePage, pageSelectionState } = useLeadDatabaseSelection();
+  const pageState = pageSelectionState(leads);
 
   return (
     <>
@@ -43,7 +50,7 @@ export function LeadDatabaseTableSection({
         </Card>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
         <p className="text-[13px] font-semibold text-slate-600">
           {leadDatabaseRangeLabel(total, page, pageSize)}
           {total !== summary.total ? (
@@ -51,15 +58,20 @@ export function LeadDatabaseTableSection({
               ({summary.total.toLocaleString('en-IN')} total in database)
             </span>
           ) : null}
-          <span className="ml-1.5">· 0 selected</span>
         </p>
+        <LeadDatabaseSelectionControls filters={filters} filteredTotal={total} />
       </div>
 
       <Card padding="none">
         <DataTable tableClassName="table-fixed">
           <DataTableHead>
             <DataTableHeaderCell className="w-9 pl-4.5">
-              <input type="checkbox" className="h-3.5 w-3.5 accent-brand" />
+              <PageSelectCheckbox
+                checked={pageState === 'all'}
+                indeterminate={pageState === 'some'}
+                disabled={leads.length === 0}
+                onChange={(checked) => togglePage(leads, checked)}
+              />
             </DataTableHeaderCell>
             <DataTableHeaderCell className="w-52 max-w-52">
               <SortableHeader label="Name" sortKey="name" filters={filters} />
@@ -97,11 +109,51 @@ export function LeadDatabaseTableSection({
   );
 }
 
+function PageSelectCheckbox({
+  checked,
+  indeterminate,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  disabled: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+
+  return (
+    <input
+      ref={inputRef}
+      type="checkbox"
+      className="h-3.5 w-3.5 accent-brand"
+      checked={checked}
+      disabled={disabled}
+      onChange={(event) => onChange(event.target.checked)}
+      aria-label="Select all leads on this page"
+    />
+  );
+}
+
 function LeadRow({ lead }: { lead: Lead }) {
+  const { isSelected, toggleLead } = useLeadDatabaseSelection();
+
   return (
     <DataTableRow>
       <DataTableCell className="pl-4.5">
-        <input type="checkbox" className="h-3.5 w-3.5 accent-brand" />
+        <input
+          type="checkbox"
+          className="h-3.5 w-3.5 accent-brand"
+          checked={isSelected(lead.id)}
+          onChange={() => toggleLead(lead)}
+          aria-label={`Select ${lead.name}`}
+        />
       </DataTableCell>
       <DataTableCell className="w-52 max-w-52">
         <div className="truncate font-semibold text-slate-800">{lead.name}</div>

@@ -4,7 +4,7 @@ import { CheckCircle2, CircleAlert, X } from 'lucide-react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
-type ToastVariant = 'success' | 'error' | 'default';
+type ToastVariant = 'success' | 'error' | 'warning' | 'default';
 
 type ToastOptions = {
   message: string;
@@ -22,35 +22,45 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
-const variantStyles: Record<ToastVariant, { icon: typeof CheckCircle2; iconClassName: string }> = {
-  success: {
-    icon: CheckCircle2,
-    iconClassName: 'text-success',
-  },
-  error: {
-    icon: CircleAlert,
-    iconClassName: 'text-danger-press',
-  },
-  default: {
-    icon: CircleAlert,
-    iconClassName: 'text-slate-500',
-  },
-};
+const variantStyles: Record<ToastVariant, { icon: typeof CheckCircle2; iconClassName: string; cardClassName: string }> =
+  {
+    success: {
+      icon: CheckCircle2,
+      iconClassName: 'text-success-press',
+      cardClassName: 'border-emerald-300 bg-[#DCFCE7] shadow-[0_16px_40px_-12px_rgba(15,23,42,0.25)]',
+    },
+    error: {
+      icon: CircleAlert,
+      iconClassName: 'text-danger-press',
+      cardClassName: 'border-rose-300 bg-[#FEE2E5] shadow-[0_16px_40px_-12px_rgba(15,23,42,0.25)]',
+    },
+    warning: {
+      icon: CircleAlert,
+      iconClassName: 'text-[#92400E]',
+      cardClassName: 'border-amber-400 bg-[#FEF3C7] shadow-[0_16px_40px_-12px_rgba(15,23,42,0.25)]',
+    },
+    default: {
+      icon: CircleAlert,
+      iconClassName: 'text-slate-600',
+      cardClassName: 'border-slate-300 bg-white shadow-[0_16px_40px_-12px_rgba(15,23,42,0.25)]',
+    },
+  };
 
 function ToastCard({ item, onDismiss }: { item: ToastItem; onDismiss: (id: string) => void }) {
-  const { icon: Icon, iconClassName } = variantStyles[item.variant ?? 'default'];
+  const { icon: Icon, iconClassName, cardClassName } = variantStyles[item.variant ?? 'default'];
 
   return (
     <div
       role="status"
       aria-live="polite"
       className={cn(
-        'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_16px_40px_-20px_rgba(15,23,42,0.35)]',
+        'pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-2xl border px-4 py-3',
+        cardClassName,
         'animate-in duration-200 fade-in slide-in-from-bottom-4'
       )}
     >
       <Icon size={18} className={cn('mt-0.5 shrink-0', iconClassName)} aria-hidden />
-      <p className="min-w-0 flex-1 text-sm font-semibold text-slate-800">{item.message}</p>
+      <p className="min-w-0 flex-1 text-sm font-semibold text-slate-900">{item.message}</p>
       <button
         type="button"
         onClick={() => onDismiss(item.id)}
@@ -102,7 +112,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[100] flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[200] flex flex-col items-center gap-2 px-4">
         {toasts.map((item) => (
           <ToastCard key={item.id} item={item} onDismiss={dismiss} />
         ))}
