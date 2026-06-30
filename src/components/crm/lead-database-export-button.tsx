@@ -6,7 +6,7 @@ import { LeadExportPreparingDialog } from '@/components/crm/lead-export-preparin
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
-import { downloadLeadsCsv } from '@/lib/export-leads-csv';
+import { downloadLeadsXlsx } from '@/lib/export-leads-xlsx';
 import type { Lead } from '@/types/crm';
 import { cn } from '@/lib/cn';
 
@@ -27,14 +27,21 @@ export function LeadDatabaseExportButton() {
       return;
     }
 
-    downloadLeadsCsv(leads);
-    window.setTimeout(() => {
-      toast({
-        message: `Exported ${leads.length} lead${leads.length === 1 ? '' : 's'}.`,
-        variant: 'success',
-        durationMs: 5000,
+    void downloadLeadsXlsx(leads)
+      .then(() => {
+        toast({
+          message: `Exported ${leads.length} lead${leads.length === 1 ? '' : 's'}.`,
+          variant: 'success',
+          durationMs: 5000,
+        });
+      })
+      .catch(() => {
+        toast({
+          message: 'Could not generate the export file.',
+          variant: 'error',
+          durationMs: 5000,
+        });
       });
-    }, 0);
   };
 
   const handleClick = () => {
