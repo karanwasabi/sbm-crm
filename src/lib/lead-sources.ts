@@ -8,6 +8,7 @@ export const LEAD_SOURCE_LABELS: Record<ManualLeadSource, string> = {
   interest_form: 'Interest Form Leads',
   old_students: 'Old Students',
   other: 'Other Leads',
+  portal_signup: 'Portal Signup',
 };
 
 const LEGACY_SOURCE_LABELS: Record<string, string> = {

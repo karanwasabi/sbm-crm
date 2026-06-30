@@ -769,9 +769,11 @@ function mapTimelineEvents(rows: NonNullable<ApiLeadResponse['timeline']>): impo
 
 function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
   const base = mapLead(row);
+  const manualSource =
+    row.manual_source ?? (row.attribution?.source as import('@/types/crm').ManualLeadSource | undefined) ?? '';
   return {
     ...base,
-    manualSource: row.manual_source ?? 'other',
+    manualSource: manualSource as import('@/types/crm').ManualLeadSource,
     notes: row.notes ?? '',
     memberUserId: row.member_user_id ?? null,
     canMarkLost: row.can_mark_lost ?? false,

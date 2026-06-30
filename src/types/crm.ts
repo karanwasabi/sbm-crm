@@ -2,7 +2,15 @@ export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'newbie' | '
 
 export type LeadMedium = 'paid' | 'organic' | 'offline';
 
-export type ManualLeadSource = 'cr_handle' | 'meta' | 'quad' | 'referral' | 'interest_form' | 'old_students' | 'other';
+export type ManualLeadSource =
+  | 'cr_handle'
+  | 'meta'
+  | 'quad'
+  | 'referral'
+  | 'interest_form'
+  | 'old_students'
+  | 'other'
+  | 'portal_signup';
 
 export const MANUAL_LEAD_SOURCE_OPTIONS: { value: ManualLeadSource; label: string }[] = [
   { value: 'cr_handle', label: 'CR Handle Leads' },
