@@ -28,6 +28,7 @@ type ApiLeadResponse = {
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus | null;
   marketing_contact_synced_at?: string | null;
   marketing_unsubscribed_at?: string | null;
+  source_label?: string | null;
 };
 
 function mapLead(row: ApiLeadResponse): Lead {
@@ -45,6 +46,7 @@ function mapLead(row: ApiLeadResponse): Lead {
     city: row.city ?? '',
     stage: row.stage,
     medium: row.medium ?? 'offline',
+    sourceLabel: row.source_label ?? '',
     interest: row.interest || '—',
     batch: row.batch || '—',
     systemTags: row.system_tags ?? [],

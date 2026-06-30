@@ -81,6 +81,7 @@ export function LeadDatabaseTableSection({
             <DataTableHeaderCell>Program</DataTableHeaderCell>
             <DataTableHeaderCell>Batch</DataTableHeaderCell>
             <DataTableHeaderCell>Geography</DataTableHeaderCell>
+            <DataTableHeaderCell>Source</DataTableHeaderCell>
             <DataTableHeaderCell className="w-56 max-w-56">Tags</DataTableHeaderCell>
             <DataTableHeaderCell>
               <SortableHeader label="Added" sortKey="created_at" filters={filters} />
@@ -93,7 +94,7 @@ export function LeadDatabaseTableSection({
           <DataTableBody>
             {leads.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={11} className="py-10 text-center text-sm text-slate-500">
+                <DataTableCell colSpan={12} className="py-10 text-center text-sm text-slate-500">
                   No leads match these filters.
                 </DataTableCell>
               </DataTableRow>
@@ -172,6 +173,7 @@ function LeadRow({ lead }: { lead: Lead }) {
       <DataTableCell className="font-semibold">{lead.interest}</DataTableCell>
       <DataTableCell>{lead.batch}</DataTableCell>
       <DataTableCell>{lead.location || '—'}</DataTableCell>
+      <DataTableCell>{lead.sourceLabel || '—'}</DataTableCell>
       <DataTableCell className="w-56 max-w-56">
         <div className="flex max-w-56 flex-wrap gap-1">
           {lead.tags.length === 0 ? (

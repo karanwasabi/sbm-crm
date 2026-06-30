@@ -26,6 +26,7 @@ export type Lead = {
   city: string;
   stage: LifecycleStage;
   medium: LeadMedium;
+  sourceLabel: string;
   interest: string;
   batch: string;
   systemTags: string[];
@@ -54,6 +55,7 @@ export type LeadFilterOptions = {
   programs: LeadFilterOption[];
   batches: LeadFilterOption[];
   geography: LeadFilterOption[];
+  sources: LeadFilterOption[];
 };
 
 export type LeadListResult = {

@@ -230,6 +230,7 @@ type ApiLeadResponse = {
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus;
   marketing_contact_synced_at?: string | null;
   marketing_unsubscribed_at?: string | null;
+  source_label?: string;
   manual_source?: import('@/types/crm').ManualLeadSource;
   notes?: string | null;
   member_user_id?: string | null;
@@ -320,6 +321,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     city: row.city ?? '',
     stage: row.stage,
     medium: row.medium ?? 'offline',
+    sourceLabel: row.source_label ?? '',
     interest: row.interest || '—',
     batch: row.batch || '—',
     systemTags: row.system_tags ?? [],
@@ -651,11 +653,13 @@ export async function getLeadFilterOptions(): Promise<import('@/types/crm').Lead
     programs: { value: string; count: number }[];
     batches: { value: string; count: number }[];
     geography: { value: string; count: number }[];
+    sources: { value: string; count: number }[];
   };
   return {
     programs: payload.programs ?? [],
     batches: payload.batches ?? [],
     geography: payload.geography ?? [],
+    sources: payload.sources ?? [],
   };
 }
 

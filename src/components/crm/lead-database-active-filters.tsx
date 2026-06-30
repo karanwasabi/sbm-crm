@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import { leadSourceLabel } from '@/lib/lead-sources';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 
 type LeadDatabaseActiveFiltersProps = {
@@ -62,6 +63,14 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
       href: buildLeadDatabaseHref(filters, { geography: filters.geography.filter((item) => item !== geo) }),
     });
   });
+  filters.sources.forEach((source) => {
+    chips.push({
+      key: `source-${source}`,
+      label: 'Source',
+      value: leadSourceLabel(source) || source,
+      href: buildLeadDatabaseHref(filters, { sources: filters.sources.filter((item) => item !== source) }),
+    });
+  });
   if (filters.addedFrom || filters.addedTo) {
     chips.push({
       key: 'added',
@@ -96,6 +105,7 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
           programs: [],
           batches: [],
           geography: [],
+          sources: [],
           addedFrom: '',
           addedTo: '',
           updatedFrom: '',

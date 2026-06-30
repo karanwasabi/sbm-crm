@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import { leadSourceLabel } from '@/lib/lead-sources';
 
-type MultiSelectField = 'programs' | 'batches' | 'geography';
+type MultiSelectField = 'programs' | 'batches' | 'geography' | 'sources';
 
 type LeadDatabaseMultiSelectPopoverProps = {
   label: string;
@@ -76,7 +77,9 @@ export function LeadDatabaseMultiSelectPopover({
                     )
                   }
                 >
-                  <span className="truncate pr-2">{option.value}</span>
+                  <span className="truncate pr-2">
+                    {field === 'sources' ? leadSourceLabel(option.value) || option.value : option.value}
+                  </span>
                   <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
                 </button>
               );

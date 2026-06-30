@@ -10,6 +10,7 @@ const CSV_COLUMNS = [
   { header: 'Program', value: (lead: Lead) => lead.interest },
   { header: 'Batch', value: (lead: Lead) => lead.batch },
   { header: 'Geography', value: (lead: Lead) => lead.location },
+  { header: 'Source', value: (lead: Lead) => lead.sourceLabel },
   { header: 'Tags', value: (lead: Lead) => lead.tags.join('; ') },
   { header: 'Medium', value: (lead: Lead) => lead.medium },
   { header: 'Added', value: (lead: Lead) => lead.addedAt },

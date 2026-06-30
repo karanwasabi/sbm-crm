@@ -22,6 +22,7 @@ export function buildLeadListSearchParams(
   if (filters.programs.length > 0) params.set('programs', filters.programs.join(','));
   if (filters.batches.length > 0) params.set('batches', filters.batches.join(','));
   if (filters.geography.length > 0) params.set('geography', filters.geography.join(','));
+  if (filters.sources.length > 0) params.set('sources', filters.sources.join(','));
   if (filters.addedFrom) params.set('added_from', filters.addedFrom);
   if (filters.addedTo) params.set('added_to', filters.addedTo);
   if (filters.updatedFrom) params.set('updated_from', filters.updatedFrom);

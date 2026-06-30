@@ -14,6 +14,7 @@ export type LeadDatabaseFilters = {
   programs: string[];
   batches: string[];
   geography: string[];
+  sources: string[];
   addedFrom: string;
   addedTo: string;
   updatedFrom: string;
@@ -33,6 +34,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   programs: [],
   batches: [],
   geography: [],
+  sources: [],
   addedFrom: '',
   addedTo: '',
   updatedFrom: '',
@@ -88,6 +90,7 @@ export function parseLeadDatabaseFilters(params: Record<string, string | string[
     programs: parseCommaList(get('programs')),
     batches: parseCommaList(get('batches')),
     geography: parseCommaList(get('geography')),
+    sources: parseCommaList(get('sources')),
     addedFrom: get('added_from')?.trim() || '',
     addedTo: get('added_to')?.trim() || '',
     updatedFrom: get('updated_from')?.trim() || '',
@@ -129,6 +132,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.programs.length > 0) params.set('programs', merged.programs.join(','));
   if (merged.batches.length > 0) params.set('batches', merged.batches.join(','));
   if (merged.geography.length > 0) params.set('geography', merged.geography.join(','));
+  if (merged.sources.length > 0) params.set('sources', merged.sources.join(','));
   if (merged.addedFrom) params.set('added_from', merged.addedFrom);
   if (merged.addedTo) params.set('added_to', merged.addedTo);
   if (merged.updatedFrom) params.set('updated_from', merged.updatedFrom);
