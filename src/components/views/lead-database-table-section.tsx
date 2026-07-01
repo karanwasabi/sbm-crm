@@ -31,6 +31,25 @@ type LeadDatabaseTableSectionProps = {
   loadError?: string | null;
 };
 
+function LeadDatabaseTableColGroup() {
+  return (
+    <colgroup>
+      <col style={{ width: '2.5rem' }} />
+      <col style={{ width: '11rem' }} />
+      <col style={{ width: '7rem' }} />
+      <col style={{ width: '7.5rem' }} />
+      <col style={{ width: '8rem' }} />
+      <col style={{ width: '7rem' }} />
+      <col style={{ width: '8rem' }} />
+      <col style={{ width: '7rem' }} />
+      <col style={{ width: '18rem' }} />
+      <col style={{ width: '9rem' }} />
+      <col style={{ width: '9rem' }} />
+      <col style={{ width: '5.5rem' }} />
+    </colgroup>
+  );
+}
+
 export function LeadDatabaseTableSection({
   listResult,
   summary,
@@ -63,9 +82,10 @@ export function LeadDatabaseTableSection({
       </div>
 
       <Card padding="none">
-        <DataTable tableClassName="table-fixed">
+        <DataTable tableClassName="w-full min-w-[100rem] table-fixed">
+          <LeadDatabaseTableColGroup />
           <DataTableHead>
-            <DataTableHeaderCell className="w-9 pl-4.5">
+            <DataTableHeaderCell className="pl-4.5">
               <PageSelectCheckbox
                 checked={pageState === 'all'}
                 indeterminate={pageState === 'some'}
@@ -73,7 +93,7 @@ export function LeadDatabaseTableSection({
                 onChange={(checked) => togglePage(leads, checked)}
               />
             </DataTableHeaderCell>
-            <DataTableHeaderCell className="w-52 max-w-52">
+            <DataTableHeaderCell>
               <SortableHeader label="Name" sortKey="name" filters={filters} />
             </DataTableHeaderCell>
             <DataTableHeaderCell>Stage</DataTableHeaderCell>
@@ -82,7 +102,7 @@ export function LeadDatabaseTableSection({
             <DataTableHeaderCell>Batch</DataTableHeaderCell>
             <DataTableHeaderCell>Geography</DataTableHeaderCell>
             <DataTableHeaderCell>Source</DataTableHeaderCell>
-            <DataTableHeaderCell className="w-56 max-w-56">Tags</DataTableHeaderCell>
+            <DataTableHeaderCell>Tags</DataTableHeaderCell>
             <DataTableHeaderCell>
               <SortableHeader label="Added" sortKey="created_at" filters={filters} />
             </DataTableHeaderCell>
@@ -147,7 +167,7 @@ function LeadRow({ lead }: { lead: Lead }) {
 
   return (
     <DataTableRow>
-      <DataTableCell className="pl-4.5">
+      <DataTableCell className="overflow-hidden pl-4.5">
         <input
           type="checkbox"
           className="h-3.5 w-3.5 accent-brand"
@@ -156,7 +176,7 @@ function LeadRow({ lead }: { lead: Lead }) {
           aria-label={`Select ${lead.name}`}
         />
       </DataTableCell>
-      <DataTableCell className="w-52 max-w-52">
+      <DataTableCell className="overflow-hidden">
         <div className="truncate font-semibold text-slate-800">{lead.name}</div>
         <div className="truncate text-[11px] text-slate-500">{lead.email}</div>
         {lead.dedup && <span className="text-[10px] font-bold text-danger-press">Possible duplicate</span>}
@@ -167,18 +187,34 @@ function LeadRow({ lead }: { lead: Lead }) {
           <span className="text-[10px] font-bold text-motivation">Needs enrichment</span>
         )}
       </DataTableCell>
-      <DataTableCell>
+      <DataTableCell className="overflow-hidden">
         <StagePill stage={lead.stage} />
       </DataTableCell>
-      <DataTableCell>
+      <DataTableCell className="overflow-hidden">
         <MarketingContactBadge status={lead.marketingContactStatus} />
       </DataTableCell>
-      <DataTableCell className="font-semibold">{lead.interest}</DataTableCell>
-      <DataTableCell>{lead.batch}</DataTableCell>
-      <DataTableCell>{lead.location || '—'}</DataTableCell>
-      <DataTableCell>{lead.sourceLabel || '—'}</DataTableCell>
-      <DataTableCell className="w-56 max-w-56">
-        <div className="flex max-w-56 flex-wrap gap-1">
+      <DataTableCell className="overflow-hidden">
+        <div className="truncate font-semibold" title={lead.interest}>
+          {lead.interest}
+        </div>
+      </DataTableCell>
+      <DataTableCell className="overflow-hidden">
+        <div className="truncate" title={lead.batch}>
+          {lead.batch}
+        </div>
+      </DataTableCell>
+      <DataTableCell className="overflow-hidden">
+        <div className="truncate" title={lead.location || undefined}>
+          {lead.location || '—'}
+        </div>
+      </DataTableCell>
+      <DataTableCell className="overflow-hidden">
+        <div className="truncate" title={lead.sourceLabel || undefined}>
+          {lead.sourceLabel || '—'}
+        </div>
+      </DataTableCell>
+      <DataTableCell className="overflow-hidden align-top">
+        <div className="flex flex-wrap gap-1">
           {lead.tags.length === 0 ? (
             <span className="text-[10px] text-slate-400">—</span>
           ) : (
@@ -190,13 +226,13 @@ function LeadRow({ lead }: { lead: Lead }) {
           )}
         </div>
       </DataTableCell>
-      <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600">
+      <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600 tabular-nums">
         <LeadTimestamp iso={lead.addedAt} />
       </DataTableCell>
-      <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600">
+      <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600 tabular-nums">
         <LeadTimestamp iso={lead.updatedAt} />
       </DataTableCell>
-      <DataTableCell className="text-right">
+      <DataTableCell className="pr-4 text-right">
         <CrmTableLink
           href={`/customers/${lead.id}`}
           className="inline-flex items-center justify-center rounded-2xl border-b-[3px] border-b-slate-200 bg-white px-4 py-2.25 text-xs font-semibold text-brand no-underline shadow-sm hover:bg-slate-50"

@@ -8,6 +8,7 @@ import { LeadDatabaseTableLoader } from './lead-database-table-loader';
 
 const EMPTY_SUMMARY: LeadSummary = {
   total: 0,
+  withUnseenSuggestions: 0,
   byStage: {
     inquiry: 0,
     engaged: 0,

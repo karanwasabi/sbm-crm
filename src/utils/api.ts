@@ -705,10 +705,12 @@ export const getLeadSummary = cache(async (): Promise<import('@/types/crm').Lead
   const payload = (await response.json()) as {
     total: number;
     by_stage: Record<import('@/types/crm').LifecycleStage, number>;
+    with_unseen_suggestions?: number;
   };
   return {
     total: payload.total,
     byStage: payload.by_stage,
+    withUnseenSuggestions: payload.with_unseen_suggestions ?? 0,
   };
 });
 

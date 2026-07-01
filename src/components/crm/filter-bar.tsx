@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { CalendarClock, CalendarPlus, Globe, GraduationCap, Layers, Megaphone } from 'lucide-react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
@@ -8,6 +7,7 @@ import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-dat
 import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-multi-select-popover';
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
 import { TagFilterPopover } from '@/components/crm/tag-filter-popover';
+import { LeadDatabaseUnseenUpdatesFilter } from '@/components/crm/lead-database-unseen-updates-filter';
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
@@ -27,25 +27,23 @@ type FilterBarProps = {
   filterOptions: LeadFilterOptions;
   tagSuggestions: TagSuggestion[];
   emailTemplates: EmailTemplate[];
+  unseenUpdatesCount: number;
 };
 
-export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions, emailTemplates }: FilterBarProps) {
+export function FilterBar({
+  filters,
+  stageOptions,
+  filterOptions,
+  tagSuggestions,
+  emailTemplates,
+  unseenUpdatesCount,
+}: FilterBarProps) {
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
         <LeadDatabaseSearch filters={filters} className="w-full max-w-96 flex-1" />
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <MarketingFilterPopover filters={filters} />
-          <Link
-            href={buildLeadDatabaseHref(filters, { hasUnseenSuggestions: !filters.hasUnseenSuggestions })}
-            className={`inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold no-underline transition-colors ${
-              filters.hasUnseenSuggestions
-                ? 'border-brand bg-brand text-white'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
-            }`}
-          >
-            Unseen updates
-          </Link>
           <LeadDatabaseMultiSelectPopover
             label="Program"
             icon={GraduationCap}
@@ -77,6 +75,7 @@ export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions
           <TagFilterPopover filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
+          <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
         </div>
       </div>
 

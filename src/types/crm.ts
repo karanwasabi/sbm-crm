@@ -53,6 +53,7 @@ export type Lead = {
 export type LeadSummary = {
   total: number;
   byStage: Record<LifecycleStage, number>;
+  withUnseenSuggestions: number;
 };
 
 export type LeadFilterOption = {

@@ -45,6 +45,7 @@ export function LeadDatabaseView({
           filterOptions={filterOptions}
           tagSuggestions={tagSuggestions}
           emailTemplates={emailTemplates}
+          unseenUpdatesCount={summary.withUnseenSuggestions}
         />
 
         <LeadDatabaseActiveFilters filters={filters} />
