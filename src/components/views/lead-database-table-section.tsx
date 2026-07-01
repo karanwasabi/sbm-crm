@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { LeadTimestamp } from '@/components/crm/lead-timestamp';
+import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
 import { LeadDatabasePagination } from '@/components/crm/lead-database-pagination';
 import { LeadDatabaseSelectionControls } from '@/components/crm/lead-database-selection-controls';
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
+import { TruncatedContainerTooltip, TruncatedWithTooltip } from '@/components/crm/truncated-with-tooltip';
 import { SortableHeader } from '@/components/crm/lead-database-sortable-header';
 import {
   DataTable,
@@ -34,21 +35,24 @@ type LeadDatabaseTableSectionProps = {
 function LeadDatabaseTableColGroup() {
   return (
     <colgroup>
-      <col style={{ width: '2.5rem' }} />
-      <col style={{ width: '11rem' }} />
-      <col style={{ width: '7rem' }} />
-      <col style={{ width: '7.5rem' }} />
-      <col style={{ width: '8rem' }} />
-      <col style={{ width: '7rem' }} />
-      <col style={{ width: '8rem' }} />
-      <col style={{ width: '7rem' }} />
-      <col style={{ width: '18rem' }} />
-      <col style={{ width: '9rem' }} />
-      <col style={{ width: '9rem' }} />
-      <col style={{ width: '5.5rem' }} />
+      <col style={{ width: '2%' }} />
+      <col style={{ width: '13%' }} />
+      <col style={{ width: '6%' }} />
+      <col style={{ width: '7%' }} />
+      <col style={{ width: '10%' }} />
+      <col style={{ width: '6%' }} />
+      <col style={{ width: '7%' }} />
+      <col style={{ width: '9%' }} />
+      <col style={{ width: '24%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '6%' }} />
     </colgroup>
   );
 }
+
+const leadDbHeaderCell = 'px-2 py-2';
+const leadDbCell = 'overflow-hidden px-2 py-2.5';
 
 export function LeadDatabaseTableSection({
   listResult,
@@ -82,10 +86,10 @@ export function LeadDatabaseTableSection({
       </div>
 
       <Card padding="none">
-        <DataTable tableClassName="w-full min-w-[100rem] table-fixed">
+        <DataTable className="overflow-x-hidden" tableClassName="w-full table-fixed">
           <LeadDatabaseTableColGroup />
           <DataTableHead>
-            <DataTableHeaderCell className="pl-4.5">
+            <DataTableHeaderCell className={`${leadDbHeaderCell} pl-3`}>
               <PageSelectCheckbox
                 checked={pageState === 'all'}
                 indeterminate={pageState === 'some'}
@@ -93,23 +97,23 @@ export function LeadDatabaseTableSection({
                 onChange={(checked) => togglePage(leads, checked)}
               />
             </DataTableHeaderCell>
-            <DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>
               <SortableHeader label="Name" sortKey="name" filters={filters} />
             </DataTableHeaderCell>
-            <DataTableHeaderCell>Stage</DataTableHeaderCell>
-            <DataTableHeaderCell>Marketing</DataTableHeaderCell>
-            <DataTableHeaderCell>Program</DataTableHeaderCell>
-            <DataTableHeaderCell>Batch</DataTableHeaderCell>
-            <DataTableHeaderCell>Geography</DataTableHeaderCell>
-            <DataTableHeaderCell>Source</DataTableHeaderCell>
-            <DataTableHeaderCell>Tags</DataTableHeaderCell>
-            <DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Stage</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Marketing</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Program</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Batch</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Geography</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Source</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Tags</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>
               <SortableHeader label="Added" sortKey="created_at" filters={filters} />
             </DataTableHeaderCell>
-            <DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>
               <SortableHeader label="Updated" sortKey="updated_at" filters={filters} />
             </DataTableHeaderCell>
-            <DataTableHeaderCell>{'\u00a0'}</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>{'\u00a0'}</DataTableHeaderCell>
           </DataTableHead>
           <DataTableBody>
             {leads.length === 0 ? (
@@ -167,7 +171,7 @@ function LeadRow({ lead }: { lead: Lead }) {
 
   return (
     <DataTableRow>
-      <DataTableCell className="overflow-hidden pl-4.5">
+      <DataTableCell className={`${leadDbCell} pl-3`}>
         <input
           type="checkbox"
           className="h-3.5 w-3.5 accent-brand"
@@ -176,9 +180,9 @@ function LeadRow({ lead }: { lead: Lead }) {
           aria-label={`Select ${lead.name}`}
         />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
-        <div className="truncate font-semibold text-slate-800">{lead.name}</div>
-        <div className="truncate text-[11px] text-slate-500">{lead.email}</div>
+      <DataTableCell className={leadDbCell}>
+        <TruncatedWithTooltip text={lead.name} className="font-semibold text-slate-800" />
+        <TruncatedWithTooltip text={lead.email} className="text-[11px] text-slate-500" />
         {lead.dedup && <span className="text-[10px] font-bold text-danger-press">Possible duplicate</span>}
         {lead.unseenSuggestionCount > 0 && (
           <span className="text-[10px] font-bold text-brand">{lead.unseenSuggestionCount} unseen update(s)</span>
@@ -187,34 +191,29 @@ function LeadRow({ lead }: { lead: Lead }) {
           <span className="text-[10px] font-bold text-motivation">Needs enrichment</span>
         )}
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
+      <DataTableCell className={leadDbCell}>
         <StagePill stage={lead.stage} />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
+      <DataTableCell className={leadDbCell}>
         <MarketingContactBadge status={lead.marketingContactStatus} />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
-        <div className="truncate font-semibold" title={lead.interest}>
-          {lead.interest}
-        </div>
+      <DataTableCell className={leadDbCell}>
+        <TruncatedWithTooltip text={lead.interest} className="font-semibold" />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
-        <div className="truncate" title={lead.batch}>
-          {lead.batch}
-        </div>
+      <DataTableCell className={leadDbCell}>
+        <TruncatedWithTooltip text={lead.batch} />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
-        <div className="truncate" title={lead.location || undefined}>
-          {lead.location || '—'}
-        </div>
+      <DataTableCell className={leadDbCell}>
+        <TruncatedWithTooltip text={lead.location || '—'} className={lead.location ? undefined : 'text-slate-400'} />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden">
-        <div className="truncate" title={lead.sourceLabel || undefined}>
-          {lead.sourceLabel || '—'}
-        </div>
+      <DataTableCell className={leadDbCell}>
+        <TruncatedWithTooltip
+          text={lead.sourceLabel || '—'}
+          className={lead.sourceLabel ? undefined : 'text-slate-400'}
+        />
       </DataTableCell>
-      <DataTableCell className="overflow-hidden align-top">
-        <div className="flex flex-wrap gap-1">
+      <DataTableCell className={`${leadDbCell} align-top`}>
+        <TruncatedContainerTooltip className="flex flex-wrap gap-1" tooltip={lead.tags.map(tagSlugToLabel).join(' · ')}>
           {lead.tags.length === 0 ? (
             <span className="text-[10px] text-slate-400">—</span>
           ) : (
@@ -224,18 +223,18 @@ function LeadRow({ lead }: { lead: Lead }) {
               </Pill>
             ))
           )}
-        </div>
+        </TruncatedContainerTooltip>
       </DataTableCell>
-      <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600 tabular-nums">
-        <LeadTimestamp iso={lead.addedAt} />
+      <DataTableCell className={leadDbCell}>
+        <LeadTableTimestamp iso={lead.addedAt} />
       </DataTableCell>
-      <DataTableCell className="text-[12px] whitespace-nowrap text-slate-600 tabular-nums">
-        <LeadTimestamp iso={lead.updatedAt} />
+      <DataTableCell className={leadDbCell}>
+        <LeadTableTimestamp iso={lead.updatedAt} />
       </DataTableCell>
-      <DataTableCell className="pr-4 text-right">
+      <DataTableCell className={`${leadDbCell} pr-3 text-right`}>
         <CrmTableLink
           href={`/customers/${lead.id}`}
-          className="inline-flex items-center justify-center rounded-2xl border-b-[3px] border-b-slate-200 bg-white px-4 py-2.25 text-xs font-semibold text-brand no-underline shadow-sm hover:bg-slate-50"
+          className="inline-flex items-center justify-center rounded-xl border-b-2 border-b-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-brand no-underline shadow-sm hover:bg-slate-50"
         >
           View
         </CrmTableLink>

@@ -8,6 +8,7 @@ import { CrmSidebar } from '@/components/layout/crm/crm-sidebar';
 import { CrmProfileProvider } from '@/components/layout/crm/crm-profile-context';
 import { CrmTopbar } from '@/components/layout/crm/crm-topbar';
 import { ToastProvider } from '@/components/ui/toast';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import type { Profile } from '@/types/profile';
 
 export type CrmStaffUser = {
@@ -26,23 +27,25 @@ type CrmShellProps = {
 export function CrmShell({ children, staffUser, profile, profileError }: CrmShellProps) {
   return (
     <ToastProvider>
-      <CrmContactProvider>
-        <CrmLeadSummaryProvider>
-          <CrmRenewalSummaryProvider>
-            <CrmProfileProvider profile={profile} profileError={profileError} roleLabel={staffUser.roleLabel}>
-              <div className="flex h-dvh min-w-0 bg-white">
-                <CrmSidebar />
-                <div className="flex min-w-0 flex-1 flex-col">
-                  <CrmTopbar staffUser={staffUser} />
-                  <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
-                    {children}
+      <TooltipProvider>
+        <CrmContactProvider>
+          <CrmLeadSummaryProvider>
+            <CrmRenewalSummaryProvider>
+              <CrmProfileProvider profile={profile} profileError={profileError} roleLabel={staffUser.roleLabel}>
+                <div className="flex h-dvh min-w-0 bg-white">
+                  <CrmSidebar />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <CrmTopbar staffUser={staffUser} />
+                    <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
+                      {children}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </CrmProfileProvider>
-          </CrmRenewalSummaryProvider>
-        </CrmLeadSummaryProvider>
-      </CrmContactProvider>
+              </CrmProfileProvider>
+            </CrmRenewalSummaryProvider>
+          </CrmLeadSummaryProvider>
+        </CrmContactProvider>
+      </TooltipProvider>
     </ToastProvider>
   );
 }

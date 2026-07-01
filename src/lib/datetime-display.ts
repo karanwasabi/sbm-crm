@@ -55,6 +55,30 @@ export function formatLeadTimestamp(iso: string, timezoneId?: string | null): st
   return formatDateTimeInTimezone(iso, timezoneId, 'lead');
 }
 
+export function formatLeadTimestampLines(
+  iso: string,
+  timezoneId?: string | null
+): { date: string; time: string } | null {
+  if (!iso) return null;
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const timeZone = resolveDisplayTimezone(timezoneId);
+  const parts = formatToParts(date, timeZone, 'lead');
+  const day = partValue(parts, 'day');
+  const month = partValue(parts, 'month');
+  const year = partValue(parts, 'year');
+  const hour = partValue(parts, 'hour');
+  const minute = partValue(parts, 'minute');
+  const ampm = partValue(parts, 'dayPeriod').toLowerCase();
+
+  return {
+    date: `${day}/${month}/${year}`,
+    time: `${hour}:${minute} ${ampm}`,
+  };
+}
+
 export function formatActivityTimestamp(iso: string | null | undefined, timezoneId?: string | null): string {
   return formatDateTimeInTimezone(iso, timezoneId, 'activity');
 }
