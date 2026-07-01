@@ -11,6 +11,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { TableSkeleton } from '@/components/loading/table-skeleton';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -36,6 +37,7 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
   const [sends, setSends] = useState<BulkLeadEmailSendRow[]>([]);
   const [sendTotal, setSendTotal] = useState(0);
   const [page, setPage] = useState(0);
+  const [sendsLoading, setSendsLoading] = useState(true);
   const [sendsError, setSendsError] = useState<string | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
 
@@ -43,18 +45,27 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
   const skipLines = formatBulkSkipSummary(job.skip_breakdown);
   const skippedTotal = bulkSkipTotal(job.skip_breakdown);
 
-  const loadSends = useCallback(async (jobId: string, pageIndex: number) => {
+  const loadSends = useCallback(async (jobId: string, pageIndex: number, options?: { silent?: boolean }) => {
+    if (!options?.silent) {
+      setSendsLoading(true);
+    }
     const result = await listBulkLeadEmailSendJobSendsAction(jobId, {
       limit: PAGE_SIZE,
       offset: pageIndex * PAGE_SIZE,
     });
     if (result.error || !result.data) {
       setSendsError(result.error ?? 'Failed to load recipients.');
+      if (!options?.silent) {
+        setSendsLoading(false);
+      }
       return;
     }
     setSendsError(null);
     setSends(result.data.items);
     setSendTotal(result.data.total);
+    if (!options?.silent) {
+      setSendsLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -75,7 +86,7 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
           setJobError(result.error);
         }
       });
-      void loadSends(job.id, page);
+      void loadSends(job.id, page, { silent: true });
     }, 2500);
 
     return () => window.clearInterval(timer);
@@ -157,7 +168,9 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
           }
         />
         {sendsError ? <p className="text-sm font-medium text-danger-press">{sendsError}</p> : null}
-        {sends.length === 0 && !sendsError ? (
+        {sendsLoading ? (
+          <TableSkeleton columns={4} rows={8} embedded />
+        ) : sends.length === 0 && !sendsError ? (
           <p className="text-sm text-slate-500">
             {isActive ? 'Recipient rows will appear as the job processes leads.' : 'No recipient rows for this job.'}
           </p>
@@ -198,10 +211,20 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
                   Page {page + 1} of {pageCount}
                 </p>
                 <div className="flex gap-2">
-                  <Button variant="light" size="sm" disabled={!canPrev} onClick={() => setPage((value) => value - 1)}>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    disabled={!canPrev || sendsLoading}
+                    onClick={() => setPage((value) => value - 1)}
+                  >
                     Previous
                   </Button>
-                  <Button variant="light" size="sm" disabled={!canNext} onClick={() => setPage((value) => value + 1)}>
+                  <Button
+                    variant="light"
+                    size="sm"
+                    disabled={!canNext || sendsLoading}
+                    onClick={() => setPage((value) => value + 1)}
+                  >
                     Next
                   </Button>
                 </div>

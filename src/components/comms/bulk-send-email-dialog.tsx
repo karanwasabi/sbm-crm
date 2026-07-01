@@ -8,6 +8,7 @@ import {
   previewBulkLeadEmailSendAction,
   startBulkLeadEmailSendAction,
 } from '@/app/(crm)/database/actions';
+import { BulkSendPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
 import { formatBulkSkipSummary } from '@/lib/bulk-send-display';
 import { Button } from '@/components/ui/button';
 import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate } from '@/utils/api';
@@ -26,13 +27,15 @@ function formatSkipSummary(preview: BulkLeadEmailPreview): string[] {
 export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkSendEmailDialogProps) {
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
   const [preview, setPreview] = useState<BulkLeadEmailPreview | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const [job, setJob] = useState<BulkLeadEmailSendJob | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isSending, startSendTransition] = useTransition();
 
   useEffect(() => {
     if (!open) {
       setPreview(null);
+      setPreviewLoading(false);
       setJob(null);
       setError(null);
       setTemplateId(templates[0]?.id ?? '');
@@ -40,13 +43,18 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     }
     if (!templateId) {
       setPreview(null);
+      setPreviewLoading(false);
       return;
     }
 
     let cancelled = false;
-    startTransition(async () => {
+    setPreview(null);
+    setPreviewLoading(true);
+
+    void (async () => {
       const result = await previewBulkLeadEmailSendAction(templateId, leadIds);
       if (!cancelled) {
+        setPreviewLoading(false);
         if (result.error) {
           setPreview(null);
           setError(result.error);
@@ -55,7 +63,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
           setError(null);
         }
       }
-    });
+    })();
 
     return () => {
       cancelled = true;
@@ -110,7 +118,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
                 className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800"
                 value={templateId}
                 onChange={(event) => setTemplateId(event.target.value)}
-                disabled={isPending || sending}
+                disabled={previewLoading || isSending || sending}
               >
                 {templates.length === 0 ? <option value="">No active templates</option> : null}
                 {templates.map((template) => (
@@ -121,9 +129,9 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
               </select>
             </label>
 
-            {isPending ? <p className="mt-4 text-sm font-medium text-slate-500">Checking eligibility…</p> : null}
+            {previewLoading ? <BulkSendPreviewSkeleton /> : null}
 
-            {preview ? (
+            {preview && !previewLoading ? (
               <div className="mt-4 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3 text-sm text-slate-700">
                 <p>
                   <span className="font-extrabold text-slate-900">{preview.will_send.toLocaleString('en-IN')}</span>{' '}
@@ -182,10 +190,12 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
             <Button
               variant="primary"
               leftIcon={<Send className="h-3.5 w-3.5" />}
-              disabled={isPending || !templateId || !preview || preview.will_send === 0}
+              loading={isSending}
+              loadingLabel="Starting…"
+              disabled={previewLoading || isSending || !templateId || !preview || preview.will_send === 0}
               onClick={() => {
                 setError(null);
-                startTransition(async () => {
+                startSendTransition(async () => {
                   const result = await startBulkLeadEmailSendAction(templateId, leadIds);
                   if (result.error || !result.job) {
                     setError(result.error ?? 'Failed to start bulk send.');
