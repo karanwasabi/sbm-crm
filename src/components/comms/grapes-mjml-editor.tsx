@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
+import { Skeleton } from '@/components/loading/skeleton';
 import { saveEmailTemplateAction } from '@/app/(crm)/communications/actions';
 import {
   compileEditorHtml,
@@ -665,7 +666,14 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
             </div>
           </div>
 
-          <div ref={containerRef} className="sbm-grapes-editor" />
+          <div className="relative">
+            <div ref={containerRef} className="sbm-grapes-editor" />
+            {!editorReady ? (
+              <div className="absolute inset-0 bg-white" aria-hidden>
+                <Skeleton className="h-full w-full rounded-none" />
+              </div>
+            ) : null}
+          </div>
         </Card>
       </div>
 

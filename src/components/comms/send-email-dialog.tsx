@@ -54,6 +54,8 @@ export function SendEmailDialog({ open, onClose, leadId, templates, onSent }: Se
           <Button
             variant="primary"
             leftIcon={<Send className="h-3.5 w-3.5" />}
+            loading={isPending}
+            loadingLabel="Sending…"
             disabled={isPending || !templateId}
             onClick={() => {
               setError(null);

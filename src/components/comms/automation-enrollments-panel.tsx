@@ -6,6 +6,8 @@ import { Fragment, useCallback, useEffect, useState, useTransition } from 'react
 import { getAutomationEnrollmentLogAction, listAutomationEnrollmentsAction } from '@/app/(crm)/communications/actions';
 import { AutomationRunLogList } from '@/components/comms/automation-run-log-list';
 import { Pill } from '@/components/ui/pill';
+import { Skeleton } from '@/components/loading/skeleton';
+import { TableSkeleton } from '@/components/loading/table-skeleton';
 import {
   DataTable,
   DataTableBody,
@@ -54,6 +56,7 @@ export function AutomationEnrollmentsPanel({
   const [enrollments, setEnrollments] = useState<AutomationEnrollment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [logsByEnrollment, setLogsByEnrollment] = useState<Record<string, AutomationRunLogEntry[]>>({});
+  const [loadingLogId, setLoadingLogId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -64,6 +67,9 @@ export function AutomationEnrollmentsPanel({
   }, [activeTab]);
 
   const selectTab = (next: EnrollmentTab) => {
+    setEnrollments([]);
+    setExpandedId(null);
+    setLogsByEnrollment({});
     setTab(next);
     onTabChange?.(next);
   };
@@ -95,12 +101,15 @@ export function AutomationEnrollmentsPanel({
     if (logsByEnrollment[enrollmentId]) {
       return;
     }
+    setLoadingLogId(enrollmentId);
     startTransition(async () => {
       try {
         const log = await getAutomationEnrollmentLogAction(enrollmentId);
         setLogsByEnrollment((current) => ({ ...current, [enrollmentId]: log }));
       } catch (loadError) {
         setError(loadError instanceof Error ? loadError.message : 'Failed to load run log.');
+      } finally {
+        setLoadingLogId((current) => (current === enrollmentId ? null : current));
       }
     });
   };
@@ -144,7 +153,9 @@ export function AutomationEnrollmentsPanel({
       {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
 
       <div className="mt-4">
-        {enrollments.length === 0 ? (
+        {isPending && enrollments.length === 0 ? (
+          <TableSkeleton columns={6} rows={5} embedded />
+        ) : enrollments.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 bg-canvas-cool px-4 py-8 text-center text-sm text-slate-500">
             {tab === 'test'
               ? 'No test runs yet. Use Test mode in the builder to dry-run this workflow.'
@@ -209,7 +220,15 @@ export function AutomationEnrollmentsPanel({
                         <DataTableCell colSpan={6}>
                           <div className="py-2">
                             <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Run log</p>
-                            <AutomationRunLogList entries={logsByEnrollment[enrollment.id] ?? []} />
+                            {loadingLogId === enrollment.id ? (
+                              <div className="space-y-2">
+                                {Array.from({ length: 3 }).map((_, index) => (
+                                  <Skeleton key={index} className="h-14 w-full rounded-xl" />
+                                ))}
+                              </div>
+                            ) : (
+                              <AutomationRunLogList entries={logsByEnrollment[enrollment.id] ?? []} />
+                            )}
                           </div>
                         </DataTableCell>
                       </DataTableRow>
