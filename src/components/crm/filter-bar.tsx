@@ -8,7 +8,9 @@ import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-m
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
 import { TagFilterPopover } from '@/components/crm/tag-filter-popover';
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
+import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
+import type { EmailTemplate } from '@/utils/api';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
 
@@ -23,9 +25,10 @@ type FilterBarProps = {
   stageOptions: StageFilterOption[];
   filterOptions: LeadFilterOptions;
   tagSuggestions: TagSuggestion[];
+  emailTemplates: EmailTemplate[];
 };
 
-export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions }: FilterBarProps) {
+export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions, emailTemplates }: FilterBarProps) {
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
@@ -80,7 +83,10 @@ export function FilterBar({ filters, stageOptions, filterOptions, tagSuggestions
             </FilterChip>
           ))}
         </div>
-        <LeadDatabaseExportButton />
+        <div className="flex shrink-0 items-center gap-2">
+          <LeadDatabaseBulkSendButton templates={emailTemplates} />
+          <LeadDatabaseExportButton />
+        </div>
       </div>
     </Card>
   );

@@ -1764,6 +1764,67 @@ export async function sendLeadEmail(leadId: string, templateId: string): Promise
   }
 }
 
+export type BulkLeadEmailPreview = {
+  template_id: string;
+  classification: 'transactional' | 'marketing';
+  selected: number;
+  will_send: number;
+  skipped: {
+    no_consent: number;
+    unsubscribed: number;
+    no_email: number;
+    marketing_contact_cap: number;
+  };
+};
+
+export type BulkLeadEmailSendJob = {
+  id: string;
+  template_id: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  selected: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  skip_breakdown: BulkLeadEmailPreview['skipped'];
+  error_message?: string | null;
+  created_at: string;
+  completed_at?: string | null;
+};
+
+export async function previewBulkLeadEmailSend(templateId: string, leadIds: string[]): Promise<BulkLeadEmailPreview> {
+  const response = await requireApiFetch('/admin/comms/leads/bulk-send/preview', {
+    method: 'POST',
+    body: JSON.stringify({ template_id: templateId, lead_ids: leadIds }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to preview bulk send.', response.status);
+  }
+  return (await response.json()) as BulkLeadEmailPreview;
+}
+
+export async function startBulkLeadEmailSend(templateId: string, leadIds: string[]): Promise<{ job_id: string }> {
+  const response = await requireApiFetch('/admin/comms/leads/bulk-send', {
+    method: 'POST',
+    body: JSON.stringify({ template_id: templateId, lead_ids: leadIds }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to start bulk send.', response.status);
+  }
+  return (await response.json()) as { job_id: string };
+}
+
+export async function getBulkLeadEmailSendJob(jobId: string): Promise<BulkLeadEmailSendJob> {
+  const response = await requireApiFetch(`/admin/comms/bulk-send/${encodeURIComponent(jobId)}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load bulk send job.', response.status);
+  }
+  const row = (await response.json()) as BulkLeadEmailSendJob;
+  return row;
+}
+
 export const getMarketingContactsSummary = cache(async (): Promise<MarketingContactsSummary> => {
   const response = await requireApiFetch('/admin/comms/contacts/summary');
   if (!response.ok) {

@@ -1,0 +1,207 @@
+'use client';
+
+import { useEffect, useState, useTransition } from 'react';
+import { Send } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate } from '@/utils/api';
+import { getBulkLeadEmailSendJob, previewBulkLeadEmailSend, startBulkLeadEmailSend } from '@/utils/api';
+
+type BulkSendEmailDialogProps = {
+  open: boolean;
+  onClose: () => void;
+  leadIds: string[];
+  templates: EmailTemplate[];
+};
+
+function formatSkipSummary(preview: BulkLeadEmailPreview): string[] {
+  const lines: string[] = [];
+  if (preview.skipped.no_consent > 0) {
+    lines.push(`${preview.skipped.no_consent} no consent`);
+  }
+  if (preview.skipped.unsubscribed > 0) {
+    lines.push(`${preview.skipped.unsubscribed} unsubscribed`);
+  }
+  if (preview.skipped.no_email > 0) {
+    lines.push(`${preview.skipped.no_email} no email`);
+  }
+  if (preview.skipped.marketing_contact_cap > 0) {
+    lines.push(`${preview.skipped.marketing_contact_cap} marketing contact cap`);
+  }
+  return lines;
+}
+
+export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkSendEmailDialogProps) {
+  const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
+  const [preview, setPreview] = useState<BulkLeadEmailPreview | null>(null);
+  const [job, setJob] = useState<BulkLeadEmailSendJob | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!open) {
+      setPreview(null);
+      setJob(null);
+      setError(null);
+      setTemplateId(templates[0]?.id ?? '');
+      return;
+    }
+    if (!templateId) {
+      setPreview(null);
+      return;
+    }
+
+    let cancelled = false;
+    startTransition(async () => {
+      try {
+        const nextPreview = await previewBulkLeadEmailSend(templateId, leadIds);
+        if (!cancelled) {
+          setPreview(nextPreview);
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPreview(null);
+          setError(err instanceof Error ? err.message : 'Failed to load send preview.');
+        }
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, templateId, leadIds, templates]);
+
+  useEffect(() => {
+    if (!job || job.status === 'completed' || job.status === 'failed') {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      void getBulkLeadEmailSendJob(job.id)
+        .then((nextJob) => setJob(nextJob))
+        .catch(() => {
+          setError('Failed to refresh send progress.');
+        });
+    }, 2500);
+
+    return () => window.clearInterval(timer);
+  }, [job]);
+
+  if (!open) {
+    return null;
+  }
+
+  const skippedTotal = preview
+    ? preview.skipped.no_consent +
+      preview.skipped.unsubscribed +
+      preview.skipped.no_email +
+      preview.skipped.marketing_contact_cap
+    : 0;
+  const skipLines = preview ? formatSkipSummary(preview) : [];
+  const sending = Boolean(job && job.status !== 'completed' && job.status !== 'failed');
+  const finished = job?.status === 'completed' || job?.status === 'failed';
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+      <div className="w-full max-w-lg rounded-3xl border border-slate-100 bg-white p-5 shadow-xl">
+        <h2 className="text-lg font-extrabold text-slate-800">Send email to selected leads</h2>
+        <p className="mt-1 text-sm font-medium text-slate-500">
+          {leadIds.length.toLocaleString('en-IN')} lead{leadIds.length === 1 ? '' : 's'} selected.
+        </p>
+
+        {!job ? (
+          <>
+            <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
+              Template
+              <select
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800"
+                value={templateId}
+                onChange={(event) => setTemplateId(event.target.value)}
+                disabled={isPending || sending}
+              >
+                {templates.length === 0 ? <option value="">No active templates</option> : null}
+                {templates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name} ({template.classification})
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {isPending ? <p className="mt-4 text-sm font-medium text-slate-500">Checking eligibility…</p> : null}
+
+            {preview ? (
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3 text-sm text-slate-700">
+                <p>
+                  <span className="font-extrabold text-slate-900">{preview.will_send.toLocaleString('en-IN')}</span>{' '}
+                  will be sent.
+                </p>
+                {skippedTotal > 0 ? (
+                  <p className="mt-1">
+                    <span className="font-extrabold text-slate-900">{skippedTotal.toLocaleString('en-IN')}</span> will
+                    be skipped
+                    {skipLines.length > 0 ? ` (${skipLines.join(', ')})` : ''}.
+                  </p>
+                ) : (
+                  <p className="mt-1 text-slate-500">No leads will be skipped.</p>
+                )}
+              </div>
+            ) : null}
+          </>
+        ) : (
+          <div className="mt-4 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3 text-sm text-slate-700">
+            {finished ? (
+              <>
+                <p className="font-extrabold text-slate-900">
+                  {job.status === 'completed' ? 'Bulk send finished' : 'Bulk send failed'}
+                </p>
+                <p className="mt-1">
+                  Sent {job.sent.toLocaleString('en-IN')} · Skipped {job.skipped.toLocaleString('en-IN')} · Failed{' '}
+                  {job.failed.toLocaleString('en-IN')}
+                </p>
+                {job.error_message ? <p className="mt-2 font-medium text-danger-press">{job.error_message}</p> : null}
+              </>
+            ) : (
+              <>
+                <p className="font-extrabold text-slate-900">Sending emails…</p>
+                <p className="mt-1">
+                  Sent {job.sent.toLocaleString('en-IN')} · Skipped {job.skipped.toLocaleString('en-IN')} · Failed{' '}
+                  {job.failed.toLocaleString('en-IN')}
+                </p>
+              </>
+            )}
+          </div>
+        )}
+
+        {error ? <p className="mt-3 text-sm font-medium text-danger-press">{error}</p> : null}
+
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="light" onClick={onClose} disabled={sending}>
+            {finished ? 'Close' : 'Cancel'}
+          </Button>
+          {!job ? (
+            <Button
+              variant="primary"
+              leftIcon={<Send className="h-3.5 w-3.5" />}
+              disabled={isPending || !templateId || !preview || preview.will_send === 0}
+              onClick={() => {
+                setError(null);
+                startTransition(async () => {
+                  try {
+                    const started = await startBulkLeadEmailSend(templateId, leadIds);
+                    const initialJob = await getBulkLeadEmailSendJob(started.job_id);
+                    setJob(initialJob);
+                  } catch (err) {
+                    setError(err instanceof Error ? err.message : 'Failed to start bulk send.');
+                  }
+                });
+              }}
+            >
+              Send now
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}

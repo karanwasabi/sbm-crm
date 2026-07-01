@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
-import { getLeadFilterOptions, getLeadSummary, listTagSuggestions } from '@/utils/api';
+import { getLeadFilterOptions, getLeadSummary, listEmailTemplates, listTagSuggestions } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary } from '@/types/crm';
 import { LeadDatabaseTableLoader } from './lead-database-table-loader';
 
@@ -39,6 +39,7 @@ export default async function DatabasePage({
   let summary = EMPTY_SUMMARY;
   let filterOptions = EMPTY_FILTER_OPTIONS;
   let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
+  let emailTemplates: import('@/utils/api').EmailTemplate[] = [];
 
   try {
     [summary, filterOptions] = await Promise.all([getLeadSummary(), getLeadFilterOptions()]);
@@ -53,8 +54,20 @@ export default async function DatabasePage({
     tagSuggestions = [];
   }
 
+  try {
+    emailTemplates = await listEmailTemplates();
+  } catch {
+    emailTemplates = [];
+  }
+
   return (
-    <LeadDatabaseView filters={filters} summary={summary} filterOptions={filterOptions} tagSuggestions={tagSuggestions}>
+    <LeadDatabaseView
+      filters={filters}
+      summary={summary}
+      filterOptions={filterOptions}
+      tagSuggestions={tagSuggestions}
+      emailTemplates={emailTemplates}
+    >
       <Suspense key={suspenseKey} fallback={<LeadDatabaseTableFallback />}>
         <LeadDatabaseTableLoader filters={filters} summary={summary} />
       </Suspense>

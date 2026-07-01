@@ -8,6 +8,7 @@ import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
 import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { buildStageFilterOptions } from '@/lib/lead-display';
+import type { EmailTemplate } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary, TagSuggestion } from '@/types/crm';
 
 type LeadDatabaseViewProps = {
@@ -15,10 +16,18 @@ type LeadDatabaseViewProps = {
   summary: LeadSummary;
   filterOptions: LeadFilterOptions;
   tagSuggestions: TagSuggestion[];
+  emailTemplates: EmailTemplate[];
   children: ReactNode;
 };
 
-export function LeadDatabaseView({ filters, summary, filterOptions, tagSuggestions, children }: LeadDatabaseViewProps) {
+export function LeadDatabaseView({
+  filters,
+  summary,
+  filterOptions,
+  tagSuggestions,
+  emailTemplates,
+  children,
+}: LeadDatabaseViewProps) {
   const { setLeadTotal } = useCrmLeadSummary();
   const stageOptions = buildStageFilterOptions(summary);
 
@@ -35,6 +44,7 @@ export function LeadDatabaseView({ filters, summary, filterOptions, tagSuggestio
           stageOptions={stageOptions}
           filterOptions={filterOptions}
           tagSuggestions={tagSuggestions}
+          emailTemplates={emailTemplates}
         />
 
         <LeadDatabaseActiveFilters filters={filters} />
