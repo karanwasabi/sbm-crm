@@ -11,6 +11,7 @@ import {
   dismissLeadContactDuplicate,
   dismissLeadFieldSuggestion as dismissLeadFieldSuggestionApi,
   getLeadPurgePreview,
+  markLeadFieldSuggestionsSeen as markLeadFieldSuggestionsSeenApi,
   markLeadLost,
   purgeLead,
   sendLeadEmail,
@@ -91,6 +92,16 @@ export async function dismissLeadFieldSuggestion(
     return { error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to dismiss suggestion.';
+    return { error: message };
+  }
+}
+
+export async function markLeadFieldSuggestionsSeen(leadId: string): Promise<{ error: string | null }> {
+  try {
+    await markLeadFieldSuggestionsSeenApi(leadId);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to mark suggestions seen.';
     return { error: message };
   }
 }

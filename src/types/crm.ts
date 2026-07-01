@@ -47,6 +47,7 @@ export type Lead = {
   marketingContactStatus: import('@/types/crm').MarketingContactStatus;
   marketingContactSyncedAt?: string | null;
   marketingUnsubscribedAt?: string | null;
+  unseenSuggestionCount: number;
 };
 
 export type LeadSummary = {
@@ -95,12 +96,13 @@ export type FieldSuggestion = {
   field: 'name' | 'phone' | 'city' | 'country';
   currentValue: string;
   suggestedValue: string;
-  source: 'leadsync' | 'native_meta' | 'manual_intake' | 'phone_match';
+  source: 'leadsync' | 'native_meta' | 'manual_intake' | 'phone_match' | 'lead_intake_form';
   sourceLabel: string;
   contactEventId?: number | null;
   editable: boolean;
   status: 'pending' | 'dismissed' | 'applied';
   lastSeenAt: string;
+  seenAt?: string | null;
 };
 
 export type ContactDuplicate = {

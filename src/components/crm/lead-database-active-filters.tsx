@@ -31,6 +31,14 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
       href: buildLeadDatabaseHref(filters, { marketing: 'all' }),
     });
   }
+  if (filters.hasUnseenSuggestions) {
+    chips.push({
+      key: 'has-unseen-suggestions',
+      label: 'Updates',
+      value: 'Unseen only',
+      href: buildLeadDatabaseHref(filters, { hasUnseenSuggestions: false }),
+    });
+  }
   filters.tags.forEach((tag) => {
     chips.push({
       key: `tag-${tag}`,

@@ -28,6 +28,7 @@ type ApiLeadResponse = {
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus | null;
   marketing_contact_synced_at?: string | null;
   marketing_unsubscribed_at?: string | null;
+  unseen_suggestion_count?: number;
   source_label?: string | null;
 };
 
@@ -59,6 +60,7 @@ function mapLead(row: ApiLeadResponse): Lead {
     marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
     marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
+    unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
   };
 }
 

@@ -230,6 +230,7 @@ type ApiLeadResponse = {
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus;
   marketing_contact_synced_at?: string | null;
   marketing_unsubscribed_at?: string | null;
+  unseen_suggestion_count?: number;
   source_label?: string;
   manual_source?: import('@/types/crm').ManualLeadSource;
   notes?: string | null;
@@ -273,6 +274,7 @@ type ApiLeadResponse = {
     editable: boolean;
     status: 'pending' | 'dismissed' | 'applied';
     last_seen_at: string;
+    seen_at?: string | null;
   }[];
   contact_duplicates?: {
     link_id: number;
@@ -334,6 +336,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
     marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
+    unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
   };
 }
 
@@ -604,6 +607,17 @@ export async function dismissLeadFieldSuggestion(
   return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }
 
+export async function markLeadFieldSuggestionsSeen(leadId: string): Promise<import('@/types/crm').LeadDetail> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/suggestions/mark-seen`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to mark suggestions seen.', response.status);
+  }
+  return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
 export async function dismissLeadContactDuplicate(
   leadId: string,
   linkId: number
@@ -712,6 +726,7 @@ function mapFieldSuggestions(
     editable: row.editable,
     status: row.status,
     lastSeenAt: row.last_seen_at,
+    seenAt: row.seen_at ?? null,
   }));
 }
 

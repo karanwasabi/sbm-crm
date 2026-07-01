@@ -1,7 +1,11 @@
 'use client';
 
 import { useTransition } from 'react';
-import { applyLeadFieldSuggestion, dismissLeadFieldSuggestion } from '@/app/(crm)/customers/actions';
+import {
+  applyLeadFieldSuggestion,
+  dismissLeadFieldSuggestion,
+  markLeadFieldSuggestionsSeen,
+} from '@/app/(crm)/customers/actions';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import {
@@ -35,6 +39,9 @@ function sectionTitle(suggestions: FieldSuggestion[]) {
   }
   if (sources.size === 1 && sources.has('Manual entry')) {
     return 'Profile updates';
+  }
+  if (sources.size === 1 && sources.has('Interest Form Leads')) {
+    return 'Interest form updates';
   }
   return 'Suggested updates';
 }
@@ -83,6 +90,7 @@ export function LeadDataSuggestionsCard({ leadId, suggestions, onUpdated }: Lead
   const pendingItems = externalSuggestions.filter((s) => s.status === 'pending');
   const appliedItems = externalSuggestions.filter((s) => s.status === 'applied');
   const dismissedItems = externalSuggestions.filter((s) => s.status === 'dismissed');
+  const unseenPendingCount = pendingItems.filter((s) => !s.seenAt).length;
 
   if (pendingItems.length === 0 && appliedItems.length === 0 && dismissedItems.length === 0) {
     return null;
@@ -106,6 +114,15 @@ export function LeadDataSuggestionsCard({ leadId, suggestions, onUpdated }: Lead
     });
   };
 
+  const handleMarkSeen = () => {
+    startTransition(async () => {
+      const result = await markLeadFieldSuggestionsSeen(leadId);
+      if (!result.error) {
+        onUpdated();
+      }
+    });
+  };
+
   const sourceLabel =
     new Set(externalSuggestions.map((s) => s.sourceLabel)).size === 1
       ? (externalSuggestions[0]?.sourceLabel ?? null)
@@ -120,11 +137,23 @@ export function LeadDataSuggestionsCard({ leadId, suggestions, onUpdated }: Lead
       )}
     >
       <div className="border-b border-[#C8CCFF]/70 px-5 py-3.5">
-        <SectionHead
-          className="mb-0"
-          title={sectionTitle(externalSuggestions)}
-          subtitle={subtitleForSuggestions(pendingItems, appliedItems, dismissedItems, sourceLabel)}
-        />
+        <div className="flex items-start justify-between gap-3">
+          <SectionHead
+            className="mb-0"
+            title={sectionTitle(externalSuggestions)}
+            subtitle={subtitleForSuggestions(pendingItems, appliedItems, dismissedItems, sourceLabel)}
+          />
+          {unseenPendingCount > 0 ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={handleMarkSeen}
+              className="shrink-0 cursor-pointer rounded-md border border-[#B8BEF5] bg-white px-2.5 py-1 text-xs font-semibold text-brand hover:bg-[#F7F8FF] disabled:opacity-50"
+            >
+              Mark as seen ({unseenPendingCount})
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {pendingItems.length > 0 || appliedItems.length > 0 ? (

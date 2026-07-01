@@ -29,6 +29,7 @@ export function buildLeadListSearchParams(
   if (filters.updatedTo) params.set('updated_to', filters.updatedTo);
   if (filters.sort !== 'created_at') params.set('sort', filters.sort);
   if (filters.order !== 'desc') params.set('order', filters.order);
+  if (filters.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (page > 1) params.set('page', String(page));
   if (pageSize !== 50) params.set('page_size', String(pageSize));
 
