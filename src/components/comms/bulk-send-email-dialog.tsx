@@ -2,9 +2,13 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { Send } from 'lucide-react';
+import {
+  getBulkLeadEmailSendJobAction,
+  previewBulkLeadEmailSendAction,
+  startBulkLeadEmailSendAction,
+} from '@/app/(crm)/database/actions';
 import { Button } from '@/components/ui/button';
 import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate } from '@/utils/api';
-import { getBulkLeadEmailSendJob, previewBulkLeadEmailSend, startBulkLeadEmailSend } from '@/utils/api';
 
 type BulkSendEmailDialogProps = {
   open: boolean;
@@ -52,16 +56,14 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
 
     let cancelled = false;
     startTransition(async () => {
-      try {
-        const nextPreview = await previewBulkLeadEmailSend(templateId, leadIds);
-        if (!cancelled) {
-          setPreview(nextPreview);
-          setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
+      const result = await previewBulkLeadEmailSendAction(templateId, leadIds);
+      if (!cancelled) {
+        if (result.error) {
           setPreview(null);
-          setError(err instanceof Error ? err.message : 'Failed to load send preview.');
+          setError(result.error);
+        } else {
+          setPreview(result.preview);
+          setError(null);
         }
       }
     });
@@ -77,11 +79,13 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     }
 
     const timer = window.setInterval(() => {
-      void getBulkLeadEmailSendJob(job.id)
-        .then((nextJob) => setJob(nextJob))
-        .catch(() => {
-          setError('Failed to refresh send progress.');
-        });
+      void getBulkLeadEmailSendJobAction(job.id).then((result) => {
+        if (result.job) {
+          setJob(result.job);
+        } else if (result.error) {
+          setError(result.error);
+        }
+      });
     }, 2500);
 
     return () => window.clearInterval(timer);
@@ -187,13 +191,12 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
               onClick={() => {
                 setError(null);
                 startTransition(async () => {
-                  try {
-                    const started = await startBulkLeadEmailSend(templateId, leadIds);
-                    const initialJob = await getBulkLeadEmailSendJob(started.job_id);
-                    setJob(initialJob);
-                  } catch (err) {
-                    setError(err instanceof Error ? err.message : 'Failed to start bulk send.');
+                  const result = await startBulkLeadEmailSendAction(templateId, leadIds);
+                  if (result.error || !result.job) {
+                    setError(result.error ?? 'Failed to start bulk send.');
+                    return;
                   }
+                  setJob(result.job);
                 });
               }}
             >
