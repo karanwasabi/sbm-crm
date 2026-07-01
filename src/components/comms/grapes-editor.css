@@ -2,7 +2,7 @@
 
 .sbm-grapes-editor,
 .gjs-mdl-container {
-  --gjs-primary-color: #ffffff;
+  --gjs-primary-color: #f8f9fe;
   --gjs-secondary-color: #64748b;
   --gjs-tertiary-color: #804f7b;
   --gjs-quaternary-color: #f45e43;
@@ -31,6 +31,13 @@
 
 .sbm-grapes-editor .gjs-editor-cont {
   height: 100%;
+  background: #f8f9fe;
+}
+
+.sbm-grapes-editor .gjs-cv-canvas,
+.sbm-grapes-editor .gjs-cv-canvas__frames,
+.sbm-grapes-editor .gjs-frame-wrapper {
+  background: #ffffff;
 }
 
 .sbm-grapes-editor .gjs-pn-panel {
@@ -115,7 +122,7 @@
 }
 
 .sbm-grapes-editor .gjs-pn-views-container {
-  background: #fff;
+  background: #f8f9fe;
   color: #334155;
   border-left: 1px solid #e2e8f0;
 }
@@ -138,12 +145,12 @@
 }
 
 .sbm-grapes-editor .gjs-cv-canvas {
-  background: #e2e8f0;
+  background: #ffffff;
 }
 
-/* Blocks panel — light background, dark labels, coloured block icons */
+/* Blocks panel — cool sidebar with white block tiles */
 .sbm-grapes-editor .gjs-blocks-c {
-  background: #fff;
+  background: #f8f9fe;
   color: #333;
   padding: 8px;
 }
@@ -184,10 +191,117 @@
   font-weight: 700;
 }
 
+.sbm-grapes-editor .gjs-sm-sectors,
+.sbm-grapes-editor .gjs-traits-c,
+.sbm-grapes-editor .gjs-trt-traits {
+  background: #f8f9fe;
+}
+
 /* Style / trait panels */
 .sbm-grapes-editor .gjs-sm-sector .gjs-sm-title,
 .sbm-grapes-editor .gjs-trt-trait {
   color: #334155;
+}
+
+.sbm-grapes-editor .gjs-sm-label,
+.sbm-grapes-editor .gjs-label {
+  color: #475569;
+  font-weight: 600;
+}
+
+.sbm-grapes-editor .gjs-sm-label.gjs-four-color,
+.sbm-grapes-editor .gjs-label.gjs-four-color {
+  color: #9a3412;
+}
+
+.sbm-grapes-editor .gjs-sm-clear {
+  opacity: 0.85;
+}
+
+.sbm-grapes-editor .gjs-sm-clear path {
+  fill: #94a3b8;
+}
+
+/* GrapesJS ships dark-theme field chrome — override for light sidebar */
+.sbm-grapes-editor
+  :is(
+    .gjs-sm-color,
+    .gjs-sm-field.gjs-sm-input,
+    .gjs-sm-field.gjs-sm-integer,
+    .gjs-sm-field.gjs-sm-list,
+    .gjs-sm-field.gjs-sm-select,
+    .gjs-clm-select,
+    .gjs-field
+  ) {
+  background-color: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  box-shadow: none;
+  color: #0f172a;
+}
+
+.sbm-grapes-editor
+  :is(
+    .gjs-sm-field input,
+    .gjs-sm-field select,
+    .gjs-clm-field input,
+    .gjs-clm-field select,
+    .gjs-clm-select input,
+    .gjs-clm-select select,
+    .gjs-field input,
+    .gjs-field select,
+    .gjs-field textarea
+  ) {
+  color: #0f172a;
+  background-color: transparent;
+}
+
+.sbm-grapes-editor :is(.gjs-sm-field input, .gjs-field input, .gjs-clm-field input)::placeholder {
+  color: #94a3b8;
+  opacity: 1;
+}
+
+.sbm-grapes-editor .gjs-field-unit,
+.sbm-grapes-editor .gjs-field-arrow-u,
+.sbm-grapes-editor .gjs-field-arrow-d {
+  color: #64748b;
+}
+
+.sbm-grapes-editor .gjs-field-arrow-u,
+.sbm-grapes-editor .gjs-field-arrow-d {
+  border-top-color: #64748b;
+  border-bottom-color: #64748b;
+}
+
+.sbm-grapes-editor .gjs-radio-items {
+  background: #fff;
+}
+
+.sbm-grapes-editor .gjs-radio-item {
+  border-left-color: #e2e8f0;
+}
+
+.sbm-grapes-editor .gjs-radio-item:hover {
+  background: #f8fafc;
+}
+
+.sbm-grapes-editor .gjs-radio-item input:checked + .gjs-radio-item-label {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.sbm-grapes-editor .gjs-radio-item-label {
+  color: #475569;
+}
+
+.sbm-grapes-editor .gjs-sm-field.gjs-sm-color .gjs-field-colorp-c {
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.sbm-grapes-editor .gjs-trt-trait .gjs-label-wrp {
+  color: #475569;
+  font-weight: 600;
 }
 
 .sbm-grapes-editor :where(input, select, textarea) {
@@ -210,6 +324,14 @@
 .sbm-grapes-editor :where(label) {
   margin: 0;
   color: #475569;
+}
+
+.sbm-grapes-editor :is(.gjs-sm-field, .gjs-field, .gjs-clm-field, .gjs-clm-select) :where(input, select, textarea) {
+  border: none;
+  background-color: transparent;
+  color: #0f172a;
+  padding: 4px 2px;
+  box-shadow: none;
 }
 
 .sbm-grapes-editor :where(img) {
@@ -286,7 +408,7 @@
   align-items: center;
   gap: 10px;
   border-bottom: 1px solid #e2e8f0;
-  background: #fff;
+  background: #f8f9fe;
   padding: 8px 12px;
 }
 

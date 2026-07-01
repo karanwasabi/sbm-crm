@@ -606,11 +606,235 @@ export function createAssetUploadHandler(editor: Editor) {
   };
 }
 
-export type SidebarPanelId = 'open-blocks' | 'open-sm' | 'open-layers';
+export type SidebarPanelId = 'open-blocks' | 'open-sm' | 'open-tm';
 
 export type EditorPanelCommand = SidebarPanelId | 'open-assets' | 'open-tm';
 
-const SIDEBAR_PANEL_IDS: SidebarPanelId[] = ['open-blocks', 'open-sm', 'open-layers'];
+const SIDEBAR_PANEL_IDS: SidebarPanelId[] = ['open-blocks', 'open-sm', 'open-tm'];
+
+const TRAIT_PANEL_COMPONENT_TYPES = new Set(['mj-button', 'link', 'mj-image', 'mj-social-element']);
+
+function readComponentHtml(component: Component): string {
+  try {
+    const inner = component.getInnerHTML();
+    if (typeof inner === 'string' && inner.trim()) {
+      return inner;
+    }
+  } catch {
+    // Fall through.
+  }
+  const content = component.get('content');
+  return typeof content === 'string' ? content : '';
+}
+
+function firstAnchorHref(html: string): string | null {
+  const match = html.match(/<a\b[^>]*\bhref\s*=\s*["']([^"']*)["']/i);
+  return match?.[1] ?? null;
+}
+
+function replaceFirstAnchorHref(html: string, href: string): string {
+  if (!/<a\b/i.test(html)) {
+    return html;
+  }
+  return html.replace(/<a\b([^>]*)>/i, (match, attrs: string) => {
+    let nextAttrs = attrs;
+    if (/\bhref\s*=/i.test(nextAttrs)) {
+      nextAttrs = nextAttrs.replace(/\bhref\s*=\s*["'][^"']*["']/i, `href="${href}"`);
+    } else {
+      nextAttrs = `${nextAttrs.trimEnd()} href="${href}"`;
+    }
+    if (!/\btarget\s*=/i.test(nextAttrs)) {
+      nextAttrs = `${nextAttrs.trimEnd()} target="_blank"`;
+    }
+    if (!/\brel\s*=/i.test(nextAttrs)) {
+      nextAttrs = `${nextAttrs.trimEnd()} rel="noopener noreferrer"`;
+    }
+    const spacer = nextAttrs.trimStart();
+    return `<a ${spacer}>`;
+  });
+}
+
+const HREF_COMPONENT_TYPES = new Set(['mj-button', 'mj-image', 'mj-social-element', 'mj-navbar-link']);
+
+const DEFAULT_LINK_REL = 'noopener noreferrer';
+const DEFAULT_LINK_TARGET = '_blank';
+
+function ensureComponentHrefTarget(component: Component) {
+  const type = component.get('type') as string;
+  if (!HREF_COMPONENT_TYPES.has(type)) {
+    return;
+  }
+
+  const attrs = component.getAttributes();
+  const href = attrs.href;
+  if (typeof href !== 'string' || !href.trim()) {
+    return;
+  }
+
+  const updates: Record<string, string> = {};
+  if (attrs.target !== DEFAULT_LINK_TARGET) {
+    updates.target = DEFAULT_LINK_TARGET;
+  }
+  if (typeof attrs.rel !== 'string' || !attrs.rel.includes('noopener')) {
+    updates.rel = DEFAULT_LINK_REL;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    component.addAttributes(updates);
+  }
+}
+
+function ensureTextComponentLinkTargets(component: Component) {
+  const type = component.get('type') as string;
+  if (type !== 'mj-text' && type !== 'text' && !component.is('text')) {
+    return;
+  }
+
+  const html = readComponentHtml(component);
+  if (!/<a\b/i.test(html)) {
+    return;
+  }
+
+  const next = ensureEmailLinksOpenInNewTab(html);
+  if (next !== html) {
+    component.set('content', next, CONTENT_UPDATE_OPTS);
+  }
+}
+
+function applyDefaultLinkTargets(component: Component) {
+  ensureComponentHrefTarget(component);
+  ensureTextComponentLinkTargets(component);
+  component.components().forEach((child: Component) => applyDefaultLinkTargets(child));
+}
+
+/** Default all template links (buttons, images, inline text) to open in a new tab. */
+export function installDefaultLinkTargetSupport(editor: Editor) {
+  const onComponentAdd = (component: Component) => {
+    applyDefaultLinkTargets(component);
+  };
+
+  const onHrefChange = (component: Component) => {
+    ensureComponentHrefTarget(component);
+  };
+
+  const onComponentUpdate = (component: Component) => {
+    ensureTextComponentLinkTargets(component);
+  };
+
+  editor.on('component:add', onComponentAdd);
+  editor.on('component:update:attributes:href', onHrefChange);
+  editor.on('component:update', onComponentUpdate);
+
+  return {
+    applyAll() {
+      editor
+        .getWrapper()
+        ?.components()
+        .forEach((component: Component) => applyDefaultLinkTargets(component));
+    },
+    teardown() {
+      editor.off('component:add', onComponentAdd);
+      editor.off('component:update:attributes:href', onHrefChange);
+      editor.off('component:update', onComponentUpdate);
+    },
+  };
+}
+
+export function traitPanelComponent(component: Component | null | undefined): Component | null {
+  let current: Component | null | undefined = component;
+  while (current && !current.is('wrapper')) {
+    const type = current.get('type') as string;
+    if (TRAIT_PANEL_COMPONENT_TYPES.has(type)) {
+      return current;
+    }
+    current = current.parent();
+  }
+  return null;
+}
+
+export function shouldOpenTraitsPanel(component: Component | null | undefined): boolean {
+  if (traitPanelComponent(component)) {
+    return true;
+  }
+  if (!component) {
+    return false;
+  }
+  const type = component.get('type') as string;
+  if (type === 'mj-text' || type === 'text' || component.is('text')) {
+    return firstAnchorHref(readComponentHtml(component)) !== null;
+  }
+  return false;
+}
+
+export function showTraitsSidebar(editor: Editor, onComponentSelected?: () => void) {
+  activateSidebarPanel(editor, 'open-tm');
+  onComponentSelected?.();
+}
+
+function componentHasTrait(component: Component, name: string, type?: string): boolean {
+  const traits = component.getTraits?.() ?? component.get('traits');
+  if (!traits || !Array.isArray(traits)) {
+    return false;
+  }
+  return traits.some((trait) => {
+    const traitModel = trait as { get?: (key: string) => unknown; name?: string; type?: string };
+    const traitNameValue =
+      typeof traitModel.get === 'function' ? (traitModel.get('name') as string | undefined) : traitModel.name;
+    const traitTypeValue =
+      typeof traitModel.get === 'function' ? (traitModel.get('type') as string | undefined) : traitModel.type;
+    if (traitNameValue === name) {
+      return true;
+    }
+    return type ? traitTypeValue === type : false;
+  });
+}
+
+/** Expose href / link URL editing in the trait (Settings) panel — hidden by custom toolbar until now. */
+export function installEmailLinkEditingSupport(editor: Editor) {
+  editor.TraitManager.addType('sbm-inline-link-href', {
+    createInput({ component }) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'sbm-inline-link-href-input';
+      input.placeholder = 'https://example.com or {{links.portal}}';
+
+      const syncFromComponent = () => {
+        input.value = firstAnchorHref(readComponentHtml(component)) ?? '';
+      };
+
+      syncFromComponent();
+      input.addEventListener('change', () => {
+        const current = readComponentHtml(component);
+        const next = replaceFirstAnchorHref(current, input.value.trim());
+        if (next !== current) {
+          component.set('content', next, CONTENT_UPDATE_OPTS);
+          editor.trigger('component:update', component);
+        }
+      });
+
+      component.on('change:content', syncFromComponent);
+      return input;
+    },
+  });
+
+  editor.on('component:selected', (component) => {
+    if (component.get('type') !== 'mj-text') {
+      return;
+    }
+    if (!firstAnchorHref(readComponentHtml(component))) {
+      return;
+    }
+    if (componentHasTrait(component, 'sbm-inline-link-href', 'sbm-inline-link-href')) {
+      return;
+    }
+    const addTrait = component.addTrait as unknown as (trait: { type: string; label: string; name: string }) => void;
+    addTrait({
+      type: 'sbm-inline-link-href',
+      label: 'Inline link URL',
+      name: 'sbm-inline-link-href',
+    });
+  });
+}
 
 function isSidebarPanel(command: EditorPanelCommand): command is SidebarPanelId {
   return SIDEBAR_PANEL_IDS.includes(command as SidebarPanelId);
@@ -651,6 +875,7 @@ type EditorSelectionUxCallbacks = {
   onComponentDeselected?: () => void;
   getEditorShellEl?: () => HTMLElement | null;
   getEditorContainerEl?: () => HTMLElement | null;
+  isInteractive?: () => boolean;
 };
 
 function showBlocksSidebar(editor: Editor, onComponentDeselected?: () => void) {
@@ -665,17 +890,28 @@ function showStylesSidebar(editor: Editor, onComponentSelected?: () => void) {
 
 /** Style manager on select, blocks on deselect; click-outside and canvas backdrop clear selection. */
 export function configureEditorSelectionUx(editor: Editor, callbacks: EditorSelectionUxCallbacks = {}) {
-  const { onComponentSelected, onComponentDeselected, getEditorShellEl, getEditorContainerEl } = callbacks;
+  const { onComponentSelected, onComponentDeselected, getEditorShellEl, getEditorContainerEl, isInteractive } =
+    callbacks;
 
   editor.on('component:selected', (component: Component) => {
+    if (isInteractive && !isInteractive()) {
+      return;
+    }
     if (component.is('wrapper')) {
       editor.select();
+      return;
+    }
+    if (shouldOpenTraitsPanel(component)) {
+      showTraitsSidebar(editor, onComponentSelected);
       return;
     }
     showStylesSidebar(editor, onComponentSelected);
   });
 
   editor.on('component:deselected', () => {
+    if (isInteractive && !isInteractive()) {
+      return;
+    }
     if (!editor.getSelected()) {
       showBlocksSidebar(editor, onComponentDeselected);
     }

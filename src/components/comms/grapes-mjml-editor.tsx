@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Layers, LayoutGrid, Archive, Monitor, Palette, Redo2, Save, Smartphone, Tablet, Undo2 } from 'lucide-react';
+import { LayoutGrid, Archive, Monitor, Palette, Redo2, Save, Settings, Smartphone, Tablet, Undo2 } from 'lucide-react';
 import type { Editor } from 'grapesjs';
 import grapesjs from 'grapesjs';
 import grapesjsMjml from 'grapesjs-mjml';
@@ -26,6 +26,8 @@ import {
   getEditorHistoryState,
   initializeEditorSidebar,
   insertMergeToken,
+  installDefaultLinkTargetSupport,
+  installEmailLinkEditingSupport,
   installMergeTokenEditorSupport,
   loadStarterMjml,
   protectLogoFromImageEditor,
@@ -34,6 +36,7 @@ import {
   resetEditorHistoryBaseline,
   runEditorPanelCommand,
   setEditorCanvasDevice,
+  shouldOpenTraitsPanel,
   stripBuiltInEditorChrome,
   undoEditorChange,
   type CanvasDeviceId,
@@ -88,7 +91,7 @@ const PREVIEW_DEVICE_MAX_WIDTH: Record<CanvasDeviceId, string> = {
 const SIDEBAR_TAB_OPTIONS: Array<{ id: SidebarPanelId; label: string; icon: typeof LayoutGrid }> = [
   { id: 'open-blocks', label: 'Blocks', icon: LayoutGrid },
   { id: 'open-sm', label: 'Styles', icon: Palette },
-  { id: 'open-layers', label: 'Layers', icon: Layers },
+  { id: 'open-tm', label: 'Settings', icon: Settings },
 ];
 
 type SegmentedOption<T extends string> = {
@@ -180,6 +183,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   const editorReadyRef = useRef(false);
   const editorShellRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const applyLinkTargetsRef = useRef<(() => void) | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -280,13 +284,6 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
                 attributes: { title: 'Settings' },
               },
               {
-                id: 'open-layers',
-                className: 'fa fa-bars',
-                command: 'open-layers',
-                togglable: false,
-                attributes: { title: 'Layers' },
-              },
-              {
                 id: 'open-blocks',
                 className: 'fa fa-th-large',
                 command: 'open-blocks',
@@ -304,14 +301,19 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     editor.UndoManager.stop();
     registerSbmBlocks(editor);
     protectLogoFromImageEditor(editor);
+    const linkTargetSupport = installDefaultLinkTargetSupport(editor);
+    applyLinkTargetsRef.current = () => linkTargetSupport.applyAll();
     const teardownMergeTokens = installMergeTokenEditorSupport(editor);
     const teardownSelectionUx = configureEditorSelectionUx(editor, {
       getEditorShellEl: () => editorShellRef.current,
       getEditorContainerEl: () => containerRef.current,
+      isInteractive: () => editorReadyRef.current,
       onComponentSelected: () => {
-        if (editorReadyRef.current) {
-          setSidebarTab('open-sm');
+        if (!editorReadyRef.current) {
+          return;
         }
+        const selected = editor.getSelected();
+        setSidebarTab(selected && shouldOpenTraitsPanel(selected) ? 'open-tm' : 'open-sm');
       },
       onComponentDeselected: () => {
         if (editorReadyRef.current) {
@@ -334,7 +336,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       refreshHistoryState(editor);
     });
 
-    for (const panelId of ['open-blocks', 'open-sm', 'open-layers'] as const) {
+    for (const panelId of ['open-blocks', 'open-sm', 'open-tm'] as const) {
       editor.on(`run:${panelId}`, () => setSidebarTab(panelId));
     }
 
@@ -350,11 +352,19 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
 
       if (disposed) return;
 
-      if (template?.contentJson && isGrapesProjectData(template.contentJson)) {
-        editor.loadProjectData(template.contentJson);
-      } else {
+      try {
+        if (template?.contentJson && isGrapesProjectData(template.contentJson)) {
+          editor.loadProjectData(template.contentJson);
+        } else {
+          loadStarterMjml(editor, getStarterMjml(classification));
+        }
+      } catch (loadError) {
+        console.error('Failed to load email template into editor', loadError);
         loadStarterMjml(editor, getStarterMjml(classification));
       }
+
+      installEmailLinkEditingSupport(editor);
+      linkTargetSupport.applyAll();
 
       refreshPreview(editor);
       stripBuiltInEditorChrome(editor);
@@ -374,8 +384,10 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     return () => {
       disposed = true;
       editorReadyRef.current = false;
+      applyLinkTargetsRef.current = null;
       setEditorReady(false);
       teardownMergeTokens();
+      linkTargetSupport.teardown();
       teardownSelectionUx();
       editor.destroy();
       editorRef.current = null;
@@ -392,6 +404,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
 
     setClassification(next);
     loadStarterMjml(editor, getStarterMjml(next));
+    applyLinkTargetsRef.current?.();
     refreshPreview(editor);
   }
 

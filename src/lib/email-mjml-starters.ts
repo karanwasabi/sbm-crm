@@ -1,7 +1,7 @@
 import { EMAIL_BRAND_NAME, EMAIL_LOGO_URL, EMAIL_WEBSITE_URL } from '@/lib/email-branding';
 import type { EmailTemplateClassification } from '@/lib/email-template-types';
 
-const LINK_TARGET = 'target="_blank"';
+const LINK_TARGET = 'target="_blank" rel="noopener noreferrer"';
 
 function logoSection(): string {
   return `
@@ -65,7 +65,7 @@ function marketingFooter(): string {
 
 const letterMjml = `
 <mjml>
-  <mj-body background-color="#f8fafc">
+  <mj-body background-color="#ffffff">
     ${logoSection()}
     <mj-section padding="8px 0">
       <mj-column>
@@ -85,7 +85,7 @@ const letterMjml = `
 
 const announcementMjml = `
 <mjml>
-  <mj-body background-color="#f8fafc">
+  <mj-body background-color="#ffffff">
     ${logoSection()}
     <mj-section padding="8px 0 0">
       <mj-column>
@@ -111,7 +111,7 @@ const announcementMjml = `
 
 const newsletterMjml = `
 <mjml>
-  <mj-body background-color="#f8fafc">
+  <mj-body background-color="#ffffff">
     ${logoSection()}
     <mj-section padding="8px 0 0">
       <mj-column>
