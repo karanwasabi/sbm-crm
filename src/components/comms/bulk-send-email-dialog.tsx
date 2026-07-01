@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import Link from 'next/link';
 import { Send } from 'lucide-react';
 import {
   getBulkLeadEmailSendJobAction,
   previewBulkLeadEmailSendAction,
   startBulkLeadEmailSendAction,
 } from '@/app/(crm)/database/actions';
+import { formatBulkSkipSummary } from '@/lib/bulk-send-display';
 import { Button } from '@/components/ui/button';
 import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate } from '@/utils/api';
 
@@ -18,20 +20,7 @@ type BulkSendEmailDialogProps = {
 };
 
 function formatSkipSummary(preview: BulkLeadEmailPreview): string[] {
-  const lines: string[] = [];
-  if (preview.skipped.no_consent > 0) {
-    lines.push(`${preview.skipped.no_consent} no consent`);
-  }
-  if (preview.skipped.unsubscribed > 0) {
-    lines.push(`${preview.skipped.unsubscribed} unsubscribed`);
-  }
-  if (preview.skipped.no_email > 0) {
-    lines.push(`${preview.skipped.no_email} no email`);
-  }
-  if (preview.skipped.marketing_contact_cap > 0) {
-    lines.push(`${preview.skipped.marketing_contact_cap} marketing contact cap`);
-  }
-  return lines;
+  return formatBulkSkipSummary(preview.skipped);
 }
 
 export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkSendEmailDialogProps) {
@@ -174,14 +163,20 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
                 </p>
               </>
             )}
+            <p className="mt-3 text-xs font-medium text-slate-500">
+              {sending ? 'Sending continues if you close this dialog. ' : null}
+              <Link href={`/communications/bulk-sends/${job.id}`} className="font-bold text-brand hover:underline">
+                View job details
+              </Link>
+            </p>
           </div>
         )}
 
         {error ? <p className="mt-3 text-sm font-medium text-danger-press">{error}</p> : null}
 
         <div className="mt-5 flex justify-end gap-2">
-          <Button variant="light" onClick={onClose} disabled={sending}>
-            {finished ? 'Close' : 'Cancel'}
+          <Button variant="light" onClick={onClose}>
+            {job ? 'Close' : 'Cancel'}
           </Button>
           {!job ? (
             <Button

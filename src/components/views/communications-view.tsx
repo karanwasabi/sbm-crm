@@ -1,8 +1,9 @@
 'use client';
 
-import { Mail, Plus, Workflow } from 'lucide-react';
+import { Mail, Plus, Send, Workflow } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { BulkSendListRow } from '@/components/comms/bulk-send-list-row';
 import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
 import { Card } from '@/components/ui/card';
@@ -10,18 +11,70 @@ import { SectionHead } from '@/components/ui/section-head';
 import { Pill } from '@/components/ui/pill';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { AutomationListRow } from '@/components/comms/automation-list-row';
-import type { Automation, CommsAnalytics, EmailTemplate, MarketingContactsSummary } from '@/utils/api';
+import type {
+  Automation,
+  BulkLeadEmailSendJob,
+  CommsAnalytics,
+  EmailTemplate,
+  MarketingContactsSummary,
+} from '@/utils/api';
+
+type CommsTab = 'templates' | 'automations' | 'bulk-sends' | 'performance';
+
+const COMMS_TABS: { id: CommsTab; label: string }[] = [
+  { id: 'templates', label: 'Templates' },
+  { id: 'automations', label: 'Automations' },
+  { id: 'bulk-sends', label: 'Bulk sends' },
+  { id: 'performance', label: 'Performance' },
+];
+
+function resolveCommsTab(tab?: string): CommsTab {
+  if (tab === 'automations') return 'automations';
+  if (tab === 'bulk-sends') return 'bulk-sends';
+  if (tab === 'performance') return 'performance';
+  return 'templates';
+}
+
+function syncCommsUrl(tab: CommsTab) {
+  const params = new URLSearchParams();
+  if (tab !== 'templates') {
+    params.set('tab', tab);
+  }
+  const query = params.toString();
+  const nextUrl = query ? `/communications?${query}` : '/communications';
+  window.history.replaceState(null, '', nextUrl);
+}
 
 type CommunicationsViewProps = {
   templates: EmailTemplate[];
   automations: Automation[];
+  bulkSendJobs: BulkLeadEmailSendJob[];
+  bulkSendJobsError?: string | null;
   marketingSummary: MarketingContactsSummary;
   analytics: CommsAnalytics | null;
+  initialTab?: string;
 };
 
-export function CommunicationsView({ templates, automations, marketingSummary, analytics }: CommunicationsViewProps) {
-  const [tab, setTab] = useState<'templates' | 'automations' | 'performance'>('templates');
+export function CommunicationsView({
+  templates,
+  automations,
+  bulkSendJobs,
+  bulkSendJobsError,
+  marketingSummary,
+  analytics,
+  initialTab,
+}: CommunicationsViewProps) {
+  const [tab, setTab] = useState<CommsTab>(() => resolveCommsTab(initialTab));
   const activeAutomationCount = automations.filter((automation) => automation.status === 'active').length;
+
+  useEffect(() => {
+    setTab(resolveCommsTab(initialTab));
+  }, [initialTab]);
+
+  const selectTab = (next: CommsTab) => {
+    setTab(next);
+    syncCommsUrl(next);
+  };
 
   return (
     <CrmPageLayout className="gap-4">
@@ -29,21 +82,15 @@ export function CommunicationsView({ templates, automations, marketingSummary, a
         marketingSummary={marketingSummary}
         analytics={analytics}
         activeAutomationCount={activeAutomationCount}
-        onOpenPerformance={() => setTab('performance')}
+        onOpenPerformance={() => selectTab('performance')}
       />
 
       <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ['templates', 'Templates'],
-            ['automations', 'Automations'],
-            ['performance', 'Performance'],
-          ] as const
-        ).map(([id, label]) => (
+        {COMMS_TABS.map(({ id, label }) => (
           <button
             key={id}
             type="button"
-            onClick={() => setTab(id)}
+            onClick={() => selectTab(id)}
             className={`rounded-full px-3 py-1.5 text-xs font-bold ${
               tab === id ? 'bg-brand text-white' : 'border border-slate-100 bg-white text-slate-600'
             }`}
@@ -139,6 +186,35 @@ export function CommunicationsView({ templates, automations, marketingSummary, a
               </div>
             ) : (
               automations.map((automation) => <AutomationListRow key={automation.id} automation={automation} />)
+            )}
+          </div>
+        </Card>
+      ) : null}
+
+      {tab === 'bulk-sends' ? (
+        <Card>
+          <SectionHead
+            title="Bulk sends"
+            subtitle="Campaign sends from Lead Database"
+            right={
+              <Link
+                href="/database"
+                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
+              >
+                <Send className="h-3.5 w-3.5" />
+                Send from Lead Database
+              </Link>
+            }
+          />
+          <div className="flex flex-col gap-2">
+            {bulkSendJobsError ? (
+              <p className="text-sm font-medium text-danger-press">{bulkSendJobsError}</p>
+            ) : bulkSendJobs.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No bulk sends yet. Select leads in Lead Database and use Send email to start a campaign.
+              </p>
+            ) : (
+              bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} />)
             )}
           </div>
         </Card>

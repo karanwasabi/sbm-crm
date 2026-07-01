@@ -13,9 +13,15 @@ import {
   validateAutomation,
   listAutomationEnrollments,
   getAutomationEnrollmentLog,
+  getBulkLeadEmailSendJob,
+  listBulkLeadEmailSendJobs,
+  listBulkLeadEmailSendJobSends,
+  ApiError,
   type EmailTemplate,
   type Automation,
   type AutomationTestRunResult,
+  type BulkLeadEmailSendJob,
+  type BulkLeadEmailSendList,
 } from '@/utils/api';
 import type {
   AutomationGraph,
@@ -114,4 +120,33 @@ export async function getAutomationEnrollmentLogAction(enrollmentId: string): Pr
 
 export async function deleteAutomationAction(automationId: string): Promise<void> {
   await deleteAutomation(automationId);
+}
+
+export async function listBulkLeadEmailSendJobsAction(): Promise<BulkLeadEmailSendJob[]> {
+  return listBulkLeadEmailSendJobs();
+}
+
+export async function getBulkLeadEmailSendJobAction(
+  jobId: string
+): Promise<{ job: BulkLeadEmailSendJob | null; error: string | null }> {
+  try {
+    const job = await getBulkLeadEmailSendJob(jobId);
+    return { job, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load bulk send job.';
+    return { job: null, error: message };
+  }
+}
+
+export async function listBulkLeadEmailSendJobSendsAction(
+  jobId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ data: BulkLeadEmailSendList | null; error: string | null }> {
+  try {
+    const data = await listBulkLeadEmailSendJobSends(jobId, options);
+    return { data, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load bulk send recipients.';
+    return { data: null, error: message };
+  }
 }

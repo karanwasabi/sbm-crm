@@ -1780,6 +1780,9 @@ export type BulkLeadEmailPreview = {
 export type BulkLeadEmailSendJob = {
   id: string;
   template_id: string;
+  template_name?: string;
+  template_classification?: 'transactional' | 'marketing';
+  sent_by_name?: string;
   status: 'queued' | 'running' | 'completed' | 'failed';
   selected: number;
   sent: number;
@@ -1788,7 +1791,24 @@ export type BulkLeadEmailSendJob = {
   skip_breakdown: BulkLeadEmailPreview['skipped'];
   error_message?: string | null;
   created_at: string;
+  started_at?: string | null;
   completed_at?: string | null;
+};
+
+export type BulkLeadEmailSendRow = {
+  id: string;
+  lead_id?: string;
+  recipient_email: string;
+  subject_rendered: string;
+  status: 'queued' | 'sent' | 'failed' | 'skipped';
+  skip_reason?: string;
+  created_at: string;
+  sent_at?: string | null;
+};
+
+export type BulkLeadEmailSendList = {
+  items: BulkLeadEmailSendRow[];
+  total: number;
 };
 
 export async function previewBulkLeadEmailSend(templateId: string, leadIds: string[]): Promise<BulkLeadEmailPreview> {
@@ -1823,6 +1843,37 @@ export async function getBulkLeadEmailSendJob(jobId: string): Promise<BulkLeadEm
   }
   const row = (await response.json()) as BulkLeadEmailSendJob;
   return row;
+}
+
+export async function listBulkLeadEmailSendJobs(limit = 50): Promise<BulkLeadEmailSendJob[]> {
+  const response = await requireApiFetch(`/admin/comms/bulk-send?limit=${encodeURIComponent(String(limit))}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to list bulk send jobs.', response.status);
+  }
+  return (await response.json()) as BulkLeadEmailSendJob[];
+}
+
+export async function listBulkLeadEmailSendJobSends(
+  jobId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<BulkLeadEmailSendList> {
+  const params = new URLSearchParams();
+  if (options?.limit != null) {
+    params.set('limit', String(options.limit));
+  }
+  if (options?.offset != null) {
+    params.set('offset', String(options.offset));
+  }
+  const query = params.toString();
+  const response = await requireApiFetch(
+    `/admin/comms/bulk-send/${encodeURIComponent(jobId)}/sends${query ? `?${query}` : ''}`
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load bulk send recipients.', response.status);
+  }
+  return (await response.json()) as BulkLeadEmailSendList;
 }
 
 export const getMarketingContactsSummary = cache(async (): Promise<MarketingContactsSummary> => {
