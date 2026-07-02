@@ -19,6 +19,8 @@ const LEGACY_SOURCE_LABELS: Record<string, string> = {
   website: 'Other Leads',
   whatsapp: 'Other Leads',
   google: 'Other Leads',
+  portal_signup: 'Portal Signup',
+  assisted_portal_signup: 'Assisted Portal Signup',
 };
 
 export function leadSourceLabel(source: string | null | undefined): string {
