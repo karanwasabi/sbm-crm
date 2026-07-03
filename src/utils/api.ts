@@ -1918,6 +1918,9 @@ export type CommsAnalyticsTotals = {
   sent: number;
   delivered: number;
   bounced: number;
+  suppressed: number;
+  pending: number;
+  stalePending: number;
   opened: number;
   clicked: number;
   failed: number;
@@ -1936,6 +1939,8 @@ export type CommsTemplatePerformance = {
   clickedCount: number;
   openedCount: number;
   bouncedCount: number;
+  suppressedCount: number;
+  pendingCount: number;
   openRate?: number;
   clickRate?: number;
 };
@@ -1985,7 +1990,18 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
     throw new ApiError('Failed to load email analytics.', response.status);
   }
   const payload = (await response.json()) as {
-    totals: CommsAnalyticsTotals;
+    totals: {
+      sent: number;
+      delivered: number;
+      bounced: number;
+      suppressed: number;
+      pending: number;
+      stale_pending: number;
+      opened: number;
+      clicked: number;
+      failed: number;
+      skipped: number;
+    };
     templates: Array<{
       template_id?: string;
       template_name: string;
@@ -1998,6 +2014,8 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
       clicked_count: number;
       opened_count: number;
       bounced_count: number;
+      suppressed_count: number;
+      pending_count: number;
       open_rate?: number;
       click_rate?: number;
     }>;
@@ -2068,7 +2086,18 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
   });
 
   return {
-    totals: payload.totals,
+    totals: {
+      sent: payload.totals.sent,
+      delivered: payload.totals.delivered,
+      bounced: payload.totals.bounced,
+      suppressed: payload.totals.suppressed,
+      pending: payload.totals.pending,
+      stalePending: payload.totals.stale_pending,
+      opened: payload.totals.opened,
+      clicked: payload.totals.clicked,
+      failed: payload.totals.failed,
+      skipped: payload.totals.skipped,
+    },
     templates: payload.templates.map((row) => ({
       templateId: row.template_id,
       templateName: row.template_name,
@@ -2081,6 +2110,8 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
       clickedCount: row.clicked_count,
       openedCount: row.opened_count,
       bouncedCount: row.bounced_count,
+      suppressedCount: row.suppressed_count,
+      pendingCount: row.pending_count,
       openRate: row.open_rate,
       clickRate: row.click_rate,
     })),

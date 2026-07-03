@@ -54,17 +54,21 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
         />
         <code className="block rounded-xl bg-slate-50 px-3 py-2 text-xs break-all text-slate-700">{webhookUrl}</code>
         <p className="mt-2 text-xs text-slate-500">
-          Subscribe to email.sent, email.delivered, email.bounced, email.opened, email.clicked, and email.complained in
-          the Resend dashboard.
+          Subscribe to email.sent, email.delivered, email.bounced, email.suppressed, email.opened, email.clicked, and
+          email.complained in the Resend dashboard. Delivery stats sync automatically from webhooks and background
+          reconcile every few minutes.
         </p>
       </Card>
 
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
         <StatCard label="Sent" value={totals.sent} />
-        <StatCard label="Delivered" value={totals.delivered} />
-        <StatCard label="Opened" value={totals.opened} hint="Marketing only" />
-        <StatCard label="Clicked" value={totals.clicked} />
+        <StatCard label="Delivered" value={totals.delivered} hint="Webhooks + sync" />
+        <StatCard label="Suppressed" value={totals.suppressed} hint="Not a bounce" />
         <StatCard label="Bounced" value={totals.bounced} />
+        <StatCard label="Clicked" value={totals.clicked} />
+        <StatCard label="Pending" value={totals.pending} hint="Syncing soon" />
+        <StatCard label="Stale pending" value={totals.stalePending} hint="Check Resend" />
+        <StatCard label="Opened" value={totals.opened} hint="Marketing only" />
         <StatCard label="Failed / skipped" value={totals.failed + totals.skipped} />
       </div>
 
@@ -167,13 +171,15 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
           <p className="text-sm text-slate-500">No sends recorded yet.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[960px] text-left text-sm">
               <thead>
                 <tr className="border-b border-slate-100 text-[11px] font-bold tracking-wide text-slate-500 uppercase">
                   <th className="px-2 py-2">Template</th>
                   <th className="px-2 py-2">Type</th>
                   <th className="px-2 py-2 text-right">Sent</th>
                   <th className="px-2 py-2 text-right">Delivered</th>
+                  <th className="px-2 py-2 text-right">Pending</th>
+                  <th className="px-2 py-2 text-right">Suppressed</th>
                   <th className="px-2 py-2 text-right">Opened</th>
                   <th className="px-2 py-2 text-right">Clicked</th>
                   <th className="px-2 py-2 text-right">Bounced</th>
@@ -193,6 +199,8 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
                     </td>
                     <td className="px-2 py-2.5 text-right tabular-nums">{row.sentCount}</td>
                     <td className="px-2 py-2.5 text-right tabular-nums">{row.deliveredCount}</td>
+                    <td className="px-2 py-2.5 text-right tabular-nums">{row.pendingCount}</td>
+                    <td className="px-2 py-2.5 text-right tabular-nums">{row.suppressedCount}</td>
                     <td className="px-2 py-2.5 text-right tabular-nums">
                       {row.classification === 'marketing' ? (
                         <>

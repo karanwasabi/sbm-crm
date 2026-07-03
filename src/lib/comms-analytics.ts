@@ -7,10 +7,15 @@ export function sendSuccessRate(totals: CommsAnalyticsTotals): number | null {
   return (totals.sent / attempted) * 100;
 }
 
-/** Inbox delivery from Resend webhooks (email.delivered events). */
-export function webhookDeliveryRate(totals: CommsAnalyticsTotals): number | null {
+/** Delivery rate from synced Resend outcomes (webhooks + background reconcile). */
+export function deliveryRate(totals: CommsAnalyticsTotals): number | null {
   if (totals.sent <= 0 || totals.delivered <= 0) return null;
   return (totals.delivered / totals.sent) * 100;
+}
+
+/** @deprecated Use deliveryRate — kept for callers expecting the old name. */
+export function webhookDeliveryRate(totals: CommsAnalyticsTotals): number | null {
+  return deliveryRate(totals);
 }
 
 export function formatHeaderDeliveryStat(analytics: CommsAnalytics | null): {
@@ -21,7 +26,7 @@ export function formatHeaderDeliveryStat(analytics: CommsAnalytics | null): {
     return { label: 'Send success', value: '—' };
   }
 
-  const delivery = webhookDeliveryRate(analytics.totals);
+  const delivery = deliveryRate(analytics.totals);
   if (delivery != null) {
     return { label: 'Delivery rate', value: `${delivery.toFixed(1)}%` };
   }
