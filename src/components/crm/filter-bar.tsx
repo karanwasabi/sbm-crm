@@ -12,7 +12,12 @@ import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
 import type { EmailTemplate } from '@/utils/api';
-import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import {
+  buildLeadDatabaseHref,
+  isStageFilterActive,
+  toggleStageFilter,
+  type LeadDatabaseFilters,
+} from '@/lib/lead-database-url';
 import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
 
 export type StageFilterOption = {
@@ -85,8 +90,8 @@ export function FilterBar({
           {stageOptions.map((stage) => (
             <FilterChip
               key={stage.id}
-              href={buildLeadDatabaseHref(filters, { stage: stage.id })}
-              active={filters.stage === stage.id}
+              href={buildLeadDatabaseHref(filters, toggleStageFilter(filters, stage.id))}
+              active={isStageFilterActive(filters, stage.id)}
               count={stage.count}
             >
               {stage.label}

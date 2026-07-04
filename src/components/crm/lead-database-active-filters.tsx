@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import { leadSourceLabel } from '@/lib/lead-sources';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 
@@ -13,6 +14,14 @@ type LeadDatabaseActiveFiltersProps = {
 export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFiltersProps) {
   const chips: Array<{ key: string; label: string; value: string; href: string }> = [];
 
+  filters.stages.forEach((stage) => {
+    chips.push({
+      key: `stage-${stage}`,
+      label: 'Stage',
+      value: LIFECYCLE_STAGES[stage as keyof typeof LIFECYCLE_STAGES]?.label ?? stage,
+      href: buildLeadDatabaseHref(filters, { stages: filters.stages.filter((item) => item !== stage) }),
+    });
+  });
   if (filters.q) {
     chips.push({
       key: 'q',
@@ -107,6 +116,7 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
       ))}
       <Link
         href={buildLeadDatabaseHref(filters, {
+          stages: [],
           q: '',
           marketing: 'all',
           tags: [],

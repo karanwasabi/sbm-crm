@@ -10,7 +10,7 @@ export function buildLeadListSearchParams(
   const pageSize = overrides?.pageSize ?? filters.pageSize;
   const params = new URLSearchParams();
 
-  if (filters.stage && filters.stage !== 'all') params.set('stage', filters.stage);
+  if (filters.stages.length > 0) params.set('stage', filters.stages.join(','));
   if (filters.marketing && filters.marketing !== 'all') {
     params.set('marketing_contact_status', filters.marketing);
   }

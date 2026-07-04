@@ -6,7 +6,7 @@ export type LeadDatabaseSort = 'created_at' | 'updated_at' | 'name';
 export type LeadDatabaseSortOrder = 'asc' | 'desc';
 
 export type LeadDatabaseFilters = {
-  stage: string;
+  stages: string[];
   marketing: string;
   tags: string[];
   tagMode: TagFilterMode;
@@ -27,7 +27,7 @@ export type LeadDatabaseFilters = {
 };
 
 export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
-  stage: 'all',
+  stages: [],
   marketing: 'all',
   tags: [],
   tagMode: 'and',
@@ -77,6 +77,29 @@ function parseOrder(raw?: string): LeadDatabaseSortOrder {
   return raw === 'asc' ? 'asc' : 'desc';
 }
 
+function parseStageList(raw?: string): string[] {
+  return parseCommaList(raw).filter((stage) => stage !== 'all');
+}
+
+export function isStageFilterActive(filters: LeadDatabaseFilters, stageId: string): boolean {
+  if (stageId === 'all') {
+    return filters.stages.length === 0;
+  }
+  return filters.stages.includes(stageId);
+}
+
+export function toggleStageFilter(filters: LeadDatabaseFilters, stageId: string): Partial<LeadDatabaseFilters> {
+  if (stageId === 'all') {
+    return { stages: [] };
+  }
+
+  if (filters.stages.includes(stageId)) {
+    return { stages: filters.stages.filter((stage) => stage !== stageId) };
+  }
+
+  return { stages: [...filters.stages, stageId] };
+}
+
 export function parseLeadDatabaseFilters(params: Record<string, string | string[] | undefined>): LeadDatabaseFilters {
   const get = (key: string) => {
     const value = params[key];
@@ -84,7 +107,7 @@ export function parseLeadDatabaseFilters(params: Record<string, string | string[
   };
 
   return {
-    stage: get('stage')?.trim() || 'all',
+    stages: parseStageList(get('stage')),
     marketing: get('marketing')?.trim() || 'all',
     tags: parseCommaList(get('tags')),
     tagMode: get('tag_mode')?.trim() === 'or' ? 'or' : 'and',
@@ -125,7 +148,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   const merged = patch ? mergeLeadDatabaseFilters(filters, patch) : filters;
   const params = new URLSearchParams();
 
-  if (merged.stage !== 'all') params.set('stage', merged.stage);
+  if (merged.stages.length > 0) params.set('stage', merged.stages.join(','));
   if (merged.marketing !== 'all') params.set('marketing', merged.marketing);
   if (merged.tags.length > 0) {
     params.set('tags', formatTagSlugsParam(merged.tags));
