@@ -1,5 +1,6 @@
 import type { Component, Editor } from 'grapesjs';
 import { EMAIL_LOGO_URL } from '@/lib/email-branding';
+import { compileEditorHtmlWithDedupe } from '@/lib/email-mjml-compile';
 import { getSbmLogoBlockContent, ensureEmailLinksOpenInNewTab } from '@/lib/email-mjml-starters';
 
 export async function uploadEmailAsset(file: File): Promise<{ src: string; name: string }> {
@@ -34,9 +35,11 @@ export async function fetchEmailAssets(): Promise<Array<{ src: string; name: str
 }
 
 export function compileEditorHtml(editor: Editor): string {
-  const result = editor.runCommand('mjml-code-to-html') as string | { html?: string } | undefined;
-  const html = typeof result === 'string' ? result : (result?.html ?? '');
-  return ensureEmailLinksOpenInNewTab(html);
+  return compileEditorHtmlWithDedupe(editor, () => {
+    const result = editor.runCommand('mjml-code-to-html') as string | { html?: string } | undefined;
+    const html = typeof result === 'string' ? result : (result?.html ?? '');
+    return ensureEmailLinksOpenInNewTab(html);
+  });
 }
 
 export function loadStarterMjml(editor: Editor, mjml: string) {
