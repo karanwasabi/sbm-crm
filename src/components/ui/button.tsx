@@ -94,7 +94,8 @@ export function Button({
   const sizeStyle = sizeClasses[size];
   const isPressed = pressed && !isDisabled;
   const label = loading ? (loadingLabel ?? children) : children;
-  const showLeftSlot = loading || leftIcon;
+  const reserveLoadingIconSpace = loadingLabel != null && leftIcon == null;
+  const showLeftSlot = loading || leftIcon != null || reserveLoadingIconSpace;
 
   return (
     <button

@@ -4,6 +4,7 @@ import { GraduationCap, MoreVertical, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/cn';
 
 type ProfileOverflowMenuProps = {
   onPurge?: () => void;
@@ -14,6 +15,9 @@ type MenuPosition = {
   top: number;
   left: number;
 };
+
+const menuItemClass =
+  'flex w-full min-w-[10.5rem] cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold transition-colors';
 
 export function ProfileOverflowMenu({ onPurge, onEnroll }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
@@ -88,13 +92,13 @@ export function ProfileOverflowMenu({ onPurge, onEnroll }: ProfileOverflowMenuPr
               left: menuPosition.left,
               transform: 'translateX(-100%)',
             }}
-            className="z-[200] w-max overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.28)]"
+            className="z-[200] min-w-[10.5rem] overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.28)]"
           >
             {onEnroll ? (
               <button
                 type="button"
                 role="menuitem"
-                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold whitespace-nowrap text-slate-800 transition-colors hover:bg-slate-50"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
                 onClick={() => {
                   setOpen(false);
                   onEnroll();
@@ -108,7 +112,7 @@ export function ProfileOverflowMenu({ onPurge, onEnroll }: ProfileOverflowMenuPr
               <button
                 type="button"
                 role="menuitem"
-                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold whitespace-nowrap text-red-600 transition-colors hover:bg-red-50"
+                className={cn(menuItemClass, 'whitespace-nowrap text-red-600 hover:bg-red-50')}
                 onClick={() => {
                   setOpen(false);
                   onPurge();

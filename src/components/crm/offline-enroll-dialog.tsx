@@ -128,19 +128,28 @@ export function OfflineEnrollDialog({ open, onOpenChange, leadId, leadName, onEn
           {submitError ? <p className="text-sm text-red-600">{submitError}</p> : null}
         </div>
 
-        <DialogFooter className="border-t border-slate-100 px-6 py-4">
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={submitting}>
+        <DialogFooter className="mx-0 mb-0 gap-2 border-t border-slate-100 bg-canvas-cool/60 px-6 py-4 sm:justify-end">
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            className="min-w-[5.5rem]"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+          >
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={loadingCohorts || cohorts.length === 0 || submitting}>
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Enrolling…
-              </>
-            ) : (
-              'Enroll'
-            )}
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="min-w-[8.75rem]"
+            loading={submitting}
+            loadingLabel="Enrolling…"
+            disabled={loadingCohorts || cohorts.length === 0 || submitting}
+            onClick={handleSubmit}
+          >
+            Enroll
           </Button>
         </DialogFooter>
       </DialogContent>
