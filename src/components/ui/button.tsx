@@ -94,8 +94,7 @@ export function Button({
   const sizeStyle = sizeClasses[size];
   const isPressed = pressed && !isDisabled;
   const label = loading ? (loadingLabel ?? children) : children;
-  const reserveLoadingIconSpace = loadingLabel != null && leftIcon == null;
-  const showLeftSlot = loading || leftIcon != null || reserveLoadingIconSpace;
+  const showLeftSlot = !loading && leftIcon != null;
 
   return (
     <button
@@ -132,9 +131,11 @@ export function Button({
         className
       )}
     >
-      {showLeftSlot ? (
+      {loading ? (
+        <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden />
+      ) : showLeftSlot ? (
         <span className="flex h-4 w-4 shrink-0 items-center justify-center" aria-hidden>
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : leftIcon}
+          {leftIcon}
         </span>
       ) : null}
       <span className="whitespace-nowrap">{label}</span>

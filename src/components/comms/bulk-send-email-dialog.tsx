@@ -228,17 +228,15 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
 
         {error ? <p className="mt-3 text-sm font-medium text-danger-press">{error}</p> : null}
 
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="light" onClick={onClose}>
-            {job ? 'Close' : 'Cancel'}
-          </Button>
+        <div
+          className={!job && confirmDuplicates ? 'mt-5 flex flex-col gap-2' : 'mt-5 flex flex-wrap justify-end gap-2'}
+        >
           {!job && confirmDuplicates ? (
             <>
-              <Button variant="light" onClick={() => setConfirmDuplicates(false)} disabled={isSending}>
-                Back
-              </Button>
               <Button
                 variant="light"
+                fullWidth
+                className="[&>span]:text-center [&>span]:whitespace-normal"
                 loading={isSending}
                 loadingLabel="Starting…"
                 disabled={isSending || !preview || preview.will_send_if_skip_duplicates === 0}
@@ -248,6 +246,8 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
               </Button>
               <Button
                 variant="primary"
+                fullWidth
+                className="[&>span]:text-center [&>span]:whitespace-normal"
                 loading={isSending}
                 loadingLabel="Starting…"
                 disabled={isSending || !preview || preview.will_send === 0}
@@ -257,6 +257,14 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
               </Button>
             </>
           ) : null}
+          <Button
+            variant="light"
+            fullWidth={!job && confirmDuplicates}
+            className={!job && confirmDuplicates ? '[&>span]:text-center' : undefined}
+            onClick={onClose}
+          >
+            {job ? 'Close' : 'Cancel'}
+          </Button>
           {!job && !confirmDuplicates ? (
             <Button
               variant="primary"
