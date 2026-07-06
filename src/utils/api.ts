@@ -98,7 +98,7 @@ export type StaffMember = {
   email: string;
   first_name: string | null;
   last_name: string | null;
-  roles: StaffAccessRole[];
+  roles: (StaffAccessRole | 'superadmin')[];
   promoted?: boolean;
 };
 
@@ -237,6 +237,7 @@ type ApiLeadResponse = {
   member_user_id?: string | null;
   can_mark_lost?: boolean;
   can_purge?: boolean;
+  can_offline_enroll?: boolean;
   payment_pending?: {
     checkout_session_id: string;
     program_name: string;
@@ -795,6 +796,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     memberUserId: row.member_user_id ?? null,
     canMarkLost: row.can_mark_lost ?? false,
     canPurge: row.can_purge ?? false,
+    canOfflineEnroll: row.can_offline_enroll ?? false,
     paymentPending: row.payment_pending
       ? {
           checkoutSessionId: row.payment_pending.checkout_session_id,
@@ -859,6 +861,55 @@ export async function markLeadLost(id: string, reason?: string): Promise<import(
     throw new ApiError(payload?.error ?? 'Failed to mark lead as lost.', response.status);
   }
   return mapLeadDetail((await response.json()) as ApiLeadResponse);
+}
+
+import type { OfflineEnrollCohort } from '@/types/crm';
+
+export type OfflineEnrollResult = {
+  enrollmentId: string;
+  cohortName: string;
+  programName: string;
+  inviteSent: boolean;
+  stage: string;
+};
+
+export async function listOfflineEnrollCohorts(): Promise<OfflineEnrollCohort[]> {
+  const response = await requireApiFetch('/admin/offline-enroll/cohorts');
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load cohorts.', response.status);
+  }
+  const rows = (await response.json()) as { id: string; name: string; starts_on: string }[];
+  return rows.map((row) => ({
+    id: row.id,
+    name: row.name,
+    startsOn: row.starts_on,
+  }));
+}
+
+export async function offlineEnrollLead(leadId: string, cohortId: string): Promise<OfflineEnrollResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/offline-enroll`, {
+    method: 'POST',
+    body: JSON.stringify({ cohort_id: cohortId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to enroll lead.', response.status);
+  }
+  const row = (await response.json()) as {
+    enrollment_id: string;
+    cohort_name: string;
+    program_name: string;
+    invite_sent: boolean;
+    stage: string;
+  };
+  return {
+    enrollmentId: row.enrollment_id,
+    cohortName: row.cohort_name,
+    programName: row.program_name,
+    inviteSent: row.invite_sent,
+    stage: row.stage,
+  };
 }
 
 export type LeadPurgeTestSignal = {

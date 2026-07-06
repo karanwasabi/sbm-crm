@@ -1,12 +1,13 @@
 'use client';
 
-import { MoreVertical, Trash2 } from 'lucide-react';
+import { GraduationCap, MoreVertical, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
 
 type ProfileOverflowMenuProps = {
-  onPurge: () => void;
+  onPurge?: () => void;
+  onEnroll?: () => void;
 };
 
 type MenuPosition = {
@@ -14,7 +15,7 @@ type MenuPosition = {
   left: number;
 };
 
-export function ProfileOverflowMenu({ onPurge }: ProfileOverflowMenuProps) {
+export function ProfileOverflowMenu({ onPurge, onEnroll }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
@@ -89,18 +90,34 @@ export function ProfileOverflowMenu({ onPurge }: ProfileOverflowMenuProps) {
             }}
             className="z-[200] w-max overflow-hidden rounded-xl border border-slate-200/90 bg-white py-1 shadow-[0_16px_40px_-12px_rgba(15,23,42,0.28)]"
           >
-            <button
-              type="button"
-              role="menuitem"
-              className="flex cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold whitespace-nowrap text-red-600 transition-colors hover:bg-red-50"
-              onClick={() => {
-                setOpen(false);
-                onPurge();
-              }}
-            >
-              <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
-              Delete Lead
-            </button>
+            {onEnroll ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold whitespace-nowrap text-slate-800 transition-colors hover:bg-slate-50"
+                onClick={() => {
+                  setOpen(false);
+                  onEnroll();
+                }}
+              >
+                <GraduationCap className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Enroll
+              </button>
+            ) : null}
+            {onPurge ? (
+              <button
+                type="button"
+                role="menuitem"
+                className="flex cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold whitespace-nowrap text-red-600 transition-colors hover:bg-red-50"
+                onClick={() => {
+                  setOpen(false);
+                  onPurge();
+                }}
+              >
+                <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
+                Delete Lead
+              </button>
+            ) : null}
           </div>,
           document.body
         )

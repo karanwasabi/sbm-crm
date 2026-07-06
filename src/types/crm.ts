@@ -228,6 +228,7 @@ export type LeadDetail = Lead & {
   memberUserId: string | null;
   canMarkLost: boolean;
   canPurge: boolean;
+  canOfflineEnroll: boolean;
   paymentPending: PaymentPending | null;
   attribution: LeadAttribution | null;
   fieldSuggestions: FieldSuggestion[];
@@ -241,6 +242,12 @@ export type PaymentPending = {
   programName: string;
   cohortName: string;
   amountPaise: number;
+};
+
+export type OfflineEnrollCohort = {
+  id: string;
+  name: string;
+  startsOn: string;
 };
 
 export type ContactProfile = {

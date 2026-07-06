@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
+import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
@@ -45,6 +46,7 @@ export function Customer360View({
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
   const displayTimezone = useDisplayTimezone();
 
@@ -74,6 +76,7 @@ export function Customer360View({
           emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
         }
         onPurge={lead.canPurge ? () => setPurgeOpen(true) : undefined}
+        onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
       <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
@@ -134,6 +137,13 @@ export function Customer360View({
         leadName={contact.name}
         hasMemberAccount={lead.memberUserId != null}
         onPurged={() => router.push('/database')}
+      />
+      <OfflineEnrollDialog
+        open={enrollOpen}
+        onOpenChange={setEnrollOpen}
+        leadId={lead.id}
+        leadName={contact.name}
+        onEnrolled={refresh}
       />
     </CrmPageLayout>
   );

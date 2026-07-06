@@ -257,6 +257,7 @@ function StaffRow({
   const name = formatStaffName(member);
   const hasAdmin = member.roles.includes('admin');
   const hasCoach = member.roles.includes('coach');
+  const hasSuperadmin = member.roles.includes('superadmin');
 
   return (
     <DataTableRow className={cn(inactive && 'bg-slate-50/60')}>
@@ -273,6 +274,7 @@ function StaffRow({
         <div className="flex flex-wrap items-center gap-1.5">
           <RolePill label="Admin" active={hasAdmin} tone="deep" />
           <RolePill label="Coach" active={hasCoach} tone="success" />
+          {hasSuperadmin ? <RolePill label="Superadmin" active tone="deep" /> : null}
         </div>
       </DataTableCell>
       <DataTableCell className="text-right">

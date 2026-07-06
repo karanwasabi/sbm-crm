@@ -18,6 +18,7 @@ type ProfileHeaderProps = {
   onLogCall?: () => void;
   onSendEmail?: () => void;
   onPurge?: () => void;
+  onEnroll?: () => void;
 };
 
 const HEADER_PILL_CLASS =
@@ -45,7 +46,7 @@ function marketingContactTitle(contact: ContactProfile, timezone: string): strin
   return parts.length > 1 ? parts.join(' · ') : parts[0];
 }
 
-export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge }: ProfileHeaderProps) {
+export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge, onEnroll }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
   const showMemberStats = contact.isMember && contact.clv != null;
 
@@ -143,7 +144,7 @@ export function ProfileHeader({ contact, onLogCall, onSendEmail, onPurge }: Prof
               Send email
             </Button>
           ) : null}
-          {onPurge ? <ProfileOverflowMenu onPurge={onPurge} /> : null}
+          {onPurge || onEnroll ? <ProfileOverflowMenu onPurge={onPurge} onEnroll={onEnroll} /> : null}
         </div>
       </div>
     </div>

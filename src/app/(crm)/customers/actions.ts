@@ -16,8 +16,11 @@ import {
   purgeLead,
   sendLeadEmail,
   updateLeadTags,
+  offlineEnrollLead,
+  listOfflineEnrollCohorts,
 } from '@/utils/api';
 import type { LeadPurgeInput, LeadPurgePreview } from '@/utils/api';
+import type { OfflineEnrollCohort } from '@/types/crm';
 
 export async function updateLeadTagsAction(leadId: string, manualTags: string[]): Promise<{ error: string | null }> {
   try {
@@ -145,5 +148,28 @@ export async function purgeLeadAction(leadId: string, input: LeadPurgeInput): Pr
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to purge account.';
     return { error: message };
+  }
+}
+
+export async function offlineEnrollLeadAction(leadId: string, cohortId: string): Promise<{ error: string | null }> {
+  try {
+    await offlineEnrollLead(leadId, cohortId);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to enroll lead.';
+    return { error: message };
+  }
+}
+
+export async function listOfflineEnrollCohortsAction(): Promise<{
+  cohorts: OfflineEnrollCohort[] | null;
+  error: string | null;
+}> {
+  try {
+    const cohorts = await listOfflineEnrollCohorts();
+    return { cohorts, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load cohorts.';
+    return { cohorts: null, error: message };
   }
 }

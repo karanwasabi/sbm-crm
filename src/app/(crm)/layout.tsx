@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
-import { hasProduct, PRODUCT_CRM, visibleStaffRoles } from '@/lib/access';
+import { hasProduct, PRODUCT_CRM, visibleStaffRoles, isSuperadmin } from '@/lib/access';
 import { getLatestProfile, getMyAccess, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import { getInitials, type Profile } from '@/types/profile';
@@ -31,7 +31,9 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       redirect('/unauthorized');
     }
     const visible = visibleStaffRoles(access.roles);
-    if (visible.length > 0) {
+    if (isSuperadmin(access.roles)) {
+      accessLabel = 'Superadmin';
+    } else if (visible.length > 0) {
       accessLabel = visible.map((role) => role.charAt(0).toUpperCase() + role.slice(1)).join(', ');
     }
   } catch {
