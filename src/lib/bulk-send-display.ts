@@ -14,9 +14,14 @@ export function formatBulkSkipSummary(skipped: BulkLeadEmailPreview['skipped']):
   if (skipped.marketing_contact_cap > 0) {
     lines.push(`${skipped.marketing_contact_cap} marketing contact cap`);
   }
+  if (skipped.already_sent > 0) {
+    lines.push(`${skipped.already_sent} already sent`);
+  }
   return lines;
 }
 
 export function bulkSkipTotal(skipped: BulkLeadEmailPreview['skipped']): number {
-  return skipped.no_consent + skipped.unsubscribed + skipped.no_email + skipped.marketing_contact_cap;
+  return (
+    skipped.no_consent + skipped.unsubscribed + skipped.no_email + skipped.marketing_contact_cap + skipped.already_sent
+  );
 }

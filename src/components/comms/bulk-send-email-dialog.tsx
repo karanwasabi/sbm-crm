@@ -28,6 +28,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
   const [preview, setPreview] = useState<BulkLeadEmailPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmDuplicates, setConfirmDuplicates] = useState(false);
   const [job, setJob] = useState<BulkLeadEmailSendJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, startSendTransition] = useTransition();
@@ -36,6 +37,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     if (!open) {
       setPreview(null);
       setPreviewLoading(false);
+      setConfirmDuplicates(false);
       setJob(null);
       setError(null);
       setTemplateId(templates[0]?.id ?? '');
@@ -50,6 +52,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     let cancelled = false;
     setPreview(null);
     setPreviewLoading(true);
+    setConfirmDuplicates(false);
 
     void (async () => {
       const result = await previewBulkLeadEmailSendAction(templateId, leadIds);
@@ -88,6 +91,19 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     return () => window.clearInterval(timer);
   }, [job]);
 
+  const startSend = (skipAlreadySent: boolean) => {
+    setError(null);
+    startSendTransition(async () => {
+      const result = await startBulkLeadEmailSendAction(templateId, leadIds, { skipAlreadySent });
+      if (result.error || !result.job) {
+        setError(result.error ?? 'Failed to start bulk send.');
+        return;
+      }
+      setConfirmDuplicates(false);
+      setJob(result.job);
+    });
+  };
+
   if (!open) {
     return null;
   }
@@ -112,42 +128,72 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
 
         {!job ? (
           <>
-            <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
-              Template
-              <select
-                className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800"
-                value={templateId}
-                onChange={(event) => setTemplateId(event.target.value)}
-                disabled={previewLoading || isSending || sending}
-              >
-                {templates.length === 0 ? <option value="">No active templates</option> : null}
-                {templates.map((template) => (
-                  <option key={template.id} value={template.id}>
-                    {template.name} ({template.classification})
-                  </option>
-                ))}
-              </select>
-            </label>
+            {!confirmDuplicates ? (
+              <>
+                <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
+                  Template
+                  <select
+                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800"
+                    value={templateId}
+                    onChange={(event) => setTemplateId(event.target.value)}
+                    disabled={previewLoading || isSending || sending}
+                  >
+                    {templates.length === 0 ? <option value="">No active templates</option> : null}
+                    {templates.map((template) => (
+                      <option key={template.id} value={template.id}>
+                        {template.name} ({template.classification})
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
-            {previewLoading ? <BulkSendPreviewSkeleton /> : null}
+                {previewLoading ? <BulkSendPreviewSkeleton /> : null}
 
-            {preview && !previewLoading ? (
-              <div className="mt-4 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3 text-sm text-slate-700">
-                <p>
-                  <span className="font-extrabold text-slate-900">{preview.will_send.toLocaleString('en-IN')}</span>{' '}
-                  will be sent.
+                {preview && !previewLoading ? (
+                  <div className="mt-4 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3 text-sm text-slate-700">
+                    <p>
+                      <span className="font-extrabold text-slate-900">{preview.will_send.toLocaleString('en-IN')}</span>{' '}
+                      will be sent.
+                    </p>
+                    {preview.already_sent > 0 ? (
+                      <p className="mt-1">
+                        <span className="font-extrabold text-amber-700">
+                          {preview.already_sent.toLocaleString('en-IN')}
+                        </span>{' '}
+                        have already received this template.
+                      </p>
+                    ) : null}
+                    {skippedTotal > 0 ? (
+                      <p className="mt-1">
+                        <span className="font-extrabold text-slate-900">{skippedTotal.toLocaleString('en-IN')}</span>{' '}
+                        will be skipped
+                        {skipLines.length > 0 ? ` (${skipLines.join(', ')})` : ''}.
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-slate-500">No leads will be skipped for consent or eligibility.</p>
+                    )}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-slate-700">
+                <p className="font-extrabold text-slate-900">Some leads already received this template</p>
+                <p className="mt-2">
+                  <span className="font-extrabold text-slate-900">{preview?.already_sent.toLocaleString('en-IN')}</span>{' '}
+                  selected lead{(preview?.already_sent ?? 0) === 1 ? '' : 's'} already got this email (sent or
+                  in-flight).
                 </p>
-                {skippedTotal > 0 ? (
-                  <p className="mt-1">
-                    <span className="font-extrabold text-slate-900">{skippedTotal.toLocaleString('en-IN')}</span> will
-                    be skipped
-                    {skipLines.length > 0 ? ` (${skipLines.join(', ')})` : ''}.
-                  </p>
-                ) : (
-                  <p className="mt-1 text-slate-500">No leads will be skipped.</p>
-                )}
+                <p className="mt-2 text-slate-600">
+                  Skip them and send only to{' '}
+                  <span className="font-bold text-slate-900">
+                    {preview?.will_send_if_skip_duplicates.toLocaleString('en-IN')}
+                  </span>{' '}
+                  others, or send to all{' '}
+                  <span className="font-bold text-slate-900">{preview?.will_send.toLocaleString('en-IN')}</span>{' '}
+                  eligible leads again.
+                </p>
               </div>
-            ) : null}
+            )}
           </>
         ) : (
           <div className="mt-4 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3 text-sm text-slate-700">
@@ -186,7 +232,32 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
           <Button variant="light" onClick={onClose}>
             {job ? 'Close' : 'Cancel'}
           </Button>
-          {!job ? (
+          {!job && confirmDuplicates ? (
+            <>
+              <Button variant="light" onClick={() => setConfirmDuplicates(false)} disabled={isSending}>
+                Back
+              </Button>
+              <Button
+                variant="light"
+                loading={isSending}
+                loadingLabel="Starting…"
+                disabled={isSending || !preview || preview.will_send_if_skip_duplicates === 0}
+                onClick={() => startSend(true)}
+              >
+                Skip & send to {preview?.will_send_if_skip_duplicates.toLocaleString('en-IN')}
+              </Button>
+              <Button
+                variant="primary"
+                loading={isSending}
+                loadingLabel="Starting…"
+                disabled={isSending || !preview || preview.will_send === 0}
+                onClick={() => startSend(false)}
+              >
+                Send to all {preview?.will_send.toLocaleString('en-IN')}
+              </Button>
+            </>
+          ) : null}
+          {!job && !confirmDuplicates ? (
             <Button
               variant="primary"
               leftIcon={<Send className="h-3.5 w-3.5" />}
@@ -194,15 +265,11 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
               loadingLabel="Starting…"
               disabled={previewLoading || isSending || !templateId || !preview || preview.will_send === 0}
               onClick={() => {
-                setError(null);
-                startSendTransition(async () => {
-                  const result = await startBulkLeadEmailSendAction(templateId, leadIds);
-                  if (result.error || !result.job) {
-                    setError(result.error ?? 'Failed to start bulk send.');
-                    return;
-                  }
-                  setJob(result.job);
-                });
+                if (preview && preview.already_sent > 0) {
+                  setConfirmDuplicates(true);
+                  return;
+                }
+                startSend(false);
               }}
             >
               Send now

@@ -1837,11 +1837,14 @@ export type BulkLeadEmailPreview = {
   classification: 'transactional' | 'marketing';
   selected: number;
   will_send: number;
+  already_sent: number;
+  will_send_if_skip_duplicates: number;
   skipped: {
     no_consent: number;
     unsubscribed: number;
     no_email: number;
     marketing_contact_cap: number;
+    already_sent: number;
   };
 };
 
@@ -1891,10 +1894,18 @@ export async function previewBulkLeadEmailSend(templateId: string, leadIds: stri
   return (await response.json()) as BulkLeadEmailPreview;
 }
 
-export async function startBulkLeadEmailSend(templateId: string, leadIds: string[]): Promise<{ job_id: string }> {
+export async function startBulkLeadEmailSend(
+  templateId: string,
+  leadIds: string[],
+  options?: { skipAlreadySent?: boolean }
+): Promise<{ job_id: string }> {
   const response = await requireApiFetch('/admin/comms/leads/bulk-send', {
     method: 'POST',
-    body: JSON.stringify({ template_id: templateId, lead_ids: leadIds }),
+    body: JSON.stringify({
+      template_id: templateId,
+      lead_ids: leadIds,
+      skip_already_sent: options?.skipAlreadySent ?? false,
+    }),
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;

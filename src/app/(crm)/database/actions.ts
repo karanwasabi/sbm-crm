@@ -24,10 +24,11 @@ export async function previewBulkLeadEmailSendAction(
 
 export async function startBulkLeadEmailSendAction(
   templateId: string,
-  leadIds: string[]
+  leadIds: string[],
+  options?: { skipAlreadySent?: boolean }
 ): Promise<{ job: BulkLeadEmailSendJob | null; error: string | null }> {
   try {
-    const started = await startBulkLeadEmailSend(templateId, leadIds);
+    const started = await startBulkLeadEmailSend(templateId, leadIds, options);
     const job = await getBulkLeadEmailSendJob(started.job_id);
     return { job, error: null };
   } catch (error) {
