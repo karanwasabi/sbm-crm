@@ -18,6 +18,9 @@ export function buildLeadListSearchParams(
     params.set('tags', filters.tags.join(','));
     if (filters.tagMode === 'or') params.set('tag_mode', 'or');
   }
+  if (filters.excludeTags.length > 0) {
+    params.set('exclude_tags', filters.excludeTags.join(','));
+  }
   if (filters.q) params.set('q', filters.q);
   if (filters.programs.length > 0) params.set('programs', filters.programs.join(','));
   if (filters.batches.length > 0) params.set('batches', filters.batches.join(','));

@@ -6,7 +6,7 @@ import { Card } from '@/components/ui/card';
 import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-date-range-popover';
 import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-multi-select-popover';
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
-import { TagFilterPopover } from '@/components/crm/tag-filter-popover';
+import { TagFilterSheet } from '@/components/crm/tag-filter-sheet';
 import { LeadDatabaseUnseenUpdatesFilter } from '@/components/crm/lead-database-unseen-updates-filter';
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
@@ -77,7 +77,7 @@ export function FilterBar({
             filters={filters}
             options={filterOptions.sources}
           />
-          <TagFilterPopover filters={filters} suggestions={tagSuggestions} />
+          <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
           <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />

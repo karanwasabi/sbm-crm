@@ -56,6 +56,16 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
       href: buildLeadDatabaseHref(filters, { tags: filters.tags.filter((item) => item !== tag) }),
     });
   });
+  filters.excludeTags.forEach((tag) => {
+    chips.push({
+      key: `exclude-tag-${tag}`,
+      label: 'Exclude tag',
+      value: tagSlugToLabel(tag),
+      href: buildLeadDatabaseHref(filters, {
+        excludeTags: filters.excludeTags.filter((item) => item !== tag),
+      }),
+    });
+  });
   filters.programs.forEach((program) => {
     chips.push({
       key: `program-${program}`,
@@ -120,6 +130,8 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
           q: '',
           marketing: 'all',
           tags: [],
+          excludeTags: [],
+          tagMode: 'and',
           programs: [],
           batches: [],
           geography: [],

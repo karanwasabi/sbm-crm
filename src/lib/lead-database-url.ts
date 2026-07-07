@@ -1,5 +1,5 @@
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
-import { formatTagSlugsParam } from '@/lib/lead-tags';
+import { formatTagSlugsParam, parseTagSlugsParam } from '@/lib/lead-tags';
 import type { MarketingContactStatus, TagFilterMode } from '@/types/crm';
 
 export type LeadDatabaseSort = 'created_at' | 'updated_at' | 'name';
@@ -10,6 +10,7 @@ export type LeadDatabaseFilters = {
   marketing: string;
   tags: string[];
   tagMode: TagFilterMode;
+  excludeTags: string[];
   q: string;
   programs: string[];
   batches: string[];
@@ -31,6 +32,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   marketing: 'all',
   tags: [],
   tagMode: 'and',
+  excludeTags: [],
   q: '',
   programs: [],
   batches: [],
@@ -109,8 +111,9 @@ export function parseLeadDatabaseFilters(params: Record<string, string | string[
   return {
     stages: parseStageList(get('stage')),
     marketing: get('marketing')?.trim() || 'all',
-    tags: parseCommaList(get('tags')),
+    tags: parseTagSlugsParam(get('tags')),
     tagMode: get('tag_mode')?.trim() === 'or' ? 'or' : 'and',
+    excludeTags: parseTagSlugsParam(get('exclude_tags')),
     q: get('q')?.trim() || '',
     programs: parseCommaList(get('programs')),
     batches: parseCommaList(get('batches')),
@@ -153,6 +156,9 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.tags.length > 0) {
     params.set('tags', formatTagSlugsParam(merged.tags));
     if (merged.tagMode === 'or') params.set('tag_mode', 'or');
+  }
+  if (merged.excludeTags.length > 0) {
+    params.set('exclude_tags', formatTagSlugsParam(merged.excludeTags));
   }
   if (merged.q) params.set('q', merged.q);
   if (merged.programs.length > 0) params.set('programs', merged.programs.join(','));
