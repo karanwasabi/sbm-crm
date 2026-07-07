@@ -9,6 +9,8 @@ export const LEAD_SOURCE_LABELS: Record<ManualLeadSource, string> = {
   old_students: 'Old Students',
   other: 'Other Leads',
   portal_signup: 'Portal Signup',
+  trial_1m_signup: 'Enroll 1 Month',
+  trial_3m_signup: 'Enroll 3 Months',
 };
 
 const LEGACY_SOURCE_LABELS: Record<string, string> = {
@@ -21,6 +23,8 @@ const LEGACY_SOURCE_LABELS: Record<string, string> = {
   google: 'Other Leads',
   portal_signup: 'Portal Signup',
   assisted_portal_signup: 'Assisted Portal Signup',
+  trial_1m_signup: 'Enroll 1 Month',
+  trial_3m_signup: 'Enroll 3 Months',
 };
 
 export function leadSourceLabel(source: string | null | undefined): string {

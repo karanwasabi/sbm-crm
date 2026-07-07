@@ -10,7 +10,9 @@ export type ManualLeadSource =
   | 'interest_form'
   | 'old_students'
   | 'other'
-  | 'portal_signup';
+  | 'portal_signup'
+  | 'trial_1m_signup'
+  | 'trial_3m_signup';
 
 export const MANUAL_LEAD_SOURCE_OPTIONS: { value: ManualLeadSource; label: string }[] = [
   { value: 'cr_handle', label: 'CR Handle Leads' },
