@@ -80,7 +80,10 @@ export function LeadTagEditor({
   const [activeIndex, setActiveIndex] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const suggestionLabels = useMemo(() => new Map(suggestions.map((item) => [item.slug, item.label])), [suggestions]);
+  const suggestionLabels = useMemo(
+    () => new Map(suggestions.map((item) => [item.slug, tagSlugToLabel(item.slug)])),
+    [suggestions]
+  );
   const allTags = useMemo(() => [...systemTags, ...manualTags], [systemTags, manualTags]);
 
   const availableSuggestions = useMemo(
@@ -241,7 +244,7 @@ export function LeadTagEditor({
                 onClick={() => addTagBySlug(item.slug)}
                 onMouseEnter={() => setActiveIndex(index)}
               >
-                {item.label}
+                {tagSlugToLabel(item.slug)}
               </button>
             ))}
           </div>

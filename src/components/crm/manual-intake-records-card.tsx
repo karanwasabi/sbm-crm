@@ -9,6 +9,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { formatActivityTimestamp } from '@/lib/datetime-display';
+import { tagSlugToLabel } from '@/lib/lead-tags';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
 import type { FieldSuggestion, LifecycleStage, ManualIntakeRecord } from '@/types/crm';
@@ -212,7 +213,7 @@ function ValueCell({
 function InquiryFootnote({ record, index, timezone }: { record: ManualIntakeRecord; index: number; timezone: string }) {
   const extras = [
     record.emailEntered ? { label: 'Email', value: record.emailEntered } : null,
-    record.tagsAdded?.length ? { label: 'Tags', value: record.tagsAdded.join(', ') } : null,
+    record.tagsAdded?.length ? { label: 'Tags', value: record.tagsAdded.map(tagSlugToLabel).join(', ') } : null,
     record.profileFieldsUpdated?.length
       ? { label: 'Profile updated', value: record.profileFieldsUpdated.join(', ') }
       : null,

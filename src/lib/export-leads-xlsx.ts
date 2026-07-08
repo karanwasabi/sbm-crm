@@ -1,4 +1,5 @@
 import type { Lead } from '@/types/crm';
+import { tagSlugToLabel } from '@/lib/lead-tags';
 
 const TEXT_NUMFMT = '@';
 const DATE_NUMFMT = 'yyyy-mm-dd hh:mm';
@@ -28,7 +29,7 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: 'Batch', key: 'batch', width: 16, kind: 'text', value: (lead) => lead.batch },
   { header: 'Geography', key: 'geography', width: 22, kind: 'text', value: (lead) => lead.location },
   { header: 'Source', key: 'source', width: 20, kind: 'text', value: (lead) => lead.sourceLabel },
-  { header: 'Tags', key: 'tags', width: 36, kind: 'text', value: (lead) => lead.tags.join('; ') },
+  { header: 'Tags', key: 'tags', width: 36, kind: 'text', value: (lead) => lead.tags.map(tagSlugToLabel).join('; ') },
   { header: 'Medium', key: 'medium', width: 12, kind: 'text', value: (lead) => lead.medium },
   { header: 'Added', key: 'addedAt', width: 20, kind: 'date', value: (lead) => parseExportDate(lead.addedAt) },
   { header: 'Updated', key: 'updatedAt', width: 20, kind: 'date', value: (lead) => parseExportDate(lead.updatedAt) },

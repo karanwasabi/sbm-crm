@@ -2,6 +2,7 @@ import { cache } from 'react';
 import type { StaffAccessRole } from '@/lib/access';
 import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import { buildLeadListSearchParams } from '@/lib/lead-list-query';
+import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
 import { createClient } from '@/utils/supabase/server';
@@ -683,7 +684,11 @@ export async function listTagSuggestions(): Promise<import('@/types/crm').TagSug
   if (!response.ok) {
     throw new ApiError('Failed to load tags.', response.status);
   }
-  return (await response.json()) as import('@/types/crm').TagSuggestion[];
+  const tags = (await response.json()) as import('@/types/crm').TagSuggestion[];
+  return tags.map((tag) => ({
+    slug: tag.slug,
+    label: tagSlugToLabel(tag.slug),
+  }));
 }
 
 export async function updateLeadTags(leadId: string, manualTags: string[]): Promise<import('@/types/crm').LeadDetail> {

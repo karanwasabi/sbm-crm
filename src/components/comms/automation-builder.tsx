@@ -283,8 +283,8 @@ function normalizeTagCondition(condition: AutomationCondition): AutomationCondit
 function buildTagSelectOptions(tagSuggestions: TagSuggestion[], value: string) {
   const options = tagSuggestions.map((tag) => ({
     value: tag.slug,
-    label: tag.label || tagSlugToLabel(tag.slug),
-    searchText: `${tag.label} ${tag.slug}`,
+    label: tagSlugToLabel(tag.slug),
+    searchText: `${tagSlugToLabel(tag.slug)} ${tag.slug}`,
   }));
 
   const slug = value.trim();
