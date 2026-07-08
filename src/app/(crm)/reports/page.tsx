@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarRange, ExternalLink, FileText } from 'lucide-react';
+import { CalendarRange, FileText } from 'lucide-react';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -73,12 +73,9 @@ export default async function ReportsPage() {
 
                 <Link
                   href={`/reports/${report.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand px-3.5 py-2 text-xs font-bold text-white shadow-[0_6px_12px_-4px_rgba(79,70,229,0.35)] transition hover:bg-brand-press"
+                  className="inline-flex min-w-[112px] shrink-0 items-center justify-center rounded-full bg-brand px-5 py-2 text-xs font-bold text-white shadow-[0_6px_12px_-4px_rgba(79,70,229,0.35)] transition hover:bg-brand-press"
                 >
                   Open
-                  <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
               </div>
             </Card>

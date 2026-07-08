@@ -60,6 +60,9 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
 export const SETTINGS_PROFILE_HREF = '/settings?tab=Profile';
 
 export function getPageMeta(pathname: string): CrmPageMeta {
+  if (pathname.startsWith('/reports/')) {
+    return CRM_PAGES['/reports'];
+  }
   if (pathname.startsWith('/communications/')) {
     return CRM_PAGES['/communications'];
   }
