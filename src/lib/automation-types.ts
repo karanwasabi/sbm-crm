@@ -94,15 +94,10 @@ export type AutomationRunLogEntry = {
 
 export const AUTOMATION_CONDITION_FIELDS = [
   { value: 'lifecycle_stage', label: 'Stage' },
-  { value: 'program_interest', label: 'Program interest' },
-  { value: 'medium', label: 'Medium' },
   { value: 'manual_source', label: 'Lead source' },
-  { value: 'marketing_contact_status', label: 'Marketing status' },
-  { value: 'consent_status', label: 'Has consent' },
   { value: 'has_enrollment', label: 'Has enrollment' },
   { value: 'has_checkout', label: 'Started checkout' },
   { value: 'has_payment', label: 'Payment received' },
-  { value: 'days_since_created', label: 'Days since added' },
   { value: 'tag', label: 'Tag' },
 ] as const;
 
@@ -114,11 +109,6 @@ export const TAG_CONDITION_OPERATORS = [
 export const DEFAULT_CONDITION_OPERATORS = [
   { value: 'equals', label: 'is' },
   { value: 'not_equals', label: 'is not' },
-  { value: 'contains', label: 'contains' },
-  { value: 'greater_than', label: 'is more than' },
-  { value: 'less_than', label: 'is less than' },
-  { value: 'is_empty', label: 'is empty' },
-  { value: 'is_not_empty', label: 'is not empty' },
 ] as const;
 
 export const CONDITION_LOGIC_OPTIONS = [

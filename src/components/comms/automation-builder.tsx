@@ -63,6 +63,7 @@ import { TextInput } from '@/components/ui/text-input';
 import { Textarea } from '@/components/ui/textarea';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagSuggestion } from '@/types/crm';
+import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 
 function graphToFlow(
@@ -127,6 +128,8 @@ type AutomationBuilderProps = {
 };
 
 const SUPPORTED_TAG_OPERATORS = new Set<string>(TAG_CONDITION_OPERATORS.map((op) => op.value));
+const LOCKED_IS_FIELDS = new Set<string>(['has_enrollment', 'has_checkout', 'has_payment']);
+const SUPPORTED_DEFAULT_OPERATORS = new Set<string>(DEFAULT_CONDITION_OPERATORS.map((op) => op.value));
 
 function tagConditionOperator(operator: string): string {
   return SUPPORTED_TAG_OPERATORS.has(operator) ? operator : 'equals';
@@ -137,6 +140,18 @@ function normalizeTagCondition(condition: AutomationCondition): AutomationCondit
     return condition;
   }
   return { ...condition, operator: 'equals' };
+}
+
+function defaultConditionForField(field: string): Pick<AutomationCondition, 'field' | 'operator' | 'value'> {
+  if (field === 'tag') return { field, operator: 'equals', value: '' };
+  if (field === 'lifecycle_stage') return { field, operator: 'equals', value: 'inquiry' };
+  if (field === 'manual_source') return { field, operator: 'equals', value: '' };
+  if (LOCKED_IS_FIELDS.has(field)) return { field, operator: 'equals', value: true };
+  return { field, operator: 'equals', value: '' };
+}
+
+function defaultConditionOperator(operator: string): string {
+  return SUPPORTED_DEFAULT_OPERATORS.has(operator) ? operator : 'equals';
 }
 
 function buildTagSelectOptions(tagSuggestions: TagSuggestion[], value: string) {
@@ -152,6 +167,25 @@ function buildTagSelectOptions(tagSuggestions: TagSuggestion[], value: string) {
       value: slug,
       label: tagSlugToLabel(slug),
       searchText: slug,
+    });
+  }
+
+  return options;
+}
+
+function buildLeadSourceSelectOptions(value: string) {
+  const options = MANUAL_LEAD_SOURCE_OPTIONS.map((source) => ({
+    value: source.value,
+    label: source.label,
+    searchText: `${source.label} ${source.value}`,
+  }));
+
+  const sourceValue = value.trim();
+  if (sourceValue && !options.some((option) => option.value === sourceValue)) {
+    options.push({
+      value: sourceValue,
+      label: sourceValue,
+      searchText: sourceValue,
     });
   }
 
@@ -893,12 +927,21 @@ function NodeConfigPanel({
           </Field>
           {group.conditions.map((condition, index) => {
             const isTagField = condition.field === 'tag';
-            const operatorValue = isTagField ? tagConditionOperator(condition.operator) : condition.operator;
+            const isLockedIsField = LOCKED_IS_FIELDS.has(condition.field);
+            const operatorValue = isLockedIsField
+              ? 'equals'
+              : isTagField
+                ? tagConditionOperator(condition.operator)
+                : defaultConditionOperator(condition.operator);
             const tagValue = String(condition.value ?? '');
             const tagOptions = isTagField ? buildTagSelectOptions(tagSuggestions, tagValue) : [];
-            const operatorOptions = (isTagField ? TAG_CONDITION_OPERATORS : DEFAULT_CONDITION_OPERATORS).map(
-              (operator) => ({ value: operator.value, label: operator.label })
-            );
+            const operatorOptions = (
+              isLockedIsField
+                ? [{ value: 'equals', label: 'is' }]
+                : isTagField
+                  ? TAG_CONDITION_OPERATORS
+                  : DEFAULT_CONDITION_OPERATORS
+            ).map((operator) => ({ value: operator.value, label: operator.label }));
 
             return (
               <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-3">
@@ -906,11 +949,7 @@ function NodeConfigPanel({
                   <AutomationBuilderSelect
                     value={condition.field}
                     onChange={(field) => {
-                      if (field === 'tag') {
-                        updateCondition(index, { field, operator: 'equals', value: '' });
-                        return;
-                      }
-                      updateCondition(index, { field });
+                      updateCondition(index, defaultConditionForField(field));
                     }}
                     options={conditionFieldOptions}
                     disabled={readOnly}
@@ -919,7 +958,7 @@ function NodeConfigPanel({
                     value={operatorValue}
                     onChange={(operator) => updateCondition(index, { operator })}
                     options={operatorOptions}
-                    disabled={readOnly}
+                    disabled={readOnly || isLockedIsField}
                   />
                   {condition.field === 'lifecycle_stage' ? (
                     <AutomationBuilderSelect
@@ -928,8 +967,7 @@ function NodeConfigPanel({
                       options={LIFECYCLE_STAGE_SELECT_OPTIONS}
                       disabled={readOnly}
                     />
-                  ) : condition.field === 'consent_status' ||
-                    condition.field === 'has_enrollment' ||
+                  ) : condition.field === 'has_enrollment' ||
                     condition.field === 'has_checkout' ||
                     condition.field === 'has_payment' ? (
                     <AutomationBuilderSelect
@@ -949,6 +987,18 @@ function NodeConfigPanel({
                       placeholder="Select tag…"
                       searchPlaceholder="Search tags…"
                       emptyMessage="No tags found."
+                      disabled={readOnly}
+                      className="w-full text-xs"
+                      popoverClassName="w-[var(--anchor-width)]"
+                    />
+                  ) : condition.field === 'manual_source' ? (
+                    <SearchableSelect
+                      value={String(condition.value ?? '')}
+                      onChange={(source) => updateCondition(index, { value: source })}
+                      options={buildLeadSourceSelectOptions(String(condition.value ?? ''))}
+                      placeholder="Select lead source…"
+                      searchPlaceholder="Search lead sources…"
+                      emptyMessage="No sources found."
                       disabled={readOnly}
                       className="w-full text-xs"
                       popoverClassName="w-[var(--anchor-width)]"
