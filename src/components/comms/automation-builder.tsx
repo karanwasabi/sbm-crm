@@ -323,7 +323,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
   const [confirmAction, setConfirmAction] = useState<AutomationConfirmAction | null>(null);
   const [isPending, startTransition] = useTransition();
   const isArchived = status === 'archived';
-  const isLocked = status === 'active' || isArchived;
+  const isGraphLocked = status === 'active' || isArchived;
 
   const invalidateValidation = useCallback(() => {
     setValidationPassed(false);
@@ -391,17 +391,17 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      if (isLocked) return;
+      if (isGraphLocked) return;
       invalidateValidation();
       setEdges((eds) =>
         addEdge({ ...connection, id: `e-${connection.source}-${connection.target}-${Date.now()}` }, eds)
       );
     },
-    [setEdges, isLocked, invalidateValidation]
+    [setEdges, isGraphLocked, invalidateValidation]
   );
 
   const addNode = (type: AutomationNodeType) => {
-    if (isLocked) return;
+    if (isGraphLocked) return;
     invalidateValidation();
     const id = `${type}-${Date.now()}`;
     const y = 120 + nodes.length * 120;
@@ -637,14 +637,14 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            disabled={isLocked}
+            disabled={isArchived}
             className="w-full bg-transparent text-lg font-extrabold text-slate-800 outline-none disabled:opacity-70"
           />
           <input
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"
-            disabled={isLocked}
+            disabled={isArchived}
             className="mt-1 w-full bg-transparent text-sm text-slate-500 outline-none disabled:opacity-70"
           />
         </div>
@@ -739,7 +739,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                     });
                   }
                 }}
-                disabled={isLocked}
+                disabled={isGraphLocked}
                 className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
               >
                 {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
@@ -756,7 +756,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                   <select
                     value={triggerConfig.from_stage ?? ''}
                     onChange={(e) => setTriggerConfig((current) => ({ ...current, from_stage: e.target.value }))}
-                    disabled={isLocked}
+                    disabled={isGraphLocked}
                     className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                   >
                     <option value="">Any stage</option>
@@ -772,7 +772,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                   <select
                     value={triggerConfig.to_stage ?? ''}
                     onChange={(e) => setTriggerConfig((current) => ({ ...current, to_stage: e.target.value }))}
-                    disabled={isLocked}
+                    disabled={isGraphLocked}
                     className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                   >
                     <option value="">Any stage</option>
