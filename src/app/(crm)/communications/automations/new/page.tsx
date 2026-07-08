@@ -1,10 +1,13 @@
 import Link from 'next/link';
 import { AutomationBuilder } from '@/components/comms/automation-builder';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import { listEmailTemplates } from '@/utils/api';
+import { listEmailTemplates, listTagSuggestions } from '@/utils/api';
 
 export default async function NewAutomationPage() {
-  const templates = await listEmailTemplates().catch(() => []);
+  const [templates, tagSuggestions] = await Promise.all([
+    listEmailTemplates().catch(() => []),
+    listTagSuggestions().catch(() => []),
+  ]);
 
   return (
     <CrmPageLayout className="gap-4">
@@ -17,7 +20,7 @@ export default async function NewAutomationPage() {
           Back
         </Link>
       </div>
-      <AutomationBuilder automation={null} templates={templates} />
+      <AutomationBuilder automation={null} templates={templates} tagSuggestions={tagSuggestions} />
     </CrmPageLayout>
   );
 }

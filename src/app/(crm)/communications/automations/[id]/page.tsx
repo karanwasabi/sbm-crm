@@ -2,14 +2,19 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AutomationDetailView } from '@/components/comms/automation-detail-view';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import { getAutomation, listEmailTemplates } from '@/utils/api';
+import { getAutomation, listEmailTemplates, listTagSuggestions } from '@/utils/api';
 
 export default async function EditAutomationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let automation;
   let templates;
+  let tagSuggestions;
   try {
-    [automation, templates] = await Promise.all([getAutomation(id), listEmailTemplates()]);
+    [automation, templates, tagSuggestions] = await Promise.all([
+      getAutomation(id),
+      listEmailTemplates(),
+      listTagSuggestions().catch(() => []),
+    ]);
   } catch {
     notFound();
   }
@@ -25,7 +30,7 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
           Back
         </Link>
       </div>
-      <AutomationDetailView automation={automation} templates={templates} />
+      <AutomationDetailView automation={automation} templates={templates} tagSuggestions={tagSuggestions} />
     </CrmPageLayout>
   );
 }

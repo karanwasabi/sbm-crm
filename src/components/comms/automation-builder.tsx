@@ -58,6 +58,9 @@ import {
   useAutomationNodeValidation,
 } from '@/components/comms/automation-validation-context';
 import { Pill } from '@/components/ui/pill';
+import { SearchableSelect } from '@/components/ui/searchable-select';
+import { tagSlugToLabel } from '@/lib/lead-tags';
+import type { TagSuggestion } from '@/types/crm';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 
 type BuilderNodeData = {
@@ -245,10 +248,63 @@ function flowToGraph(nodes: Node<BuilderNodeData>[], edges: Edge[]): AutomationG
 type AutomationBuilderProps = {
   automation: Automation | null;
   templates: EmailTemplate[];
+  tagSuggestions?: TagSuggestion[];
   onTestComplete?: () => void;
 };
 
-export function AutomationBuilder({ automation, templates, onTestComplete }: AutomationBuilderProps) {
+const TAG_CONDITION_OPERATORS = [
+  { value: 'equals', label: 'Has tag' },
+  { value: 'not_equals', label: 'Does not have tag' },
+] as const;
+
+const SUPPORTED_TAG_OPERATORS = new Set<string>(TAG_CONDITION_OPERATORS.map((op) => op.value));
+
+const DEFAULT_CONDITION_OPERATORS = [
+  { value: 'equals', label: 'Equals' },
+  { value: 'not_equals', label: 'Not equals' },
+  { value: 'contains', label: 'Contains' },
+  { value: 'greater_than', label: 'Greater than' },
+  { value: 'less_than', label: 'Less than' },
+  { value: 'is_empty', label: 'Is empty' },
+  { value: 'is_not_empty', label: 'Is not empty' },
+] as const;
+
+function tagConditionOperator(operator: string): string {
+  return SUPPORTED_TAG_OPERATORS.has(operator) ? operator : 'equals';
+}
+
+function normalizeTagCondition(condition: AutomationCondition): AutomationCondition {
+  if (condition.field !== 'tag' || SUPPORTED_TAG_OPERATORS.has(condition.operator)) {
+    return condition;
+  }
+  return { ...condition, operator: 'equals' };
+}
+
+function buildTagSelectOptions(tagSuggestions: TagSuggestion[], value: string) {
+  const options = tagSuggestions.map((tag) => ({
+    value: tag.slug,
+    label: tag.label || tagSlugToLabel(tag.slug),
+    searchText: `${tag.label} ${tag.slug}`,
+  }));
+
+  const slug = value.trim();
+  if (slug && !options.some((option) => option.value === slug)) {
+    options.push({
+      value: slug,
+      label: tagSlugToLabel(slug),
+      searchText: slug,
+    });
+  }
+
+  return options;
+}
+
+export function AutomationBuilder({
+  automation,
+  templates,
+  tagSuggestions = [],
+  onTestComplete,
+}: AutomationBuilderProps) {
   const router = useRouter();
   const initialGraph = automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created');
   const initialFlow = useMemo(() => graphToFlow(initialGraph, templates), [initialGraph, templates]);
@@ -826,7 +882,12 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
                   </button>
                 ) : null}
               </div>
-              <NodeConfigPanel node={selectedNode} templates={templates} onChange={updateSelectedConfig} />
+              <NodeConfigPanel
+                node={selectedNode}
+                templates={templates}
+                tagSuggestions={tagSuggestions}
+                onChange={updateSelectedConfig}
+              />
             </>
           )}
 
@@ -901,12 +962,24 @@ export function AutomationBuilder({ automation, templates, onTestComplete }: Aut
 function NodeConfigPanel({
   node,
   templates,
+  tagSuggestions,
   onChange,
 }: {
   node: Node<BuilderNodeData>;
   templates: EmailTemplate[];
+  tagSuggestions: TagSuggestion[];
   onChange: (config: Record<string, unknown>, label?: string) => void;
 }) {
+  useEffect(() => {
+    if (node.data.nodeType !== 'condition_group') return;
+    const group = node.data.config as AutomationConditionGroupData;
+    const normalized = group.conditions.map(normalizeTagCondition);
+    const changed = normalized.some((condition, index) => condition.operator !== group.conditions[index].operator);
+    if (changed) {
+      onChange({ ...group, conditions: normalized });
+    }
+  }, [node.data.nodeType, node.id, node.data.config, onChange]);
+
   if (node.data.nodeType === 'wait') {
     const wait = node.data.config as AutomationWaitData;
     return (
@@ -966,7 +1039,7 @@ function NodeConfigPanel({
   if (node.data.nodeType === 'condition_group') {
     const group = node.data.config as AutomationConditionGroupData;
     const updateCondition = (index: number, patch: Partial<AutomationCondition>) => {
-      const conditions = group.conditions.map((c, i) => (i === index ? { ...c, ...patch } : c));
+      const conditions = group.conditions.map((c, i) => normalizeTagCondition(i === index ? { ...c, ...patch } : c));
       onChange({ ...group, conditions });
     };
     const addCondition = () => {
@@ -992,72 +1065,95 @@ function NodeConfigPanel({
             <option value="or">Any condition (OR)</option>
           </select>
         </label>
-        {group.conditions.map((condition, index) => (
-          <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-2">
-            <select
-              value={condition.field}
-              onChange={(e) => updateCondition(index, { field: e.target.value })}
-              className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
-            >
-              {AUTOMATION_CONDITION_FIELDS.map((field) => (
-                <option key={field.value} value={field.value}>
-                  {field.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={condition.operator}
-              onChange={(e) => updateCondition(index, { operator: e.target.value })}
-              className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
-            >
-              <option value="equals">Equals</option>
-              <option value="not_equals">Not equals</option>
-              <option value="contains">Contains</option>
-              <option value="greater_than">Greater than</option>
-              <option value="less_than">Less than</option>
-              <option value="is_empty">Is empty</option>
-              <option value="is_not_empty">Is not empty</option>
-            </select>
-            {condition.field === 'lifecycle_stage' ? (
+        {group.conditions.map((condition, index) => {
+          const isTagField = condition.field === 'tag';
+          const operatorValue = isTagField ? tagConditionOperator(condition.operator) : condition.operator;
+          const tagValue = String(condition.value ?? '');
+          const tagOptions = isTagField ? buildTagSelectOptions(tagSuggestions, tagValue) : [];
+
+          return (
+            <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-2">
               <select
-                value={String(condition.value)}
-                onChange={(e) => updateCondition(index, { value: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                value={condition.field}
+                onChange={(e) => {
+                  const field = e.target.value;
+                  if (field === 'tag') {
+                    updateCondition(index, { field, operator: 'equals', value: '' });
+                    return;
+                  }
+                  updateCondition(index, { field });
+                }}
+                className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
               >
-                {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
+                {AUTOMATION_CONDITION_FIELDS.map((field) => (
+                  <option key={field.value} value={field.value}>
+                    {field.label}
                   </option>
                 ))}
               </select>
-            ) : condition.field === 'consent_status' ||
-              condition.field === 'has_enrollment' ||
-              condition.field === 'has_checkout' ||
-              condition.field === 'has_payment' ? (
               <select
-                value={String(condition.value)}
-                onChange={(e) => updateCondition(index, { value: e.target.value === 'true' })}
-                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                value={operatorValue}
+                onChange={(e) => updateCondition(index, { operator: e.target.value })}
+                className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
               >
-                <option value="true">Yes</option>
-                <option value="false">No</option>
+                {(isTagField ? TAG_CONDITION_OPERATORS : DEFAULT_CONDITION_OPERATORS).map((operator) => (
+                  <option key={operator.value} value={operator.value}>
+                    {operator.label}
+                  </option>
+                ))}
               </select>
-            ) : (
-              <input
-                value={String(condition.value ?? '')}
-                onChange={(e) => updateCondition(index, { value: e.target.value })}
-                className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
-              />
-            )}
-            <button
-              type="button"
-              onClick={() => removeCondition(index)}
-              className="mt-2 text-xs font-bold text-rose-500"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+              {condition.field === 'lifecycle_stage' ? (
+                <select
+                  value={String(condition.value)}
+                  onChange={(e) => updateCondition(index, { value: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                >
+                  {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
+                    <option key={stage} value={stage}>
+                      {stage}
+                    </option>
+                  ))}
+                </select>
+              ) : condition.field === 'consent_status' ||
+                condition.field === 'has_enrollment' ||
+                condition.field === 'has_checkout' ||
+                condition.field === 'has_payment' ? (
+                <select
+                  value={String(condition.value)}
+                  onChange={(e) => updateCondition(index, { value: e.target.value === 'true' })}
+                  className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                >
+                  <option value="true">Yes</option>
+                  <option value="false">No</option>
+                </select>
+              ) : isTagField ? (
+                <SearchableSelect
+                  value={tagValue}
+                  onChange={(slug) => updateCondition(index, { value: slug })}
+                  options={tagOptions}
+                  placeholder="Select tag…"
+                  searchPlaceholder="Search tags…"
+                  emptyMessage="No tags found."
+                  className="w-full text-xs"
+                  popoverClassName="w-[var(--anchor-width)]"
+                />
+              ) : (
+                <input
+                  value={String(condition.value ?? '')}
+                  onChange={(e) => updateCondition(index, { value: e.target.value })}
+                  className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => removeCondition(index)}
+                className="mt-2 text-xs font-bold text-rose-500"
+              >
+                Remove
+              </button>
+            </div>
+          );
+        })}
         <button
           type="button"
           onClick={addCondition}

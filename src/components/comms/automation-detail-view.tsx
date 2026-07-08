@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import { AutomationBuilder } from '@/components/comms/automation-builder';
 import { AutomationEnrollmentsPanel } from '@/components/comms/automation-enrollments-panel';
-import type { Automation } from '@/utils/api';
-import type { EmailTemplate } from '@/utils/api';
+import type { Automation, EmailTemplate } from '@/utils/api';
+import type { TagSuggestion } from '@/types/crm';
 
 type AutomationDetailViewProps = {
   automation: Automation;
   templates: EmailTemplate[];
+  tagSuggestions: TagSuggestion[];
 };
 
-export function AutomationDetailView({ automation, templates }: AutomationDetailViewProps) {
+export function AutomationDetailView({ automation, templates, tagSuggestions }: AutomationDetailViewProps) {
   const [enrollmentRefreshToken, setEnrollmentRefreshToken] = useState(0);
   const [enrollmentTab, setEnrollmentTab] = useState<'production' | 'test'>('production');
 
@@ -20,6 +21,7 @@ export function AutomationDetailView({ automation, templates }: AutomationDetail
       <AutomationBuilder
         automation={automation}
         templates={templates}
+        tagSuggestions={tagSuggestions}
         onTestComplete={() => {
           setEnrollmentTab('test');
           setEnrollmentRefreshToken((value) => value + 1);
