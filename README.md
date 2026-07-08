@@ -36,6 +36,24 @@ Get these from Supabase Dashboard → Project Settings → API. Email/password a
 - `pnpm format` — format the project with Prettier
 - `pnpm format:check` — verify formatting without writing changes
 
+## Auth-gated batch reports
+
+CRM now includes a protected Reports section at `/reports` for serving static HTML report snapshots.
+
+### Add/update a report snapshot
+
+1. Generate the report in `sbm-better` (example output: `reports/batch-summary-*.html`).
+2. Copy the HTML file into `sbm-crm/reports/`.
+3. Register the file in `sbm-crm/reports/manifest.json` with:
+   - `id` (URL-safe unique key)
+   - `title`
+   - `fileName`
+   - `generatedOn`
+   - optional `batchLabel`, `dateRangeLabel`
+
+Once added, the report appears in CRM `/reports` and opens in a new tab at `/reports/{id}`.
+Access is gated by CRM auth + CRM product entitlement.
+
 ## Git hooks
 
 Husky runs the following hooks:

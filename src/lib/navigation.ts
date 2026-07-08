@@ -1,6 +1,7 @@
 import {
   Calendar,
   Database,
+  FileText,
   LayoutDashboard,
   MessageSquare,
   RefreshCw,
@@ -31,6 +32,7 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
       { id: 'programs', href: '/programs', label: 'Program Management', icon: Calendar },
       { id: 'communications', href: '/communications', label: 'Communications', icon: MessageSquare },
       { id: 'renewals', href: '/renewals', label: 'Renewals', icon: RefreshCw },
+      { id: 'reports', href: '/reports', label: 'Reports', icon: FileText },
     ],
   },
   {
@@ -49,6 +51,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/programs': { title: 'Program Management', subtitle: 'Cohort queue, phases & members' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: 'Subscription retention monitoring' },
+  '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/settings': { title: 'Settings', subtitle: 'Profile, team, integrations & purge audit' },
 };
