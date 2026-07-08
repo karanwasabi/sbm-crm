@@ -174,7 +174,7 @@ function buildTagSelectOptions(tagSuggestions: TagSuggestion[], value: string) {
 }
 
 function buildLeadSourceSelectOptions(value: string) {
-  const options = MANUAL_LEAD_SOURCE_OPTIONS.map((source) => ({
+  const options: { value: string; label: string; searchText: string }[] = MANUAL_LEAD_SOURCE_OPTIONS.map((source) => ({
     value: source.value,
     label: source.label,
     searchText: `${source.label} ${source.value}`,
