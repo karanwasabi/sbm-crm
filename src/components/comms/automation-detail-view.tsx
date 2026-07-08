@@ -15,7 +15,7 @@ export function AutomationDetailView({ automation, templates, tagSuggestions }: 
   return (
     <div className="flex flex-col gap-6">
       <AutomationBuilder automation={automation} templates={templates} tagSuggestions={tagSuggestions} />
-      <AutomationEnrollmentsPanel automationId={automation.id} />
+      <AutomationEnrollmentsPanel automationId={automation.id} graphJson={automation.graphJson} />
     </div>
   );
 }

@@ -5,7 +5,6 @@ import '@xyflow/react/dist/style.css';
 import {
   Background,
   Controls,
-  MiniMap,
   ReactFlow,
   addEdge,
   useEdgesState,
@@ -29,8 +28,13 @@ import type {
 } from '@/lib/automation-types';
 import {
   AUTOMATION_CONDITION_FIELDS,
-  LIFECYCLE_STAGE_OPTIONS,
+  BOOLEAN_CONDITION_OPTIONS,
+  CONDITION_LOGIC_OPTIONS,
+  DEFAULT_CONDITION_OPERATORS,
+  LIFECYCLE_STAGE_SELECT_OPTIONS,
+  TAG_CONDITION_OPERATORS,
   TRIGGER_LABELS,
+  WAIT_UNIT_OPTIONS,
   defaultAutomationGraph,
   normalizeStageTriggerConfig,
   nodeLabel,
@@ -45,20 +49,21 @@ import {
   validateAutomationAction,
 } from '@/app/(crm)/communications/actions';
 import { AutomationConfirmDialog, type AutomationConfirmAction } from '@/components/comms/automation-confirm-dialog';
+import { AutomationBuilderSelect } from '@/components/comms/automation-builder-select';
 import { automationFlowNodeTypes, type BuilderNodeData } from '@/components/comms/automation-flow-nodes';
 import type { AutomationValidationIssue } from '@/utils/api';
 import { AutomationValidationErrorsContext } from '@/components/comms/automation-validation-context';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Field } from '@/components/ui/field';
 import { Pill } from '@/components/ui/pill';
 import { SearchableSelect } from '@/components/ui/searchable-select';
+import { SectionHead } from '@/components/ui/section-head';
+import { TextInput } from '@/components/ui/text-input';
+import { Textarea } from '@/components/ui/textarea';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagSuggestion } from '@/types/crm';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
-
-function graphToolbarButtonClass(locked: boolean) {
-  return locked
-    ? 'cursor-not-allowed rounded-full bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-300 ring-1 ring-slate-100'
-    : 'rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200';
-}
 
 function graphToFlow(
   graph: AutomationGraph,
@@ -121,22 +126,7 @@ type AutomationBuilderProps = {
   tagSuggestions?: TagSuggestion[];
 };
 
-const TAG_CONDITION_OPERATORS = [
-  { value: 'equals', label: 'Has tag' },
-  { value: 'not_equals', label: 'Does not have tag' },
-] as const;
-
 const SUPPORTED_TAG_OPERATORS = new Set<string>(TAG_CONDITION_OPERATORS.map((op) => op.value));
-
-const DEFAULT_CONDITION_OPERATORS = [
-  { value: 'equals', label: 'Equals' },
-  { value: 'not_equals', label: 'Not equals' },
-  { value: 'contains', label: 'Contains' },
-  { value: 'greater_than', label: 'Greater than' },
-  { value: 'less_than', label: 'Less than' },
-  { value: 'is_empty', label: 'Is empty' },
-  { value: 'is_not_empty', label: 'Is not empty' },
-] as const;
 
 function tagConditionOperator(operator: string): string {
   return SUPPORTED_TAG_OPERATORS.has(operator) ? operator : 'equals';
@@ -264,6 +254,13 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
   const selectedNode = nodes.find((node) => node.id === selectedNodeId) ?? null;
 
   const flowNodeTypes = useMemo(() => automationFlowNodeTypes, []);
+
+  const triggerSelectOptions = useMemo(
+    () => Object.entries(TRIGGER_LABELS).map(([value, label]) => ({ value, label })),
+    []
+  );
+
+  const stageSelectOptions = useMemo(() => [{ value: '', label: 'Any stage' }, ...LIFECYCLE_STAGE_SELECT_OPTIONS], []);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -497,7 +494,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
       try {
         await deleteAutomationAction(automation.id);
         setConfirmAction(null);
-        router.push('/communications');
+        router.push('/communications?tab=automations');
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Delete failed.');
@@ -524,86 +521,107 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
           onConfirm={handleConfirmAction}
         />
       ) : null}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white px-4 py-3">
-        <div className="min-w-0 flex-1">
-          <input
+      <Card padding="sm" className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_480px] lg:items-start">
+        <div className="min-w-0 space-y-2">
+          <TextInput
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={setName}
             disabled={isArchived}
-            className="w-full bg-transparent text-lg font-extrabold text-slate-800 outline-none disabled:opacity-70"
+            placeholder="Workflow name"
+            className="bg-white"
+            aria-label="Workflow name"
           />
-          <input
+          <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Optional description"
             disabled={isArchived}
-            className="mt-1 w-full bg-transparent text-sm text-slate-500 outline-none disabled:opacity-70"
+            rows={2}
+            className="resize-none rounded-2xl border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-600"
           />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 lg:w-[480px]">
           <Pill tone={automationStatusPillTone(status)}>{automationStatusLabel(status)}</Pill>
           {!isArchived ? (
-            <button
-              type="button"
+            <Button
+              variant="light"
+              size="sm"
               disabled={isPending}
               onClick={() => persist()}
-              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
+              className="min-w-[140px] justify-center"
             >
               {status === 'draft' ? 'Save draft' : 'Save changes'}
-            </button>
+            </Button>
           ) : null}
           {!isArchived && status !== 'active' ? (
             <>
-              <button
-                type="button"
-                disabled={isPending}
-                onClick={runValidate}
-                className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700"
-              >
-                Validate
-              </button>
-              <button
-                type="button"
+              <Button
+                variant="success"
+                size="sm"
                 disabled={isPending || !validationPassed}
                 onClick={activate}
-                className="rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                className="min-w-[140px] justify-center"
               >
-                Activate
-              </button>
+                Turn on
+              </Button>
+              {automation?.id && status === 'draft' ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setConfirmAction('delete')}
+                  className="min-w-[140px] justify-center"
+                >
+                  Delete draft
+                </Button>
+              ) : null}
+              {status === 'paused' ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => setConfirmAction('archive')}
+                  className="min-w-[140px] justify-center"
+                >
+                  Archive
+                </Button>
+              ) : (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={runValidate}
+                  className="min-w-[140px] justify-center"
+                >
+                  Check workflow
+                </Button>
+              )}
+              {status === 'paused' ? (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={isPending}
+                  onClick={runValidate}
+                  className="min-w-[140px] justify-center"
+                >
+                  Check workflow
+                </Button>
+              ) : null}
             </>
           ) : null}
           {!isArchived && status === 'active' ? (
-            <button
-              type="button"
+            <Button
+              variant="amber"
+              size="sm"
               disabled={isPending}
               onClick={() => setConfirmAction('deactivate')}
-              className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
+              className="min-w-[140px] justify-center"
             >
-              Deactivate
-            </button>
-          ) : null}
-          {!isArchived && status === 'paused' ? (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => setConfirmAction('archive')}
-              className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600"
-            >
-              Archive
-            </button>
-          ) : null}
-          {automation?.id && status === 'draft' ? (
-            <button
-              type="button"
-              disabled={isPending}
-              onClick={() => setConfirmAction('delete')}
-              className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-600"
-            >
-              Delete draft
-            </button>
+              Turn off
+            </Button>
           ) : null}
         </div>
-      </div>
+      </Card>
 
       {isArchived ? (
         <p className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">
@@ -612,22 +630,21 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
         </p>
       ) : status === 'active' ? (
         <p className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          This workflow is active. Triggers and steps are read-only — deactivate to edit the graph. Name and description
+          This workflow is on. Triggers and steps are read-only — turn it off to edit the graph. Name and description
           can still be updated.
         </p>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
         <div className="overflow-hidden rounded-2xl border border-slate-100 bg-canvas-cool">
-          <div className="flex flex-wrap gap-2 border-b border-slate-100 bg-white px-3 py-2">
-            <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-              Trigger
-              <select
+          <div className="flex flex-wrap items-end gap-3 border-b border-slate-100 bg-white px-3 py-2">
+            <Field label="When this happens" className="min-w-[180px]">
+              <AutomationBuilderSelect
                 value={triggerType}
-                onChange={(e) => {
-                  const next = e.target.value as AutomationTriggerType;
-                  setTriggerType(next);
-                  if (next === 'stage_changed') {
+                onChange={(next) => {
+                  const value = next as AutomationTriggerType;
+                  setTriggerType(value);
+                  if (value === 'stage_changed') {
                     setTriggerConfig((current) => {
                       if ('from_stage' in current || 'to_stage' in current) {
                         return current;
@@ -636,84 +653,44 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                     });
                   }
                 }}
+                options={triggerSelectOptions}
                 disabled={isGraphLocked}
-                className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-              >
-                {Object.entries(TRIGGER_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </Field>
             {triggerType === 'stage_changed' ? (
               <>
-                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                  From
-                  <select
+                <Field label="From stage" className="min-w-[160px]">
+                  <AutomationBuilderSelect
                     value={triggerConfig.from_stage ?? ''}
-                    onChange={(e) => setTriggerConfig((current) => ({ ...current, from_stage: e.target.value }))}
+                    onChange={(value) => setTriggerConfig((current) => ({ ...current, from_stage: value }))}
+                    options={stageSelectOptions}
                     disabled={isGraphLocked}
-                    className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-                  >
-                    <option value="">Any stage</option>
-                    {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
-                      <option key={stage} value={stage}>
-                        {stage}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
-                  To
-                  <select
+                  />
+                </Field>
+                <Field label="To stage" className="min-w-[160px]">
+                  <AutomationBuilderSelect
                     value={triggerConfig.to_stage ?? ''}
-                    onChange={(e) => setTriggerConfig((current) => ({ ...current, to_stage: e.target.value }))}
+                    onChange={(value) => setTriggerConfig((current) => ({ ...current, to_stage: value }))}
+                    options={stageSelectOptions}
                     disabled={isGraphLocked}
-                    className="rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-                  >
-                    <option value="">Any stage</option>
-                    {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
-                      <option key={stage} value={stage}>
-                        {stage}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                  />
+                </Field>
               </>
             ) : null}
-            <button
-              type="button"
-              disabled={isGraphLocked}
-              onClick={() => addNode('wait')}
-              className={graphToolbarButtonClass(isGraphLocked)}
-            >
-              + Wait
-            </button>
-            <button
-              type="button"
-              disabled={isGraphLocked}
-              onClick={() => addNode('condition_group')}
-              className={graphToolbarButtonClass(isGraphLocked)}
-            >
-              + Conditions
-            </button>
-            <button
-              type="button"
-              disabled={isGraphLocked}
-              onClick={() => addNode('send_email')}
-              className={graphToolbarButtonClass(isGraphLocked)}
-            >
-              + Send email
-            </button>
-            <button
-              type="button"
-              disabled={isGraphLocked}
-              onClick={() => addNode('end')}
-              className={graphToolbarButtonClass(isGraphLocked)}
-            >
-              + End
-            </button>
+            <div className="flex flex-wrap gap-2 pb-0.5">
+              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('wait')}>
+                + Wait
+              </Button>
+              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('condition_group')}>
+                + Rules
+              </Button>
+              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_email')}>
+                + Send email
+              </Button>
+              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('end')}>
+                + End
+              </Button>
+            </div>
           </div>
           <div className="h-[560px]">
             <AutomationValidationErrorsContext.Provider value={validationErrorByNode}>
@@ -731,29 +708,30 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                 deleteKeyCode={isGraphLocked ? null : undefined}
                 elementsSelectable
                 fitView
+                proOptions={{ hideAttribution: true }}
               >
                 <Background gap={16} size={1} color="#E2E8F0" />
-                <MiniMap pannable zoomable />
                 <Controls />
               </ReactFlow>
             </AutomationValidationErrorsContext.Provider>
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4">
-          <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">
-            Node settings{isGraphLocked ? ' (read-only)' : ''}
-          </p>
+        <Card padding="sm" className="flex flex-col gap-3">
+          <SectionHead
+            title={`Step settings${isGraphLocked ? ' (read-only)' : ''}`}
+            subtitle="Select a step on the canvas to edit it."
+          />
           {!selectedNode ? (
-            <p className="text-sm text-slate-500">Select a node on the canvas to edit its settings.</p>
+            <p className="text-sm text-slate-500">No step selected.</p>
           ) : (
             <>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-slate-800">{nodeLabel(selectedNode.data.nodeType)}</p>
                 {selectedNode.data.nodeType !== 'trigger' && !isGraphLocked ? (
-                  <button type="button" onClick={removeSelectedNode} className="text-rose-500">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <Button variant="ghost" size="sm" onClick={removeSelectedNode} aria-label="Remove step">
+                    <Trash2 className="h-4 w-4 text-rose-500" />
+                  </Button>
                 ) : null}
               </div>
               <NodeConfigPanel
@@ -766,10 +744,10 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
             </>
           )}
 
-          <div className="mt-4 border-t border-slate-100 pt-4">
-            <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Validation</p>
+          <div className="mt-2 border-t border-slate-100 pt-4">
+            <SectionHead title="Workflow check" />
             {validationIssues.length > 0 ? (
-              <ul className="mt-2 space-y-1.5 text-xs text-rose-600">
+              <ul className="space-y-1.5 text-xs text-rose-600">
                 {validationIssues.map((issue, index) => {
                   const node = nodes.find((n) => n.id === issue.node_id);
                   const label = validationIssueDisplay(issue, node?.data.nodeType);
@@ -792,14 +770,14 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                 })}
               </ul>
             ) : validationPassed ? (
-              <p className="mt-1 text-xs font-medium text-emerald-600">Ready to activate.</p>
+              <p className="text-xs font-medium text-emerald-600">Ready to turn on.</p>
             ) : (
-              <p className="mt-1 text-xs text-slate-500">
-                Run Validate before activating. Edits clear the last result.
+              <p className="text-xs text-slate-500">
+                Run Check workflow before turning on. Edits clear the last result.
               </p>
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       {message ? <p className="text-sm font-medium text-slate-600">{message}</p> : null}
@@ -820,6 +798,19 @@ function NodeConfigPanel({
   readOnly?: boolean;
   onChange: (config: Record<string, unknown>, label?: string) => void;
 }) {
+  const conditionFieldOptions = useMemo(
+    () => AUTOMATION_CONDITION_FIELDS.map((field) => ({ value: field.value, label: field.label })),
+    []
+  );
+
+  const templateOptions = useMemo(
+    () =>
+      templates
+        .filter((template) => template.status === 'active')
+        .map((template) => ({ value: template.id, label: template.name })),
+    [templates]
+  );
+
   useEffect(() => {
     if (readOnly || node.data.nodeType !== 'condition_group') return;
     const group = node.data.config as AutomationConditionGroupData;
@@ -834,59 +825,43 @@ function NodeConfigPanel({
     if (node.data.nodeType === 'wait') {
       const wait = node.data.config as AutomationWaitData;
       return (
-        <div className="flex flex-col gap-2">
-          <label className="text-xs font-semibold text-slate-600">
-            Duration
-            <div className="mt-1 flex gap-2">
-              <input
-                type="number"
-                min={1}
-                value={wait.duration_value}
-                disabled={readOnly}
-                onChange={(e) => onChange({ ...wait, duration_value: Number(e.target.value) || 1 })}
-                className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm disabled:opacity-60"
-              />
-              <select
-                value={wait.duration_unit}
-                disabled={readOnly}
-                onChange={(e) => onChange({ ...wait, duration_unit: e.target.value })}
-                className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm disabled:opacity-60"
-              >
-                <option value="minutes">Minutes</option>
-                <option value="hours">Hours</option>
-                <option value="days">Days</option>
-                <option value="weeks">Weeks</option>
-              </select>
-            </div>
-          </label>
-        </div>
+        <Field label="Wait for">
+          <div className="flex gap-2">
+            <TextInput
+              type="number"
+              min={1}
+              value={String(wait.duration_value)}
+              disabled={readOnly}
+              onChange={(value) => onChange({ ...wait, duration_value: Number(value) || 1 })}
+              className="w-24"
+            />
+            <AutomationBuilderSelect
+              value={wait.duration_unit}
+              onChange={(value) => onChange({ ...wait, duration_unit: value })}
+              options={WAIT_UNIT_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
+              disabled={readOnly}
+              className="flex-1"
+            />
+          </div>
+        </Field>
       );
     }
 
     if (node.data.nodeType === 'send_email') {
       const send = node.data.config as AutomationSendEmailData;
       return (
-        <label className="text-xs font-semibold text-slate-600">
-          Template
-          <select
+        <Field label="Email template">
+          <AutomationBuilderSelect
             value={send.template_id}
-            disabled={readOnly}
-            onChange={(e) => {
-              const template = templates.find((t) => t.id === e.target.value);
-              onChange({ template_id: e.target.value }, template?.name ?? 'Select template');
+            onChange={(value) => {
+              const template = templates.find((item) => item.id === value);
+              onChange({ template_id: value }, template?.name ?? 'Select template');
             }}
-            className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm disabled:opacity-60"
-          >
-            <option value="">Select template</option>
-            {templates
-              .filter((t) => t.status === 'active')
-              .map((template) => (
-                <option key={template.id} value={template.id}>
-                  {template.name}
-                </option>
-              ))}
-          </select>
-        </label>
+            options={templateOptions}
+            placeholder="Select template"
+            disabled={readOnly}
+          />
+        </Field>
       );
     }
 
@@ -908,129 +883,107 @@ function NodeConfigPanel({
 
       return (
         <div className="flex flex-col gap-3">
-          <label className="text-xs font-semibold text-slate-600">
-            Match
-            <select
+          <Field label="Match when">
+            <AutomationBuilderSelect
               value={group.logic}
+              onChange={(value) => onChange({ ...group, logic: value as 'and' | 'or' })}
+              options={CONDITION_LOGIC_OPTIONS.map((option) => ({ value: option.value, label: option.label }))}
               disabled={readOnly}
-              onChange={(e) => onChange({ ...group, logic: e.target.value as 'and' | 'or' })}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm disabled:opacity-60"
-            >
-              <option value="and">All conditions (AND)</option>
-              <option value="or">Any condition (OR)</option>
-            </select>
-          </label>
+            />
+          </Field>
           {group.conditions.map((condition, index) => {
             const isTagField = condition.field === 'tag';
             const operatorValue = isTagField ? tagConditionOperator(condition.operator) : condition.operator;
             const tagValue = String(condition.value ?? '');
             const tagOptions = isTagField ? buildTagSelectOptions(tagSuggestions, tagValue) : [];
+            const operatorOptions = (isTagField ? TAG_CONDITION_OPERATORS : DEFAULT_CONDITION_OPERATORS).map(
+              (operator) => ({ value: operator.value, label: operator.label })
+            );
 
             return (
-              <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-2">
-                <select
-                  value={condition.field}
-                  disabled={readOnly}
-                  onChange={(e) => {
-                    const field = e.target.value;
-                    if (field === 'tag') {
-                      updateCondition(index, { field, operator: 'equals', value: '' });
-                      return;
-                    }
-                    updateCondition(index, { field });
-                  }}
-                  className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-                >
-                  {AUTOMATION_CONDITION_FIELDS.map((field) => (
-                    <option key={field.value} value={field.value}>
-                      {field.label}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={operatorValue}
-                  disabled={readOnly}
-                  onChange={(e) => updateCondition(index, { operator: e.target.value })}
-                  className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-                >
-                  {(isTagField ? TAG_CONDITION_OPERATORS : DEFAULT_CONDITION_OPERATORS).map((operator) => (
-                    <option key={operator.value} value={operator.value}>
-                      {operator.label}
-                    </option>
-                  ))}
-                </select>
-                {condition.field === 'lifecycle_stage' ? (
-                  <select
-                    value={String(condition.value)}
+              <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-3">
+                <div className="flex flex-col gap-2">
+                  <AutomationBuilderSelect
+                    value={condition.field}
+                    onChange={(field) => {
+                      if (field === 'tag') {
+                        updateCondition(index, { field, operator: 'equals', value: '' });
+                        return;
+                      }
+                      updateCondition(index, { field });
+                    }}
+                    options={conditionFieldOptions}
                     disabled={readOnly}
-                    onChange={(e) => updateCondition(index, { value: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-                  >
-                    {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
-                      <option key={stage} value={stage}>
-                        {stage}
-                      </option>
-                    ))}
-                  </select>
-                ) : condition.field === 'consent_status' ||
-                  condition.field === 'has_enrollment' ||
-                  condition.field === 'has_checkout' ||
-                  condition.field === 'has_payment' ? (
-                  <select
-                    value={String(condition.value)}
-                    disabled={readOnly}
-                    onChange={(e) => updateCondition(index, { value: e.target.value === 'true' })}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
-                  >
-                    <option value="true">Yes</option>
-                    <option value="false">No</option>
-                  </select>
-                ) : isTagField ? (
-                  <SearchableSelect
-                    value={tagValue}
-                    onChange={(slug) => updateCondition(index, { value: slug })}
-                    options={tagOptions}
-                    placeholder="Select tag…"
-                    searchPlaceholder="Search tags…"
-                    emptyMessage="No tags found."
-                    disabled={readOnly}
-                    className="w-full text-xs"
-                    popoverClassName="w-[var(--anchor-width)]"
                   />
-                ) : (
-                  <input
-                    value={String(condition.value ?? '')}
+                  <AutomationBuilderSelect
+                    value={operatorValue}
+                    onChange={(operator) => updateCondition(index, { operator })}
+                    options={operatorOptions}
                     disabled={readOnly}
-                    onChange={(e) => updateCondition(index, { value: e.target.value })}
-                    className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                   />
-                )}
+                  {condition.field === 'lifecycle_stage' ? (
+                    <AutomationBuilderSelect
+                      value={String(condition.value)}
+                      onChange={(value) => updateCondition(index, { value })}
+                      options={LIFECYCLE_STAGE_SELECT_OPTIONS}
+                      disabled={readOnly}
+                    />
+                  ) : condition.field === 'consent_status' ||
+                    condition.field === 'has_enrollment' ||
+                    condition.field === 'has_checkout' ||
+                    condition.field === 'has_payment' ? (
+                    <AutomationBuilderSelect
+                      value={String(condition.value)}
+                      onChange={(value) => updateCondition(index, { value: value === 'true' })}
+                      options={BOOLEAN_CONDITION_OPTIONS.map((option) => ({
+                        value: option.value,
+                        label: option.label,
+                      }))}
+                      disabled={readOnly}
+                    />
+                  ) : isTagField ? (
+                    <SearchableSelect
+                      value={tagValue}
+                      onChange={(slug) => updateCondition(index, { value: slug })}
+                      options={tagOptions}
+                      placeholder="Select tag…"
+                      searchPlaceholder="Search tags…"
+                      emptyMessage="No tags found."
+                      disabled={readOnly}
+                      className="w-full text-xs"
+                      popoverClassName="w-[var(--anchor-width)]"
+                    />
+                  ) : (
+                    <TextInput
+                      value={String(condition.value ?? '')}
+                      disabled={readOnly}
+                      onChange={(value) => updateCondition(index, { value })}
+                    />
+                  )}
+                </div>
                 {!readOnly ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     onClick={() => removeCondition(index)}
-                    className="mt-2 text-xs font-bold text-rose-500"
+                    className="mt-2 text-rose-500"
                   >
-                    Remove
-                  </button>
+                    Remove rule
+                  </Button>
                 ) : null}
               </div>
             );
           })}
           {!readOnly ? (
-            <button
-              type="button"
-              onClick={addCondition}
-              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600"
-            >
-              + Add condition
-            </button>
+            <Button variant="light" size="sm" onClick={addCondition}>
+              + Add rule
+            </Button>
           ) : null}
         </div>
       );
     }
 
-    return <p className="text-sm text-slate-500">This node has no editable settings.</p>;
+    return <p className="text-sm text-slate-500">This step has no editable settings.</p>;
   })();
 
   return <div className={readOnly ? 'opacity-80' : undefined}>{panel}</div>;

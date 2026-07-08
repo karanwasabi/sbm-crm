@@ -5,7 +5,10 @@ import { ChevronDown, ChevronRight, RefreshCw } from 'lucide-react';
 import { Fragment, useCallback, useEffect, useState, useTransition } from 'react';
 import { getAutomationEnrollmentLogAction, listAutomationEnrollmentsAction } from '@/app/(crm)/communications/actions';
 import { AutomationRunLogList } from '@/components/comms/automation-run-log-list';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
+import { SectionHead } from '@/components/ui/section-head';
 import { Skeleton } from '@/components/loading/skeleton';
 import { TableSkeleton } from '@/components/loading/table-skeleton';
 import {
@@ -16,11 +19,12 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
-import { automationEnrollmentStatusLabel } from '@/lib/automation-types';
-import type { AutomationEnrollment, AutomationRunLogEntry } from '@/lib/automation-types';
+import { automationEnrollmentStatusLabel, resolveStepLabel } from '@/lib/automation-types';
+import type { AutomationEnrollment, AutomationGraph, AutomationRunLogEntry } from '@/lib/automation-types';
 
 type AutomationEnrollmentsPanelProps = {
   automationId: string;
+  graphJson?: AutomationGraph;
 };
 
 function formatWhen(value?: string) {
@@ -41,7 +45,7 @@ function enrollmentStatusTone(status: string): 'success' | 'warn' | 'neutral' | 
   }
 }
 
-export function AutomationEnrollmentsPanel({ automationId }: AutomationEnrollmentsPanelProps) {
+export function AutomationEnrollmentsPanel({ automationId, graphJson }: AutomationEnrollmentsPanelProps) {
   const [enrollments, setEnrollments] = useState<AutomationEnrollment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [logsByEnrollment, setLogsByEnrollment] = useState<Record<string, AutomationRunLogEntry[]>>({});
@@ -90,22 +94,23 @@ export function AutomationEnrollmentsPanel({ automationId }: AutomationEnrollmen
   };
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-extrabold text-slate-800">Enrollments</h2>
-          <p className="mt-0.5 text-xs text-slate-500">Leads currently in this workflow and their step history.</p>
-        </div>
-        <button
-          type="button"
-          disabled={isPending}
-          onClick={loadEnrollments}
-          className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${isPending ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
-      </div>
+    <Card padding="sm">
+      <SectionHead
+        title="Enrollments"
+        subtitle="Leads in this workflow and their step history."
+        right={
+          <Button
+            variant="light"
+            size="sm"
+            disabled={isPending}
+            onClick={loadEnrollments}
+            leftIcon={<RefreshCw className={`h-3.5 w-3.5 ${isPending ? 'animate-spin' : ''}`} />}
+          >
+            Refresh
+          </Button>
+        }
+        className="mb-0"
+      />
 
       {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
 
@@ -151,7 +156,9 @@ export function AutomationEnrollmentsPanel({ automationId }: AutomationEnrollmen
                         </Pill>
                       </DataTableCell>
                       <DataTableCell>
-                        <span className="font-mono text-xs text-slate-600">{enrollment.currentNodeId || '—'}</span>
+                        <span className="text-xs text-slate-600">
+                          {resolveStepLabel(graphJson, enrollment.currentNodeId)}
+                        </span>
                       </DataTableCell>
                       <DataTableCell>
                         <span className="text-xs text-slate-600">{formatWhen(enrollment.nextRunAt)}</span>
@@ -174,7 +181,7 @@ export function AutomationEnrollmentsPanel({ automationId }: AutomationEnrollmen
                       <DataTableRow>
                         <DataTableCell colSpan={6}>
                           <div className="py-2">
-                            <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Run log</p>
+                            <SectionHead title="Step history" className="mb-2" />
                             {loadingLogId === enrollment.id ? (
                               <div className="space-y-2">
                                 {Array.from({ length: 3 }).map((_, index) => (
@@ -195,6 +202,6 @@ export function AutomationEnrollmentsPanel({ automationId }: AutomationEnrollmen
           </DataTable>
         )}
       </div>
-    </div>
+    </Card>
   );
 }

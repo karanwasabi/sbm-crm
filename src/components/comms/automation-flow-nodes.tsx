@@ -72,7 +72,7 @@ function ConditionNode({ id, data, selected }: NodeProps<Node<BuilderNodeData>>)
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-violet-700 uppercase">
         <GitBranch className="h-3.5 w-3.5" />
-        Conditions
+        Rules
       </div>
       <p className="mt-1 text-sm font-semibold text-slate-800">
         {group.conditions.length} rule{group.conditions.length === 1 ? '' : 's'} ({group.logic.toUpperCase()})

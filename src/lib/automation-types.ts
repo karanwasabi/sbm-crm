@@ -1,3 +1,6 @@
+import type { LifecycleStage } from '@/types/crm';
+import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
+
 export type AutomationTriggerType = 'lead_created' | 'stage_changed' | 'checkout_started';
 
 export type AutomationStatus = 'draft' | 'active' | 'paused' | 'archived';
@@ -90,17 +93,49 @@ export type AutomationRunLogEntry = {
 };
 
 export const AUTOMATION_CONDITION_FIELDS = [
-  { value: 'lifecycle_stage', label: 'Lifecycle stage' },
+  { value: 'lifecycle_stage', label: 'Stage' },
   { value: 'program_interest', label: 'Program interest' },
   { value: 'medium', label: 'Medium' },
-  { value: 'manual_source', label: 'Manual source' },
-  { value: 'marketing_contact_status', label: 'Marketing contact status' },
-  { value: 'consent_status', label: 'Has DPDP consent' },
+  { value: 'manual_source', label: 'Lead source' },
+  { value: 'marketing_contact_status', label: 'Marketing status' },
+  { value: 'consent_status', label: 'Has consent' },
   { value: 'has_enrollment', label: 'Has enrollment' },
   { value: 'has_checkout', label: 'Started checkout' },
   { value: 'has_payment', label: 'Payment received' },
-  { value: 'days_since_created', label: 'Days since created' },
+  { value: 'days_since_created', label: 'Days since added' },
   { value: 'tag', label: 'Tag' },
+] as const;
+
+export const TAG_CONDITION_OPERATORS = [
+  { value: 'equals', label: 'Has tag' },
+  { value: 'not_equals', label: 'Does not have tag' },
+] as const;
+
+export const DEFAULT_CONDITION_OPERATORS = [
+  { value: 'equals', label: 'is' },
+  { value: 'not_equals', label: 'is not' },
+  { value: 'contains', label: 'contains' },
+  { value: 'greater_than', label: 'is more than' },
+  { value: 'less_than', label: 'is less than' },
+  { value: 'is_empty', label: 'is empty' },
+  { value: 'is_not_empty', label: 'is not empty' },
+] as const;
+
+export const CONDITION_LOGIC_OPTIONS = [
+  { value: 'and', label: 'All of these are true' },
+  { value: 'or', label: 'Any of these is true' },
+] as const;
+
+export const WAIT_UNIT_OPTIONS = [
+  { value: 'minutes', label: 'Minutes' },
+  { value: 'hours', label: 'Hours' },
+  { value: 'days', label: 'Days' },
+  { value: 'weeks', label: 'Weeks' },
+] as const;
+
+export const BOOLEAN_CONDITION_OPTIONS = [
+  { value: 'true', label: 'Yes' },
+  { value: 'false', label: 'No' },
 ] as const;
 
 export const LIFECYCLE_STAGE_OPTIONS = [
@@ -115,10 +150,29 @@ export const LIFECYCLE_STAGE_OPTIONS = [
 ] as const;
 
 export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
-  lead_created: 'Lead created',
-  stage_changed: 'Stage changed',
+  lead_created: 'New lead added',
+  stage_changed: 'Stage changes',
   checkout_started: 'Checkout started',
 };
+
+export function lifecycleStageLabel(slug: string): string {
+  if (slug in LIFECYCLE_STAGES) {
+    return LIFECYCLE_STAGES[slug as LifecycleStage].label;
+  }
+  return slug;
+}
+
+export const LIFECYCLE_STAGE_SELECT_OPTIONS = LIFECYCLE_STAGE_OPTIONS.map((stage) => ({
+  value: stage,
+  label: lifecycleStageLabel(stage),
+}));
+
+export function resolveStepLabel(graph: AutomationGraph | undefined, nodeId: string | null | undefined): string {
+  if (!nodeId?.trim()) return '—';
+  const node = graph?.nodes.find((item) => item.id === nodeId);
+  if (node) return nodeLabel(node.type);
+  return '—';
+}
 
 export type AutomationStageTriggerConfig = {
   from_stage?: string;
@@ -228,7 +282,7 @@ export function nodeLabel(type: AutomationNodeType): string {
     case 'trigger':
       return 'Trigger';
     case 'condition_group':
-      return 'Conditions';
+      return 'Rules';
     case 'wait':
       return 'Wait';
     case 'send_email':
@@ -292,16 +346,16 @@ export function formatAutomationRunDetails(details: Record<string, unknown>): st
     return `Skipped: ${details.skip_reason}`;
   }
   if (details.match === true) {
-    return 'Conditions matched (Yes path)';
+    return 'Went to Yes branch';
   }
   if (details.match === false) {
-    return 'Conditions did not match (No path)';
+    return 'Went to No branch';
   }
   if (typeof details.until === 'string') {
     return `Continues after ${new Date(details.until).toLocaleString()}`;
   }
   if (typeof details.template_id === 'string' && details.template_id) {
-    return `Template ${details.template_id}`;
+    return 'Email template selected';
   }
   return null;
 }
