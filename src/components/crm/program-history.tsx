@@ -57,6 +57,30 @@ export function ProgramHistory({ items, interest, batch, attribution }: ProgramH
                     <dd className="font-semibold text-slate-800">{attribution.campaign}</dd>
                   </div>
                 ) : null}
+                {attribution.utmSource ? (
+                  <div>
+                    <dt className="text-slate-500">UTM source</dt>
+                    <dd className="font-semibold text-slate-800">{attribution.utmSource}</dd>
+                  </div>
+                ) : null}
+                {attribution.utmMedium ? (
+                  <div>
+                    <dt className="text-slate-500">UTM medium</dt>
+                    <dd className="font-semibold text-slate-800">{attribution.utmMedium}</dd>
+                  </div>
+                ) : null}
+                {attribution.utmCampaign ? (
+                  <div>
+                    <dt className="text-slate-500">UTM campaign</dt>
+                    <dd className="font-semibold text-slate-800">{attribution.utmCampaign}</dd>
+                  </div>
+                ) : null}
+                {attribution.utmContent ? (
+                  <div>
+                    <dt className="text-slate-500">UTM content</dt>
+                    <dd className="font-semibold text-slate-800">{attribution.utmContent}</dd>
+                  </div>
+                ) : null}
               </>
             ) : null}
           </dl>

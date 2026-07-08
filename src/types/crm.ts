@@ -331,6 +331,10 @@ export type LeadAttribution = {
   sourceLabel: string;
   integration: string | null;
   campaign: string | null;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
   formId: string | null;
   intakeFormTitle: string | null;
   intakeFormName: string | null;
