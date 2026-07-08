@@ -20,7 +20,7 @@ export default async function EditTemplatePage({ params }: { params: Promise<{ i
           <h1 className="text-xl font-extrabold tracking-tight text-slate-800">{template.name}</h1>
         </div>
         <Link
-          href="/communications"
+          href="/communications/templates"
           className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
         >
           Back

@@ -2,7 +2,7 @@
 
 import { Mail, Plus, Send, Workflow } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { BulkSendListRow } from '@/components/comms/bulk-send-list-row';
 import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
@@ -19,7 +19,7 @@ import type {
   MarketingContactsSummary,
 } from '@/utils/api';
 
-type CommsTab = 'templates' | 'automations' | 'bulk-sends' | 'performance';
+export type CommsTab = 'templates' | 'automations' | 'bulk-sends' | 'performance';
 
 const COMMS_TABS: { id: CommsTab; label: string }[] = [
   { id: 'templates', label: 'Templates' },
@@ -28,22 +28,12 @@ const COMMS_TABS: { id: CommsTab; label: string }[] = [
   { id: 'performance', label: 'Performance' },
 ];
 
-function resolveCommsTab(tab?: string): CommsTab {
-  if (tab === 'automations') return 'automations';
-  if (tab === 'bulk-sends') return 'bulk-sends';
-  if (tab === 'performance') return 'performance';
-  return 'templates';
-}
-
-function syncCommsUrl(tab: CommsTab) {
-  const params = new URLSearchParams();
-  if (tab !== 'templates') {
-    params.set('tab', tab);
-  }
-  const query = params.toString();
-  const nextUrl = query ? `/communications?${query}` : '/communications';
-  window.history.replaceState(null, '', nextUrl);
-}
+const COMMS_TAB_HREF: Record<CommsTab, string> = {
+  templates: '/communications/templates',
+  automations: '/communications/automations',
+  'bulk-sends': '/communications/bulk-sends',
+  performance: '/communications/performance',
+};
 
 type CommunicationsViewProps = {
   templates: EmailTemplate[];
@@ -52,7 +42,7 @@ type CommunicationsViewProps = {
   bulkSendJobsError?: string | null;
   marketingSummary: MarketingContactsSummary;
   analytics: CommsAnalytics | null;
-  initialTab?: string;
+  tab: CommsTab;
 };
 
 export function CommunicationsView({
@@ -62,18 +52,13 @@ export function CommunicationsView({
   bulkSendJobsError,
   marketingSummary,
   analytics,
-  initialTab,
+  tab,
 }: CommunicationsViewProps) {
-  const [tab, setTab] = useState<CommsTab>(() => resolveCommsTab(initialTab));
+  const router = useRouter();
   const activeAutomationCount = automations.filter((automation) => automation.status === 'active').length;
 
-  useEffect(() => {
-    setTab(resolveCommsTab(initialTab));
-  }, [initialTab]);
-
   const selectTab = (next: CommsTab) => {
-    setTab(next);
-    syncCommsUrl(next);
+    router.push(COMMS_TAB_HREF[next]);
   };
 
   return (

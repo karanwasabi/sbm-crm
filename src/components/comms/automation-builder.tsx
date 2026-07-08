@@ -528,7 +528,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
       try {
         await deleteAutomationAction(automation.id);
         setConfirmAction(null);
-        router.push('/communications?tab=automations');
+        router.push('/communications/automations');
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Delete failed.');

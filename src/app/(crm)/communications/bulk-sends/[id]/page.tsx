@@ -18,7 +18,7 @@ export default async function BulkSendJobPage({ params }: { params: Promise<{ id
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-extrabold tracking-tight text-slate-800">Bulk send</h1>
         <Link
-          href="/communications?tab=bulk-sends"
+          href="/communications/bulk-sends"
           className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
         >
           Back

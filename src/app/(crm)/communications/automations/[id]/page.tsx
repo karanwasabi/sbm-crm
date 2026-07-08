@@ -24,7 +24,7 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-extrabold tracking-tight text-slate-800">Automation builder</h1>
         <Link
-          href="/communications?tab=automations"
+          href="/communications/automations"
           className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
         >
           Back
