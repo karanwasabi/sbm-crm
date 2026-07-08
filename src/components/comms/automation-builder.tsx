@@ -59,6 +59,12 @@ import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagSuggestion } from '@/types/crm';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 
+function graphToolbarButtonClass(locked: boolean) {
+  return locked
+    ? 'cursor-not-allowed rounded-full bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-300 ring-1 ring-slate-100'
+    : 'rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200';
+}
+
 type BuilderNodeData = {
   nodeType: AutomationNodeType;
   label: string;
@@ -400,6 +406,22 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
     [setEdges, isGraphLocked, invalidateValidation]
   );
 
+  const handleNodesChange = useCallback(
+    (...args: Parameters<typeof onNodesChange>) => {
+      if (isGraphLocked) return;
+      onNodesChange(...args);
+    },
+    [isGraphLocked, onNodesChange]
+  );
+
+  const handleEdgesChange = useCallback(
+    (...args: Parameters<typeof onEdgesChange>) => {
+      if (isGraphLocked) return;
+      onEdgesChange(...args);
+    },
+    [isGraphLocked, onEdgesChange]
+  );
+
   const addNode = (type: AutomationNodeType) => {
     if (isGraphLocked) return;
     invalidateValidation();
@@ -430,7 +452,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
   };
 
   const updateSelectedConfig = (config: Record<string, unknown>, label?: string) => {
-    if (!selectedNodeId) return;
+    if (!selectedNodeId || isGraphLocked) return;
     invalidateValidation();
     setNodes((current) =>
       current.map((node) =>
@@ -449,7 +471,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
   };
 
   const removeSelectedNode = () => {
-    if (!selectedNodeId) return;
+    if (!selectedNodeId || isGraphLocked) return;
     invalidateValidation();
     setNodes((current) => current.filter((node) => node.id !== selectedNodeId));
     setEdges((current) => current.filter((edge) => edge.source !== selectedNodeId && edge.target !== selectedNodeId));
@@ -718,6 +740,11 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
           This workflow is archived and read-only. It is hidden from the automations list; enrollment history below is
           preserved.
         </p>
+      ) : status === 'active' ? (
+        <p className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          This workflow is active. Triggers and steps are read-only — deactivate to edit the graph. Name and description
+          can still be updated.
+        </p>
       ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
@@ -787,29 +814,33 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
             ) : null}
             <button
               type="button"
+              disabled={isGraphLocked}
               onClick={() => addNode('wait')}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200"
+              className={graphToolbarButtonClass(isGraphLocked)}
             >
               + Wait
             </button>
             <button
               type="button"
+              disabled={isGraphLocked}
               onClick={() => addNode('condition_group')}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200"
+              className={graphToolbarButtonClass(isGraphLocked)}
             >
               + Conditions
             </button>
             <button
               type="button"
+              disabled={isGraphLocked}
               onClick={() => addNode('send_email')}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200"
+              className={graphToolbarButtonClass(isGraphLocked)}
             >
               + Send email
             </button>
             <button
               type="button"
+              disabled={isGraphLocked}
               onClick={() => addNode('end')}
-              className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-600 ring-1 ring-slate-200"
+              className={graphToolbarButtonClass(isGraphLocked)}
             >
               + End
             </button>
@@ -819,11 +850,16 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
               <ReactFlow
                 nodes={nodes}
                 edges={edges}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
+                onNodesChange={handleNodesChange}
+                onEdgesChange={handleEdgesChange}
                 onConnect={onConnect}
                 nodeTypes={nodeTypes}
                 onNodeClick={(_, node) => setSelectedNodeId(node.id)}
+                nodesDraggable={!isGraphLocked}
+                nodesConnectable={!isGraphLocked}
+                edgesReconnectable={!isGraphLocked}
+                deleteKeyCode={isGraphLocked ? null : undefined}
+                elementsSelectable
                 fitView
               >
                 <Background gap={16} size={1} color="#E2E8F0" />
@@ -835,14 +871,16 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
         </div>
 
         <div className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4">
-          <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Node settings</p>
+          <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">
+            Node settings{isGraphLocked ? ' (read-only)' : ''}
+          </p>
           {!selectedNode ? (
             <p className="text-sm text-slate-500">Select a node on the canvas to edit its settings.</p>
           ) : (
             <>
               <div className="flex items-center justify-between">
                 <p className="text-sm font-bold text-slate-800">{nodeLabel(selectedNode.data.nodeType)}</p>
-                {selectedNode.data.nodeType !== 'trigger' ? (
+                {selectedNode.data.nodeType !== 'trigger' && !isGraphLocked ? (
                   <button type="button" onClick={removeSelectedNode} className="text-rose-500">
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -852,6 +890,7 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                 node={selectedNode}
                 templates={templates}
                 tagSuggestions={tagSuggestions}
+                readOnly={isGraphLocked}
                 onChange={updateSelectedConfig}
               />
             </>
@@ -902,207 +941,227 @@ function NodeConfigPanel({
   node,
   templates,
   tagSuggestions,
+  readOnly = false,
   onChange,
 }: {
   node: Node<BuilderNodeData>;
   templates: EmailTemplate[];
   tagSuggestions: TagSuggestion[];
+  readOnly?: boolean;
   onChange: (config: Record<string, unknown>, label?: string) => void;
 }) {
   useEffect(() => {
-    if (node.data.nodeType !== 'condition_group') return;
+    if (readOnly || node.data.nodeType !== 'condition_group') return;
     const group = node.data.config as AutomationConditionGroupData;
     const normalized = group.conditions.map(normalizeTagCondition);
     const changed = normalized.some((condition, index) => condition.operator !== group.conditions[index].operator);
     if (changed) {
       onChange({ ...group, conditions: normalized });
     }
-  }, [node.data.nodeType, node.id, node.data.config, onChange]);
+  }, [readOnly, node.data.nodeType, node.id, node.data.config, onChange]);
 
-  if (node.data.nodeType === 'wait') {
-    const wait = node.data.config as AutomationWaitData;
-    return (
-      <div className="flex flex-col gap-2">
+  const panel = (() => {
+    if (node.data.nodeType === 'wait') {
+      const wait = node.data.config as AutomationWaitData;
+      return (
+        <div className="flex flex-col gap-2">
+          <label className="text-xs font-semibold text-slate-600">
+            Duration
+            <div className="mt-1 flex gap-2">
+              <input
+                type="number"
+                min={1}
+                value={wait.duration_value}
+                disabled={readOnly}
+                onChange={(e) => onChange({ ...wait, duration_value: Number(e.target.value) || 1 })}
+                className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm disabled:opacity-60"
+              />
+              <select
+                value={wait.duration_unit}
+                disabled={readOnly}
+                onChange={(e) => onChange({ ...wait, duration_unit: e.target.value })}
+                className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm disabled:opacity-60"
+              >
+                <option value="minutes">Minutes</option>
+                <option value="hours">Hours</option>
+                <option value="days">Days</option>
+                <option value="weeks">Weeks</option>
+              </select>
+            </div>
+          </label>
+        </div>
+      );
+    }
+
+    if (node.data.nodeType === 'send_email') {
+      const send = node.data.config as AutomationSendEmailData;
+      return (
         <label className="text-xs font-semibold text-slate-600">
-          Duration
-          <div className="mt-1 flex gap-2">
-            <input
-              type="number"
-              min={1}
-              value={wait.duration_value}
-              onChange={(e) => onChange({ ...wait, duration_value: Number(e.target.value) || 1 })}
-              className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-            />
-            <select
-              value={wait.duration_unit}
-              onChange={(e) => onChange({ ...wait, duration_unit: e.target.value })}
-              className="flex-1 rounded-lg border border-slate-200 px-2 py-1 text-sm"
-            >
-              <option value="minutes">Minutes</option>
-              <option value="hours">Hours</option>
-              <option value="days">Days</option>
-              <option value="weeks">Weeks</option>
-            </select>
-          </div>
-        </label>
-      </div>
-    );
-  }
-
-  if (node.data.nodeType === 'send_email') {
-    const send = node.data.config as AutomationSendEmailData;
-    return (
-      <label className="text-xs font-semibold text-slate-600">
-        Template
-        <select
-          value={send.template_id}
-          onChange={(e) => {
-            const template = templates.find((t) => t.id === e.target.value);
-            onChange({ template_id: e.target.value }, template?.name ?? 'Select template');
-          }}
-          className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
-        >
-          <option value="">Select template</option>
-          {templates
-            .filter((t) => t.status === 'active')
-            .map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name}
-              </option>
-            ))}
-        </select>
-      </label>
-    );
-  }
-
-  if (node.data.nodeType === 'condition_group') {
-    const group = node.data.config as AutomationConditionGroupData;
-    const updateCondition = (index: number, patch: Partial<AutomationCondition>) => {
-      const conditions = group.conditions.map((c, i) => normalizeTagCondition(i === index ? { ...c, ...patch } : c));
-      onChange({ ...group, conditions });
-    };
-    const addCondition = () => {
-      onChange({
-        ...group,
-        conditions: [...group.conditions, { field: 'lifecycle_stage', operator: 'equals', value: 'inquiry' }],
-      });
-    };
-    const removeCondition = (index: number) => {
-      onChange({ ...group, conditions: group.conditions.filter((_, i) => i !== index) });
-    };
-
-    return (
-      <div className="flex flex-col gap-3">
-        <label className="text-xs font-semibold text-slate-600">
-          Match
+          Template
           <select
-            value={group.logic}
-            onChange={(e) => onChange({ ...group, logic: e.target.value as 'and' | 'or' })}
-            className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+            value={send.template_id}
+            disabled={readOnly}
+            onChange={(e) => {
+              const template = templates.find((t) => t.id === e.target.value);
+              onChange({ template_id: e.target.value }, template?.name ?? 'Select template');
+            }}
+            className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm disabled:opacity-60"
           >
-            <option value="and">All conditions (AND)</option>
-            <option value="or">Any condition (OR)</option>
+            <option value="">Select template</option>
+            {templates
+              .filter((t) => t.status === 'active')
+              .map((template) => (
+                <option key={template.id} value={template.id}>
+                  {template.name}
+                </option>
+              ))}
           </select>
         </label>
-        {group.conditions.map((condition, index) => {
-          const isTagField = condition.field === 'tag';
-          const operatorValue = isTagField ? tagConditionOperator(condition.operator) : condition.operator;
-          const tagValue = String(condition.value ?? '');
-          const tagOptions = isTagField ? buildTagSelectOptions(tagSuggestions, tagValue) : [];
+      );
+    }
 
-          return (
-            <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-2">
-              <select
-                value={condition.field}
-                onChange={(e) => {
-                  const field = e.target.value;
-                  if (field === 'tag') {
-                    updateCondition(index, { field, operator: 'equals', value: '' });
-                    return;
-                  }
-                  updateCondition(index, { field });
-                }}
-                className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
-              >
-                {AUTOMATION_CONDITION_FIELDS.map((field) => (
-                  <option key={field.value} value={field.value}>
-                    {field.label}
-                  </option>
-                ))}
-              </select>
-              <select
-                value={operatorValue}
-                onChange={(e) => updateCondition(index, { operator: e.target.value })}
-                className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
-              >
-                {(isTagField ? TAG_CONDITION_OPERATORS : DEFAULT_CONDITION_OPERATORS).map((operator) => (
-                  <option key={operator.value} value={operator.value}>
-                    {operator.label}
-                  </option>
-                ))}
-              </select>
-              {condition.field === 'lifecycle_stage' ? (
+    if (node.data.nodeType === 'condition_group') {
+      const group = node.data.config as AutomationConditionGroupData;
+      const updateCondition = (index: number, patch: Partial<AutomationCondition>) => {
+        const conditions = group.conditions.map((c, i) => normalizeTagCondition(i === index ? { ...c, ...patch } : c));
+        onChange({ ...group, conditions });
+      };
+      const addCondition = () => {
+        onChange({
+          ...group,
+          conditions: [...group.conditions, { field: 'lifecycle_stage', operator: 'equals', value: 'inquiry' }],
+        });
+      };
+      const removeCondition = (index: number) => {
+        onChange({ ...group, conditions: group.conditions.filter((_, i) => i !== index) });
+      };
+
+      return (
+        <div className="flex flex-col gap-3">
+          <label className="text-xs font-semibold text-slate-600">
+            Match
+            <select
+              value={group.logic}
+              disabled={readOnly}
+              onChange={(e) => onChange({ ...group, logic: e.target.value as 'and' | 'or' })}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm disabled:opacity-60"
+            >
+              <option value="and">All conditions (AND)</option>
+              <option value="or">Any condition (OR)</option>
+            </select>
+          </label>
+          {group.conditions.map((condition, index) => {
+            const isTagField = condition.field === 'tag';
+            const operatorValue = isTagField ? tagConditionOperator(condition.operator) : condition.operator;
+            const tagValue = String(condition.value ?? '');
+            const tagOptions = isTagField ? buildTagSelectOptions(tagSuggestions, tagValue) : [];
+
+            return (
+              <div key={index} className="rounded-xl border border-slate-100 bg-canvas-cool p-2">
                 <select
-                  value={String(condition.value)}
-                  onChange={(e) => updateCondition(index, { value: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                  value={condition.field}
+                  disabled={readOnly}
+                  onChange={(e) => {
+                    const field = e.target.value;
+                    if (field === 'tag') {
+                      updateCondition(index, { field, operator: 'equals', value: '' });
+                      return;
+                    }
+                    updateCondition(index, { field });
+                  }}
+                  className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                 >
-                  {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
-                    <option key={stage} value={stage}>
-                      {stage}
+                  {AUTOMATION_CONDITION_FIELDS.map((field) => (
+                    <option key={field.value} value={field.value}>
+                      {field.label}
                     </option>
                   ))}
                 </select>
-              ) : condition.field === 'consent_status' ||
-                condition.field === 'has_enrollment' ||
-                condition.field === 'has_checkout' ||
-                condition.field === 'has_payment' ? (
                 <select
-                  value={String(condition.value)}
-                  onChange={(e) => updateCondition(index, { value: e.target.value === 'true' })}
-                  className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
+                  value={operatorValue}
+                  disabled={readOnly}
+                  onChange={(e) => updateCondition(index, { operator: e.target.value })}
+                  className="mb-2 w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
                 >
-                  <option value="true">Yes</option>
-                  <option value="false">No</option>
+                  {(isTagField ? TAG_CONDITION_OPERATORS : DEFAULT_CONDITION_OPERATORS).map((operator) => (
+                    <option key={operator.value} value={operator.value}>
+                      {operator.label}
+                    </option>
+                  ))}
                 </select>
-              ) : isTagField ? (
-                <SearchableSelect
-                  value={tagValue}
-                  onChange={(slug) => updateCondition(index, { value: slug })}
-                  options={tagOptions}
-                  placeholder="Select tag…"
-                  searchPlaceholder="Search tags…"
-                  emptyMessage="No tags found."
-                  className="w-full text-xs"
-                  popoverClassName="w-[var(--anchor-width)]"
-                />
-              ) : (
-                <input
-                  value={String(condition.value ?? '')}
-                  onChange={(e) => updateCondition(index, { value: e.target.value })}
-                  className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs"
-                />
-              )}
-              <button
-                type="button"
-                onClick={() => removeCondition(index)}
-                className="mt-2 text-xs font-bold text-rose-500"
-              >
-                Remove
-              </button>
-            </div>
-          );
-        })}
-        <button
-          type="button"
-          onClick={addCondition}
-          className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600"
-        >
-          + Add condition
-        </button>
-      </div>
-    );
-  }
+                {condition.field === 'lifecycle_stage' ? (
+                  <select
+                    value={String(condition.value)}
+                    disabled={readOnly}
+                    onChange={(e) => updateCondition(index, { value: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
+                  >
+                    {LIFECYCLE_STAGE_OPTIONS.map((stage) => (
+                      <option key={stage} value={stage}>
+                        {stage}
+                      </option>
+                    ))}
+                  </select>
+                ) : condition.field === 'consent_status' ||
+                  condition.field === 'has_enrollment' ||
+                  condition.field === 'has_checkout' ||
+                  condition.field === 'has_payment' ? (
+                  <select
+                    value={String(condition.value)}
+                    disabled={readOnly}
+                    onChange={(e) => updateCondition(index, { value: e.target.value === 'true' })}
+                    className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </select>
+                ) : isTagField ? (
+                  <SearchableSelect
+                    value={tagValue}
+                    onChange={(slug) => updateCondition(index, { value: slug })}
+                    options={tagOptions}
+                    placeholder="Select tag…"
+                    searchPlaceholder="Search tags…"
+                    emptyMessage="No tags found."
+                    disabled={readOnly}
+                    className="w-full text-xs"
+                    popoverClassName="w-[var(--anchor-width)]"
+                  />
+                ) : (
+                  <input
+                    value={String(condition.value ?? '')}
+                    disabled={readOnly}
+                    onChange={(e) => updateCondition(index, { value: e.target.value })}
+                    className="w-full rounded-lg border border-slate-200 px-2 py-1 text-xs disabled:opacity-60"
+                  />
+                )}
+                {!readOnly ? (
+                  <button
+                    type="button"
+                    onClick={() => removeCondition(index)}
+                    className="mt-2 text-xs font-bold text-rose-500"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
+            );
+          })}
+          {!readOnly ? (
+            <button
+              type="button"
+              onClick={addCondition}
+              className="rounded-full border border-slate-200 px-3 py-1 text-xs font-bold text-slate-600"
+            >
+              + Add condition
+            </button>
+          ) : null}
+        </div>
+      );
+    }
 
-  return <p className="text-sm text-slate-500">This node has no editable settings.</p>;
+    return <p className="text-sm text-slate-500">This node has no editable settings.</p>;
+  })();
+
+  return <div className={readOnly ? 'opacity-80' : undefined}>{panel}</div>;
 }
