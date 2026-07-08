@@ -26,7 +26,6 @@ import type {
   AutomationConditionGroupData,
   AutomationGraph,
   AutomationNodeType,
-  AutomationRunLogEntry,
   AutomationSendEmailData,
   AutomationTriggerType,
   AutomationWaitData,
@@ -45,12 +44,9 @@ import {
   archiveAutomationAction,
   deactivateAutomationAction,
   deleteAutomationAction,
-  getAutomationEnrollmentLogAction,
   saveAutomationAction,
-  testAutomationAction,
   validateAutomationAction,
 } from '@/app/(crm)/communications/actions';
-import { AutomationRunLogList } from '@/components/comms/automation-run-log-list';
 import { AutomationConfirmDialog, type AutomationConfirmAction } from '@/components/comms/automation-confirm-dialog';
 import type { AutomationValidationIssue } from '@/utils/api';
 import {
@@ -249,7 +245,6 @@ type AutomationBuilderProps = {
   automation: Automation | null;
   templates: EmailTemplate[];
   tagSuggestions?: TagSuggestion[];
-  onTestComplete?: () => void;
 };
 
 const TAG_CONDITION_OPERATORS = [
@@ -299,12 +294,7 @@ function buildTagSelectOptions(tagSuggestions: TagSuggestion[], value: string) {
   return options;
 }
 
-export function AutomationBuilder({
-  automation,
-  templates,
-  tagSuggestions = [],
-  onTestComplete,
-}: AutomationBuilderProps) {
+export function AutomationBuilder({ automation, templates, tagSuggestions = [] }: AutomationBuilderProps) {
   const router = useRouter();
   const initialGraph = automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created');
   const initialFlow = useMemo(() => graphToFlow(initialGraph, templates), [initialGraph, templates]);
@@ -327,9 +317,6 @@ export function AutomationBuilder({
     );
   });
   const [status, setStatus] = useState(automation?.status ?? 'draft');
-  const [testLeadId, setTestLeadId] = useState('');
-  const [testRunLog, setTestRunLog] = useState<AutomationRunLogEntry[]>([]);
-  const [testEnrollmentId, setTestEnrollmentId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [validationIssues, setValidationIssues] = useState<AutomationValidationIssue[]>([]);
   const [validationPassed, setValidationPassed] = useState(false);
@@ -593,27 +580,6 @@ export function AutomationBuilder({
         setMessage('Workflow deactivated.');
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Deactivate failed.');
-      }
-    });
-
-  const runTest = () =>
-    startTransition(async () => {
-      if (!automation?.id || !testLeadId.trim()) {
-        setMessage('Save the workflow and enter a lead ID to test.');
-        return;
-      }
-      setMessage(null);
-      setTestRunLog([]);
-      setTestEnrollmentId(null);
-      try {
-        const result = await testAutomationAction(automation.id, testLeadId.trim());
-        const log = await getAutomationEnrollmentLogAction(result.enrollmentId);
-        setTestEnrollmentId(result.enrollmentId);
-        setTestRunLog(log);
-        setMessage('Test run completed — no emails were sent.');
-        onTestComplete?.();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Test failed.');
       }
     });
 
@@ -924,33 +890,6 @@ export function AutomationBuilder({
               </p>
             )}
           </div>
-
-          {!isArchived ? (
-            <div className="mt-4 border-t border-slate-100 pt-4">
-              <p className="text-xs font-bold tracking-wide text-slate-500 uppercase">Test mode</p>
-              <p className="mt-1 text-xs text-slate-500">Dry-run against a lead — logs steps without sending email.</p>
-              <input
-                value={testLeadId}
-                onChange={(e) => setTestLeadId(e.target.value)}
-                placeholder="Lead UUID"
-                className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                disabled={isPending || !automation?.id}
-                onClick={runTest}
-                className="mt-2 w-full rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
-              >
-                Run test
-              </button>
-              {testEnrollmentId ? (
-                <div className="mt-3">
-                  <p className="mb-2 text-xs font-bold tracking-wide text-slate-500 uppercase">Test results</p>
-                  <AutomationRunLogList entries={testRunLog} emptyMessage="No steps logged for this test run." />
-                </div>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       </div>
 

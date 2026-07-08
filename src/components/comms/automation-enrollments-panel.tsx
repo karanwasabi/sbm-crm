@@ -21,12 +21,7 @@ import type { AutomationEnrollment, AutomationRunLogEntry } from '@/lib/automati
 
 type AutomationEnrollmentsPanelProps = {
   automationId: string;
-  refreshToken?: number;
-  activeTab?: EnrollmentTab;
-  onTabChange?: (tab: EnrollmentTab) => void;
 };
-
-type EnrollmentTab = 'production' | 'test';
 
 function formatWhen(value?: string) {
   if (!value) return '—';
@@ -46,13 +41,7 @@ function enrollmentStatusTone(status: string): 'success' | 'warn' | 'neutral' | 
   }
 }
 
-export function AutomationEnrollmentsPanel({
-  automationId,
-  refreshToken = 0,
-  activeTab,
-  onTabChange,
-}: AutomationEnrollmentsPanelProps) {
-  const [tab, setTab] = useState<EnrollmentTab>(activeTab ?? 'production');
+export function AutomationEnrollmentsPanel({ automationId }: AutomationEnrollmentsPanelProps) {
   const [enrollments, setEnrollments] = useState<AutomationEnrollment[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [logsByEnrollment, setLogsByEnrollment] = useState<Record<string, AutomationRunLogEntry[]>>({});
@@ -60,25 +49,11 @@ export function AutomationEnrollmentsPanel({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  useEffect(() => {
-    if (activeTab) {
-      setTab(activeTab);
-    }
-  }, [activeTab]);
-
-  const selectTab = (next: EnrollmentTab) => {
-    setEnrollments([]);
-    setExpandedId(null);
-    setLogsByEnrollment({});
-    setTab(next);
-    onTabChange?.(next);
-  };
-
   const loadEnrollments = useCallback(() => {
     startTransition(async () => {
       setError(null);
       try {
-        const rows = await listAutomationEnrollmentsAction(automationId, tab === 'test');
+        const rows = await listAutomationEnrollmentsAction(automationId);
         setEnrollments(rows);
         setExpandedId(null);
         setLogsByEnrollment({});
@@ -86,11 +61,11 @@ export function AutomationEnrollmentsPanel({
         setError(loadError instanceof Error ? loadError.message : 'Failed to load enrollments.');
       }
     });
-  }, [automationId, tab]);
+  }, [automationId]);
 
   useEffect(() => {
     loadEnrollments();
-  }, [loadEnrollments, refreshToken]);
+  }, [loadEnrollments]);
 
   const toggleLog = (enrollmentId: string) => {
     if (expandedId === enrollmentId) {
@@ -121,33 +96,15 @@ export function AutomationEnrollmentsPanel({
           <h2 className="text-sm font-extrabold text-slate-800">Enrollments</h2>
           <p className="mt-0.5 text-xs text-slate-500">Leads currently in this workflow and their step history.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex rounded-full border border-slate-200 bg-canvas-cool p-0.5">
-            <button
-              type="button"
-              onClick={() => selectTab('production')}
-              className={`rounded-full px-3 py-1 text-xs font-bold ${tab === 'production' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
-            >
-              Live
-            </button>
-            <button
-              type="button"
-              onClick={() => selectTab('test')}
-              className={`rounded-full px-3 py-1 text-xs font-bold ${tab === 'test' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}
-            >
-              Test runs
-            </button>
-          </div>
-          <button
-            type="button"
-            disabled={isPending}
-            onClick={loadEnrollments}
-            className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
-          >
-            <RefreshCw className={`h-3.5 w-3.5 ${isPending ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={loadEnrollments}
+          className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 disabled:opacity-50"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${isPending ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
 
       {error ? <p className="mt-3 text-sm text-rose-600">{error}</p> : null}
@@ -157,9 +114,7 @@ export function AutomationEnrollmentsPanel({
           <TableSkeleton columns={6} rows={5} embedded />
         ) : enrollments.length === 0 ? (
           <p className="rounded-xl border border-dashed border-slate-200 bg-canvas-cool px-4 py-8 text-center text-sm text-slate-500">
-            {tab === 'test'
-              ? 'No test runs yet. Use Test mode in the builder to dry-run this workflow.'
-              : 'No live enrollments yet. Enrollments appear when leads enter this active workflow.'}
+            No enrollments yet. Enrollments appear when leads enter this active workflow.
           </p>
         ) : (
           <DataTable>

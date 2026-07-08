@@ -2201,7 +2201,41 @@ export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
 });
 
 export type Automation = import('@/lib/automation-types').Automation;
-export type AutomationTestRunResult = import('@/lib/automation-types').AutomationTestRunResult;
+
+export async function listAutomationEnrollments(
+  automationId: string
+): Promise<import('@/lib/automation-types').AutomationEnrollment[]> {
+  const response = await requireApiFetch(`/admin/comms/automations/${automationId}/enrollments`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load enrollments.', response.status);
+  }
+  const rows = (await response.json()) as Array<{
+    id: string;
+    automation_id: string;
+    lead_id: string;
+    lead_name: string;
+    lead_email: string;
+    lifecycle_stage: string;
+    status: string;
+    current_node_id: string;
+    next_run_at?: string;
+    enrolled_at: string;
+    completed_at?: string;
+  }>;
+  return rows.map((row) => ({
+    id: row.id,
+    automationId: row.automation_id,
+    leadId: row.lead_id,
+    leadName: row.lead_name,
+    leadEmail: row.lead_email,
+    lifecycleStage: row.lifecycle_stage,
+    status: row.status,
+    currentNodeId: row.current_node_id,
+    nextRunAt: row.next_run_at,
+    enrolledAt: row.enrolled_at,
+    completedAt: row.completed_at,
+  }));
+}
 
 function mapAutomation(row: {
   id: string;
@@ -2389,72 +2423,6 @@ export async function deleteAutomation(id: string): Promise<void> {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to delete automation.', response.status);
   }
-}
-
-export async function testAutomation(id: string, leadId: string): Promise<AutomationTestRunResult> {
-  const response = await requireApiFetch(`/admin/comms/automations/${id}/test`, {
-    method: 'POST',
-    body: JSON.stringify({ lead_id: leadId }),
-  });
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    throw new ApiError(payload?.error ?? 'Failed to run automation test.', response.status);
-  }
-  const payload = (await response.json()) as { status?: string; enrollment_id?: string };
-  if (!payload.enrollment_id) {
-    throw new ApiError('Test run completed but enrollment id was missing.', 500);
-  }
-  return {
-    status: payload.status ?? 'test_run_completed',
-    enrollmentId: payload.enrollment_id,
-  };
-}
-
-export async function listAutomationEnrollments(
-  automationId: string,
-  options?: { testMode?: boolean }
-): Promise<import('@/lib/automation-types').AutomationEnrollment[]> {
-  const params = new URLSearchParams();
-  if (options?.testMode === true) {
-    params.set('test_mode', 'true');
-  } else if (options?.testMode === false) {
-    params.set('test_mode', 'false');
-  }
-  const query = params.toString();
-  const response = await requireApiFetch(
-    `/admin/comms/automations/${automationId}/enrollments${query ? `?${query}` : ''}`
-  );
-  if (!response.ok) {
-    throw new ApiError('Failed to load enrollments.', response.status);
-  }
-  const rows = (await response.json()) as Array<{
-    id: string;
-    automation_id: string;
-    lead_id: string;
-    lead_name: string;
-    lead_email: string;
-    lifecycle_stage: string;
-    status: string;
-    current_node_id: string;
-    next_run_at?: string;
-    test_mode: boolean;
-    enrolled_at: string;
-    completed_at?: string;
-  }>;
-  return rows.map((row) => ({
-    id: row.id,
-    automationId: row.automation_id,
-    leadId: row.lead_id,
-    leadName: row.lead_name,
-    leadEmail: row.lead_email,
-    lifecycleStage: row.lifecycle_stage,
-    status: row.status,
-    currentNodeId: row.current_node_id,
-    nextRunAt: row.next_run_at,
-    testMode: row.test_mode,
-    enrolledAt: row.enrolled_at,
-    completedAt: row.completed_at,
-  }));
 }
 
 export async function getAutomationEnrollmentLog(

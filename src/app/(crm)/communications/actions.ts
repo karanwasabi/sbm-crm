@@ -9,7 +9,6 @@ import {
   deactivateAutomation,
   archiveAutomation,
   deleteAutomation,
-  testAutomation,
   validateAutomation,
   listAutomationEnrollments,
   getAutomationEnrollmentLog,
@@ -19,7 +18,6 @@ import {
   ApiError,
   type EmailTemplate,
   type Automation,
-  type AutomationTestRunResult,
   type BulkLeadEmailSendJob,
   type BulkLeadEmailSendList,
 } from '@/utils/api';
@@ -103,15 +101,8 @@ export async function archiveAutomationAction(automationId: string): Promise<Aut
   return archiveAutomation(automationId);
 }
 
-export async function testAutomationAction(automationId: string, leadId: string): Promise<AutomationTestRunResult> {
-  return testAutomation(automationId, leadId);
-}
-
-export async function listAutomationEnrollmentsAction(
-  automationId: string,
-  testMode?: boolean
-): Promise<AutomationEnrollment[]> {
-  return listAutomationEnrollments(automationId, { testMode });
+export async function listAutomationEnrollmentsAction(automationId: string): Promise<AutomationEnrollment[]> {
+  return listAutomationEnrollments(automationId);
 }
 
 export async function getAutomationEnrollmentLogAction(enrollmentId: string): Promise<AutomationRunLogEntry[]> {

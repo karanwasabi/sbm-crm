@@ -76,7 +76,6 @@ export type AutomationEnrollment = {
   status: string;
   currentNodeId: string;
   nextRunAt?: string;
-  testMode: boolean;
   enrolledAt: string;
   completedAt?: string;
 };
@@ -88,11 +87,6 @@ export type AutomationRunLogEntry = {
   outcome: string;
   details: Record<string, unknown>;
   createdAt: string;
-};
-
-export type AutomationTestRunResult = {
-  status: string;
-  enrollmentId: string;
 };
 
 export const AUTOMATION_CONDITION_FIELDS = [
@@ -294,12 +288,6 @@ export function automationRunOutcomeLabel(outcome: string): string {
 }
 
 export function formatAutomationRunDetails(details: Record<string, unknown>): string | null {
-  if (details.dry_run === true && details.skipped_wait === true) {
-    return 'Dry run — wait skipped';
-  }
-  if (details.dry_run === true) {
-    return 'Dry run — no email sent';
-  }
   if (typeof details.skip_reason === 'string' && details.skip_reason) {
     return `Skipped: ${details.skip_reason}`;
   }
