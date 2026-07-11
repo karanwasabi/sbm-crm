@@ -1568,8 +1568,11 @@ export async function getMetaInboundLeads(limit = 20): Promise<import('@/types/c
   }));
 }
 
-export async function getSourcePerformance(): Promise<import('@/types/crm').SourcePerformanceRow[]> {
-  const response = await requireApiFetch('/admin/analytics/source-performance');
+export async function getSourcePerformance(
+  days?: number | 'all'
+): Promise<import('@/types/crm').SourcePerformanceRow[]> {
+  const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
+  const response = await requireApiFetch(`/admin/analytics/source-performance${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load source performance.', response.status);
   }

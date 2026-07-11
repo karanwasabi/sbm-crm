@@ -9,10 +9,13 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import type { ReactNode } from 'react';
 import type { LeadMedium, SourcePerformanceRow } from '@/types/crm';
 
 type SourcePerformanceTableProps = {
   rows: SourcePerformanceRow[];
+  subtitle?: string;
+  headerRight?: ReactNode;
 };
 
 const mediumTone: Record<LeadMedium, 'paid' | 'organic' | 'offline'> = {
@@ -21,11 +24,15 @@ const mediumTone: Record<LeadMedium, 'paid' | 'organic' | 'offline'> = {
   offline: 'offline',
 };
 
-export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
+export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePerformanceTableProps) {
   return (
     <Card padding="none">
       <div className="p-5">
-        <SectionHead title="Source performance" subtitle="Lead volume + conversion by UTM source" />
+        <SectionHead
+          title="Source performance"
+          subtitle={subtitle ?? 'Lead volume + conversion by UTM source'}
+          right={headerRight}
+        />
       </div>
       <DataTable>
         <DataTableHead>
@@ -37,7 +44,7 @@ export function SourcePerformanceTable({ rows }: SourcePerformanceTableProps) {
           {rows.length === 0 ? (
             <DataTableRow>
               <DataTableCell colSpan={6} className="py-8 text-center text-sm text-slate-500">
-                No attributed leads yet. Import a CSV from Meta Leads Center.
+                No attributed leads in this window.
               </DataTableCell>
             </DataTableRow>
           ) : (

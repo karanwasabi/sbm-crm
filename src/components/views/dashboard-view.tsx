@@ -3,7 +3,7 @@ import { BarChart } from '@/components/crm/charts/bar-chart';
 import { DonutChart } from '@/components/crm/charts/donut-chart';
 import { FunnelChart } from '@/components/crm/charts/funnel-chart';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
-import { SourcePerformanceTable } from '@/components/crm/source-performance-table';
+import { SourcePerformanceSection } from '@/components/crm/source-performance-section';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import {
   formatConversionRate,
@@ -130,7 +130,7 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
         />
       </div>
 
-      <SourcePerformanceTable rows={sourcePerformance} />
+      <SourcePerformanceSection initialRows={sourcePerformance} initialDays={90} />
     </CrmPageLayout>
   );
 }

@@ -77,6 +77,15 @@ curl -X POST "https://graph.facebook.com/v25.0/{PAGE_ID}/subscribed_apps?subscri
 - [x] `integration_sync_events` has `native_meta` `ok` rows
 - [ ] Confirm a real (live) ad lead populates campaign/ad attribution
 - [ ] Meta Events Manager → Test events shows **Lead** (if CAPI configured)
+  - Fire a controlled test event with `cmd/meta-capi-test` (reads `META_CAPI_PIXEL_ID` / `META_CAPI_ACCESS_TOKEN`):
+
+```bash
+# Copy the test_event_code from Events Manager → Test events, then:
+go run ./cmd/meta-capi-test --test-event-code TEST12345
+# optional match-quality identifiers: --email a@b.com --phone +919999999999
+```
+
+- The server-side `Lead` event now sends hashed `em`, `ph`, `fn`, `ln`, `ct`, `country`, plus `external_id` for match quality.
 
 ### Cutover from Zoho
 
@@ -116,10 +125,33 @@ Flags: `--dry-run` / `--apply` (mutually exclusive), `--allow-production`,
 
 ---
 
-## C. Out of scope (future)
+## C. CAC / ad-spend sync (CLI + dashboard)
+
+Per-campaign daily Meta spend is pulled from the Ads Insights API and stored in
+`meta_ad_spend` (one row per campaign per day, `spend_minor` in account-currency
+minor units — paise for INR). The dashboard **Source performance** card computes
+Meta CAC = spend in window / paid Meta conversions in the same window, and the
+whole card is windowed (30d / 90d / 1y / All, default 90d) so lead counts and
+spend always cover the same range.
+
+Requires `META_AD_ACCOUNT_ID` (`act_XXXXXXXXXX`) and a `META_PAGE_ACCESS_TOKEN`
+carrying `ads_read`. Run daily on a rolling window (late attribution updates
+past days):
+
+```bash
+go run ./cmd/sync-meta-ad-spend --allow-production            # last 90 days
+go run ./cmd/sync-meta-ad-spend --since-days 30 --allow-production
+```
+
+CAC currency is INR. Per-campaign CAC breakdown is a future enhancement (spend is
+already stored per campaign).
+
+---
+
+## D. Out of scope (future)
 
 - Marketing API Custom Audiences / Lookalike export
-- CAC / ad spend dashboard (Meta Ads spend API, `ads_read`)
+- Per-campaign CAC breakdown in the CRM (spend already stored per campaign)
 - Recurring scheduled catch-up job (webhooks currently cover real-time)
 - OAuth connect flow in CRM Settings for token refresh
 
@@ -134,6 +166,7 @@ Flags: `--dry-run` / `--apply` (mutually exclusive), `--allow-production`,
 | `META_WEBHOOK_VERIFY_TOKEN` | Required (production; matches Meta app)        |
 | `META_PAGE_ACCESS_TOKEN`    | Required (production; long-lived, lead access) |
 | `META_PAGE_ID`              | Required for `cmd/backfill-meta-leads`         |
+| `META_AD_ACCOUNT_ID`        | Required for `cmd/sync-meta-ad-spend` (CAC)    |
 | `LEAD_INTEGRATION_ACTOR_ID` | Required (attribution actor)                   |
 | `PUBLIC_API_URL`            | Required                                       |
 | `LEAD_INGESTION_API_KEY`    | Required only for generic `/webhooks/leads`    |
