@@ -31,60 +31,62 @@ export function ProgramHistory({ items, interest, batch, attribution }: ProgramH
       <div className="p-5">
         <SectionHead title="Programs & payments" subtitle="Interest, source, and enrollment history" />
         {showSummary ? (
-          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-sm [&>div]:min-w-0">
             <div>
               <dt className="text-slate-500">Program interest</dt>
-              <dd className="font-semibold text-slate-800">{label(interest)}</dd>
+              <dd className="font-semibold wrap-break-word text-slate-800">{label(interest)}</dd>
             </div>
             <div>
               <dt className="text-slate-500">Batch</dt>
-              <dd className="font-semibold text-slate-800">{label(batch)}</dd>
+              <dd className="font-semibold wrap-break-word text-slate-800">{label(batch)}</dd>
             </div>
             {attribution ? (
               <>
                 <div>
                   <dt className="text-slate-500">Source</dt>
-                  <dd className="font-semibold text-slate-800">{attributionSourceLabel(attribution)}</dd>
+                  <dd className="font-semibold wrap-break-word text-slate-800">
+                    {attributionSourceLabel(attribution)}
+                  </dd>
                 </div>
                 {formLabel ? (
                   <div>
                     <dt className="text-slate-500">Form</dt>
-                    <dd className="font-semibold text-slate-800">{formLabel}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{formLabel}</dd>
                   </div>
                 ) : attribution.campaign ? (
                   <div>
                     <dt className="text-slate-500">Campaign</dt>
-                    <dd className="font-semibold text-slate-800">{attribution.campaign}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.campaign}</dd>
                   </div>
                 ) : null}
                 {attribution.utmSource ? (
                   <div>
                     <dt className="text-slate-500">UTM source</dt>
-                    <dd className="font-semibold text-slate-800">{attribution.utmSource}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.utmSource}</dd>
                   </div>
                 ) : null}
                 {attribution.utmMedium ? (
                   <div>
                     <dt className="text-slate-500">UTM medium</dt>
-                    <dd className="font-semibold text-slate-800">{attribution.utmMedium}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.utmMedium}</dd>
                   </div>
                 ) : null}
                 {attribution.utmCampaign ? (
                   <div>
                     <dt className="text-slate-500">UTM campaign</dt>
-                    <dd className="font-semibold text-slate-800">{attribution.utmCampaign}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.utmCampaign}</dd>
                   </div>
                 ) : null}
                 {attribution.utmContent ? (
                   <div>
                     <dt className="text-slate-500">UTM content</dt>
-                    <dd className="font-semibold text-slate-800">{attribution.utmContent}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.utmContent}</dd>
                   </div>
                 ) : null}
                 {attribution.utmTerm ? (
                   <div>
                     <dt className="text-slate-500">UTM term</dt>
-                    <dd className="font-semibold text-slate-800">{attribution.utmTerm}</dd>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.utmTerm}</dd>
                   </div>
                 ) : null}
               </>
