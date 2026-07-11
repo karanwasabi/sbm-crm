@@ -135,12 +135,22 @@ whole card is windowed (30d / 90d / 1y / All, default 90d) so lead counts and
 spend always cover the same range.
 
 Requires `META_AD_ACCOUNT_ID` (`act_XXXXXXXXXX`) and a `META_PAGE_ACCESS_TOKEN`
-carrying `ads_read`. Run daily on a rolling window (late attribution updates
-past days):
+carrying `ads_read`.
+
+**Production (Railway cron):** `sync-meta-ad-spend` is registered in
+[scripts/cron-jobs.manifest](../../sbm-backend/scripts/cron-jobs.manifest), so
+`scripts/build.sh` compiles `bin/sync-meta-ad-spend`. Create a Railway service
+(same repo/image as the API) with `SBM_CRON_JOB=sync-meta-ad-spend` and a daily
+schedule; the start script runs the binary once and exits. It re-syncs a rolling
+90-day window each run so late-attributed spend is captured. Env vars must
+include `DATABASE_URL`, `META_PAGE_ACCESS_TOKEN` (with `ads_read`), and
+`META_AD_ACCOUNT_ID`.
+
+**Manual / local run:**
 
 ```bash
-go run ./cmd/sync-meta-ad-spend --allow-production            # last 90 days
-go run ./cmd/sync-meta-ad-spend --since-days 30 --allow-production
+go run ./cmd/sync-meta-ad-spend                 # last 90 days
+go run ./cmd/sync-meta-ad-spend --since-days 30 # shorter window
 ```
 
 CAC currency is INR. A **per-campaign** breakdown (leads / paid / CVR / spend /
