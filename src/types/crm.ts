@@ -309,6 +309,16 @@ export type SourcePerformanceRow = {
   cac: number | null;
 };
 
+export type MetaCampaignPerformanceRow = {
+  campaignId: string;
+  campaignName: string;
+  leads: number;
+  paid: number;
+  spend: number | null;
+  cvr: number;
+  cac: number | null;
+};
+
 export type MetaIntegrationStatus = {
   connected: boolean;
   provider: string | null;

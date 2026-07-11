@@ -1596,6 +1596,36 @@ export async function getSourcePerformance(
   }));
 }
 
+export async function getMetaCampaignPerformance(
+  days?: number | 'all'
+): Promise<import('@/types/crm').MetaCampaignPerformanceRow[]> {
+  const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
+  const response = await requireApiFetch(`/admin/integrations/meta/campaign-performance${query}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load campaign performance.', response.status);
+  }
+  const payload = (await response.json()) as {
+    rows: Array<{
+      campaign_id: string;
+      campaign_name: string;
+      leads: number;
+      paid: number;
+      spend: number | null;
+      cvr: number;
+      cac: number | null;
+    }>;
+  };
+  return payload.rows.map((row) => ({
+    campaignId: row.campaign_id,
+    campaignName: row.campaign_name,
+    leads: row.leads,
+    paid: row.paid,
+    spend: row.spend,
+    cvr: row.cvr,
+    cac: row.cac,
+  }));
+}
+
 export async function getDashboardAnalytics(): Promise<import('@/types/crm').DashboardAnalytics> {
   const response = await requireApiFetch('/admin/analytics/dashboard');
   if (!response.ok) {

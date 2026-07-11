@@ -143,15 +143,17 @@ go run ./cmd/sync-meta-ad-spend --allow-production            # last 90 days
 go run ./cmd/sync-meta-ad-spend --since-days 30 --allow-production
 ```
 
-CAC currency is INR. Per-campaign CAC breakdown is a future enhancement (spend is
-already stored per campaign).
+CAC currency is INR. A **per-campaign** breakdown (leads / paid / CVR / spend /
+CAC per Meta campaign, same window control) sits on the CRM dashboard below the
+source-performance table (`GET /admin/integrations/meta/campaign-performance?days=N`),
+joining `meta_ad_spend` to `lead_attribution.meta_campaign_id`.
 
 ---
 
 ## D. Out of scope (future)
 
 - Marketing API Custom Audiences / Lookalike export
-- Per-campaign CAC breakdown in the CRM (spend already stored per campaign)
+- Adset-level spend/CAC breakdown (only campaign-level today)
 - Recurring scheduled catch-up job (webhooks currently cover real-time)
 - OAuth connect flow in CRM Settings for token refresh
 
