@@ -23,6 +23,8 @@ type ApiLeadResponse = {
   tags?: string[];
   enriched: boolean;
   dedup: boolean;
+  phone_duplicate?: boolean;
+  phone_duplicate_count?: number;
   added_at: string;
   updated_at?: string | null;
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus | null;
@@ -55,6 +57,8 @@ function mapLead(row: ApiLeadResponse): Lead {
     tags: row.tags ?? [],
     enriched: row.enriched,
     dedup: row.dedup,
+    phoneDuplicate: row.phone_duplicate ?? false,
+    phoneDuplicateCount: row.phone_duplicate_count ?? 0,
     addedAt: row.added_at,
     updatedAt: row.updated_at ?? row.added_at,
     marketingContactStatus: row.marketing_contact_status ?? 'no_consent',

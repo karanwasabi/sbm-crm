@@ -48,6 +48,14 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
       href: buildLeadDatabaseHref(filters, { hasUnseenSuggestions: false }),
     });
   }
+  if (filters.phoneDuplicates) {
+    chips.push({
+      key: 'phone-duplicates',
+      label: 'Duplicates',
+      value: 'Phone only',
+      href: buildLeadDatabaseHref(filters, { phoneDuplicates: false }),
+    });
+  }
   filters.tags.forEach((tag) => {
     chips.push({
       key: `tag-${tag}`,

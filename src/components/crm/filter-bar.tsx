@@ -8,6 +8,7 @@ import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-m
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
 import { TagFilterSheet } from '@/components/crm/tag-filter-sheet';
 import { LeadDatabaseUnseenUpdatesFilter } from '@/components/crm/lead-database-unseen-updates-filter';
+import { LeadDatabasePhoneDuplicatesFilter } from '@/components/crm/lead-database-phone-duplicates-filter';
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
@@ -81,6 +82,7 @@ export function FilterBar({
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
           <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
+          <LeadDatabasePhoneDuplicatesFilter filters={filters} />
         </div>
       </div>
 

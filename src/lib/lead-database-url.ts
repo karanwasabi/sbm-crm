@@ -23,6 +23,7 @@ export type LeadDatabaseFilters = {
   sort: LeadDatabaseSort;
   order: LeadDatabaseSortOrder;
   hasUnseenSuggestions: boolean;
+  phoneDuplicates: boolean;
   page: number;
   pageSize: number;
 };
@@ -45,6 +46,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   sort: 'created_at',
   order: 'desc',
   hasUnseenSuggestions: false,
+  phoneDuplicates: false,
   page: 1,
   pageSize: 50,
 };
@@ -126,6 +128,7 @@ export function parseLeadDatabaseFilters(params: Record<string, string | string[
     sort: parseSort(get('sort')),
     order: parseOrder(get('order')),
     hasUnseenSuggestions: get('has_unseen_suggestions') === 'true',
+    phoneDuplicates: get('phone_duplicates') === 'true',
     page: parsePositiveInt(get('page'), 1),
     pageSize: parsePositiveInt(get('page_size'), 50),
   };
@@ -172,6 +175,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.sort !== 'created_at') params.set('sort', merged.sort);
   if (merged.order !== 'desc') params.set('order', merged.order);
   if (merged.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
+  if (merged.phoneDuplicates) params.set('phone_duplicates', 'true');
   if (merged.page > 1) params.set('page', String(merged.page));
   if (merged.pageSize !== 50) params.set('page_size', String(merged.pageSize));
 

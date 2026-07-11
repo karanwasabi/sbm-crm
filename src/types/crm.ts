@@ -44,6 +44,8 @@ export type Lead = {
   tags: string[];
   enriched: boolean;
   dedup: boolean;
+  phoneDuplicate: boolean;
+  phoneDuplicateCount: number;
   addedAt: string;
   updatedAt: string;
   marketingContactStatus: import('@/types/crm').MarketingContactStatus;

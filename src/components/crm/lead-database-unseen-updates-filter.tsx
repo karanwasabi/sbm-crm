@@ -22,7 +22,7 @@ export function LeadDatabaseUnseenUpdatesFilter({ filters, unseenCount }: LeadDa
       aria-pressed={isActive}
     >
       <BellRing className="h-3.5 w-3.5" />
-      Unseen updates ({countLabel})
+      Updates ({countLabel})
     </Link>
   );
 }

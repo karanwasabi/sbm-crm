@@ -184,6 +184,11 @@ function LeadRow({ lead }: { lead: Lead }) {
         <TruncatedWithTooltip text={lead.name} className="font-semibold text-slate-800" />
         <TruncatedWithTooltip text={lead.email} className="text-[11px] text-slate-500" />
         {lead.dedup && <span className="text-[10px] font-bold text-danger-press">Possible duplicate</span>}
+        {lead.phoneDuplicate && (
+          <span className="text-[10px] font-bold text-danger-press">
+            Phone duplicate{lead.phoneDuplicateCount > 1 ? ` (${lead.phoneDuplicateCount})` : ''}
+          </span>
+        )}
         {lead.unseenSuggestionCount > 0 && (
           <span className="text-[10px] font-bold text-brand">{lead.unseenSuggestionCount} unseen update(s)</span>
         )}
