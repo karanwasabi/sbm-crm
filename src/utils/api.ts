@@ -263,6 +263,7 @@ type ApiLeadResponse = {
     utm_medium: string | null;
     utm_campaign: string | null;
     utm_content: string | null;
+    utm_term: string | null;
     form_id: string | null;
     intake_form_title: string | null;
     intake_form_name: string | null;
@@ -824,6 +825,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
           utmMedium: row.attribution.utm_medium,
           utmCampaign: row.attribution.utm_campaign,
           utmContent: row.attribution.utm_content,
+          utmTerm: row.attribution.utm_term,
           formId: row.attribution.form_id,
           intakeFormTitle: row.attribution.intake_form_title,
           intakeFormName: row.attribution.intake_form_name,

@@ -81,6 +81,12 @@ export function ProgramHistory({ items, interest, batch, attribution }: ProgramH
                     <dd className="font-semibold text-slate-800">{attribution.utmContent}</dd>
                   </div>
                 ) : null}
+                {attribution.utmTerm ? (
+                  <div>
+                    <dt className="text-slate-500">UTM term</dt>
+                    <dd className="font-semibold text-slate-800">{attribution.utmTerm}</dd>
+                  </div>
+                ) : null}
               </>
             ) : null}
           </dl>

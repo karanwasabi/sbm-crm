@@ -44,8 +44,14 @@ reconfigure those paths.
 
 - `GET /webhooks/meta/leadgen` — hub challenge verify (`hub.mode` / `hub.verify_token` / `hub.challenge`)
 - `POST /webhooks/meta/leadgen` — HMAC verify `X-Hub-Signature-256`, parse `entry[].changes[]` where `field == "leadgen"`, fetch each `leadgen_id` via Graph, ingest
-- Graph fetch: `GET /{leadgen_id}?fields=created_time,id,ad_id,form_id,field_data,campaign_id`; resolve campaign via `GET /{ad_id}?fields=campaign_id` when needed
-- Ingest: `integration: "native_meta"`, `source: "meta"`, `external_id = leadgen_id` (idempotent), attribution form/ad/campaign, `native-meta` system tag, CAPI `Lead` on first create
+- Graph fetch: `GET /{leadgen_id}?fields=created_time,id,ad_id,form_id,field_data,campaign_id,platform`; then `GET /{ad_id}?fields=name,campaign{id,name},adset{id,name}` for human-readable ad / campaign / ad-set names (non-fatal on failure)
+- Ingest: `integration: "native_meta"`, `source: "meta"`, `external_id = leadgen_id` (idempotent), `native-meta` system tag, CAPI `Lead` on first create
+- Attribution mapping (names preferred, numeric ids kept in `meta_*` columns):
+  - `utm_campaign` = campaign name (falls back to campaign id) — shown as "Campaign" / "UTM campaign"
+  - `utm_content` = ad name (falls back to ad id)
+  - `utm_term` = ad-set name (falls back to ad-set id)
+  - `meta_platform` = facebook / instagram; `meta_campaign_id` / `meta_ad_id` / `meta_adset_id` = numeric ids
+  - Enrich upgrades the name fields on re-sync (a re-run backfill upgrades leads first stored with numeric ids to names); numeric-id fields only fill blanks
 - Production-only gates; non-production returns `503`
 - Meta webhook paths skipped by the automation outbox drain middleware
 
@@ -79,11 +85,41 @@ curl -X POST "https://graph.facebook.com/v25.0/{PAGE_ID}/subscribed_apps?subscri
 
 ---
 
-## B. Out of scope (future)
+## B. Historical backfill (CLI)
+
+Real-time intake is handled by the webhook. To pull leads that predate the webhook
+going live (or to catch anything missed), use the one-off backfill command
+`cmd/backfill-meta-leads`. It enumerates the Page's lead forms, pages through
+`GET /{form-id}/leads` via the Graph API, and runs each lead through the same
+`ingestExternalLead` pipeline — so new leads are created and existing leads are
+enriched idempotently (re-running is safe).
+
+**Hard limit:** Meta permanently deletes lead data after ~90 days, so the backfill
+can only recover the last ~90 days. Older leads must come from the Zoho export path
+(`cmd/import-zoho-leads`).
+
+Requires `META_PAGE_ID` (plus the existing `META_*` env) and `DATABASE_URL`.
+
+```bash
+# dry run (counts only, no writes)
+DATABASE_URL=... META_PAGE_ACCESS_TOKEN=... META_PAGE_ID=722096250977236 \
+  go run ./cmd/backfill-meta-leads --dry-run
+
+# apply to production
+DATABASE_URL=<prod> META_PAGE_ACCESS_TOKEN=... META_PAGE_ID=722096250977236 \
+  go run ./cmd/backfill-meta-leads --apply --allow-production
+```
+
+Flags: `--dry-run` / `--apply` (mutually exclusive), `--allow-production`,
+`--since-days` (default and max 90), `--form <id>` (limit to one form).
+
+---
+
+## C. Out of scope (future)
 
 - Marketing API Custom Audiences / Lookalike export
 - CAC / ad spend dashboard (Meta Ads spend API, `ads_read`)
-- Historical Graph backfill (`GET /{form-id}/leads`) if Leads Center count ≫ CRM Meta count
+- Recurring scheduled catch-up job (webhooks currently cover real-time)
 - OAuth connect flow in CRM Settings for token refresh
 
 ---
@@ -96,6 +132,7 @@ curl -X POST "https://graph.facebook.com/v25.0/{PAGE_ID}/subscribed_apps?subscri
 | `META_APP_SECRET`           | Required (production)                          |
 | `META_WEBHOOK_VERIFY_TOKEN` | Required (production; matches Meta app)        |
 | `META_PAGE_ACCESS_TOKEN`    | Required (production; long-lived, lead access) |
+| `META_PAGE_ID`              | Required for `cmd/backfill-meta-leads`         |
 | `LEAD_INTEGRATION_ACTOR_ID` | Required (attribution actor)                   |
 | `PUBLIC_API_URL`            | Required                                       |
 | `LEAD_INGESTION_API_KEY`    | Required only for generic `/webhooks/leads`    |

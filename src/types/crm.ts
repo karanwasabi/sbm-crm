@@ -335,6 +335,7 @@ export type LeadAttribution = {
   utmMedium: string | null;
   utmCampaign: string | null;
   utmContent: string | null;
+  utmTerm: string | null;
   formId: string | null;
   intakeFormTitle: string | null;
   intakeFormName: string | null;
