@@ -19,6 +19,9 @@ export function attributionFormLabel(attribution: LeadAttribution): string | nul
   if (attribution.intakeFormName?.trim()) {
     return attribution.intakeFormName.trim();
   }
+  if (attribution.metaFormName?.trim()) {
+    return attribution.metaFormName.trim();
+  }
   if (attribution.formId?.trim()) {
     return attribution.formId.trim();
   }

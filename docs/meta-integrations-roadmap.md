@@ -44,12 +44,13 @@ reconfigure those paths.
 
 - `GET /webhooks/meta/leadgen` — hub challenge verify (`hub.mode` / `hub.verify_token` / `hub.challenge`)
 - `POST /webhooks/meta/leadgen` — HMAC verify `X-Hub-Signature-256`, parse `entry[].changes[]` where `field == "leadgen"`, fetch each `leadgen_id` via Graph, ingest
-- Graph fetch: `GET /{leadgen_id}?fields=created_time,id,ad_id,form_id,field_data,campaign_id,platform`; then `GET /{ad_id}?fields=name,campaign{id,name},adset{id,name}` for human-readable ad / campaign / ad-set names (non-fatal on failure)
+- Graph fetch: `GET /{leadgen_id}?fields=created_time,id,ad_id,form_id,field_data,campaign_id,platform`; then `GET /{ad_id}?fields=name,campaign{id,name},adset{id,name}` and `GET /{form_id}?fields=name` for human-readable ad / campaign / ad-set / form names (cached per id per run; non-fatal on failure)
 - Ingest: `integration: "native_meta"`, `source: "meta"`, `external_id = leadgen_id` (idempotent), `native-meta` system tag, CAPI `Lead` on first create
 - Attribution mapping (names preferred, numeric ids kept in `meta_*` columns):
   - `utm_campaign` = campaign name (falls back to campaign id) — shown as "Campaign" / "UTM campaign"
   - `utm_content` = ad name (falls back to ad id)
   - `utm_term` = ad-set name (falls back to ad-set id)
+  - `meta_form_name` = lead-form name (shown as "Form", falls back to `meta_form_id`)
   - `meta_platform` = facebook / instagram; `meta_campaign_id` / `meta_ad_id` / `meta_adset_id` = numeric ids
   - Enrich upgrades the name fields on re-sync (a re-run backfill upgrades leads first stored with numeric ids to names); numeric-id fields only fill blanks
 - Production-only gates; non-production returns `503`
