@@ -1,20 +1,13 @@
 'use server';
 
 import { buildLeadPayload, type LeadFormValues } from '@/lib/lead-form';
-import type {
-  CreateLeadState,
-  IntakeDuplicateCheckResult,
-  IntakeForm,
-  MetaCSVImportResult,
-  UpsertIntakeFormInput,
-} from '@/types/crm';
+import type { CreateLeadState, IntakeDuplicateCheckResult, IntakeForm, UpsertIntakeFormInput } from '@/types/crm';
 import {
   ApiError,
   archiveIntakeForm,
   checkIntakeDuplicate,
   createIntakeForm,
   createLead,
-  importMetaLeadsCSV,
   mergeIntakeLead,
   updateIntakeForm,
 } from '@/utils/api';
@@ -96,10 +89,6 @@ export async function createManualLead(
     const message = error instanceof ApiError ? error.message : 'Failed to save lead.';
     return { error: message, success: false };
   }
-}
-
-export async function importMetaLeadsCSVAction(file: File): Promise<MetaCSVImportResult> {
-  return importMetaLeadsCSV(file);
 }
 
 export async function saveIntakeForm(

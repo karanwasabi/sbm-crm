@@ -1633,47 +1633,6 @@ export async function getDashboardAnalytics(): Promise<import('@/types/crm').Das
   };
 }
 
-export async function importMetaLeadsCSV(file: File): Promise<import('@/types/crm').MetaCSVImportResult> {
-  const token = await getAccessToken();
-  if (!token) {
-    throw new ApiError('Not authenticated.', 401);
-  }
-
-  const formData = new FormData();
-  formData.append('file', file);
-
-  let response: Response;
-  try {
-    response = await fetch(`${getBackendUrl()}/admin/leads/import-meta-csv`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-      cache: 'no-store',
-    });
-  } catch {
-    throw new ApiError('Could not reach the backend. Is it running?', 503);
-  }
-
-  const payload = (await response.json().catch(() => null)) as {
-    created?: number;
-    skipped?: number;
-    duplicate?: number;
-    errors?: string[];
-    error?: string;
-  } | null;
-
-  if (!response.ok) {
-    throw new ApiError(payload?.error ?? 'Failed to import leads.', response.status);
-  }
-
-  return {
-    created: payload?.created ?? 0,
-    skipped: payload?.skipped ?? 0,
-    duplicate: payload?.duplicate ?? 0,
-    errors: payload?.errors ?? [],
-  };
-}
-
 export type EmailTemplate = {
   id: string;
   name: string;

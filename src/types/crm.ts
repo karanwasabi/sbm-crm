@@ -342,13 +342,6 @@ export type LeadAttribution = {
   externalId: string | null;
 };
 
-export type MetaCSVImportResult = {
-  created: number;
-  skipped: number;
-  duplicate: number;
-  errors: string[];
-};
-
 export type RevenueWeek = {
   week: string;
   revenue: number;

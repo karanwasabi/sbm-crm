@@ -25,7 +25,7 @@ export function MetaIntakeTab({ integrationStatus, inboundLeads }: MetaIntakeTab
   return (
     <div className="flex max-w-3xl flex-col gap-4">
       <Card>
-        <SectionHead title="Integration health" subtitle="Meta LeadSync inbound" />
+        <SectionHead title="Integration health" subtitle="Native Meta leadgen inbound" />
         <div className="flex flex-col gap-2.5">
           <IntegrationCard
             name={metaIntegration.name}

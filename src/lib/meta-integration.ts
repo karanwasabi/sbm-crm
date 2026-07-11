@@ -12,11 +12,11 @@ export function buildMetaIntegrationCard(status: MetaIntegrationStatus): Integra
   if (!status.automationAvailable) {
     automationNote = 'Live automation on production only';
   } else if (status.connected) {
-    automationNote = 'LeadSync automated intake connected';
+    automationNote = 'Native Meta leadgen connected';
   } else if (status.webhookConfigured) {
     automationNote = 'Webhook configured · awaiting first lead';
   } else {
-    automationNote = 'Configure LeadSync webhook on production';
+    automationNote = 'Configure Meta leadgen webhook on production';
   }
 
   const cardStatus: Integration['status'] = status.connected
@@ -27,7 +27,7 @@ export function buildMetaIntegrationCard(status: MetaIntegrationStatus): Integra
 
   return {
     id: 'meta',
-    name: 'Meta Lead Ads',
+    name: 'Meta Lead Ads (native)',
     subtitle: `${leadSummary}${recent} · ${automationNote}`,
     status: cardStatus,
     color: '#5C65CF',
