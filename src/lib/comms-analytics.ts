@@ -1,4 +1,4 @@
-import type { CommsAnalytics, CommsAnalyticsTotals } from '@/utils/api';
+import type { CommsAnalyticsTotals } from '@/utils/api';
 
 /** Resend accepted the send (status = sent) vs failed API calls. */
 export function sendSuccessRate(totals: CommsAnalyticsTotals): number | null {
@@ -18,7 +18,7 @@ export function webhookDeliveryRate(totals: CommsAnalyticsTotals): number | null
   return deliveryRate(totals);
 }
 
-export function formatHeaderDeliveryStat(analytics: CommsAnalytics | null): {
+export function formatHeaderDeliveryStat(analytics: { totals: CommsAnalyticsTotals } | null): {
   label: string;
   value: string;
 } {

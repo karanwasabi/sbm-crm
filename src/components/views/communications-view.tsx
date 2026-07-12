@@ -15,6 +15,7 @@ import type {
   Automation,
   BulkLeadEmailSendJob,
   CommsAnalytics,
+  CommsAnalyticsSummary,
   EmailTemplate,
   MarketingContactsSummary,
 } from '@/utils/api';
@@ -36,26 +37,28 @@ const COMMS_TAB_HREF: Record<CommsTab, string> = {
 };
 
 type CommunicationsViewProps = {
-  templates: EmailTemplate[];
-  automations: Automation[];
-  bulkSendJobs: BulkLeadEmailSendJob[];
+  templates?: EmailTemplate[];
+  automations?: Automation[];
+  bulkSendJobs?: BulkLeadEmailSendJob[];
   bulkSendJobsError?: string | null;
   marketingSummary: MarketingContactsSummary;
-  analytics: CommsAnalytics | null;
+  analyticsSummary: CommsAnalyticsSummary | null;
+  analytics?: CommsAnalytics | null;
   tab: CommsTab;
 };
 
 export function CommunicationsView({
-  templates,
-  automations,
-  bulkSendJobs,
+  templates = [],
+  automations = [],
+  bulkSendJobs = [],
   bulkSendJobsError,
   marketingSummary,
-  analytics,
+  analyticsSummary,
+  analytics = null,
   tab,
 }: CommunicationsViewProps) {
   const router = useRouter();
-  const activeAutomationCount = automations.filter((automation) => automation.status === 'active').length;
+  const activeAutomationCount = analyticsSummary?.activeAutomations ?? 0;
 
   const selectTab = (next: CommsTab) => {
     router.push(COMMS_TAB_HREF[next]);
@@ -65,7 +68,7 @@ export function CommunicationsView({
     <CrmPageLayout className="gap-4">
       <CommsHeaderStats
         marketingSummary={marketingSummary}
-        analytics={analytics}
+        analytics={analyticsSummary}
         activeAutomationCount={activeAutomationCount}
         onOpenPerformance={() => selectTab('performance')}
       />

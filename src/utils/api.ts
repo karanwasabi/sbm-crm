@@ -2087,6 +2087,54 @@ export type CommsAnalytics = {
   webhookEnabled: boolean;
 };
 
+export type CommsAnalyticsSummary = {
+  totals: CommsAnalyticsTotals;
+  activeAutomations: number;
+  webhookUrl: string;
+  webhookEnabled: boolean;
+};
+
+export const getCommsAnalyticsSummary = cache(async (): Promise<CommsAnalyticsSummary> => {
+  const response = await requireApiFetch('/admin/comms/analytics/summary');
+  if (!response.ok) {
+    throw new ApiError('Failed to load email analytics.', response.status);
+  }
+  const payload = (await response.json()) as {
+    totals: {
+      sent: number;
+      delivered: number;
+      bounced: number;
+      suppressed: number;
+      pending: number;
+      stale_pending: number;
+      opened: number;
+      clicked: number;
+      failed: number;
+      skipped: number;
+    };
+    active_automations: number;
+    webhook_url: string;
+    webhook_enabled: boolean;
+  };
+  return {
+    totals: {
+      sent: payload.totals.sent,
+      delivered: payload.totals.delivered,
+      bounced: payload.totals.bounced,
+      suppressed: payload.totals.suppressed,
+      pending: payload.totals.pending,
+      stalePending: payload.totals.stale_pending,
+      opened: payload.totals.opened,
+      clicked: payload.totals.clicked,
+      failed: payload.totals.failed,
+      skipped: payload.totals.skipped,
+    },
+    activeAutomations: payload.active_automations,
+    webhookUrl: payload.webhook_url,
+    webhookEnabled: payload.webhook_enabled,
+  };
+});
+
 export const getCommsAnalytics = cache(async (): Promise<CommsAnalytics> => {
   const response = await requireApiFetch('/admin/comms/analytics');
   if (!response.ok) {

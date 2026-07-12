@@ -3,11 +3,11 @@
 import { CheckCircle2, Mail, Radio, Users, Workflow } from 'lucide-react';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
 import { formatHeaderDeliveryStat } from '@/lib/comms-analytics';
-import type { CommsAnalytics, MarketingContactsSummary } from '@/utils/api';
+import type { CommsAnalyticsSummary, MarketingContactsSummary } from '@/utils/api';
 
 type CommsHeaderStatsProps = {
   marketingSummary: MarketingContactsSummary;
-  analytics: CommsAnalytics | null;
+  analytics: CommsAnalyticsSummary | null;
   activeAutomationCount: number;
   onOpenPerformance?: () => void;
 };

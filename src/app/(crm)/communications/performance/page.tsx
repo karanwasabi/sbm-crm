@@ -1,8 +1,8 @@
 import { CommunicationsView } from '@/components/views/communications-view';
-import { loadCommunicationsPageData } from '@/app/(crm)/communications/_lib/comms-page-data';
+import { loadCommsPerformanceTab } from '@/app/(crm)/communications/_lib/comms-page-data';
 
 export default async function CommunicationsPerformancePage() {
-  const data = await loadCommunicationsPageData();
+  const data = await loadCommsPerformanceTab();
 
   return <CommunicationsView {...data} tab="performance" />;
 }

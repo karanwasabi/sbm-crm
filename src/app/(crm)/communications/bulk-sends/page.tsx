@@ -1,8 +1,8 @@
 import { CommunicationsView } from '@/components/views/communications-view';
-import { loadCommunicationsPageData } from '@/app/(crm)/communications/_lib/comms-page-data';
+import { loadCommsBulkSendsTab } from '@/app/(crm)/communications/_lib/comms-page-data';
 
 export default async function CommunicationsBulkSendsPage() {
-  const data = await loadCommunicationsPageData();
+  const data = await loadCommsBulkSendsTab();
 
   return <CommunicationsView {...data} tab="bulk-sends" />;
 }
