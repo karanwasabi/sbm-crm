@@ -1630,6 +1630,34 @@ export async function getMetaCampaignPerformance(
   }));
 }
 
+export async function getAdPerformance(days?: number | 'all'): Promise<import('@/types/crm').AdPerformanceRow[]> {
+  const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
+  const response = await requireApiFetch(`/admin/analytics/ad-performance${query}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load ad performance.', response.status);
+  }
+  const payload = (await response.json()) as {
+    rows: Array<{
+      ad_content: string;
+      adset: string;
+      program: string;
+      campaign: string;
+      leads: number;
+      paid: number;
+      cvr: number;
+    }>;
+  };
+  return payload.rows.map((row) => ({
+    adContent: row.ad_content,
+    adset: row.adset,
+    program: row.program,
+    campaign: row.campaign,
+    leads: row.leads,
+    paid: row.paid,
+    cvr: row.cvr,
+  }));
+}
+
 export async function getDashboardAnalytics(): Promise<import('@/types/crm').DashboardAnalytics> {
   const response = await requireApiFetch('/admin/analytics/dashboard');
   if (!response.ok) {

@@ -1,7 +1,7 @@
 'use server';
 
-import type { MetaCampaignPerformanceRow, SourcePerformanceRow } from '@/types/crm';
-import { getMetaCampaignPerformance, getSourcePerformance } from '@/utils/api';
+import type { AdPerformanceRow, MetaCampaignPerformanceRow, SourcePerformanceRow } from '@/types/crm';
+import { getAdPerformance, getMetaCampaignPerformance, getSourcePerformance } from '@/utils/api';
 
 export async function fetchSourcePerformance(
   days: number | 'all'
@@ -22,5 +22,16 @@ export async function fetchMetaCampaignPerformance(
     return { ok: true, rows };
   } catch {
     return { ok: false, error: 'Failed to load campaign performance.' };
+  }
+}
+
+export async function fetchAdPerformance(
+  days: number | 'all'
+): Promise<{ ok: true; rows: AdPerformanceRow[] } | { ok: false; error: string }> {
+  try {
+    const rows = await getAdPerformance(days);
+    return { ok: true, rows };
+  } catch {
+    return { ok: false, error: 'Failed to load ad performance.' };
   }
 }

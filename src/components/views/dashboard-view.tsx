@@ -3,6 +3,7 @@ import { BarChart } from '@/components/crm/charts/bar-chart';
 import { DonutChart } from '@/components/crm/charts/donut-chart';
 import { FunnelChart } from '@/components/crm/charts/funnel-chart';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
+import { AdPerformanceTable } from '@/components/crm/ad-performance-table';
 import { MetaCampaignPerformanceTable } from '@/components/crm/meta-campaign-performance-table';
 import { SourcePerformanceSection } from '@/components/crm/source-performance-section';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
@@ -134,6 +135,8 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
       <SourcePerformanceSection initialRows={sourcePerformance} initialDays={90} />
 
       <MetaCampaignPerformanceTable />
+
+      <AdPerformanceTable />
     </CrmPageLayout>
   );
 }
