@@ -37,6 +37,7 @@ import {
   WAIT_UNIT_OPTIONS,
   defaultAutomationGraph,
   normalizeStageTriggerConfig,
+  normalizeTagTriggerConfig,
   nodeLabel,
   validationIssueDisplay,
 } from '@/lib/automation-types';
@@ -296,6 +297,14 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
 
   const stageSelectOptions = useMemo(() => [{ value: '', label: 'Any stage' }, ...LIFECYCLE_STAGE_SELECT_OPTIONS], []);
 
+  const tagTriggerSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'Any tag', searchText: 'any tag' },
+      ...buildTagSelectOptions(tagSuggestions, triggerConfig.tag ?? ''),
+    ],
+    [tagSuggestions, triggerConfig.tag]
+  );
+
   const onConnect = useCallback(
     (connection: Connection) => {
       if (isGraphLocked) return;
@@ -390,19 +399,24 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
   }, [nodes, edges, triggerType]);
 
   const buildTriggerConfig = useCallback((): Record<string, unknown> => {
-    if (triggerType !== 'stage_changed') {
-      return {};
+    if (triggerType === 'stage_changed') {
+      return {
+        from_stage: triggerConfig.from_stage ?? '',
+        to_stage: triggerConfig.to_stage ?? '',
+      };
     }
-    return {
-      from_stage: triggerConfig.from_stage ?? '',
-      to_stage: triggerConfig.to_stage ?? '',
-    };
+    if (triggerType === 'tag_added') {
+      return { tag: (triggerConfig.tag ?? '').trim() };
+    }
+    return {};
   }, [triggerConfig, triggerType]);
 
   const syncSavedAutomation = useCallback((saved: Automation) => {
     setStatus(saved.status);
     if (saved.triggerType === 'stage_changed') {
       setTriggerConfig(normalizeStageTriggerConfig(saved.triggerConfig));
+    } else if (saved.triggerType === 'tag_added') {
+      setTriggerConfig(normalizeTagTriggerConfig(saved.triggerConfig));
     }
   }, []);
 
@@ -710,6 +724,21 @@ export function AutomationBuilder({ automation, templates, tagSuggestions = [] }
                   />
                 </Field>
               </>
+            ) : null}
+            {triggerType === 'tag_added' ? (
+              <Field label="Tag added" className="min-w-[200px]">
+                <SearchableSelect
+                  value={triggerConfig.tag ?? ''}
+                  onChange={(slug) => setTriggerConfig((current) => ({ ...current, tag: slug }))}
+                  options={tagTriggerSelectOptions}
+                  placeholder="Any tag"
+                  searchPlaceholder="Search tags…"
+                  emptyMessage="No tags found."
+                  disabled={isGraphLocked}
+                  className="w-full text-sm"
+                  popoverClassName="w-[var(--anchor-width)]"
+                />
+              </Field>
             ) : null}
             <div className="flex flex-wrap gap-2 pb-0.5">
               <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('wait')}>

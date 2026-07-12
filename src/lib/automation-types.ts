@@ -1,7 +1,7 @@
 import type { LifecycleStage } from '@/types/crm';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 
-export type AutomationTriggerType = 'lead_created' | 'stage_changed' | 'checkout_started';
+export type AutomationTriggerType = 'lead_created' | 'tag_added' | 'stage_changed' | 'checkout_started';
 
 export type AutomationStatus = 'draft' | 'active' | 'paused' | 'archived';
 
@@ -141,9 +141,24 @@ export const LIFECYCLE_STAGE_OPTIONS = [
 
 export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   lead_created: 'New lead added',
+  tag_added: 'Tag added',
   stage_changed: 'Stage changes',
   checkout_started: 'Checkout started',
 };
+
+export type AutomationTagTriggerConfig = {
+  tag?: string;
+};
+
+/** Parse saved tag_added trigger config. Empty tag = "Any tag". */
+export function normalizeTagTriggerConfig(
+  raw?: Record<string, unknown> | AutomationTagTriggerConfig | null
+): Record<string, string> {
+  const tag = raw?.tag;
+  return {
+    tag: tag != null && String(tag).trim() !== '' ? String(tag).trim() : '',
+  };
+}
 
 export function lifecycleStageLabel(slug: string): string {
   if (slug in LIFECYCLE_STAGES) {
