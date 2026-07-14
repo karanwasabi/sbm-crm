@@ -75,7 +75,7 @@ export function Customer360View({
         onSendEmail={
           emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
         }
-        onPurge={lead.canPurge ? () => setPurgeOpen(true) : undefined}
+        onPurge={() => setPurgeOpen(true)}
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
