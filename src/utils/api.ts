@@ -1119,6 +1119,8 @@ type ApiCohortResponse = {
 type ApiCohortDetailResponse = ApiCohortResponse & {
   program_name: string;
   paid_member_count: number;
+  default_coach_user_id?: string | null;
+  default_coach_name?: string | null;
 };
 
 type ApiCohortMemberResponse = {
@@ -1133,6 +1135,8 @@ type ApiCohortMemberResponse = {
   subscription_state: 'active' | 'lapsed';
   subscription_status?: string;
   enrolled_at: string;
+  coach_user_id?: string | null;
+  coach_name?: string | null;
 };
 
 function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortSummary {
@@ -1155,6 +1159,8 @@ function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').Co
     ...mapCohortSummary(row),
     programName: row.program_name,
     paidMemberCount: row.paid_member_count,
+    defaultCoachUserId: row.default_coach_user_id ?? null,
+    defaultCoachName: row.default_coach_name ?? null,
   };
 }
 
@@ -1171,6 +1177,8 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     subscriptionState: row.subscription_state,
     subscriptionStatus: row.subscription_status,
     enrolledAt: row.enrolled_at,
+    coachUserId: row.coach_user_id ?? null,
+    coachName: row.coach_name ?? null,
   };
 }
 
@@ -1214,6 +1222,7 @@ export async function getCohortMembers(cohortId: string): Promise<import('@/type
 export type PatchCohortInput = {
   name?: string;
   starts_on?: string;
+  default_coach_user_id?: string | null;
 };
 
 export async function patchCohort(
@@ -1230,6 +1239,22 @@ export async function patchCohort(
     throw new ApiError(payload?.error ?? 'Failed to update cohort.', response.status);
   }
   return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
+}
+
+export async function assignCohortCoach(
+  cohortId: string,
+  input: { enrollment_ids: string[]; coach_user_id: string | null }
+): Promise<{ updated: number }> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/members/assign-coach`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to assign coach.', response.status);
+  }
+  return (await response.json()) as { updated: number };
 }
 
 export async function transferEnrollment(enrollmentId: string, targetCohortId: string): Promise<void> {

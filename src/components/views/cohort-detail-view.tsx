@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, CalendarDays, Pencil } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Pencil, UserRound } from 'lucide-react';
 import {
   DataTable,
   DataTableBody,
@@ -12,6 +12,8 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coach-dialog';
+import { CohortDefaultCoachDialog } from '@/components/programs/cohort-default-coach-dialog';
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
@@ -22,30 +24,36 @@ import { SectionHead } from '@/components/ui/section-head';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
+import type { StaffMember } from '@/utils/api';
 
 type CohortDetailViewProps = {
   cohort: CohortDetail;
   members: CohortMember[];
   transferTargets: CohortSummary[];
+  coaches: StaffMember[];
 };
 
 function MemberTableColGroup({ withActions }: { withActions: boolean }) {
   if (withActions) {
     return (
       <colgroup>
-        <col style={{ width: '48%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '34%' }} />
+        <col style={{ width: '14%' }} />
+        <col style={{ width: '18%' }} />
         <col style={{ width: '16%' }} />
-        <col style={{ width: '20%' }} />
-        <col style={{ width: '16%' }} />
+        <col style={{ width: '12%' }} />
       </colgroup>
     );
   }
 
   return (
     <colgroup>
-      <col style={{ width: '55%' }} />
-      <col style={{ width: '18%' }} />
-      <col style={{ width: '27%' }} />
+      <col style={{ width: '6%' }} />
+      <col style={{ width: '38%' }} />
+      <col style={{ width: '16%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '20%' }} />
     </colgroup>
   );
 }
@@ -57,6 +65,9 @@ function MemberTable({
   deemphasized,
   transferColumn,
   showTransfer,
+  selectedIds,
+  onToggle,
+  onToggleAll,
   onRowClick,
   onTransfer,
 }: {
@@ -66,10 +77,15 @@ function MemberTable({
   deemphasized?: boolean;
   transferColumn: boolean;
   showTransfer?: boolean;
+  selectedIds: Set<string>;
+  onToggle: (enrollmentId: string) => void;
+  onToggleAll: (ids: string[], selected: boolean) => void;
   onRowClick: (member: CohortMember) => void;
   onTransfer: (member: CohortMember) => void;
 }) {
-  const columnCount = transferColumn ? 4 : 3;
+  const columnCount = transferColumn ? 6 : 5;
+  const rowIds = rows.map((row) => row.enrollmentId);
+  const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
   return (
     <Card padding="none" className={cn('overflow-hidden', deemphasized && 'opacity-75')}>
@@ -79,7 +95,15 @@ function MemberTable({
       <DataTable tableClassName="table-fixed">
         <MemberTableColGroup withActions={transferColumn} />
         <DataTableHead>
-          {['Member', 'Status', 'Enrolled', ...(transferColumn ? [''] : [])].map((header) => (
+          <DataTableHeaderCell>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={(event) => onToggleAll(rowIds, event.target.checked)}
+              aria-label={`Select all in ${title}`}
+            />
+          </DataTableHeaderCell>
+          {['Member', 'Status', 'Coach', 'Enrolled', ...(transferColumn ? [''] : [])].map((header) => (
             <DataTableHeaderCell key={header || 'actions'} className={header === '' ? 'text-right' : undefined}>
               {header}
             </DataTableHeaderCell>
@@ -96,6 +120,15 @@ function MemberTable({
             rows.map((member) => (
               <DataTableRow key={member.enrollmentId} onClick={member.leadId ? () => onRowClick(member) : undefined}>
                 <DataTableCell>
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(member.enrollmentId)}
+                    onChange={() => onToggle(member.enrollmentId)}
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`Select ${member.memberName}`}
+                  />
+                </DataTableCell>
+                <DataTableCell>
                   <div className="flex items-center gap-2.5">
                     <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
                       {member.memberInitials}
@@ -111,6 +144,7 @@ function MemberTable({
                     {member.subscriptionState === 'active' ? 'Active' : 'Lapsed'}
                   </Pill>
                 </DataTableCell>
+                <DataTableCell className="truncate text-slate-600">{member.coachName ?? '—'}</DataTableCell>
                 <DataTableCell className="text-slate-600">
                   {new Date(member.enrolledAt).toLocaleDateString('en-IN', {
                     day: 'numeric',
@@ -185,6 +219,10 @@ function CohortDetailHeader({
               Starts {formatCohortStartDateLong(cohort.startsOn)}
             </span>
             <span className="text-white/75">{cohort.programName}</span>
+            <span className="inline-flex items-center gap-1.5 text-white/85">
+              <UserRound className="h-3 w-3 shrink-0" />
+              Default coach: {cohort.defaultCoachName?.trim() || 'None'}
+            </span>
           </div>
         </div>
 
@@ -198,15 +236,39 @@ function CohortDetailHeader({
   );
 }
 
-export function CohortDetailView({ cohort, members, transferTargets }: CohortDetailViewProps) {
+export function CohortDetailView({ cohort, members, transferTargets, coaches }: CohortDetailViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
+  const [defaultCoachOpen, setDefaultCoachOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
   const [transferMember, setTransferMember] = useState<CohortMember | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const activeMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'active'), [members]);
   const lapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
 
   const canTransfer = cohort.status === 'active' && transferTargets.length > 0;
+  const selectedList = useMemo(() => Array.from(selectedIds), [selectedIds]);
+
+  const toggle = (enrollmentId: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(enrollmentId)) next.delete(enrollmentId);
+      else next.add(enrollmentId);
+      return next;
+    });
+  };
+
+  const toggleAll = (ids: string[], selected: boolean) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of ids) {
+        if (selected) next.add(id);
+        else next.delete(id);
+      }
+      return next;
+    });
+  };
 
   return (
     <CrmPageLayout className="space-y-5">
@@ -218,19 +280,40 @@ export function CohortDetailView({ cohort, members, transferTargets }: CohortDet
           <ArrowLeft size={16} />
           Back to cohorts
         </Link>
-        {cohort.canEdit && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setEditOpen(true)}
-            leftIcon={<Pencil className="h-3.5 w-3.5" />}
-          >
-            Edit cohort
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="light" size="sm" onClick={() => setDefaultCoachOpen(true)}>
+            Default coach
           </Button>
-        )}
+          {cohort.canEdit && (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setEditOpen(true)}
+              leftIcon={<Pencil className="h-3.5 w-3.5" />}
+            >
+              Edit cohort
+            </Button>
+          )}
+        </div>
       </div>
 
       <CohortDetailHeader cohort={cohort} activeCount={activeMembers.length} lapsedCount={lapsedMembers.length} />
+
+      {selectedList.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
+          <p className="text-sm font-semibold text-slate-700">
+            {selectedList.length} member{selectedList.length === 1 ? '' : 's'} selected
+          </p>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+              Clear
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => setAssignOpen(true)}>
+              Assign coach
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-4">
         <MemberTable
@@ -239,6 +322,9 @@ export function CohortDetailView({ cohort, members, transferTargets }: CohortDet
           rows={activeMembers}
           transferColumn={canTransfer}
           showTransfer={canTransfer}
+          selectedIds={selectedIds}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
           onRowClick={(member) => member.leadId && router.push(`/customers/${member.leadId}`)}
           onTransfer={setTransferMember}
         />
@@ -248,12 +334,29 @@ export function CohortDetailView({ cohort, members, transferTargets }: CohortDet
           rows={lapsedMembers}
           deemphasized
           transferColumn={canTransfer}
+          selectedIds={selectedIds}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
           onRowClick={(member) => member.leadId && router.push(`/customers/${member.leadId}`)}
           onTransfer={() => undefined}
         />
       </div>
 
       <CohortEditDialog cohort={cohort} open={editOpen} onOpenChange={setEditOpen} />
+      <CohortDefaultCoachDialog
+        cohort={cohort}
+        coaches={coaches}
+        open={defaultCoachOpen}
+        onOpenChange={setDefaultCoachOpen}
+      />
+      <CohortAssignCoachDialog
+        cohortId={cohort.id}
+        enrollmentIds={selectedList}
+        coaches={coaches}
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        onAssigned={() => setSelectedIds(new Set())}
+      />
       <CohortTransferDialog
         cohortId={cohort.id}
         member={transferMember}

@@ -470,6 +470,8 @@ export type CohortSummary = {
 export type CohortDetail = CohortSummary & {
   programName: string;
   paidMemberCount: number;
+  defaultCoachUserId?: string | null;
+  defaultCoachName?: string | null;
 };
 
 export type CohortMember = {
@@ -484,6 +486,8 @@ export type CohortMember = {
   subscriptionState: 'active' | 'lapsed';
   subscriptionStatus?: string;
   enrolledAt: string;
+  coachUserId?: string | null;
+  coachName?: string | null;
 };
 
 /** @deprecated Use CohortSummary */
