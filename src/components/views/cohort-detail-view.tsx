@@ -13,6 +13,7 @@ import {
   MoreVertical,
   Pencil,
   UserRound,
+  UserRoundPlus,
   X,
 } from 'lucide-react';
 import {
@@ -26,6 +27,7 @@ import {
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coach-dialog';
+import { CohortAutoAssignCoachesDialog } from '@/components/programs/cohort-auto-assign-coaches-dialog';
 import { CohortBulkSendButton } from '@/components/programs/cohort-bulk-send-button';
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
@@ -628,6 +630,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [transferMember, setTransferMember] = useState<CohortMember | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
@@ -802,8 +805,19 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
 
       <CohortDetailHeader cohort={cohort} activeCount={activeMembers.length} lapsedCount={lapsedMembers.length} />
 
-      <CoachSummaryCard members={members} />
-
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <CoachSummaryCard members={members} />
+        </div>
+        <Button
+          variant="light"
+          size="sm"
+          onClick={() => setAutoAssignOpen(true)}
+          leftIcon={<UserRoundPlus className="h-3.5 w-3.5" />}
+        >
+          Auto-assign coaches
+        </Button>
+      </div>
       {selectedList.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
           <p className="text-sm font-semibold text-slate-700">
@@ -866,6 +880,13 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
         open={assignOpen}
         onOpenChange={setAssignOpen}
         onAssigned={() => setSelectedIds(new Set())}
+      />
+      <CohortAutoAssignCoachesDialog
+        cohortId={cohort.id}
+        members={members}
+        coaches={coaches}
+        open={autoAssignOpen}
+        onOpenChange={setAutoAssignOpen}
       />
       <CohortTransferDialog
         cohortId={cohort.id}
