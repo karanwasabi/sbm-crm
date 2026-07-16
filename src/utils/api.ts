@@ -965,6 +965,41 @@ export async function syncLeadCheckout(leadId: string): Promise<LeadCheckoutSync
   };
 }
 
+export type MarkCheckoutPaidOfflineResult = {
+  userId: string;
+  checkoutSessionId: string;
+  enrollmentId: string;
+  enrolled: boolean;
+  paymentPending: boolean;
+  stage: string;
+};
+
+export async function markLeadCheckoutPaidOffline(leadId: string): Promise<MarkCheckoutPaidOfflineResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/checkout/mark-paid-offline`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to mark checkout paid offline.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    checkout_session_id: string;
+    enrollment_id: string;
+    enrolled: boolean;
+    payment_pending: boolean;
+    stage?: string;
+  };
+  return {
+    userId: row.user_id,
+    checkoutSessionId: row.checkout_session_id,
+    enrollmentId: row.enrollment_id,
+    enrolled: row.enrolled,
+    paymentPending: row.payment_pending,
+    stage: row.stage ?? '',
+  };
+}
+
 export type LeadPurgeTestSignal = {
   rule: string;
   matched: boolean;

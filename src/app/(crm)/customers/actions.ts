@@ -19,8 +19,14 @@ import {
   offlineEnrollLead,
   listOfflineEnrollCohorts,
   syncLeadCheckout,
+  markLeadCheckoutPaidOffline,
 } from '@/utils/api';
-import type { LeadPurgeInput, LeadPurgePreview, LeadCheckoutSyncResult } from '@/utils/api';
+import type {
+  LeadPurgeInput,
+  LeadPurgePreview,
+  LeadCheckoutSyncResult,
+  MarkCheckoutPaidOfflineResult,
+} from '@/utils/api';
 import type { OfflineEnrollCohort } from '@/types/crm';
 
 export async function updateLeadTagsAction(leadId: string, manualTags: string[]): Promise<{ error: string | null }> {
@@ -183,6 +189,18 @@ export async function syncLeadCheckoutAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to sync checkout payment.';
+    return { result: null, error: message };
+  }
+}
+
+export async function markLeadCheckoutPaidOfflineAction(
+  leadId: string
+): Promise<{ result: MarkCheckoutPaidOfflineResult | null; error: string | null }> {
+  try {
+    const result = await markLeadCheckoutPaidOffline(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to mark checkout paid offline.';
     return { result: null, error: message };
   }
 }

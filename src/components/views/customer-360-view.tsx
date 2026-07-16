@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { syncLeadCheckoutAction } from '@/app/(crm)/customers/actions';
+import { syncLeadCheckoutAction, markLeadCheckoutPaidOfflineAction } from '@/app/(crm)/customers/actions';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
@@ -54,6 +54,7 @@ export function Customer360View({
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
   const [syncingPayment, startSyncPayment] = useTransition();
+  const [markingPaidOffline, startMarkPaidOffline] = useTransition();
   const displayTimezone = useDisplayTimezone();
 
   useEffect(() => {
@@ -74,7 +75,7 @@ export function Customer360View({
   };
 
   const handleSyncPayment = () => {
-    if (syncingPayment) return;
+    if (syncingPayment || markingPaidOffline) return;
     startSyncPayment(async () => {
       const { result, error } = await syncLeadCheckoutAction(lead.id);
       if (error || !result) {
@@ -95,6 +96,28 @@ export function Customer360View({
     });
   };
 
+  const handleMarkPaidOffline = () => {
+    if (syncingPayment || markingPaidOffline) return;
+    const confirmed = window.confirm(
+      'Mark the pending checkout as paid offline? This enrolls the member without a Razorpay capture.'
+    );
+    if (!confirmed) return;
+    startMarkPaidOffline(async () => {
+      const { result, error } = await markLeadCheckoutPaidOfflineAction(lead.id);
+      if (error || !result) {
+        toast({ message: error ?? 'Failed to mark checkout paid offline.', variant: 'error' });
+        return;
+      }
+      toast({
+        message: result.stage
+          ? `Marked paid offline. Stage is now ${result.stage}.`
+          : 'Marked paid offline. Enrollment is active.',
+        variant: 'success',
+      });
+      refresh();
+    });
+  };
+
   return (
     <CrmPageLayout>
       <ProfileHeader
@@ -106,14 +129,21 @@ export function Customer360View({
         onPurge={() => setPurgeOpen(true)}
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
         onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
+        onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
       />
-      {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
+      {lead.paymentPending ? (
+        <PaymentPendingBanner
+          paymentPending={lead.paymentPending}
+          onMarkPaidOffline={canSyncPayment ? handleMarkPaidOffline : undefined}
+          markingPaidOffline={markingPaidOffline}
+        />
+      ) : null}
       <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
       <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',
-          (isRefreshing || syncingPayment) && 'pointer-events-none opacity-60'
+          (isRefreshing || syncingPayment || markingPaidOffline) && 'pointer-events-none opacity-60'
         )}
       >
         <ActivityTimeline events={lead.timeline} />

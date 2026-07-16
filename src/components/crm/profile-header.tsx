@@ -20,6 +20,7 @@ type ProfileHeaderProps = {
   onPurge?: () => void;
   onEnroll?: () => void;
   onSyncPayment?: () => void;
+  onMarkPaidOffline?: () => void;
 };
 
 const HEADER_PILL_CLASS =
@@ -54,6 +55,7 @@ export function ProfileHeader({
   onPurge,
   onEnroll,
   onSyncPayment,
+  onMarkPaidOffline,
 }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
   const showMemberStats = contact.isMember && contact.clv != null;
@@ -152,8 +154,13 @@ export function ProfileHeader({
               Send email
             </Button>
           ) : null}
-          {onPurge || onEnroll || onSyncPayment ? (
-            <ProfileOverflowMenu onPurge={onPurge} onEnroll={onEnroll} onSyncPayment={onSyncPayment} />
+          {onPurge || onEnroll || onSyncPayment || onMarkPaidOffline ? (
+            <ProfileOverflowMenu
+              onPurge={onPurge}
+              onEnroll={onEnroll}
+              onSyncPayment={onSyncPayment}
+              onMarkPaidOffline={onMarkPaidOffline}
+            />
           ) : null}
         </div>
       </div>

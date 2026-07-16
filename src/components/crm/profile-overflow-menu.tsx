@@ -1,6 +1,6 @@
 'use client';
 
-import { GraduationCap, MoreVertical, RefreshCw, Trash2 } from 'lucide-react';
+import { Banknote, GraduationCap, MoreVertical, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ type ProfileOverflowMenuProps = {
   onPurge?: () => void;
   onEnroll?: () => void;
   onSyncPayment?: () => void;
+  onMarkPaidOffline?: () => void;
 };
 
 type MenuPosition = {
@@ -20,7 +21,7 @@ type MenuPosition = {
 const menuItemClass =
   'flex w-full min-w-[10.5rem] cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold transition-colors';
 
-export function ProfileOverflowMenu({ onPurge, onEnroll, onSyncPayment }: ProfileOverflowMenuProps) {
+export function ProfileOverflowMenu({ onPurge, onEnroll, onSyncPayment, onMarkPaidOffline }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
@@ -121,6 +122,20 @@ export function ProfileOverflowMenu({ onPurge, onEnroll, onSyncPayment }: Profil
               >
                 <RefreshCw className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Sync payment
+              </button>
+            ) : null}
+            {onMarkPaidOffline ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onMarkPaidOffline();
+                }}
+              >
+                <Banknote className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Mark paid (offline)
               </button>
             ) : null}
             {onPurge ? (
