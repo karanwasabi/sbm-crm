@@ -27,7 +27,6 @@ import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigg
 import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coach-dialog';
 import { CohortBulkSendButton } from '@/components/programs/cohort-bulk-send-button';
-import { CohortDefaultCoachDialog } from '@/components/programs/cohort-default-coach-dialog';
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
@@ -452,10 +451,6 @@ function CohortDetailHeader({
               Starts {formatCohortStartDateLong(cohort.startsOn)}
             </span>
             <span className="text-white/75">{cohort.programName}</span>
-            <span className="inline-flex items-center gap-1.5 text-white/85">
-              <UserRound className="h-3 w-3 shrink-0" />
-              Default coach: {cohort.defaultCoachName?.trim() || 'None'}
-            </span>
           </div>
         </div>
 
@@ -560,7 +555,6 @@ function compareMembers(a: CohortMember, b: CohortMember, sortKey: ActiveSortKey
 export function CohortDetailView({ cohort, members, transferTargets, coaches, emailTemplates }: CohortDetailViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
-  const [defaultCoachOpen, setDefaultCoachOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [transferMember, setTransferMember] = useState<CohortMember | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -720,9 +714,6 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           Back to cohorts
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="light" size="sm" onClick={() => setDefaultCoachOpen(true)}>
-            Default coach
-          </Button>
           {cohort.canEdit && (
             <Button
               variant="primary"
@@ -793,12 +784,6 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
       </div>
 
       <CohortEditDialog cohort={cohort} open={editOpen} onOpenChange={setEditOpen} />
-      <CohortDefaultCoachDialog
-        cohort={cohort}
-        coaches={coaches}
-        open={defaultCoachOpen}
-        onOpenChange={setDefaultCoachOpen}
-      />
       <CohortAssignCoachDialog
         cohortId={cohort.id}
         enrollmentIds={selectedList}

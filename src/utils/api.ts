@@ -1125,8 +1125,6 @@ type ApiCohortResponse = {
 type ApiCohortDetailResponse = ApiCohortResponse & {
   program_name: string;
   paid_member_count: number;
-  default_coach_user_id?: string | null;
-  default_coach_name?: string | null;
 };
 
 type ApiCohortMemberResponse = {
@@ -1166,8 +1164,6 @@ function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').Co
     ...mapCohortSummary(row),
     programName: row.program_name,
     paidMemberCount: row.paid_member_count,
-    defaultCoachUserId: row.default_coach_user_id ?? null,
-    defaultCoachName: row.default_coach_name ?? null,
   };
 }
 
@@ -1230,7 +1226,6 @@ export async function getCohortMembers(cohortId: string): Promise<import('@/type
 export type PatchCohortInput = {
   name?: string;
   starts_on?: string;
-  default_coach_user_id?: string | null;
 };
 
 export async function patchCohort(

@@ -472,8 +472,6 @@ export type CohortSummary = {
 export type CohortDetail = CohortSummary & {
   programName: string;
   paidMemberCount: number;
-  defaultCoachUserId?: string | null;
-  defaultCoachName?: string | null;
 };
 
 export type CohortMember = {
