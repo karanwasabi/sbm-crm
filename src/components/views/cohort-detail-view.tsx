@@ -1,9 +1,20 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, CalendarDays, Pencil, UserRound } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowUp,
+  ArrowUpDown,
+  ArrowRightLeft,
+  CalendarDays,
+  MoreVertical,
+  Pencil,
+  UserRound,
+  X,
+} from 'lucide-react';
 import {
   DataTable,
   DataTableBody,
@@ -12,6 +23,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coach-dialog';
 import { CohortBulkSendButton } from '@/components/programs/cohort-bulk-send-button';
@@ -19,9 +31,12 @@ import { CohortDefaultCoachDialog } from '@/components/programs/cohort-default-c
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { FilterChip } from '@/components/ui/filter-chip';
 import { Pill } from '@/components/ui/pill';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
@@ -64,23 +79,23 @@ function MemberTableColGroup({ withActions }: { withActions: boolean }) {
   if (withActions) {
     return (
       <colgroup>
-        <col style={{ width: '6%' }} />
-        <col style={{ width: '32%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '36%' }} />
         <col style={{ width: '14%' }} />
-        <col style={{ width: '18%' }} />
-        <col style={{ width: '18%' }} />
-        <col style={{ width: '12%' }} />
+        <col style={{ width: '20%' }} />
+        <col style={{ width: '19%' }} />
+        <col style={{ width: '6%' }} />
       </colgroup>
     );
   }
 
   return (
     <colgroup>
-      <col style={{ width: '6%' }} />
-      <col style={{ width: '36%' }} />
-      <col style={{ width: '16%' }} />
-      <col style={{ width: '20%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '38%' }} />
+      <col style={{ width: '15%' }} />
       <col style={{ width: '22%' }} />
+      <col style={{ width: '20%' }} />
     </colgroup>
   );
 }
@@ -123,6 +138,121 @@ function ActiveMemberStatus({ member }: { member: CohortMember }) {
   return <Pill tone="neutral">{stage.charAt(0).toUpperCase() + stage.slice(1)}</Pill>;
 }
 
+function MemberRowMenu({ onTransfer }: { onTransfer: () => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        type="button"
+        aria-label="More actions"
+        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <MoreVertical className="h-4 w-4" />
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-40 p-1" onClick={(event) => event.stopPropagation()}>
+        <button
+          type="button"
+          className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50"
+          onClick={() => {
+            setOpen(false);
+            onTransfer();
+          }}
+        >
+          <ArrowRightLeft className="h-3.5 w-3.5 text-brand" />
+          Transfer
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function CohortCoachFilterPopover({
+  options,
+  selected,
+  onChange,
+}: {
+  options: { value: string; label: string; count: number }[];
+  selected: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<string[]>(selected);
+  const selectedSet = useMemo(() => new Set(draft), [draft]);
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setDraft(selected);
+      }}
+    >
+      <PopoverTrigger type="button" className={filterPopoverTriggerClass(selected.length > 0)}>
+        <UserRound className="h-3.5 w-3.5" />
+        Coach{selected.length > 0 ? ` (${selected.length})` : ''}
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-4" align="start">
+        <p className="text-sm font-semibold text-slate-800">Filter by coach</p>
+        <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
+          {options.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-slate-500">No coaches yet.</p>
+          ) : (
+            options.map((option) => {
+              const active = selectedSet.has(option.value);
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm',
+                    active ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
+                  )}
+                  onClick={() =>
+                    setDraft((current) =>
+                      active ? current.filter((value) => value !== option.value) : [...current, option.value]
+                    )
+                  }
+                >
+                  <span className="truncate pr-2">{option.label}</span>
+                  <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
+                </button>
+              );
+            })
+          )}
+        </div>
+        <div className="mt-4 flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onChange(draft);
+              setOpen(false);
+            }}
+          >
+            Apply
+          </Button>
+          {selected.length > 0 || draft.length > 0 ? (
+            <Button
+              variant="light"
+              size="sm"
+              leftIcon={<X className="h-3.5 w-3.5" />}
+              onClick={() => {
+                setDraft([]);
+                onChange([]);
+                setOpen(false);
+              }}
+            >
+              Clear
+            </Button>
+          ) : null}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function MemberTable({
   title,
   subtitle,
@@ -141,6 +271,7 @@ function MemberTable({
   onSort,
   emptyMessage,
   statusMode,
+  toolbar,
 }: {
   title: string;
   subtitle: string;
@@ -159,6 +290,7 @@ function MemberTable({
   onSort?: (key: ActiveSortKey) => void;
   emptyMessage?: string;
   statusMode: 'lifecycle' | 'lapsed';
+  toolbar?: ReactNode;
 }) {
   const columnCount = transferColumn ? 6 : 5;
   const rowIds = rows.map((row) => row.enrollmentId);
@@ -169,6 +301,7 @@ function MemberTable({
       <div className="px-5 pt-3 pb-2.5">
         <SectionHead title={title} subtitle={subtitle} className="mb-1.5" />
       </div>
+      {toolbar}
       <DataTable tableClassName="table-fixed">
         <MemberTableColGroup withActions={transferColumn} />
         <DataTableHead>
@@ -263,22 +396,11 @@ function MemberTable({
                 <DataTableCell className="text-slate-600">
                   <LeadTableTimestamp iso={member.enrolledAt} />
                 </DataTableCell>
-                {transferColumn && (
+                {transferColumn ? (
                   <DataTableCell className="text-right">
-                    {showTransfer ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          onTransfer(member);
-                        }}
-                      >
-                        Transfer
-                      </Button>
-                    ) : null}
+                    {showTransfer ? <MemberRowMenu onTransfer={() => onTransfer(member)} /> : null}
                   </DataTableCell>
-                )}
+                ) : null}
               </DataTableRow>
             ))
           )}
@@ -347,7 +469,25 @@ function CohortDetailHeader({
   );
 }
 
-function CoachSummaryTable({ members }: { members: CohortMember[] }) {
+/** Inspired by sbm-app nutrition category card gradients (c → p → deep). */
+const COACH_CARD_GRADIENTS = [
+  'from-[#16A34A] via-[#15803D] to-[#14532D]',
+  'from-[#E11D48] via-[#BE123C] to-[#9F1239]',
+  'from-[#D97706] via-[#B45309] to-[#92400E]',
+  'from-[#818CF8] via-[#6366F1] to-[#4338CA]',
+  'from-[#06B6D4] via-[#0891B2] to-[#155E75]',
+  'from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]',
+  'from-[#A18072] via-[#7C5A4A] to-[#57534E]',
+] as const;
+
+function coachInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
+}
+
+function CoachSummaryCard({ members }: { members: CohortMember[] }) {
   const rows = useMemo(() => {
     const counts = new Map<string, { name: string; count: number }>();
     for (const member of members) {
@@ -373,30 +513,30 @@ function CoachSummaryTable({ members }: { members: CohortMember[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <Card padding="none" className="overflow-hidden">
-      <div className="px-5 pt-3 pb-2.5">
-        <SectionHead title="Coaches" subtitle="Assigned student counts in this cohort" className="mb-1.5" />
-      </div>
-      <DataTable>
-        <DataTableHead>
-          <DataTableHeaderCell>Coach</DataTableHeaderCell>
-          <DataTableHeaderCell className="text-right">Students</DataTableHeaderCell>
-        </DataTableHead>
-        <DataTableBody>
-          {rows.map((row) => (
-            <DataTableRow key={row.id}>
-              <DataTableCell className="font-semibold text-slate-800">{row.name}</DataTableCell>
-              <DataTableCell className="text-right text-slate-600 tabular-nums">{row.count}</DataTableCell>
-            </DataTableRow>
-          ))}
-        </DataTableBody>
-      </DataTable>
-    </Card>
+    <div className="flex flex-wrap gap-3">
+      {rows.map((row, index) => (
+        <div
+          key={row.id}
+          className={cn(
+            'relative min-w-[148px] overflow-hidden rounded-2xl border-b-[3px] border-black/25 bg-linear-to-br px-4 py-3.5 text-white shadow-[0_10px_24px_-10px_rgba(15,23,42,0.35)]',
+            COACH_CARD_GRADIENTS[index % COACH_CARD_GRADIENTS.length]
+          )}
+        >
+          <div aria-hidden className="absolute -top-6 -right-4 h-20 w-20 rounded-full bg-white/10 blur-2xl" />
+          <div className="relative z-1 flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-extrabold tracking-wide text-white">
+              {coachInitials(row.name)}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold tracking-tight">{row.name}</p>
+              <p className="mt-1 text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase">Students</p>
+              <p className="text-2xl font-extrabold tracking-tight tabular-nums">{row.count}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   );
-}
-
-function toggleInList(values: string[], value: string): string[] {
-  return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
 }
 
 function compareMembers(a: CohortMember, b: CohortMember, sortKey: ActiveSortKey, order: SortOrder): number {
@@ -433,15 +573,36 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const lapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
 
   const coachFilterOptions = useMemo(() => {
-    const options = new Map<string, string>();
+    const counts = new Map<string, { label: string; count: number }>();
+    let unassigned = 0;
     for (const member of activeMembers) {
-      if (!member.coachUserId) continue;
-      options.set(member.coachUserId, member.coachName?.trim() || member.coachUserId);
+      if (!member.coachUserId) {
+        unassigned += 1;
+        continue;
+      }
+      const existing = counts.get(member.coachUserId);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        counts.set(member.coachUserId, {
+          label: member.coachName?.trim() || member.coachUserId,
+          count: 1,
+        });
+      }
     }
-    return Array.from(options.entries())
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    const named = Array.from(counts.entries())
+      .map(([value, row]) => ({ value, label: row.label, count: row.count }))
+      .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+    return [{ value: 'unassigned', label: 'Unassigned', count: unassigned }, ...named];
   }, [activeMembers]);
+
+  const coachLabelById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of coachFilterOptions) {
+      map.set(option.value, option.label);
+    }
+    return map;
+  }, [coachFilterOptions]);
 
   const filteredActiveMembers = useMemo(() => {
     return activeMembers.filter((member) => {
@@ -494,6 +655,60 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     setSortOrder(key === 'enrolled' ? 'desc' : 'asc');
   };
 
+  const toggleStatusFilter = (stageId: string) => {
+    setStatusFilters((prev) => (prev.includes(stageId) ? prev.filter((item) => item !== stageId) : [...prev, stageId]));
+  };
+
+  const activeFilterToolbar = (
+    <>
+      <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
+        <CohortCoachFilterPopover options={coachFilterOptions} selected={coachFilters} onChange={setCoachFilters} />
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          <span className="mr-1 shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Status</span>
+          {STATUS_FILTER_OPTIONS.map((option) => (
+            <FilterChip
+              key={option.id}
+              active={statusFilters.includes(option.id)}
+              onClick={() => toggleStatusFilter(option.id)}
+            >
+              {option.label}
+            </FilterChip>
+          ))}
+        </div>
+      </div>
+      {filtersActive ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
+          {statusFilters.map((stage) => (
+            <ActiveFilterTag
+              key={`status-${stage}`}
+              label="Status"
+              value={STATUS_FILTER_OPTIONS.find((option) => option.id === stage)?.label ?? stage}
+              onDismiss={() => setStatusFilters((prev) => prev.filter((item) => item !== stage))}
+            />
+          ))}
+          {coachFilters.map((coachId) => (
+            <ActiveFilterTag
+              key={`coach-${coachId}`}
+              label="Coach"
+              value={coachLabelById.get(coachId) ?? coachId}
+              onDismiss={() => setCoachFilters((prev) => prev.filter((item) => item !== coachId))}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilters([]);
+              setCoachFilters([]);
+            }}
+            className="text-xs font-semibold text-brand"
+          >
+            Clear all
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+
   return (
     <CrmPageLayout className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -523,7 +738,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
 
       <CohortDetailHeader cohort={cohort} activeCount={activeMembers.length} lapsedCount={lapsedMembers.length} />
 
-      <CoachSummaryTable members={members} />
+      <CoachSummaryCard members={members} />
 
       {selectedList.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
@@ -543,67 +758,6 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
       ) : null}
 
       <div className="space-y-4">
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3">
-          <span className="text-[10px] font-bold tracking-wide text-slate-400 uppercase">Status</span>
-          {STATUS_FILTER_OPTIONS.map((option) => {
-            const active = statusFilters.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setStatusFilters((prev) => toggleInList(prev, option.id))}
-                className={cn(
-                  'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                  active ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                )}
-              >
-                {option.label}
-              </button>
-            );
-          })}
-          <span className="ml-2 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Coach</span>
-          <button
-            type="button"
-            onClick={() => setCoachFilters((prev) => toggleInList(prev, 'unassigned'))}
-            className={cn(
-              'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-              coachFilters.includes('unassigned')
-                ? 'bg-brand text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            )}
-          >
-            Unassigned
-          </button>
-          {coachFilterOptions.map((option) => {
-            const active = coachFilters.includes(option.id);
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setCoachFilters((prev) => toggleInList(prev, option.id))}
-                className={cn(
-                  'rounded-full px-3 py-1 text-xs font-semibold transition-colors',
-                  active ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                )}
-              >
-                {option.name}
-              </button>
-            );
-          })}
-          {filtersActive ? (
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilters([]);
-                setCoachFilters([]);
-              }}
-              className="ml-auto text-xs font-semibold text-brand"
-            >
-              Clear filters
-            </button>
-          ) : null}
-        </div>
-
         <MemberTable
           title="Active subscriptions"
           subtitle={`${activeMembers.length} member${activeMembers.length === 1 ? '' : 's'} with live access`}
@@ -621,13 +775,14 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           onSort={handleSort}
           emptyMessage={filtersActive ? 'No active members match the current filters.' : 'No members in this section.'}
           statusMode="lifecycle"
+          toolbar={activeFilterToolbar}
         />
         <MemberTable
           title="Lapsed"
           subtitle="Cancelled, halted, or expired members"
           rows={lapsedMembers}
           deemphasized
-          transferColumn={canTransfer}
+          transferColumn={false}
           selectedIds={selectedIds}
           onToggle={toggle}
           onToggleAll={toggleAll}
