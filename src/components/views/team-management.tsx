@@ -82,13 +82,19 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
           email: normalizedEmail,
           roles,
         });
+        if (!result.ok) {
+          toast({ message: result.error, variant: 'error' });
+          return;
+        }
         setFirstName('');
         setLastName('');
         setEmail('');
         setAdmin(true);
         setCoach(true);
         toast({
-          message: result.promoted ? `${normalizedEmail} promoted to staff` : `Invite sent to ${normalizedEmail}`,
+          message: result.member.promoted
+            ? `${normalizedEmail} promoted to staff`
+            : `Invite sent to ${normalizedEmail}`,
           variant: 'success',
         });
         router.refresh();

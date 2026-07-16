@@ -23,6 +23,7 @@ OUTPUT_COLUMNS = [
     "Batch",
     "Lead Source",
     "Manual Tag",
+    "Coach Name",
     "Created Time",
 ]
 
@@ -48,6 +49,7 @@ COUNTRY_NAME_TO_ISO = {
     "luxembourg": "LU",
     "belgium": "BE",
     "afghanistan": "AF",
+    "jordan": "JO",
 }
 
 COUNTRY_DIAL = {
@@ -71,6 +73,7 @@ COUNTRY_DIAL = {
     "luxembourg": "352",
     "belgium": "32",
     "afghanistan": "93",
+    "jordan": "962",
 }
 
 ZOHO_TZ_TO_IANA = {
@@ -99,6 +102,7 @@ ZOHO_TZ_TO_IANA = {
     "Qatar — Qatar (UTC+03:00)": "Asia/Qatar",
     "Ireland — Dublin (UTC+00:00)": "Europe/Dublin",
     "Luxembourg — Luxembourg (UTC+01:00)": "Europe/Luxembourg",
+    "Jordan — Amman (UTC+03:00)": "Asia/Amman",
 }
 
 COUNTRY_DEFAULT_TZ = {
@@ -121,6 +125,7 @@ COUNTRY_DEFAULT_TZ = {
     "LU": "Europe/Luxembourg",
     "BE": "Europe/Brussels",
     "AF": "Asia/Kabul",
+    "JO": "Asia/Amman",
 }
 
 RENEWAL_MONTHS = {
@@ -366,6 +371,7 @@ def main() -> int:
             stats["invalid_renewal"] += 1
 
         email_counts[email] += 1
+        coach_name = (row.get("Coach Name") or row.get("Coach") or "").strip()
         prepared.append(
             {
                 "Email": email,
@@ -380,6 +386,7 @@ def main() -> int:
                 "Batch": args.batch,
                 "Lead Source": args.lead_source,
                 "Manual Tag": args.tag,
+                "Coach Name": coach_name,
                 "Created Time": created,
             }
         )
