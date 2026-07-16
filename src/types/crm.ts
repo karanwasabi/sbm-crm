@@ -486,6 +486,7 @@ export type CohortMember = {
   subscriptionState: 'active' | 'lapsed';
   subscriptionStatus?: string;
   lifecycleStage?: string;
+  memberKind?: 'renewal' | 'returnee';
   enrolledAt: string;
   coachUserId?: string | null;
   coachName?: string | null;

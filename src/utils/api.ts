@@ -1200,6 +1200,7 @@ type ApiCohortMemberResponse = {
   subscription_state: 'active' | 'lapsed';
   subscription_status?: string;
   lifecycle_stage?: string | null;
+  member_kind?: 'renewal' | 'returnee' | null;
   enrolled_at: string;
   coach_user_id?: string | null;
   coach_name?: string | null;
@@ -1241,6 +1242,7 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     subscriptionState: row.subscription_state,
     subscriptionStatus: row.subscription_status,
     lifecycleStage: row.lifecycle_stage ?? undefined,
+    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : undefined,
     enrolledAt: row.enrolled_at,
     coachUserId: row.coach_user_id ?? null,
     coachName: row.coach_name ?? null,

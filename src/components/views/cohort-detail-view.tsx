@@ -40,7 +40,7 @@ import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
-import type { CohortDetail, CohortMember, CohortSummary, LifecycleStage } from '@/types/crm';
+import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
 import type { EmailTemplate, StaffMember } from '@/utils/api';
 
 type CohortDetailViewProps = {
@@ -57,21 +57,17 @@ type SortOrder = 'asc' | 'desc';
 const STATUS_FILTER_OPTIONS = [
   { id: 'newbie', label: 'Newbie' },
   { id: 'member', label: 'Member' },
+  { id: 'renewal', label: 'Renewal' },
+  { id: 'returnee', label: 'Returnee' },
 ] as const;
 
-const LIFECYCLE_STAGE_IDS = new Set<string>([
-  'inquiry',
-  'engaged',
-  'registered',
-  'newbie',
-  'member',
-  'grace',
-  'lapsed',
-  'lost',
-]);
+type ActiveStatusId = (typeof STATUS_FILTER_OPTIONS)[number]['id'];
 
-function isLifecycleStage(value: string): value is LifecycleStage {
-  return LIFECYCLE_STAGE_IDS.has(value);
+function activeMemberStatusId(member: CohortMember): ActiveStatusId {
+  if (member.memberKind === 'returnee') return 'returnee';
+  if (member.memberKind === 'renewal') return 'renewal';
+  if (member.lifecycleStage?.trim() === 'newbie') return 'newbie';
+  return 'member';
 }
 
 function MemberTableColGroup({ withActions }: { withActions: boolean }) {
@@ -131,10 +127,31 @@ function LocalSortableHeader({
 }
 
 function ActiveMemberStatus({ member }: { member: CohortMember }) {
-  const stage = member.lifecycleStage?.trim();
-  if (!stage) return <span className="text-slate-400">—</span>;
-  if (isLifecycleStage(stage)) return <StagePill stage={stage} />;
-  return <Pill tone="neutral">{stage.charAt(0).toUpperCase() + stage.slice(1)}</Pill>;
+  const status = activeMemberStatusId(member);
+  if (status === 'returnee') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase"
+        style={{ background: '#CCFBF1', color: '#0F766E' }}
+      >
+        <span className="h-1 w-1 shrink-0 rounded-full" style={{ background: '#0F766E' }} />
+        Returnee
+      </span>
+    );
+  }
+  if (status === 'renewal') {
+    return (
+      <span
+        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase"
+        style={{ background: '#FFEDD5', color: '#C2410C' }}
+      >
+        <span className="h-1 w-1 shrink-0 rounded-full" style={{ background: '#C2410C' }} />
+        Renewal
+      </span>
+    );
+  }
+  if (status === 'newbie') return <StagePill stage="newbie" />;
+  return <StagePill stage="member" />;
 }
 
 function MemberRowMenu({ onTransfer }: { onTransfer: () => void }) {
@@ -601,8 +618,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const filteredActiveMembers = useMemo(() => {
     return activeMembers.filter((member) => {
       if (statusFilters.length > 0) {
-        const stage = member.lifecycleStage?.trim() || '';
-        if (!statusFilters.includes(stage)) return false;
+        if (!statusFilters.includes(activeMemberStatusId(member))) return false;
       }
       if (coachFilters.length > 0) {
         const coachId = member.coachUserId || 'unassigned';
