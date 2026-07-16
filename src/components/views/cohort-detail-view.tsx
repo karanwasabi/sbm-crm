@@ -12,6 +12,7 @@ import {
   CalendarDays,
   MoreVertical,
   Pencil,
+  Tags,
   UserRound,
   UserRoundPlus,
   X,
@@ -35,7 +36,6 @@ import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FilterChip } from '@/components/ui/filter-chip';
 import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SectionHead } from '@/components/ui/section-head';
@@ -186,14 +186,20 @@ function MemberRowMenu({ onTransfer }: { onTransfer: () => void }) {
   );
 }
 
-function CohortCoachFilterPopover({
+function CohortMultiFilterPopover({
+  label,
+  icon,
   options,
   selected,
   onChange,
+  emptyLabel,
 }: {
+  label: string;
+  icon: ReactNode;
   options: { value: string; label: string; count: number }[];
   selected: string[];
   onChange: (next: string[]) => void;
+  emptyLabel: string;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<string[]>(selected);
@@ -208,14 +214,15 @@ function CohortCoachFilterPopover({
       }}
     >
       <PopoverTrigger type="button" className={filterPopoverTriggerClass(selected.length > 0)}>
-        <UserRound className="h-3.5 w-3.5" />
-        Coach{selected.length > 0 ? ` (${selected.length})` : ''}
+        {icon}
+        {label}
+        {selected.length > 0 ? ` (${selected.length})` : ''}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4" align="start">
-        <p className="text-sm font-semibold text-slate-800">Filter by coach</p>
+        <p className="text-sm font-semibold text-slate-800">Filter by {label.toLowerCase()}</p>
         <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
           {options.length === 0 ? (
-            <p className="px-3 py-2 text-xs text-slate-500">No coaches yet.</p>
+            <p className="px-3 py-2 text-xs text-slate-500">{emptyLabel}</p>
           ) : (
             options.map((option) => {
               const active = selectedSet.has(option.value);
@@ -716,6 +723,20 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     });
   };
 
+  const statusFilterOptions = useMemo(() => {
+    const counts = new Map<ActiveStatusId, number>();
+    for (const option of STATUS_FILTER_OPTIONS) counts.set(option.id, 0);
+    for (const member of activeMembers) {
+      const id = activeMemberStatusId(member);
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return STATUS_FILTER_OPTIONS.map((option) => ({
+      value: option.id,
+      label: option.label,
+      count: counts.get(option.id) ?? 0,
+    }));
+  }, [activeMembers]);
+
   const handleSort = (key: ActiveSortKey) => {
     if (sortKey === key) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -725,26 +746,25 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     setSortOrder(key === 'enrolled' ? 'desc' : 'asc');
   };
 
-  const toggleStatusFilter = (stageId: string) => {
-    setStatusFilters((prev) => (prev.includes(stageId) ? prev.filter((item) => item !== stageId) : [...prev, stageId]));
-  };
-
   const activeFilterToolbar = (
     <>
       <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          <span className="mr-1 shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Status</span>
-          {STATUS_FILTER_OPTIONS.map((option) => (
-            <FilterChip
-              key={option.id}
-              active={statusFilters.includes(option.id)}
-              onClick={() => toggleStatusFilter(option.id)}
-            >
-              {option.label}
-            </FilterChip>
-          ))}
-        </div>
-        <CohortCoachFilterPopover options={coachFilterOptions} selected={coachFilters} onChange={setCoachFilters} />
+        <CohortMultiFilterPopover
+          label="Status"
+          icon={<Tags className="h-3.5 w-3.5" />}
+          options={statusFilterOptions}
+          selected={statusFilters}
+          onChange={setStatusFilters}
+          emptyLabel="No statuses yet."
+        />
+        <CohortMultiFilterPopover
+          label="Coach"
+          icon={<UserRound className="h-3.5 w-3.5" />}
+          options={coachFilterOptions}
+          selected={coachFilters}
+          onChange={setCoachFilters}
+          emptyLabel="No coaches yet."
+        />
       </div>
       {filtersActive ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
