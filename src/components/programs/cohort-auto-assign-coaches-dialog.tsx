@@ -101,8 +101,8 @@ export function CohortAutoAssignCoachesDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
+      <DialogContent className="overflow-hidden sm:max-w-lg">
+        <DialogHeader className="pr-8">
           <DialogTitle>Auto-assign coaches</DialogTitle>
           <DialogDescription>
             Choose coaches, then balance {unassignedCount} unassigned active member
@@ -119,13 +119,13 @@ export function CohortAutoAssignCoachesDialog({
             Every active member already has a coach.
           </p>
         ) : (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-xs font-semibold text-slate-500">
+          <div className="min-w-0 space-y-4">
+            <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
+              <p className="min-w-0 text-xs font-semibold text-slate-500">
                 {unassignedCount} unassigned · {selectedIds.length} coach
                 {selectedIds.length === 1 ? '' : 'es'} selected
               </p>
-              <div className="flex gap-2">
+              <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
                   onClick={selectAll}
@@ -147,7 +147,7 @@ export function CohortAutoAssignCoachesDialog({
               </div>
             </div>
 
-            <div className="max-h-56 space-y-1 overflow-y-auto rounded-xl border border-slate-100 p-2">
+            <div className="max-h-56 min-w-0 space-y-1 overflow-x-hidden overflow-y-auto rounded-xl border border-slate-100 p-2">
               {coaches.map((coach) => {
                 const checked = selectedIds.includes(coach.user_id);
                 const currentLoad = members.filter((member) => member.coachUserId === coach.user_id).length;
@@ -155,7 +155,7 @@ export function CohortAutoAssignCoachesDialog({
                   <label
                     key={coach.user_id}
                     className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+                      'flex min-w-0 cursor-pointer items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
                       checked ? 'bg-brand/5' : 'hover:bg-canvas-cool'
                     )}
                   >
@@ -164,7 +164,7 @@ export function CohortAutoAssignCoachesDialog({
                       checked={checked}
                       onChange={() => toggleCoach(coach.user_id)}
                       disabled={pending}
-                      className="h-4 w-4 rounded border-slate-300 text-brand focus:ring-brand"
+                      className="h-4 w-4 shrink-0 rounded border-slate-300 text-brand focus:ring-brand"
                     />
                     <span className="min-w-0 flex-1 truncate font-medium text-slate-800">
                       {coachOptionLabel(coach)}
@@ -178,10 +178,10 @@ export function CohortAutoAssignCoachesDialog({
             </div>
 
             {selectedIds.length > 0 ? (
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <p className="text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase">Preview</p>
-                <div className="overflow-hidden rounded-xl border border-slate-100">
-                  <table className="w-full border-collapse text-sm">
+                <div className="min-w-0 overflow-x-auto rounded-xl border border-slate-100">
+                  <table className="w-full min-w-0 border-collapse text-sm">
                     <thead>
                       <tr className="bg-canvas-cool text-left text-[10px] font-bold tracking-[0.12em] text-slate-500 uppercase">
                         <th className="px-3 py-2">Coach</th>
@@ -192,11 +192,11 @@ export function CohortAutoAssignCoachesDialog({
                     <tbody>
                       {plan.assignments.map((row) => (
                         <tr key={row.coachUserId} className="border-t border-slate-100">
-                          <td className="px-3 py-2 font-medium text-slate-800">{row.coachName}</td>
-                          <td className="px-3 py-2 text-right text-slate-600 tabular-nums">
+                          <td className="max-w-0 truncate px-3 py-2 font-medium text-slate-800">{row.coachName}</td>
+                          <td className="px-3 py-2 text-right whitespace-nowrap text-slate-600 tabular-nums">
                             {row.currentLoad} → {row.projectedLoad}
                           </td>
-                          <td className="px-3 py-2 text-right font-semibold text-slate-800 tabular-nums">
+                          <td className="px-3 py-2 text-right font-semibold whitespace-nowrap text-slate-800 tabular-nums">
                             +{row.newEnrollmentIds.length}
                           </td>
                         </tr>
