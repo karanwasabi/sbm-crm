@@ -23,7 +23,6 @@ OUTPUT_COLUMNS = [
     "Batch",
     "Lead Source",
     "Manual Tag",
-    "Coach Name",
     "Created Time",
 ]
 
@@ -371,7 +370,6 @@ def main() -> int:
             stats["invalid_renewal"] += 1
 
         email_counts[email] += 1
-        coach_name = (row.get("Coach Name") or row.get("Coach") or "").strip()
         prepared.append(
             {
                 "Email": email,
@@ -386,7 +384,6 @@ def main() -> int:
                 "Batch": args.batch,
                 "Lead Source": args.lead_source,
                 "Manual Tag": args.tag,
-                "Coach Name": coach_name,
                 "Created Time": created,
             }
         )
