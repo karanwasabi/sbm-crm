@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowDown,
@@ -644,6 +644,10 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const [coachFilters, setCoachFilters] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [statusFilters, coachFilters]);
 
   const activeMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'active'), [members]);
   const lapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
