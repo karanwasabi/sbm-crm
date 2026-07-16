@@ -56,9 +56,9 @@ type SortOrder = 'asc' | 'desc';
 
 const STATUS_FILTER_OPTIONS = [
   { id: 'newbie', label: 'Newbie' },
-  { id: 'member', label: 'Member' },
   { id: 'renewal', label: 'Renewal' },
   { id: 'returnee', label: 'Returnee' },
+  { id: 'member', label: 'Member' },
 ] as const;
 
 type ActiveStatusId = (typeof STATUS_FILTER_OPTIONS)[number]['id'];
@@ -288,6 +288,7 @@ function MemberTable({
   emptyMessage,
   statusMode,
   toolbar,
+  coachTones,
 }: {
   title: string;
   subtitle: string;
@@ -307,6 +308,7 @@ function MemberTable({
   emptyMessage?: string;
   statusMode: 'lifecycle' | 'lapsed';
   toolbar?: ReactNode;
+  coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
 }) {
   const columnCount = transferColumn ? 6 : 5;
   const rowIds = rows.map((row) => row.enrollmentId);
@@ -408,7 +410,9 @@ function MemberTable({
                     <ActiveMemberStatus member={member} />
                   )}
                 </DataTableCell>
-                <DataTableCell className="truncate text-slate-600">{member.coachName ?? '—'}</DataTableCell>
+                <DataTableCell>
+                  <CoachNamePill name={member.coachName} coachUserId={member.coachUserId} tones={coachTones} />
+                </DataTableCell>
                 <DataTableCell className="text-slate-600">
                   <LeadTableTimestamp iso={member.enrolledAt} />
                 </DataTableCell>
@@ -492,6 +496,16 @@ const COACH_CARD_GRADIENTS = [
   'from-[#A18072] via-[#7C5A4A] to-[#57534E]',
 ] as const;
 
+const COACH_PILL_TONES = [
+  { color: '#15803D', tint: '#DCFCE7' },
+  { color: '#BE123C', tint: '#FFE4E6' },
+  { color: '#B45309', tint: '#FEF3C7' },
+  { color: '#4F46E5', tint: '#E0E7FF' },
+  { color: '#0E7490', tint: '#CFFAFE' },
+  { color: '#6D28D9', tint: '#EDE9FE' },
+  { color: '#7C5A4A', tint: '#E7E5E4' },
+] as const;
+
 function coachInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return '?';
@@ -499,28 +513,69 @@ function coachInitials(name: string): string {
   return `${parts[0][0] ?? ''}${parts[1][0] ?? ''}`.toUpperCase();
 }
 
-function CoachSummaryCard({ members }: { members: CohortMember[] }) {
-  const rows = useMemo(() => {
-    const counts = new Map<string, { name: string; count: number }>();
-    for (const member of members) {
-      if (!member.coachUserId) continue;
-      const existing = counts.get(member.coachUserId);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        counts.set(member.coachUserId, {
-          name: member.coachName?.trim() || member.coachUserId,
-          count: 1,
-        });
-      }
-    }
-    return Array.from(counts.entries())
-      .map(([id, row]) => ({ id, name: row.name, count: row.count }))
-      .sort((a, b) => {
-        if (b.count !== a.count) return b.count - a.count;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+function rankedCoachRows(members: CohortMember[]) {
+  const counts = new Map<string, { name: string; count: number }>();
+  for (const member of members) {
+    if (!member.coachUserId) continue;
+    const existing = counts.get(member.coachUserId);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(member.coachUserId, {
+        name: member.coachName?.trim() || member.coachUserId,
+        count: 1,
       });
-  }, [members]);
+    }
+  }
+  return Array.from(counts.entries())
+    .map(([id, row]) => ({ id, name: row.name, count: row.count }))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    });
+}
+
+function coachToneById(members: CohortMember[]): Map<string, (typeof COACH_PILL_TONES)[number]> {
+  const map = new Map<string, (typeof COACH_PILL_TONES)[number]>();
+  rankedCoachRows(members).forEach((row, index) => {
+    map.set(row.id, COACH_PILL_TONES[index % COACH_PILL_TONES.length]);
+  });
+  return map;
+}
+
+function CoachNamePill({
+  name,
+  coachUserId,
+  tones,
+}: {
+  name?: string | null;
+  coachUserId?: string | null;
+  tones: Map<string, (typeof COACH_PILL_TONES)[number]>;
+}) {
+  const label = name?.trim();
+  if (!label || !coachUserId) return <span className="text-slate-400">—</span>;
+  const tone = tones.get(coachUserId);
+  if (!tone) {
+    return (
+      <span className="inline-flex max-w-full truncate rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold tracking-wide text-slate-600 uppercase">
+        {label}
+      </span>
+    );
+  }
+  return (
+    <span
+      className="inline-flex max-w-full items-center gap-1 truncate rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide uppercase"
+      style={{ background: tone.tint, color: tone.color }}
+      title={label}
+    >
+      <span className="h-1 w-1 shrink-0 rounded-full" style={{ background: tone.color }} />
+      <span className="truncate">{label}</span>
+    </span>
+  );
+}
+
+function CoachSummaryCard({ members }: { members: CohortMember[] }) {
+  const rows = useMemo(() => rankedCoachRows(members), [members]);
 
   if (rows.length === 0) return null;
 
@@ -632,6 +687,8 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     return [...filteredActiveMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
   }, [filteredActiveMembers, sortKey, sortOrder]);
 
+  const coachTones = useMemo(() => coachToneById(members), [members]);
+
   const filtersActive = statusFilters.length > 0 || coachFilters.length > 0;
   const canTransfer = cohort.status === 'active' && transferTargets.length > 0;
   const selectedList = useMemo(() => Array.from(selectedIds), [selectedIds]);
@@ -672,7 +729,6 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const activeFilterToolbar = (
     <>
       <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
-        <CohortCoachFilterPopover options={coachFilterOptions} selected={coachFilters} onChange={setCoachFilters} />
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           <span className="mr-1 shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Status</span>
           {STATUS_FILTER_OPTIONS.map((option) => (
@@ -685,6 +741,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
             </FilterChip>
           ))}
         </div>
+        <CohortCoachFilterPopover options={coachFilterOptions} selected={coachFilters} onChange={setCoachFilters} />
       </div>
       {filtersActive ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
@@ -783,6 +840,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           emptyMessage={filtersActive ? 'No active members match the current filters.' : 'No members in this section.'}
           statusMode="lifecycle"
           toolbar={activeFilterToolbar}
+          coachTones={coachTones}
         />
         <MemberTable
           title="Lapsed"
@@ -796,6 +854,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           onRowClick={(member) => member.leadId && router.push(`/customers/${member.leadId}`)}
           onTransfer={() => undefined}
           statusMode="lapsed"
+          coachTones={coachTones}
         />
       </div>
 
