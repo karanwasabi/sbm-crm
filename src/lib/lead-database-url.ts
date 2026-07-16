@@ -16,6 +16,7 @@ export type LeadDatabaseFilters = {
   batches: string[];
   geography: string[];
   sources: string[];
+  coaches: string[];
   addedFrom: string;
   addedTo: string;
   updatedFrom: string;
@@ -39,6 +40,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   batches: [],
   geography: [],
   sources: [],
+  coaches: [],
   addedFrom: '',
   addedTo: '',
   updatedFrom: '',
@@ -121,6 +123,7 @@ export function parseLeadDatabaseFilters(params: Record<string, string | string[
     batches: parseCommaList(get('batches')),
     geography: parseCommaList(get('geography')),
     sources: parseCommaList(get('sources')),
+    coaches: parseCommaList(get('coaches')),
     addedFrom: get('added_from')?.trim() || '',
     addedTo: get('added_to')?.trim() || '',
     updatedFrom: get('updated_from')?.trim() || '',
@@ -168,6 +171,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.batches.length > 0) params.set('batches', merged.batches.join(','));
   if (merged.geography.length > 0) params.set('geography', merged.geography.join(','));
   if (merged.sources.length > 0) params.set('sources', merged.sources.join(','));
+  if (merged.coaches.length > 0) params.set('coaches', merged.coaches.join(','));
   if (merged.addedFrom) params.set('added_from', merged.addedFrom);
   if (merged.addedTo) params.set('added_to', merged.addedTo);
   if (merged.updatedFrom) params.set('updated_from', merged.updatedFrom);

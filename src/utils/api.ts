@@ -680,12 +680,18 @@ export async function getLeadFilterOptions(): Promise<import('@/types/crm').Lead
     batches: { value: string; count: number }[];
     geography: { value: string; count: number }[];
     sources: { value: string; count: number }[];
+    coaches?: { value: string; label?: string; count: number }[];
   };
   return {
     programs: payload.programs ?? [],
     batches: payload.batches ?? [],
     geography: payload.geography ?? [],
     sources: payload.sources ?? [],
+    coaches: (payload.coaches ?? []).map((row) => ({
+      value: row.value,
+      label: row.label,
+      count: row.count,
+    })),
   };
 }
 
@@ -1134,6 +1140,7 @@ type ApiCohortMemberResponse = {
   member_phase: string;
   subscription_state: 'active' | 'lapsed';
   subscription_status?: string;
+  lifecycle_stage?: string | null;
   enrolled_at: string;
   coach_user_id?: string | null;
   coach_name?: string | null;
@@ -1176,6 +1183,7 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     memberPhase: row.member_phase,
     subscriptionState: row.subscription_state,
     subscriptionStatus: row.subscription_status,
+    lifecycleStage: row.lifecycle_stage ?? undefined,
     enrolledAt: row.enrolled_at,
     coachUserId: row.coach_user_id ?? null,
     coachName: row.coach_name ?? null,

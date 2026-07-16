@@ -26,6 +26,7 @@ const EMPTY_FILTER_OPTIONS: LeadFilterOptions = {
   batches: [],
   geography: [],
   sources: [],
+  coaches: [],
 };
 
 export default async function DatabasePage({

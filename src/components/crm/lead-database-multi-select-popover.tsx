@@ -9,15 +9,22 @@ import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigg
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { leadSourceLabel } from '@/lib/lead-sources';
 
-type MultiSelectField = 'programs' | 'batches' | 'geography' | 'sources';
+type MultiSelectField = 'programs' | 'batches' | 'geography' | 'sources' | 'coaches';
 
 type LeadDatabaseMultiSelectPopoverProps = {
   label: string;
   icon: LucideIcon;
   field: MultiSelectField;
   filters: LeadDatabaseFilters;
-  options: { value: string; count: number }[];
+  options: { value: string; label?: string; count: number }[];
 };
+
+function optionLabel(field: MultiSelectField, option: { value: string; label?: string }): string {
+  if (option.label) return option.label;
+  if (field === 'sources') return leadSourceLabel(option.value) || option.value;
+  if (field === 'coaches' && option.value === 'unassigned') return 'Unassigned';
+  return option.value;
+}
 
 export function LeadDatabaseMultiSelectPopover({
   label,
@@ -77,9 +84,7 @@ export function LeadDatabaseMultiSelectPopover({
                     )
                   }
                 >
-                  <span className="truncate pr-2">
-                    {field === 'sources' ? leadSourceLabel(option.value) || option.value : option.value}
-                  </span>
+                  <span className="truncate pr-2">{optionLabel(field, option)}</span>
                   <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
                 </button>
               );

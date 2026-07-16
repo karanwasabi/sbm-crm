@@ -48,7 +48,7 @@ export function LeadDatabaseView({
           unseenUpdatesCount={summary.withUnseenSuggestions}
         />
 
-        <LeadDatabaseActiveFilters filters={filters} />
+        <LeadDatabaseActiveFilters filters={filters} filterOptions={filterOptions} />
 
         {children}
       </CrmPageLayout>

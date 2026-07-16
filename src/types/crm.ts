@@ -62,6 +62,7 @@ export type LeadSummary = {
 
 export type LeadFilterOption = {
   value: string;
+  label?: string;
   count: number;
 };
 
@@ -70,6 +71,7 @@ export type LeadFilterOptions = {
   batches: LeadFilterOption[];
   geography: LeadFilterOption[];
   sources: LeadFilterOption[];
+  coaches: LeadFilterOption[];
 };
 
 export type LeadListResult = {
@@ -485,6 +487,7 @@ export type CohortMember = {
   memberPhase: string;
   subscriptionState: 'active' | 'lapsed';
   subscriptionStatus?: string;
+  lifecycleStage?: string;
   enrolledAt: string;
   coachUserId?: string | null;
   coachName?: string | null;

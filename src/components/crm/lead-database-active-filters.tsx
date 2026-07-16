@@ -6,12 +6,20 @@ import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilte
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import { leadSourceLabel } from '@/lib/lead-sources';
 import { tagSlugToLabel } from '@/lib/lead-tags';
+import type { LeadFilterOptions } from '@/types/crm';
 
 type LeadDatabaseActiveFiltersProps = {
   filters: LeadDatabaseFilters;
+  filterOptions?: LeadFilterOptions;
 };
 
-export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFiltersProps) {
+function coachChipLabel(value: string, filterOptions?: LeadFilterOptions): string {
+  if (value === 'unassigned') return 'Unassigned';
+  const match = filterOptions?.coaches.find((option) => option.value === value);
+  return match?.label || value;
+}
+
+export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDatabaseActiveFiltersProps) {
   const chips: Array<{ key: string; label: string; value: string; href: string }> = [];
 
   filters.stages.forEach((stage) => {
@@ -106,6 +114,14 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
       href: buildLeadDatabaseHref(filters, { sources: filters.sources.filter((item) => item !== source) }),
     });
   });
+  filters.coaches.forEach((coach) => {
+    chips.push({
+      key: `coach-${coach}`,
+      label: 'Coach',
+      value: coachChipLabel(coach, filterOptions),
+      href: buildLeadDatabaseHref(filters, { coaches: filters.coaches.filter((item) => item !== coach) }),
+    });
+  });
   if (filters.addedFrom || filters.addedTo) {
     chips.push({
       key: 'added',
@@ -144,10 +160,13 @@ export function LeadDatabaseActiveFilters({ filters }: LeadDatabaseActiveFilters
           batches: [],
           geography: [],
           sources: [],
+          coaches: [],
           addedFrom: '',
           addedTo: '',
           updatedFrom: '',
           updatedTo: '',
+          hasUnseenSuggestions: false,
+          phoneDuplicates: false,
           sort: 'created_at',
           order: 'desc',
         })}
