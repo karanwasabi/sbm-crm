@@ -1,6 +1,6 @@
 'use client';
 
-import { GraduationCap, MoreVertical, Trash2 } from 'lucide-react';
+import { GraduationCap, MoreVertical, RefreshCw, Trash2 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/cn';
 type ProfileOverflowMenuProps = {
   onPurge?: () => void;
   onEnroll?: () => void;
+  onSyncPayment?: () => void;
 };
 
 type MenuPosition = {
@@ -19,7 +20,7 @@ type MenuPosition = {
 const menuItemClass =
   'flex w-full min-w-[10.5rem] cursor-pointer items-center gap-2 px-3 py-2 text-left text-sm font-semibold transition-colors';
 
-export function ProfileOverflowMenu({ onPurge, onEnroll }: ProfileOverflowMenuProps) {
+export function ProfileOverflowMenu({ onPurge, onEnroll, onSyncPayment }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuPosition, setMenuPosition] = useState<MenuPosition | null>(null);
@@ -106,6 +107,20 @@ export function ProfileOverflowMenu({ onPurge, onEnroll }: ProfileOverflowMenuPr
               >
                 <GraduationCap className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Enroll
+              </button>
+            ) : null}
+            {onSyncPayment ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onSyncPayment();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Sync payment
               </button>
             ) : null}
             {onPurge ? (

@@ -939,6 +939,32 @@ export async function offlineEnrollLead(leadId: string, cohortId: string): Promi
   };
 }
 
+export type LeadCheckoutSyncResult = {
+  userId: string;
+  enrolled: boolean;
+  paymentPending: boolean;
+};
+
+export async function syncLeadCheckout(leadId: string): Promise<LeadCheckoutSyncResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/checkout/sync`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to sync checkout payment.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    enrolled: boolean;
+    payment_pending: boolean;
+  };
+  return {
+    userId: row.user_id,
+    enrolled: row.enrolled,
+    paymentPending: row.payment_pending,
+  };
+}
+
 export type LeadPurgeTestSignal = {
   rule: string;
   matched: boolean;

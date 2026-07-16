@@ -18,8 +18,9 @@ import {
   updateLeadTags,
   offlineEnrollLead,
   listOfflineEnrollCohorts,
+  syncLeadCheckout,
 } from '@/utils/api';
-import type { LeadPurgeInput, LeadPurgePreview } from '@/utils/api';
+import type { LeadPurgeInput, LeadPurgePreview, LeadCheckoutSyncResult } from '@/utils/api';
 import type { OfflineEnrollCohort } from '@/types/crm';
 
 export async function updateLeadTagsAction(leadId: string, manualTags: string[]): Promise<{ error: string | null }> {
@@ -171,5 +172,17 @@ export async function listOfflineEnrollCohortsAction(): Promise<{
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load cohorts.';
     return { cohorts: null, error: message };
+  }
+}
+
+export async function syncLeadCheckoutAction(
+  leadId: string
+): Promise<{ result: LeadCheckoutSyncResult | null; error: string | null }> {
+  try {
+    const result = await syncLeadCheckout(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to sync checkout payment.';
+    return { result: null, error: message };
   }
 }

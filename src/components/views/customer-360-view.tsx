@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { syncLeadCheckoutAction } from '@/app/(crm)/customers/actions';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
@@ -16,6 +17,7 @@ import { ProfileHeader } from '@/components/crm/profile-header';
 import { ProgramHistory } from '@/components/crm/program-history';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { useToast } from '@/components/ui/toast';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
@@ -32,6 +34,7 @@ type Customer360ViewProps = {
   programHistory: ProgramHistoryItem[];
   emailTemplates: EmailTemplate[];
   tagSuggestions: TagSuggestion[];
+  canSyncPayment?: boolean;
 };
 
 export function Customer360View({
@@ -39,8 +42,10 @@ export function Customer360View({
   programHistory,
   emailTemplates,
   tagSuggestions,
+  canSyncPayment = false,
 }: Customer360ViewProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const { setContactName } = useCrmContactName();
   const [lead, setLead] = useState(initialLead);
   const [callModalOpen, setCallModalOpen] = useState(false);
@@ -48,6 +53,7 @@ export function Customer360View({
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
+  const [syncingPayment, startSyncPayment] = useTransition();
   const displayTimezone = useDisplayTimezone();
 
   useEffect(() => {
@@ -67,6 +73,28 @@ export function Customer360View({
     });
   };
 
+  const handleSyncPayment = () => {
+    if (syncingPayment) return;
+    startSyncPayment(async () => {
+      const { result, error } = await syncLeadCheckoutAction(lead.id);
+      if (error || !result) {
+        toast({ message: error ?? 'Failed to sync checkout payment.', variant: 'error' });
+        return;
+      }
+      if (result.enrolled && !result.paymentPending) {
+        toast({ message: 'Payment synced. Enrollment is active.', variant: 'success' });
+      } else if (result.paymentPending) {
+        toast({
+          message: 'No paid Razorpay order found for the pending checkout yet.',
+          variant: 'error',
+        });
+      } else {
+        toast({ message: 'Checkout sync finished.', variant: 'success' });
+      }
+      refresh();
+    });
+  };
+
   return (
     <CrmPageLayout>
       <ProfileHeader
@@ -77,6 +105,7 @@ export function Customer360View({
         }
         onPurge={() => setPurgeOpen(true)}
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
+        onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
       />
       {lead.paymentPending ? <PaymentPendingBanner paymentPending={lead.paymentPending} /> : null}
       <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
@@ -84,7 +113,7 @@ export function Customer360View({
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',
-          isRefreshing && 'pointer-events-none opacity-60'
+          (isRefreshing || syncingPayment) && 'pointer-events-none opacity-60'
         )}
       >
         <ActivityTimeline events={lead.timeline} />
