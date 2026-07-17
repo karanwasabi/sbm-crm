@@ -1441,6 +1441,17 @@ export async function patchCohortPointAEnabled(
   return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
 }
 
+export async function lockCohort(cohortId: string): Promise<{ id: string; status: string; name: string }> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/lock`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to lock cohort.', response.status);
+  }
+  return (await response.json()) as { id: string; status: string; name: string };
+}
+
 export async function assignCohortCoach(
   cohortId: string,
   input: { enrollment_ids: string[]; coach_user_id: string | null }

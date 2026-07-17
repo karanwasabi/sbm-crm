@@ -18,6 +18,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
   let coaches: Awaited<ReturnType<typeof listStaff>>['active'] = [];
   let emailTemplates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
   let canManagePointA = false;
+  let canLockCohort = false;
 
   try {
     const [cohortResult, membersResult, staff, templates, access] = await Promise.all([
@@ -32,6 +33,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     coaches = staff.active.filter((row) => row.roles.includes('coach'));
     emailTemplates = templates;
     canManagePointA = isSuperadmin(access.roles);
+    canLockCohort = isSuperadmin(access.roles);
     if (cohort.status === 'active') {
       const programCohorts = await getProgramCohorts(cohort.programId);
       transferTargets = programCohorts.filter((row) => row.status === 'active' && row.id !== cohortId);
@@ -43,6 +45,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     coaches = [];
     emailTemplates = [];
     canManagePointA = false;
+    canLockCohort = false;
   }
 
   if (!cohort) {
@@ -57,6 +60,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
       coaches={coaches}
       emailTemplates={emailTemplates}
       canManagePointA={canManagePointA}
+      canLockCohort={canLockCohort}
     />
   );
 }

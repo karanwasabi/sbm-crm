@@ -3,10 +3,12 @@
 import { revalidatePath } from 'next/cache';
 import {
   assignCohortCoach,
+  lockCohort,
   patchCohort,
   patchCohortPointAEnabled,
   transferEnrollment,
   type PatchCohortInput,
+  ApiError,
 } from '@/utils/api';
 
 export async function patchCohortAction(cohortId: string, input: PatchCohortInput) {
@@ -21,6 +23,20 @@ export async function patchCohortPointAEnabledAction(cohortId: string, pointAEna
   revalidatePath(`/programs/cohorts/${cohortId}`);
   revalidatePath('/programs');
   return result;
+}
+
+export async function lockCohortAction(
+  cohortId: string
+): Promise<{ result: { id: string; status: string; name: string } | null; error: string | null }> {
+  try {
+    const result = await lockCohort(cohortId);
+    revalidatePath('/programs');
+    revalidatePath(`/programs/cohorts/${cohortId}`);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to lock cohort.';
+    return { result: null, error: message };
+  }
 }
 
 export async function transferEnrollmentAction(cohortId: string, enrollmentId: string, targetCohortId: string) {

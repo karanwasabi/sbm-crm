@@ -12,6 +12,7 @@ import {
   CalendarDays,
   Clock3,
   Globe2,
+  Lock,
   MapPin,
   MoreVertical,
   Pencil,
@@ -46,7 +47,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
 import { useToast } from '@/components/ui/toast';
-import { patchCohortPointAEnabledAction } from '@/app/(crm)/programs/actions';
+import { lockCohortAction, patchCohortPointAEnabledAction } from '@/app/(crm)/programs/actions';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
@@ -59,6 +60,7 @@ type CohortDetailViewProps = {
   coaches: StaffMember[];
   emailTemplates: EmailTemplate[];
   canManagePointA?: boolean;
+  canLockCohort?: boolean;
 };
 
 type ActiveSortKey = 'name' | 'coach' | 'whatsapp' | 'city' | 'country' | 'timezone' | 'enrolled';
@@ -820,6 +822,7 @@ export function CohortDetailView({
   coaches,
   emailTemplates,
   canManagePointA = false,
+  canLockCohort = false,
 }: CohortDetailViewProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -827,6 +830,7 @@ export function CohortDetailView({
   const [assignOpen, setAssignOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [transferMember, setTransferMember] = useState<CohortMember | null>(null);
+  const [lockPending, setLockPending] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [coachFilters, setCoachFilters] = useState<string[]>([]);
@@ -872,6 +876,30 @@ export function CohortDetailView({
       });
     } finally {
       setPointASaving(false);
+    }
+  };
+
+  const handleLockCohort = async () => {
+    const confirmed = window.confirm(
+      'Lock this cohort? New portal registrations will close. The queued cohort becomes upcoming, and a new batch is queued. Unpaid checkouts for this cohort will expire.'
+    );
+    if (!confirmed) return;
+    setLockPending(true);
+    try {
+      const { error } = await lockCohortAction(cohort.id);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
+      }
+      toast({ message: 'Cohort locked. Registration is closed.', variant: 'success' });
+      router.refresh();
+    } catch (error) {
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to lock cohort.',
+        variant: 'error',
+      });
+    } finally {
+      setLockPending(false);
     }
   };
 
@@ -1178,6 +1206,17 @@ export function CohortDetailView({
           Back to cohorts
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          {canLockCohort && cohort.status === 'upcoming' ? (
+            <Button
+              variant="light"
+              size="sm"
+              disabled={lockPending}
+              onClick={() => void handleLockCohort()}
+              leftIcon={<Lock className="h-3.5 w-3.5" />}
+            >
+              {lockPending ? 'Locking…' : 'Lock cohort'}
+            </Button>
+          ) : null}
           {cohort.canEdit && (
             <Button
               variant="primary"
