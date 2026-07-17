@@ -46,10 +46,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
 import { useToast } from '@/components/ui/toast';
+import { patchCohortPointAEnabledAction } from '@/app/(crm)/programs/actions';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
-import { ApiError, patchCohortPointAEnabled, type EmailTemplate, type StaffMember } from '@/utils/api';
+import type { EmailTemplate, StaffMember } from '@/utils/api';
 
 type CohortDetailViewProps = {
   cohort: CohortDetail;
@@ -854,7 +855,7 @@ export function CohortDetailView({
     setPointAEnabled(enabled);
     setPointASaving(true);
     try {
-      const updated = await patchCohortPointAEnabled(cohort.id, enabled);
+      const updated = await patchCohortPointAEnabledAction(cohort.id, enabled);
       setPointAEnabled(Boolean(updated.pointAEnabled));
       setPointAEffective(Boolean(updated.pointAEffective ?? updated.pointAEnabled));
       toast({
@@ -866,7 +867,7 @@ export function CohortDetailView({
       setPointAEnabled(prevEnabled);
       setPointAEffective(prevEffective);
       toast({
-        message: error instanceof ApiError ? error.message : 'Failed to update Point A setting.',
+        message: error instanceof Error ? error.message : 'Failed to update Point A setting.',
         variant: 'error',
       });
     } finally {
