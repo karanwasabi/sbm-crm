@@ -3,7 +3,11 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { syncLeadCheckoutAction, markLeadCheckoutPaidOfflineAction } from '@/app/(crm)/customers/actions';
+import {
+  syncLeadCheckoutAction,
+  markLeadCheckoutPaidOfflineAction,
+  setLeadMemberKindAction,
+} from '@/app/(crm)/customers/actions';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
@@ -118,10 +122,33 @@ export function Customer360View({
     });
   };
 
+  const handleSetMemberKind = (kind: 'renewal' | 'returnee' | null) => {
+    const label = kind === 'renewal' ? 'renewal' : kind === 'returnee' ? 'returnee' : 'cleared';
+    const confirmed = window.confirm(
+      kind
+        ? `Mark this lead as ${kind}? This shows on cohort Active Status.`
+        : 'Clear renewal/returnee status for this lead?'
+    );
+    if (!confirmed) return;
+    startTransition(async () => {
+      const { error } = await setLeadMemberKindAction(lead.id, kind);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
+      }
+      toast({
+        message: kind ? `Marked as ${label}.` : 'Renewal/returnee status cleared.',
+        variant: 'success',
+      });
+      refresh();
+    });
+  };
+
   return (
     <CrmPageLayout>
       <ProfileHeader
         contact={contact}
+        memberKind={lead.memberKind}
         onLogCall={() => setCallModalOpen(true)}
         onSendEmail={
           emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
@@ -130,6 +157,13 @@ export function Customer360View({
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
         onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
         onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
+        onMarkRenewal={
+          canSyncPayment && lead.memberKind !== 'renewal' ? () => handleSetMemberKind('renewal') : undefined
+        }
+        onMarkReturnee={
+          canSyncPayment && lead.memberKind !== 'returnee' ? () => handleSetMemberKind('returnee') : undefined
+        }
+        onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
       />
       {lead.paymentPending ? (
         <PaymentPendingBanner
@@ -169,6 +203,7 @@ export function Customer360View({
             attribution={lead.attribution}
             leadId={lead.id}
             canEditAccess={canSyncPayment}
+            canPromoteToMember={canSyncPayment && lead.stage === 'newbie'}
           />
         </div>
       </div>

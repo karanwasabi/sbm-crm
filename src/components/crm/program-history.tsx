@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
-import { CalendarRange } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
+import { ArrowUpRight, CalendarRange } from 'lucide-react';
 import { EditMembershipAccessDialog } from '@/components/crm/edit-membership-access-dialog';
+import { promoteLeadToMemberAction } from '@/app/(crm)/customers/actions';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
+import { useToast } from '@/components/ui/toast';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { attributionFormLabel, attributionSourceLabel } from '@/lib/lead-attribution';
 import { resolveDisplayTimezone } from '@/lib/datetime-display';
@@ -19,6 +22,7 @@ type ProgramHistoryProps = {
   attribution?: LeadAttribution | null;
   leadId?: string;
   canEditAccess?: boolean;
+  canPromoteToMember?: boolean;
 };
 
 function label(value: string | null | undefined) {
@@ -92,18 +96,25 @@ function EnrollmentRow({
   item,
   timezone,
   canEditAccess,
+  canPromoteToMember,
+  promotePending,
   onEditAccess,
+  onPromoteToMember,
 }: {
   item: ProgramHistoryItem;
   timezone: string;
   canEditAccess?: boolean;
+  canPromoteToMember?: boolean;
+  promotePending?: boolean;
   onEditAccess?: (item: ProgramHistoryItem) => void;
+  onPromoteToMember?: (item: ProgramHistoryItem) => void;
 }) {
   const renew = autoRenewInfo(item);
   const activeFrom = formatMembershipDate(item.startsOn ?? item.date, timezone);
   const activeUntil = formatMembershipDate(item.accessUntil, timezone);
   const showGrace = isGraceOpen(item.graceUntil);
   const hasMembershipWindow = Boolean(item.startsOn || item.accessUntil);
+  const showPromote = Boolean(canPromoteToMember && onPromoteToMember && item.phase === 'initial');
 
   return (
     <article className="border-t border-slate-100 px-5 py-4">
@@ -140,32 +151,60 @@ function EnrollmentRow({
                 </p>
               ) : null}
             </div>
-            {canEditAccess && onEditAccess ? (
-              <Button
-                type="button"
-                variant="light"
-                size="sm"
-                leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
-                onClick={() => onEditAccess(item)}
-              >
-                Edit access
-              </Button>
-            ) : null}
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {showPromote ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  leftIcon={<ArrowUpRight className="h-3.5 w-3.5" />}
+                  loading={promotePending}
+                  onClick={() => onPromoteToMember?.(item)}
+                >
+                  Convert to member
+                </Button>
+              ) : null}
+              {canEditAccess && onEditAccess ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
+                  onClick={() => onEditAccess(item)}
+                >
+                  Edit access
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
-      ) : canEditAccess && onEditAccess ? (
-        <div className="mt-3">
-          <Button
-            type="button"
-            variant="light"
-            size="sm"
-            leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
-            onClick={() => onEditAccess(item)}
-          >
-            Set access until
-          </Button>
+      ) : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {showPromote ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              leftIcon={<ArrowUpRight className="h-3.5 w-3.5" />}
+              loading={promotePending}
+              onClick={() => onPromoteToMember?.(item)}
+            >
+              Convert to member
+            </Button>
+          ) : null}
+          {canEditAccess && onEditAccess ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
+              onClick={() => onEditAccess(item)}
+            >
+              Set access until
+            </Button>
+          ) : null}
         </div>
-      ) : null}
+      )}
 
       <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
         {item.phase ? (
@@ -196,11 +235,40 @@ export function ProgramHistory({
   attribution,
   leadId,
   canEditAccess = false,
+  canPromoteToMember = false,
 }: ProgramHistoryProps) {
+  const router = useRouter();
+  const { toast } = useToast();
   const timezone = useDisplayTimezone();
   const [editItem, setEditItem] = useState<ProgramHistoryItem | null>(null);
+  const [promotePendingId, setPromotePendingId] = useState<string | null>(null);
+  const [promotePending, startPromote] = useTransition();
   const showSummary = Boolean(interest?.trim() || batch?.trim() || attribution);
   const formLabel = attribution ? attributionFormLabel(attribution) : null;
+
+  const handlePromote = (item: ProgramHistoryItem) => {
+    if (!leadId) return;
+    const confirmed = window.confirm(
+      `Convert this enrollment to monthly phase? The lead stage will sync to Member if they are currently a Newbie.`
+    );
+    if (!confirmed) return;
+    setPromotePendingId(item.id);
+    startPromote(async () => {
+      const { result, error } = await promoteLeadToMemberAction(leadId, item.id);
+      setPromotePendingId(null);
+      if (error || !result) {
+        toast({ message: error ?? 'Failed to convert to member.', variant: 'error' });
+        return;
+      }
+      toast({
+        message: result.stage
+          ? `Converted to member. Stage is now ${result.stage}.`
+          : 'Converted enrollment to monthly phase.',
+        variant: 'success',
+      });
+      router.refresh();
+    });
+  };
 
   return (
     <Card padding="none" className="w-full">
@@ -280,7 +348,10 @@ export function ProgramHistory({
               item={item}
               timezone={timezone}
               canEditAccess={canEditAccess}
+              canPromoteToMember={canPromoteToMember}
+              promotePending={promotePending && promotePendingId === item.id}
               onEditAccess={canEditAccess ? setEditItem : undefined}
+              onPromoteToMember={canPromoteToMember ? handlePromote : undefined}
             />
           ))}
         </div>

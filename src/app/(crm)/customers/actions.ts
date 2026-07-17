@@ -21,6 +21,8 @@ import {
   syncLeadCheckout,
   markLeadCheckoutPaidOffline,
   setLeadMembershipAccessUntil,
+  setLeadMemberKind,
+  promoteLeadToMember,
 } from '@/utils/api';
 import type {
   LeadPurgeInput,
@@ -28,6 +30,8 @@ import type {
   LeadCheckoutSyncResult,
   MarkCheckoutPaidOfflineResult,
   SetMembershipAccessResult,
+  SetMemberKindResult,
+  PromoteToMemberResult,
 } from '@/utils/api';
 import type { OfflineEnrollCohort } from '@/types/crm';
 
@@ -217,6 +221,32 @@ export async function setLeadMembershipAccessUntilAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to update membership access.';
+    return { result: null, error: message };
+  }
+}
+
+export async function setLeadMemberKindAction(
+  leadId: string,
+  memberKind: 'renewal' | 'returnee' | null
+): Promise<{ result: SetMemberKindResult | null; error: string | null }> {
+  try {
+    const result = await setLeadMemberKind(leadId, memberKind);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to update member kind.';
+    return { result: null, error: message };
+  }
+}
+
+export async function promoteLeadToMemberAction(
+  leadId: string,
+  enrollmentId: string
+): Promise<{ result: PromoteToMemberResult | null; error: string | null }> {
+  try {
+    const result = await promoteLeadToMember(leadId, enrollmentId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to promote to member.';
     return { result: null, error: message };
   }
 }

@@ -238,6 +238,7 @@ type ApiLeadResponse = {
   manual_source?: import('@/types/crm').ManualLeadSource;
   notes?: string | null;
   member_user_id?: string | null;
+  member_kind?: 'renewal' | 'returnee' | null;
   can_mark_lost?: boolean;
   can_purge?: boolean;
   can_offline_enroll?: boolean;
@@ -349,6 +350,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
     unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
+    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
   };
 }
 
@@ -815,6 +817,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     manualSource: manualSource as import('@/types/crm').ManualLeadSource,
     notes: row.notes ?? '',
     memberUserId: row.member_user_id ?? null,
+    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
     canMarkLost: row.can_mark_lost ?? false,
     canPurge: row.can_purge ?? false,
     canOfflineEnroll: row.can_offline_enroll ?? false,
@@ -1032,6 +1035,62 @@ export async function setLeadMembershipAccessUntil(
     checkoutSessionId: row.checkout_session_id,
     accessUntil: row.access_until,
     graceUntil: row.grace_until,
+  };
+}
+
+export type SetMemberKindResult = {
+  leadId: string;
+  memberKind: 'renewal' | 'returnee' | null;
+};
+
+export async function setLeadMemberKind(
+  leadId: string,
+  memberKind: 'renewal' | 'returnee' | null
+): Promise<SetMemberKindResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/member-kind`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ member_kind: memberKind }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update member kind.', response.status);
+  }
+  const row = (await response.json()) as {
+    lead_id: string;
+    member_kind: 'renewal' | 'returnee' | null;
+  };
+  return {
+    leadId: row.lead_id,
+    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
+  };
+}
+
+export type PromoteToMemberResult = {
+  enrollmentId: string;
+  phase: string;
+  stage?: string;
+};
+
+export async function promoteLeadToMember(leadId: string, enrollmentId: string): Promise<PromoteToMemberResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership/promote-to-member`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enrollment_id: enrollmentId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to promote to member.', response.status);
+  }
+  const row = (await response.json()) as {
+    enrollment_id: string;
+    phase: string;
+    stage?: string;
+  };
+  return {
+    enrollmentId: row.enrollment_id,
+    phase: row.phase,
+    stage: row.stage,
   };
 }
 

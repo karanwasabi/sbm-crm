@@ -8,6 +8,7 @@ import { LeadDatabaseSelectionControls } from '@/components/crm/lead-database-se
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
 import { TruncatedContainerTooltip, TruncatedWithTooltip } from '@/components/crm/truncated-with-tooltip';
 import { SortableHeader } from '@/components/crm/lead-database-sortable-header';
+import { MemberKindPill } from '@/components/ui/member-kind-pill';
 import {
   DataTable,
   DataTableBody,
@@ -182,6 +183,11 @@ function LeadRow({ lead }: { lead: Lead }) {
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <TruncatedWithTooltip text={lead.name} className="font-semibold text-slate-800" />
+        {lead.memberKind === 'renewal' || lead.memberKind === 'returnee' ? (
+          <div className="mt-0.5">
+            <MemberKindPill kind={lead.memberKind} />
+          </div>
+        ) : null}
         <TruncatedWithTooltip text={lead.email} className="text-[11px] text-slate-500" />
         {lead.dedup && <span className="text-[10px] font-bold text-danger-press">Possible duplicate</span>}
         {lead.phoneDuplicate && (

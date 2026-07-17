@@ -6,6 +6,7 @@ import { formatActivityTimestamp } from '@/lib/datetime-display';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
 import { ProfileOverflowMenu } from '@/components/crm/profile-overflow-menu';
+import { MemberKindPill } from '@/components/ui/member-kind-pill';
 import { Avatar } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { StagePill } from '@/components/ui/stage-pill';
@@ -21,6 +22,10 @@ type ProfileHeaderProps = {
   onEnroll?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
+  onMarkRenewal?: () => void;
+  onMarkReturnee?: () => void;
+  onClearMemberKind?: () => void;
+  memberKind?: 'renewal' | 'returnee' | null;
 };
 
 const HEADER_PILL_CLASS =
@@ -56,6 +61,10 @@ export function ProfileHeader({
   onEnroll,
   onSyncPayment,
   onMarkPaidOffline,
+  onMarkRenewal,
+  onMarkReturnee,
+  onClearMemberKind,
+  memberKind = null,
 }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
   const showMemberStats = contact.isMember && contact.clv != null;
@@ -71,6 +80,7 @@ export function ProfileHeader({
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-[26px] font-extrabold tracking-tight">{contact.name}</h2>
             <StagePill stage={contact.stage} className="tracking-wide normal-case" />
+            {memberKind === 'renewal' || memberKind === 'returnee' ? <MemberKindPill kind={memberKind} /> : null}
             <HeaderMetaPill title={marketingContactTitle(contact, displayTimezone)}>
               Marketing:{' '}
               {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
@@ -154,12 +164,21 @@ export function ProfileHeader({
               Send email
             </Button>
           ) : null}
-          {onPurge || onEnroll || onSyncPayment || onMarkPaidOffline ? (
+          {onPurge ||
+          onEnroll ||
+          onSyncPayment ||
+          onMarkPaidOffline ||
+          onMarkRenewal ||
+          onMarkReturnee ||
+          onClearMemberKind ? (
             <ProfileOverflowMenu
               onPurge={onPurge}
               onEnroll={onEnroll}
               onSyncPayment={onSyncPayment}
               onMarkPaidOffline={onMarkPaidOffline}
+              onMarkRenewal={onMarkRenewal}
+              onMarkReturnee={onMarkReturnee}
+              onClearMemberKind={onClearMemberKind}
             />
           ) : null}
         </div>

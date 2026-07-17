@@ -52,6 +52,7 @@ export type Lead = {
   marketingContactSyncedAt?: string | null;
   marketingUnsubscribedAt?: string | null;
   unseenSuggestionCount: number;
+  memberKind?: 'renewal' | 'returnee' | null;
 };
 
 export type LeadSummary = {
@@ -232,6 +233,7 @@ export type LeadDetail = Lead & {
   manualSource: ManualLeadSource;
   notes: string;
   memberUserId: string | null;
+  memberKind: 'renewal' | 'returnee' | null;
   canMarkLost: boolean;
   canPurge: boolean;
   canOfflineEnroll: boolean;
