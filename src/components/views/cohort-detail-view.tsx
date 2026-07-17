@@ -45,10 +45,11 @@ import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
+import { useToast } from '@/components/ui/toast';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
-import type { EmailTemplate, StaffMember } from '@/utils/api';
+import { ApiError, patchCohortPointAEnabled, type EmailTemplate, type StaffMember } from '@/utils/api';
 
 type CohortDetailViewProps = {
   cohort: CohortDetail;
@@ -56,6 +57,7 @@ type CohortDetailViewProps = {
   transferTargets: CohortSummary[];
   coaches: StaffMember[];
   emailTemplates: EmailTemplate[];
+  canManagePointA?: boolean;
 };
 
 type ActiveSortKey = 'name' | 'coach' | 'whatsapp' | 'city' | 'country' | 'timezone' | 'enrolled';
@@ -528,11 +530,23 @@ function CohortDetailHeader({
   cohort,
   activeCount,
   lapsedCount,
+  canManagePointA,
+  pointAEnabled,
+  pointAEffective,
+  pointASaving,
+  onTogglePointA,
 }: {
   cohort: CohortDetail;
   activeCount: number;
   lapsedCount: number;
+  canManagePointA?: boolean;
+  pointAEnabled: boolean;
+  pointAEffective: boolean;
+  pointASaving?: boolean;
+  onTogglePointA?: (enabled: boolean) => void;
 }) {
+  const autoEnabled = pointAEffective && !pointAEnabled;
+
   return (
     <div
       className={cn(
@@ -556,6 +570,27 @@ function CohortDetailHeader({
             </span>
             <span className="text-white/75">{cohort.programName}</span>
           </div>
+          {canManagePointA ? (
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-white/40"
+                  checked={pointAEnabled}
+                  disabled={pointASaving}
+                  onChange={(e) => onTogglePointA?.(e.target.checked)}
+                />
+                Point A enabled
+              </label>
+              {autoEnabled ? (
+                <span className="text-[11px] font-medium text-white/75">Auto-required (start date reached)</span>
+              ) : pointAEffective ? (
+                <span className="text-[11px] font-medium text-white/75">Members can take Point A</span>
+              ) : (
+                <span className="text-[11px] font-medium text-white/75">Members wait on home until enabled</span>
+              )}
+            </div>
+          ) : null}
         </div>
 
         <div className="inline-flex shrink-0 overflow-hidden rounded-2xl border-b-2 border-black/22 bg-black/16 sm:self-center">
@@ -777,8 +812,16 @@ function memberMatchesSearch(member: CohortMember, query: string): boolean {
   return false;
 }
 
-export function CohortDetailView({ cohort, members, transferTargets, coaches, emailTemplates }: CohortDetailViewProps) {
+export function CohortDetailView({
+  cohort,
+  members,
+  transferTargets,
+  coaches,
+  emailTemplates,
+  canManagePointA = false,
+}: CohortDetailViewProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
@@ -792,10 +835,44 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [pointAEnabled, setPointAEnabled] = useState(Boolean(cohort.pointAEnabled));
+  const [pointAEffective, setPointAEffective] = useState(Boolean(cohort.pointAEffective ?? cohort.pointAEnabled));
+  const [pointASaving, setPointASaving] = useState(false);
+
+  useEffect(() => {
+    setPointAEnabled(Boolean(cohort.pointAEnabled));
+    setPointAEffective(Boolean(cohort.pointAEffective ?? cohort.pointAEnabled));
+  }, [cohort.pointAEnabled, cohort.pointAEffective]);
 
   useEffect(() => {
     setSelectedIds(new Set());
   }, [statusFilters, coachFilters, cityFilters, countryFilters, timezoneFilters, searchQuery]);
+
+  const handleTogglePointA = async (enabled: boolean) => {
+    const prevEnabled = pointAEnabled;
+    const prevEffective = pointAEffective;
+    setPointAEnabled(enabled);
+    setPointASaving(true);
+    try {
+      const updated = await patchCohortPointAEnabled(cohort.id, enabled);
+      setPointAEnabled(Boolean(updated.pointAEnabled));
+      setPointAEffective(Boolean(updated.pointAEffective ?? updated.pointAEnabled));
+      toast({
+        message: enabled ? 'Point A enabled for this cohort' : 'Point A disabled for this cohort',
+        variant: 'success',
+      });
+      router.refresh();
+    } catch (error) {
+      setPointAEnabled(prevEnabled);
+      setPointAEffective(prevEffective);
+      toast({
+        message: error instanceof ApiError ? error.message : 'Failed to update Point A setting.',
+        variant: 'error',
+      });
+    } finally {
+      setPointASaving(false);
+    }
+  };
 
   const geoFilteredMembers = useMemo(() => {
     return members.filter((member) => {
@@ -1113,7 +1190,16 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
         </div>
       </div>
 
-      <CohortDetailHeader cohort={cohort} activeCount={allActiveMembers.length} lapsedCount={allLapsedMembers.length} />
+      <CohortDetailHeader
+        cohort={cohort}
+        activeCount={allActiveMembers.length}
+        lapsedCount={allLapsedMembers.length}
+        canManagePointA={canManagePointA}
+        pointAEnabled={pointAEnabled}
+        pointAEffective={pointAEffective}
+        pointASaving={pointASaving}
+        onTogglePointA={(enabled) => void handleTogglePointA(enabled)}
+      />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">

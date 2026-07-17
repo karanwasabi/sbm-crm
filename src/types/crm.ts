@@ -482,6 +482,9 @@ export type CohortSummary = {
 export type CohortDetail = CohortSummary & {
   programName: string;
   paidMemberCount: number;
+  pointAEnabled?: boolean;
+  pointAEffective?: boolean;
+  canEditPointAEnabled?: boolean;
 };
 
 export type CohortMember = {

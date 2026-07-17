@@ -1,5 +1,13 @@
 import { CohortDetailView } from '@/components/views/cohort-detail-view';
-import { getCohort, getCohortMembers, getProgramCohorts, listEmailTemplates, listStaff } from '@/utils/api';
+import { isSuperadmin } from '@/lib/access';
+import {
+  getCohort,
+  getCohortMembers,
+  getMyAccess,
+  getProgramCohorts,
+  listEmailTemplates,
+  listStaff,
+} from '@/utils/api';
 
 export default async function CohortDetailPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;
@@ -9,18 +17,21 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
   let transferTargets: Awaited<ReturnType<typeof getProgramCohorts>> = [];
   let coaches: Awaited<ReturnType<typeof listStaff>>['active'] = [];
   let emailTemplates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
+  let canManagePointA = false;
 
   try {
-    const [cohortResult, membersResult, staff, templates] = await Promise.all([
+    const [cohortResult, membersResult, staff, templates, access] = await Promise.all([
       getCohort(cohortId),
       getCohortMembers(cohortId),
       listStaff(),
       listEmailTemplates().catch(() => []),
+      getMyAccess(),
     ]);
     cohort = cohortResult;
     members = membersResult;
     coaches = staff.active.filter((row) => row.roles.includes('coach'));
     emailTemplates = templates;
+    canManagePointA = isSuperadmin(access.roles);
     if (cohort.status === 'active') {
       const programCohorts = await getProgramCohorts(cohort.programId);
       transferTargets = programCohorts.filter((row) => row.status === 'active' && row.id !== cohortId);
@@ -31,6 +42,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     transferTargets = [];
     coaches = [];
     emailTemplates = [];
+    canManagePointA = false;
   }
 
   if (!cohort) {
@@ -44,6 +56,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
       transferTargets={transferTargets}
       coaches={coaches}
       emailTemplates={emailTemplates}
+      canManagePointA={canManagePointA}
     />
   );
 }

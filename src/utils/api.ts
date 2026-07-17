@@ -1280,6 +1280,9 @@ type ApiCohortResponse = {
 type ApiCohortDetailResponse = ApiCohortResponse & {
   program_name: string;
   paid_member_count: number;
+  point_a_enabled?: boolean;
+  point_a_effective?: boolean;
+  can_edit_point_a_enabled?: boolean;
 };
 
 type ApiCohortMemberResponse = {
@@ -1326,6 +1329,9 @@ function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').Co
     ...mapCohortSummary(row),
     programName: row.program_name,
     paidMemberCount: row.paid_member_count,
+    pointAEnabled: row.point_a_enabled,
+    pointAEffective: row.point_a_effective,
+    canEditPointAEnabled: row.can_edit_point_a_enabled,
   };
 }
 
@@ -1415,6 +1421,22 @@ export async function patchCohort(
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to update cohort.', response.status);
+  }
+  return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
+}
+
+export async function patchCohortPointAEnabled(
+  cohortId: string,
+  pointAEnabled: boolean
+): Promise<import('@/types/crm').CohortDetail> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/point-a-enabled`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ point_a_enabled: pointAEnabled }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update Point A setting.', response.status);
   }
   return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
 }
