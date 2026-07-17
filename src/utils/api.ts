@@ -1230,6 +1230,12 @@ type ApiCohortMemberResponse = {
   member_name: string;
   member_initials: string;
   email: string;
+  whatsapp?: string | null;
+  city?: string | null;
+  country_code?: string | null;
+  country_name?: string | null;
+  timezone_id?: string | null;
+  timezone_label?: string | null;
   enrollment_status: string;
   member_phase: string;
   subscription_state: 'active' | 'lapsed';
@@ -1272,6 +1278,12 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     memberName: row.member_name,
     memberInitials: row.member_initials,
     email: row.email,
+    whatsapp: row.whatsapp?.trim() ?? '',
+    city: row.city?.trim() ?? '',
+    countryCode: row.country_code?.trim() ?? '',
+    countryName: row.country_name?.trim() ?? '',
+    timezoneId: row.timezone_id?.trim() ?? '',
+    timezoneLabel: row.timezone_label?.trim() || row.timezone_id?.trim() || '',
     enrollmentStatus: row.enrollment_status,
     memberPhase: row.member_phase,
     subscriptionState: row.subscription_state,

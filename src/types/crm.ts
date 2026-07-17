@@ -489,6 +489,12 @@ export type CohortMember = {
   memberName: string;
   memberInitials: string;
   email: string;
+  whatsapp: string;
+  city: string;
+  countryCode: string;
+  countryName: string;
+  timezoneId: string;
+  timezoneLabel: string;
   enrollmentStatus: string;
   memberPhase: string;
   subscriptionState: 'active' | 'lapsed';

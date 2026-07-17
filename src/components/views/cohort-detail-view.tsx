@@ -10,6 +10,9 @@ import {
   ArrowUpDown,
   ArrowRightLeft,
   CalendarDays,
+  Clock3,
+  Globe2,
+  MapPin,
   MoreVertical,
   Pencil,
   Tags,
@@ -31,6 +34,7 @@ import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coa
 import { CohortAutoAssignCoachesDialog } from '@/components/programs/cohort-auto-assign-coaches-dialog';
 import { CohortBulkSendButton } from '@/components/programs/cohort-bulk-send-button';
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
+import { CohortExportButton } from '@/components/programs/cohort-export-button';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
@@ -53,8 +57,10 @@ type CohortDetailViewProps = {
   emailTemplates: EmailTemplate[];
 };
 
-type ActiveSortKey = 'name' | 'coach' | 'enrolled';
+type ActiveSortKey = 'name' | 'coach' | 'whatsapp' | 'city' | 'country' | 'timezone' | 'enrolled';
 type SortOrder = 'asc' | 'desc';
+
+const UNSPECIFIED_FILTER = 'unspecified';
 
 const STATUS_FILTER_OPTIONS = [
   { id: 'newbie', label: 'Newbie' },
@@ -72,27 +78,32 @@ function activeMemberStatusId(member: CohortMember): ActiveStatusId {
   return 'member';
 }
 
-function MemberTableColGroup({ withActions }: { withActions: boolean }) {
-  if (withActions) {
-    return (
-      <colgroup>
-        <col style={{ width: '5%' }} />
-        <col style={{ width: '36%' }} />
-        <col style={{ width: '14%' }} />
-        <col style={{ width: '20%' }} />
-        <col style={{ width: '19%' }} />
-        <col style={{ width: '6%' }} />
-      </colgroup>
-    );
-  }
+function displayOrDash(value: string): string {
+  const trimmed = value.trim();
+  return trimmed || '—';
+}
 
+function countryDisplay(member: CohortMember): string {
+  return member.countryName.trim() || member.countryCode.trim();
+}
+
+function timezoneDisplay(member: CohortMember): string {
+  return member.timezoneLabel.trim() || member.timezoneId.trim();
+}
+
+function MemberTableColGroup({ withActions }: { withActions: boolean }) {
   return (
     <colgroup>
-      <col style={{ width: '5%' }} />
-      <col style={{ width: '38%' }} />
-      <col style={{ width: '15%' }} />
-      <col style={{ width: '22%' }} />
-      <col style={{ width: '20%' }} />
+      <col style={{ minWidth: 40 }} />
+      <col style={{ minWidth: 200 }} />
+      <col style={{ minWidth: 100 }} />
+      <col style={{ minWidth: 120 }} />
+      <col style={{ minWidth: 120 }} />
+      <col style={{ minWidth: 110 }} />
+      <col style={{ minWidth: 120 }} />
+      <col style={{ minWidth: 160 }} />
+      <col style={{ minWidth: 120 }} />
+      {withActions ? <col style={{ minWidth: 48 }} /> : null}
     </colgroup>
   );
 }
@@ -319,7 +330,7 @@ function MemberTable({
   toolbar?: ReactNode;
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
 }) {
-  const columnCount = transferColumn ? 6 : 5;
+  const columnCount = transferColumn ? 10 : 9;
   const rowIds = rows.map((row) => row.enrollmentId);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
@@ -329,112 +340,174 @@ function MemberTable({
         <SectionHead title={title} subtitle={subtitle} className="mb-1.5" />
       </div>
       {toolbar}
-      <DataTable tableClassName="table-fixed">
-        <MemberTableColGroup withActions={transferColumn} />
-        <DataTableHead>
-          <DataTableHeaderCell>
-            <input
-              type="checkbox"
-              checked={allSelected}
-              onChange={(event) => onToggleAll(rowIds, event.target.checked)}
-              aria-label={`Select all in ${title}`}
-            />
-          </DataTableHeaderCell>
-          <DataTableHeaderCell>
-            {sortable && sortKey && sortOrder && onSort ? (
-              <LocalSortableHeader
-                label="Member"
-                sortKey="name"
-                activeKey={sortKey}
-                order={sortOrder}
-                onSort={onSort}
+      <div className="overflow-x-auto">
+        <DataTable tableClassName="min-w-[1100px]">
+          <MemberTableColGroup withActions={transferColumn} />
+          <DataTableHead>
+            <DataTableHeaderCell>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(event) => onToggleAll(rowIds, event.target.checked)}
+                aria-label={`Select all in ${title}`}
               />
-            ) : (
-              'Member'
-            )}
-          </DataTableHeaderCell>
-          <DataTableHeaderCell>Status</DataTableHeaderCell>
-          <DataTableHeaderCell>
-            {sortable && sortKey && sortOrder && onSort ? (
-              <LocalSortableHeader
-                label="Coach"
-                sortKey="coach"
-                activeKey={sortKey}
-                order={sortOrder}
-                onSort={onSort}
-              />
-            ) : (
-              'Coach'
-            )}
-          </DataTableHeaderCell>
-          <DataTableHeaderCell>
-            {sortable && sortKey && sortOrder && onSort ? (
-              <LocalSortableHeader
-                label="Enrolled"
-                sortKey="enrolled"
-                activeKey={sortKey}
-                order={sortOrder}
-                onSort={onSort}
-              />
-            ) : (
-              'Enrolled'
-            )}
-          </DataTableHeaderCell>
-          {transferColumn ? <DataTableHeaderCell className="text-right">{'\u00a0'}</DataTableHeaderCell> : null}
-        </DataTableHead>
-        <DataTableBody>
-          {rows.length === 0 ? (
-            <DataTableRow>
-              <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
-                {emptyMessage ?? 'No members in this section.'}
-              </DataTableCell>
-            </DataTableRow>
-          ) : (
-            rows.map((member) => (
-              <DataTableRow key={member.enrollmentId} onClick={member.leadId ? () => onRowClick(member) : undefined}>
-                <DataTableCell>
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(member.enrollmentId)}
-                    onChange={() => onToggle(member.enrollmentId)}
-                    onClick={(event) => event.stopPropagation()}
-                    aria-label={`Select ${member.memberName}`}
-                  />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Member"
+                  sortKey="name"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Member'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>Status</DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Coach"
+                  sortKey="coach"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Coach'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="WhatsApp"
+                  sortKey="whatsapp"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'WhatsApp'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="City"
+                  sortKey="city"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'City'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Country"
+                  sortKey="country"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Country'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Timezone"
+                  sortKey="timezone"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Timezone'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Enrolled"
+                  sortKey="enrolled"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Enrolled'
+              )}
+            </DataTableHeaderCell>
+            {transferColumn ? <DataTableHeaderCell className="text-right">{'\u00a0'}</DataTableHeaderCell> : null}
+          </DataTableHead>
+          <DataTableBody>
+            {rows.length === 0 ? (
+              <DataTableRow>
+                <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
+                  {emptyMessage ?? 'No members in this section.'}
                 </DataTableCell>
-                <DataTableCell>
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
-                      {member.memberInitials}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate font-semibold text-slate-800">{member.memberName}</div>
-                      <div className="truncate text-[11px] text-slate-500">{member.email}</div>
-                    </div>
-                  </div>
-                </DataTableCell>
-                <DataTableCell>
-                  {statusMode === 'lapsed' ? (
-                    <Pill tone="neutral">Lapsed</Pill>
-                  ) : (
-                    <ActiveMemberStatus member={member} />
-                  )}
-                </DataTableCell>
-                <DataTableCell>
-                  <CoachNamePill name={member.coachName} coachUserId={member.coachUserId} tones={coachTones} />
-                </DataTableCell>
-                <DataTableCell className="text-slate-600">
-                  <LeadTableTimestamp iso={member.enrolledAt} />
-                </DataTableCell>
-                {transferColumn ? (
-                  <DataTableCell className="text-right">
-                    {showTransfer ? <MemberRowMenu onTransfer={() => onTransfer(member)} /> : null}
-                  </DataTableCell>
-                ) : null}
               </DataTableRow>
-            ))
-          )}
-        </DataTableBody>
-      </DataTable>
+            ) : (
+              rows.map((member) => (
+                <DataTableRow key={member.enrollmentId} onClick={member.leadId ? () => onRowClick(member) : undefined}>
+                  <DataTableCell>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(member.enrollmentId)}
+                      onChange={() => onToggle(member.enrollmentId)}
+                      onClick={(event) => event.stopPropagation()}
+                      aria-label={`Select ${member.memberName}`}
+                    />
+                  </DataTableCell>
+                  <DataTableCell>
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
+                        {member.memberInitials}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-slate-800">{member.memberName}</div>
+                        <div className="truncate text-[11px] text-slate-500">{member.email}</div>
+                      </div>
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    {statusMode === 'lapsed' ? (
+                      <Pill tone="neutral">Lapsed</Pill>
+                    ) : (
+                      <ActiveMemberStatus member={member} />
+                    )}
+                  </DataTableCell>
+                  <DataTableCell>
+                    <CoachNamePill name={member.coachName} coachUserId={member.coachUserId} tones={coachTones} />
+                  </DataTableCell>
+                  <DataTableCell className="text-slate-600">{displayOrDash(member.whatsapp)}</DataTableCell>
+                  <DataTableCell className="text-slate-600">{displayOrDash(member.city)}</DataTableCell>
+                  <DataTableCell className="text-slate-600">{displayOrDash(countryDisplay(member))}</DataTableCell>
+                  <DataTableCell className="text-slate-600">
+                    <span className="block max-w-[180px] truncate" title={timezoneDisplay(member) || undefined}>
+                      {displayOrDash(timezoneDisplay(member))}
+                    </span>
+                  </DataTableCell>
+                  <DataTableCell className="text-slate-600">
+                    <LeadTableTimestamp iso={member.enrolledAt} />
+                  </DataTableCell>
+                  {transferColumn ? (
+                    <DataTableCell className="text-right">
+                      {showTransfer ? <MemberRowMenu onTransfer={() => onTransfer(member)} /> : null}
+                    </DataTableCell>
+                  ) : null}
+                </DataTableRow>
+              ))
+            )}
+          </DataTableBody>
+        </DataTable>
+      </div>
     </Card>
   );
 }
@@ -615,22 +688,71 @@ function CoachSummaryCard({ members }: { members: CohortMember[] }) {
   );
 }
 
+function compareText(a: string, b: string, order: SortOrder): number {
+  const aValue = a.trim();
+  const bValue = b.trim();
+  if (!aValue && !bValue) return 0;
+  if (!aValue) return order === 'asc' ? 1 : -1;
+  if (!bValue) return order === 'asc' ? -1 : 1;
+  const direction = order === 'asc' ? 1 : -1;
+  return aValue.localeCompare(bValue, undefined, { sensitivity: 'base' }) * direction;
+}
+
 function compareMembers(a: CohortMember, b: CohortMember, sortKey: ActiveSortKey, order: SortOrder): number {
   const direction = order === 'asc' ? 1 : -1;
   if (sortKey === 'name') {
     return a.memberName.localeCompare(b.memberName, undefined, { sensitivity: 'base' }) * direction;
   }
   if (sortKey === 'coach') {
-    const aCoach = a.coachName?.trim() || '';
-    const bCoach = b.coachName?.trim() || '';
-    if (!aCoach && !bCoach) return 0;
-    if (!aCoach) return order === 'asc' ? 1 : -1;
-    if (!bCoach) return order === 'asc' ? -1 : 1;
-    return aCoach.localeCompare(bCoach, undefined, { sensitivity: 'base' }) * direction;
+    return compareText(a.coachName?.trim() || '', b.coachName?.trim() || '', order);
+  }
+  if (sortKey === 'whatsapp') {
+    return compareText(a.whatsapp, b.whatsapp, order);
+  }
+  if (sortKey === 'city') {
+    return compareText(a.city, b.city, order);
+  }
+  if (sortKey === 'country') {
+    return compareText(countryDisplay(a), countryDisplay(b), order);
+  }
+  if (sortKey === 'timezone') {
+    return compareText(timezoneDisplay(a), timezoneDisplay(b), order);
   }
   const aTime = new Date(a.enrolledAt).getTime();
   const bTime = new Date(b.enrolledAt).getTime();
   return (aTime - bTime) * direction;
+}
+
+function buildGeoFilterOptions(
+  members: CohortMember[],
+  getValue: (member: CohortMember) => string,
+  getLabel: (member: CohortMember, value: string) => string
+): { value: string; label: string; count: number }[] {
+  const counts = new Map<string, { label: string; count: number }>();
+  let unspecified = 0;
+  for (const member of members) {
+    const value = getValue(member).trim();
+    if (!value) {
+      unspecified += 1;
+      continue;
+    }
+    const existing = counts.get(value);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      counts.set(value, { label: getLabel(member, value), count: 1 });
+    }
+  }
+  const named = Array.from(counts.entries())
+    .map(([value, row]) => ({ value, label: row.label, count: row.count }))
+    .sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: 'base' }));
+  return [{ value: UNSPECIFIED_FILTER, label: 'Unspecified', count: unspecified }, ...named];
+}
+
+function matchesGeoFilter(selected: string[], value: string): boolean {
+  if (selected.length === 0) return true;
+  const key = value.trim() || UNSPECIFIED_FILTER;
+  return selected.includes(key);
 }
 
 export function CohortDetailView({ cohort, members, transferTargets, coaches, emailTemplates }: CohortDetailViewProps) {
@@ -642,15 +764,64 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [coachFilters, setCoachFilters] = useState<string[]>([]);
+  const [cityFilters, setCityFilters] = useState<string[]>([]);
+  const [countryFilters, setCountryFilters] = useState<string[]>([]);
+  const [timezoneFilters, setTimezoneFilters] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [statusFilters, coachFilters]);
+  }, [statusFilters, coachFilters, cityFilters, countryFilters, timezoneFilters]);
 
-  const activeMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'active'), [members]);
-  const lapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
+  const geoFilteredMembers = useMemo(() => {
+    return members.filter((member) => {
+      if (!matchesGeoFilter(cityFilters, member.city)) return false;
+      if (!matchesGeoFilter(countryFilters, member.countryCode)) return false;
+      if (!matchesGeoFilter(timezoneFilters, member.timezoneId)) return false;
+      return true;
+    });
+  }, [cityFilters, countryFilters, members, timezoneFilters]);
+
+  const activeMembers = useMemo(
+    () => geoFilteredMembers.filter((member) => member.subscriptionState === 'active'),
+    [geoFilteredMembers]
+  );
+  const lapsedMembers = useMemo(
+    () => geoFilteredMembers.filter((member) => member.subscriptionState === 'lapsed'),
+    [geoFilteredMembers]
+  );
+
+  const allActiveMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'active'), [members]);
+  const allLapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
+
+  const cityFilterOptions = useMemo(
+    () =>
+      buildGeoFilterOptions(
+        members,
+        (m) => m.city,
+        (_m, value) => value
+      ),
+    [members]
+  );
+  const countryFilterOptions = useMemo(
+    () =>
+      buildGeoFilterOptions(
+        members,
+        (m) => m.countryCode,
+        (m, value) => countryDisplay(m) || value
+      ),
+    [members]
+  );
+  const timezoneFilterOptions = useMemo(
+    () =>
+      buildGeoFilterOptions(
+        members,
+        (m) => m.timezoneId,
+        (m, value) => timezoneDisplay(m) || value
+      ),
+    [members]
+  );
 
   const coachFilterOptions = useMemo(() => {
     const counts = new Map<string, { label: string; count: number }>();
@@ -684,6 +855,24 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     return map;
   }, [coachFilterOptions]);
 
+  const cityLabelByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of cityFilterOptions) map.set(option.value, option.label);
+    return map;
+  }, [cityFilterOptions]);
+
+  const countryLabelByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of countryFilterOptions) map.set(option.value, option.label);
+    return map;
+  }, [countryFilterOptions]);
+
+  const timezoneLabelByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of timezoneFilterOptions) map.set(option.value, option.label);
+    return map;
+  }, [timezoneFilterOptions]);
+
   const filteredActiveMembers = useMemo(() => {
     return activeMembers.filter((member) => {
       if (statusFilters.length > 0) {
@@ -701,9 +890,15 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     return [...filteredActiveMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
   }, [filteredActiveMembers, sortKey, sortOrder]);
 
+  const sortedLapsedMembers = useMemo(() => {
+    return [...lapsedMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
+  }, [lapsedMembers, sortKey, sortOrder]);
+
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
-  const filtersActive = statusFilters.length > 0 || coachFilters.length > 0;
+  const statusCoachFiltersActive = statusFilters.length > 0 || coachFilters.length > 0;
+  const geoFiltersActive = cityFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
+  const filtersActive = statusCoachFiltersActive || geoFiltersActive;
   const canTransfer = cohort.status === 'active' && transferTargets.length > 0;
   const selectedList = useMemo(() => Array.from(selectedIds), [selectedIds]);
 
@@ -750,6 +945,76 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     setSortOrder(key === 'enrolled' ? 'desc' : 'asc');
   };
 
+  const geoFilterToolbar = (
+    <>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3">
+        <CohortMultiFilterPopover
+          label="City"
+          icon={<MapPin className="h-3.5 w-3.5" />}
+          options={cityFilterOptions}
+          selected={cityFilters}
+          onChange={setCityFilters}
+          emptyLabel="No cities yet."
+        />
+        <CohortMultiFilterPopover
+          label="Country"
+          icon={<Globe2 className="h-3.5 w-3.5" />}
+          options={countryFilterOptions}
+          selected={countryFilters}
+          onChange={setCountryFilters}
+          emptyLabel="No countries yet."
+        />
+        <CohortMultiFilterPopover
+          label="Timezone"
+          icon={<Clock3 className="h-3.5 w-3.5" />}
+          options={timezoneFilterOptions}
+          selected={timezoneFilters}
+          onChange={setTimezoneFilters}
+          emptyLabel="No timezones yet."
+        />
+      </div>
+      {geoFiltersActive ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand/15 bg-brand/5 px-4 py-2">
+          {cityFilters.map((city) => (
+            <ActiveFilterTag
+              key={`city-${city}`}
+              label="City"
+              value={cityLabelByValue.get(city) ?? city}
+              onDismiss={() => setCityFilters((prev) => prev.filter((item) => item !== city))}
+            />
+          ))}
+          {countryFilters.map((country) => (
+            <ActiveFilterTag
+              key={`country-${country}`}
+              label="Country"
+              value={countryLabelByValue.get(country) ?? country}
+              onDismiss={() => setCountryFilters((prev) => prev.filter((item) => item !== country))}
+            />
+          ))}
+          {timezoneFilters.map((timezone) => (
+            <ActiveFilterTag
+              key={`timezone-${timezone}`}
+              label="Timezone"
+              value={timezoneLabelByValue.get(timezone) ?? timezone}
+              onDismiss={() => setTimezoneFilters((prev) => prev.filter((item) => item !== timezone))}
+            />
+          ))}
+          <button
+            type="button"
+            onClick={() => {
+              setCityFilters([]);
+              setCountryFilters([]);
+              setTimezoneFilters([]);
+            }}
+            className="text-xs font-semibold text-brand"
+          >
+            Clear geo filters
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+
   const activeFilterToolbar = (
     <>
       <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
@@ -770,7 +1035,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           emptyLabel="No coaches yet."
         />
       </div>
-      {filtersActive ? (
+      {statusCoachFiltersActive ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
           {statusFilters.map((stage) => (
             <ActiveFilterTag
@@ -814,6 +1079,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           Back to cohorts
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <CohortExportButton members={members} selectedEnrollmentIds={selectedList} />
           {cohort.canEdit && (
             <Button
               variant="primary"
@@ -827,7 +1093,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
         </div>
       </div>
 
-      <CohortDetailHeader cohort={cohort} activeCount={activeMembers.length} lapsedCount={lapsedMembers.length} />
+      <CohortDetailHeader cohort={cohort} activeCount={allActiveMembers.length} lapsedCount={allLapsedMembers.length} />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -842,6 +1108,9 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           Auto-assign coaches
         </Button>
       </div>
+
+      <div className="space-y-2">{geoFilterToolbar}</div>
+
       {selectedList.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
           <p className="text-sm font-semibold text-slate-700">
@@ -862,7 +1131,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
       <div className="space-y-4">
         <MemberTable
           title="Active subscriptions"
-          subtitle={`${activeMembers.length} member${activeMembers.length === 1 ? '' : 's'} with live access`}
+          subtitle={`${filteredActiveMembers.length} member${filteredActiveMembers.length === 1 ? '' : 's'} with live access`}
           rows={sortedActiveMembers}
           transferColumn={canTransfer}
           showTransfer={canTransfer}
@@ -882,8 +1151,8 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
         />
         <MemberTable
           title="Lapsed"
-          subtitle="Cancelled, halted, or expired members"
-          rows={lapsedMembers}
+          subtitle={`${sortedLapsedMembers.length} cancelled, halted, or expired member${sortedLapsedMembers.length === 1 ? '' : 's'}`}
+          rows={sortedLapsedMembers}
           deemphasized
           transferColumn={false}
           selectedIds={selectedIds}
@@ -891,6 +1160,11 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           onToggleAll={toggleAll}
           onRowClick={(member) => member.leadId && router.push(`/customers/${member.leadId}`)}
           onTransfer={() => undefined}
+          sortable
+          sortKey={sortKey}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          emptyMessage={geoFiltersActive ? 'No lapsed members match the current filters.' : undefined}
           statusMode="lapsed"
           coachTones={coachTones}
         />
