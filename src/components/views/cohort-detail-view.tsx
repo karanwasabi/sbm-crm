@@ -945,9 +945,25 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
     setSortOrder(key === 'enrolled' ? 'desc' : 'asc');
   };
 
-  const geoFilterToolbar = (
+  const activeFilterToolbar = (
     <>
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-canvas-cool px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
+        <CohortMultiFilterPopover
+          label="Status"
+          icon={<Tags className="h-3.5 w-3.5" />}
+          options={statusFilterOptions}
+          selected={statusFilters}
+          onChange={setStatusFilters}
+          emptyLabel="No statuses yet."
+        />
+        <CohortMultiFilterPopover
+          label="Coach"
+          icon={<UserRound className="h-3.5 w-3.5" />}
+          options={coachFilterOptions}
+          selected={coachFilters}
+          onChange={setCoachFilters}
+          emptyLabel="No coaches yet."
+        />
         <CohortMultiFilterPopover
           label="City"
           icon={<MapPin className="h-3.5 w-3.5" />}
@@ -973,8 +989,24 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           emptyLabel="No timezones yet."
         />
       </div>
-      {geoFiltersActive ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-brand/15 bg-brand/5 px-4 py-2">
+      {filtersActive ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
+          {statusFilters.map((stage) => (
+            <ActiveFilterTag
+              key={`status-${stage}`}
+              label="Status"
+              value={STATUS_FILTER_OPTIONS.find((option) => option.id === stage)?.label ?? stage}
+              onDismiss={() => setStatusFilters((prev) => prev.filter((item) => item !== stage))}
+            />
+          ))}
+          {coachFilters.map((coachId) => (
+            <ActiveFilterTag
+              key={`coach-${coachId}`}
+              label="Coach"
+              value={coachLabelById.get(coachId) ?? coachId}
+              onDismiss={() => setCoachFilters((prev) => prev.filter((item) => item !== coachId))}
+            />
+          ))}
           {cityFilters.map((city) => (
             <ActiveFilterTag
               key={`city-${city}`}
@@ -1002,62 +1034,11 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           <button
             type="button"
             onClick={() => {
+              setStatusFilters([]);
+              setCoachFilters([]);
               setCityFilters([]);
               setCountryFilters([]);
               setTimezoneFilters([]);
-            }}
-            className="text-xs font-semibold text-brand"
-          >
-            Clear geo filters
-          </button>
-        </div>
-      ) : null}
-    </>
-  );
-
-  const activeFilterToolbar = (
-    <>
-      <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
-        <CohortMultiFilterPopover
-          label="Status"
-          icon={<Tags className="h-3.5 w-3.5" />}
-          options={statusFilterOptions}
-          selected={statusFilters}
-          onChange={setStatusFilters}
-          emptyLabel="No statuses yet."
-        />
-        <CohortMultiFilterPopover
-          label="Coach"
-          icon={<UserRound className="h-3.5 w-3.5" />}
-          options={coachFilterOptions}
-          selected={coachFilters}
-          onChange={setCoachFilters}
-          emptyLabel="No coaches yet."
-        />
-      </div>
-      {statusCoachFiltersActive ? (
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
-          {statusFilters.map((stage) => (
-            <ActiveFilterTag
-              key={`status-${stage}`}
-              label="Status"
-              value={STATUS_FILTER_OPTIONS.find((option) => option.id === stage)?.label ?? stage}
-              onDismiss={() => setStatusFilters((prev) => prev.filter((item) => item !== stage))}
-            />
-          ))}
-          {coachFilters.map((coachId) => (
-            <ActiveFilterTag
-              key={`coach-${coachId}`}
-              label="Coach"
-              value={coachLabelById.get(coachId) ?? coachId}
-              onDismiss={() => setCoachFilters((prev) => prev.filter((item) => item !== coachId))}
-            />
-          ))}
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilters([]);
-              setCoachFilters([]);
             }}
             className="text-xs font-semibold text-brand"
           >
@@ -1079,7 +1060,6 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           Back to cohorts
         </Link>
         <div className="flex flex-wrap items-center gap-2">
-          <CohortExportButton members={members} selectedEnrollmentIds={selectedList} />
           {cohort.canEdit && (
             <Button
               variant="primary"
@@ -1109,8 +1089,6 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
         </Button>
       </div>
 
-      <div className="space-y-2">{geoFilterToolbar}</div>
-
       {selectedList.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
           <p className="text-sm font-semibold text-slate-700">
@@ -1120,10 +1098,11 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
             <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
               Clear
             </Button>
-            <CohortBulkSendButton members={members} selectedEnrollmentIds={selectedList} templates={emailTemplates} />
             <Button variant="primary" size="sm" onClick={() => setAssignOpen(true)}>
               Assign coach
             </Button>
+            <CohortBulkSendButton members={members} selectedEnrollmentIds={selectedList} templates={emailTemplates} />
+            <CohortExportButton members={members} selectedEnrollmentIds={selectedList} />
           </div>
         </div>
       ) : null}
