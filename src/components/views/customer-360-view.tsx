@@ -167,6 +167,8 @@ export function Customer360View({
             interest={lead.interest}
             batch={lead.batch}
             attribution={lead.attribution}
+            leadId={lead.id}
+            canEditAccess={canSyncPayment}
           />
         </div>
       </div>

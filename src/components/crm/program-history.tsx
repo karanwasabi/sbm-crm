@@ -1,6 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+import { CalendarRange } from 'lucide-react';
+import { EditMembershipAccessDialog } from '@/components/crm/edit-membership-access-dialog';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
@@ -13,6 +17,8 @@ type ProgramHistoryProps = {
   interest?: string;
   batch?: string;
   attribution?: LeadAttribution | null;
+  leadId?: string;
+  canEditAccess?: boolean;
 };
 
 function label(value: string | null | undefined) {
@@ -82,7 +88,17 @@ function isGraceOpen(graceUntil: string | null | undefined): boolean {
   return date.getTime() > Date.now();
 }
 
-function EnrollmentRow({ item, timezone }: { item: ProgramHistoryItem; timezone: string }) {
+function EnrollmentRow({
+  item,
+  timezone,
+  canEditAccess,
+  onEditAccess,
+}: {
+  item: ProgramHistoryItem;
+  timezone: string;
+  canEditAccess?: boolean;
+  onEditAccess?: (item: ProgramHistoryItem) => void;
+}) {
   const renew = autoRenewInfo(item);
   const activeFrom = formatMembershipDate(item.startsOn ?? item.date, timezone);
   const activeUntil = formatMembershipDate(item.accessUntil, timezone);
@@ -110,17 +126,44 @@ function EnrollmentRow({ item, timezone }: { item: ProgramHistoryItem; timezone:
 
       {hasMembershipWindow ? (
         <div className="mt-3 rounded-xl bg-canvas-cool px-3.5 py-3">
-          <p className="text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase">Membership window</p>
-          <p className="mt-1 text-sm font-semibold text-slate-800">
-            <span className="text-slate-500">Active from</span> {activeFrom}
-            <span className="mx-2 text-slate-300">→</span>
-            <span className="text-slate-500">Active until</span> {activeUntil}
-          </p>
-          {showGrace ? (
-            <p className="mt-1 text-xs font-semibold text-amber-800">
-              Grace until {formatMembershipDate(item.graceUntil, timezone)}
-            </p>
-          ) : null}
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold tracking-[0.14em] text-slate-400 uppercase">Membership window</p>
+              <p className="mt-1 text-sm font-semibold text-slate-800">
+                <span className="text-slate-500">Active from</span> {activeFrom}
+                <span className="mx-2 text-slate-300">→</span>
+                <span className="text-slate-500">Active until</span> {activeUntil}
+              </p>
+              {showGrace ? (
+                <p className="mt-1 text-xs font-semibold text-amber-800">
+                  Grace until {formatMembershipDate(item.graceUntil, timezone)}
+                </p>
+              ) : null}
+            </div>
+            {canEditAccess && onEditAccess ? (
+              <Button
+                type="button"
+                variant="light"
+                size="sm"
+                leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
+                onClick={() => onEditAccess(item)}
+              >
+                Edit access
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : canEditAccess && onEditAccess ? (
+        <div className="mt-3">
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
+            onClick={() => onEditAccess(item)}
+          >
+            Set access until
+          </Button>
         </div>
       ) : null}
 
@@ -146,8 +189,16 @@ function EnrollmentRow({ item, timezone }: { item: ProgramHistoryItem; timezone:
   );
 }
 
-export function ProgramHistory({ items, interest, batch, attribution }: ProgramHistoryProps) {
+export function ProgramHistory({
+  items,
+  interest,
+  batch,
+  attribution,
+  leadId,
+  canEditAccess = false,
+}: ProgramHistoryProps) {
   const timezone = useDisplayTimezone();
+  const [editItem, setEditItem] = useState<ProgramHistoryItem | null>(null);
   const showSummary = Boolean(interest?.trim() || batch?.trim() || attribution);
   const formLabel = attribution ? attributionFormLabel(attribution) : null;
 
@@ -224,10 +275,26 @@ export function ProgramHistory({ items, interest, batch, attribution }: ProgramH
       ) : (
         <div>
           {items.map((item) => (
-            <EnrollmentRow key={item.id} item={item} timezone={timezone} />
+            <EnrollmentRow
+              key={item.id}
+              item={item}
+              timezone={timezone}
+              canEditAccess={canEditAccess}
+              onEditAccess={canEditAccess ? setEditItem : undefined}
+            />
           ))}
         </div>
       )}
+      {leadId && canEditAccess ? (
+        <EditMembershipAccessDialog
+          leadId={leadId}
+          item={editItem}
+          open={editItem !== null}
+          onOpenChange={(open) => {
+            if (!open) setEditItem(null);
+          }}
+        />
+      ) : null}
     </Card>
   );
 }

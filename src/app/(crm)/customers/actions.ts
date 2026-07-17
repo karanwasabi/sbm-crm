@@ -20,12 +20,14 @@ import {
   listOfflineEnrollCohorts,
   syncLeadCheckout,
   markLeadCheckoutPaidOffline,
+  setLeadMembershipAccessUntil,
 } from '@/utils/api';
 import type {
   LeadPurgeInput,
   LeadPurgePreview,
   LeadCheckoutSyncResult,
   MarkCheckoutPaidOfflineResult,
+  SetMembershipAccessResult,
 } from '@/utils/api';
 import type { OfflineEnrollCohort } from '@/types/crm';
 
@@ -201,6 +203,20 @@ export async function markLeadCheckoutPaidOfflineAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to mark checkout paid offline.';
+    return { result: null, error: message };
+  }
+}
+
+export async function setLeadMembershipAccessUntilAction(
+  leadId: string,
+  enrollmentId: string,
+  accessUntil: string
+): Promise<{ result: SetMembershipAccessResult | null; error: string | null }> {
+  try {
+    const result = await setLeadMembershipAccessUntil(leadId, enrollmentId, accessUntil);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to update membership access.';
     return { result: null, error: message };
   }
 }

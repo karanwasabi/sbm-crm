@@ -1000,6 +1000,41 @@ export async function markLeadCheckoutPaidOffline(leadId: string): Promise<MarkC
   };
 }
 
+export type SetMembershipAccessResult = {
+  enrollmentId: string;
+  checkoutSessionId: string;
+  accessUntil: string;
+  graceUntil: string;
+};
+
+export async function setLeadMembershipAccessUntil(
+  leadId: string,
+  enrollmentId: string,
+  accessUntil: string
+): Promise<SetMembershipAccessResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership/access-until`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enrollment_id: enrollmentId, access_until: accessUntil }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update membership access.', response.status);
+  }
+  const row = (await response.json()) as {
+    enrollment_id: string;
+    checkout_session_id: string;
+    access_until: string;
+    grace_until: string;
+  };
+  return {
+    enrollmentId: row.enrollment_id,
+    checkoutSessionId: row.checkout_session_id,
+    accessUntil: row.access_until,
+    graceUntil: row.grace_until,
+  };
+}
+
 export type LeadPurgeTestSignal = {
   rule: string;
   matched: boolean;
