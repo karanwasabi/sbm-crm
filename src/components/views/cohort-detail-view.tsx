@@ -15,6 +15,7 @@ import {
   MapPin,
   MoreVertical,
   Pencil,
+  Search,
   Tags,
   UserRound,
   UserRoundPlus,
@@ -755,6 +756,27 @@ function matchesGeoFilter(selected: string[], value: string): boolean {
   return selected.includes(key);
 }
 
+function normalizePhoneDigits(value: string): string {
+  return value.replace(/\D/g, '');
+}
+
+function memberMatchesSearch(member: CohortMember, query: string): boolean {
+  const trimmed = query.trim().toLowerCase();
+  if (!trimmed) return true;
+
+  if (member.memberName.toLowerCase().includes(trimmed)) return true;
+  if (member.email.toLowerCase().includes(trimmed)) return true;
+  if (member.whatsapp.toLowerCase().includes(trimmed)) return true;
+
+  const queryDigits = normalizePhoneDigits(trimmed);
+  if (queryDigits.length >= 3) {
+    const phoneDigits = normalizePhoneDigits(member.whatsapp);
+    if (phoneDigits.includes(queryDigits)) return true;
+  }
+
+  return false;
+}
+
 export function CohortDetailView({ cohort, members, transferTargets, coaches, emailTemplates }: CohortDetailViewProps) {
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
@@ -767,21 +789,23 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const [cityFilters, setCityFilters] = useState<string[]>([]);
   const [countryFilters, setCountryFilters] = useState<string[]>([]);
   const [timezoneFilters, setTimezoneFilters] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [statusFilters, coachFilters, cityFilters, countryFilters, timezoneFilters]);
+  }, [statusFilters, coachFilters, cityFilters, countryFilters, timezoneFilters, searchQuery]);
 
   const geoFilteredMembers = useMemo(() => {
     return members.filter((member) => {
+      if (!memberMatchesSearch(member, searchQuery)) return false;
       if (!matchesGeoFilter(cityFilters, member.city)) return false;
       if (!matchesGeoFilter(countryFilters, member.countryCode)) return false;
       if (!matchesGeoFilter(timezoneFilters, member.timezoneId)) return false;
       return true;
     });
-  }, [cityFilters, countryFilters, members, timezoneFilters]);
+  }, [cityFilters, countryFilters, members, searchQuery, timezoneFilters]);
 
   const activeMembers = useMemo(
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'active'),
@@ -898,7 +922,8 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
 
   const statusCoachFiltersActive = statusFilters.length > 0 || coachFilters.length > 0;
   const geoFiltersActive = cityFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
-  const filtersActive = statusCoachFiltersActive || geoFiltersActive;
+  const searchActive = searchQuery.trim().length > 0;
+  const filtersActive = statusCoachFiltersActive || geoFiltersActive || searchActive;
   const canTransfer = cohort.status === 'active' && transferTargets.length > 0;
   const selectedList = useMemo(() => Array.from(selectedIds), [selectedIds]);
 
@@ -948,6 +973,17 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
   const activeFilterToolbar = (
     <>
       <div className="flex flex-wrap items-center gap-2 border-y border-slate-100 bg-canvas-cool px-4 py-3">
+        <div className="flex w-full max-w-96 min-w-[220px] flex-1 shrink-0 items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.25 shadow-sm">
+          <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+          <input
+            type="search"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            placeholder="Search name, email, or phone"
+            className="min-w-0 flex-1 border-none bg-transparent text-[13px] font-medium text-slate-700 outline-none placeholder:text-slate-400"
+            aria-label="Search members by name, email, or phone"
+          />
+        </div>
         <CohortMultiFilterPopover
           label="Status"
           icon={<Tags className="h-3.5 w-3.5" />}
@@ -991,6 +1027,9 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
       </div>
       {filtersActive ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
+          {searchActive ? (
+            <ActiveFilterTag label="Search" value={searchQuery.trim()} onDismiss={() => setSearchQuery('')} />
+          ) : null}
           {statusFilters.map((stage) => (
             <ActiveFilterTag
               key={`status-${stage}`}
@@ -1034,6 +1073,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           <button
             type="button"
             onClick={() => {
+              setSearchQuery('');
               setStatusFilters([]);
               setCoachFilters([]);
               setCityFilters([]);
@@ -1143,7 +1183,7 @@ export function CohortDetailView({ cohort, members, transferTargets, coaches, em
           sortKey={sortKey}
           sortOrder={sortOrder}
           onSort={handleSort}
-          emptyMessage={geoFiltersActive ? 'No lapsed members match the current filters.' : undefined}
+          emptyMessage={filtersActive ? 'No lapsed members match the current filters.' : undefined}
           statusMode="lapsed"
           coachTones={coachTones}
         />
