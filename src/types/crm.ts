@@ -448,12 +448,20 @@ export const TIMELINE_KIND_LABELS: Record<TimelineEvent['kind'], string> = {
 };
 
 export type ProgramHistoryItem = {
+  id: string;
   program: string;
   batch: string;
   status: string;
   amount: string;
   date: string;
   promoCode?: string | null;
+  phase?: string | null;
+  startsOn?: string | null;
+  accessUntil?: string | null;
+  graceUntil?: string | null;
+  cancelAtPeriodEnd?: boolean | null;
+  subscriptionStatus?: string | null;
+  recurringStartAt?: string | null;
 };
 
 export type CohortSummary = {

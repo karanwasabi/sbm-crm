@@ -1258,6 +1258,12 @@ type ApiEnrollmentResponse = {
   amount: string;
   date: string;
   promo_code?: string | null;
+  starts_on?: string | null;
+  access_until?: string | null;
+  grace_until?: string | null;
+  cancel_at_period_end?: boolean | null;
+  subscription_status?: string | null;
+  recurring_start_at?: string | null;
 };
 
 export async function listPrograms(): Promise<ApiProgramResponse[]> {
@@ -1340,12 +1346,20 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
   if (!response.ok) throw new ApiError('Failed to load enrollments.', response.status);
   const rows = (await response.json()) as ApiEnrollmentResponse[];
   return rows.map((row) => ({
+    id: row.id,
     program: row.program_name,
     batch: row.cohort_name,
     status: row.status.charAt(0).toUpperCase() + row.status.slice(1),
     amount: row.amount,
     date: row.date,
     promoCode: row.promo_code ?? null,
+    phase: row.phase ?? null,
+    startsOn: row.starts_on ?? null,
+    accessUntil: row.access_until ?? null,
+    graceUntil: row.grace_until ?? null,
+    cancelAtPeriodEnd: row.cancel_at_period_end ?? null,
+    subscriptionStatus: row.subscription_status ?? null,
+    recurringStartAt: row.recurring_start_at ?? null,
   }));
 }
 
