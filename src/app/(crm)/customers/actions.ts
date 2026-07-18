@@ -20,6 +20,7 @@ import {
   listOfflineEnrollCohorts,
   syncLeadCheckout,
   markLeadCheckoutPaidOffline,
+  setLeadPassword,
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
   promoteLeadToMember,
@@ -29,6 +30,7 @@ import type {
   LeadPurgePreview,
   LeadCheckoutSyncResult,
   MarkCheckoutPaidOfflineResult,
+  SetLeadPasswordResult,
   SetMembershipAccessResult,
   SetMemberKindResult,
   PromoteToMemberResult,
@@ -207,6 +209,19 @@ export async function markLeadCheckoutPaidOfflineAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to mark checkout paid offline.';
+    return { result: null, error: message };
+  }
+}
+
+export async function setLeadPasswordAction(
+  leadId: string,
+  password: string
+): Promise<{ result: SetLeadPasswordResult | null; error: string | null }> {
+  try {
+    const result = await setLeadPassword(leadId, password);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to set password.';
     return { result: null, error: message };
   }
 }

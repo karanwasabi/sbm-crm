@@ -1,6 +1,15 @@
 'use client';
 
-import { Banknote, GraduationCap, MoreVertical, RefreshCw, RotateCcw, Trash2, UserRoundCheck } from 'lucide-react';
+import {
+  Banknote,
+  GraduationCap,
+  KeyRound,
+  MoreVertical,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+  UserRoundCheck,
+} from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +23,7 @@ type ProfileOverflowMenuProps = {
   onMarkRenewal?: () => void;
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
+  onSetPassword?: () => void;
 };
 
 type MenuPosition = {
@@ -32,6 +42,7 @@ export function ProfileOverflowMenu({
   onMarkRenewal,
   onMarkReturnee,
   onClearMemberKind,
+  onSetPassword,
 }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -189,6 +200,20 @@ export function ProfileOverflowMenu({
               >
                 <Banknote className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Mark paid (offline)
+              </button>
+            ) : null}
+            {onSetPassword ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onSetPassword();
+                }}
+              >
+                <KeyRound className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Set password
               </button>
             ) : null}
             {onPurge ? (

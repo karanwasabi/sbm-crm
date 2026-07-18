@@ -11,6 +11,7 @@ import {
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
+import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
@@ -56,6 +57,7 @@ export function Customer360View({
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
+  const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [isRefreshing, startTransition] = useTransition();
   const [syncingPayment, startSyncPayment] = useTransition();
   const [markingPaidOffline, startMarkPaidOffline] = useTransition();
@@ -164,6 +166,7 @@ export function Customer360View({
           canSyncPayment && lead.memberKind !== 'returnee' ? () => handleSetMemberKind('returnee') : undefined
         }
         onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
+        onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
       />
       {lead.paymentPending ? (
         <PaymentPendingBanner
@@ -240,6 +243,12 @@ export function Customer360View({
         leadId={lead.id}
         leadName={contact.name}
         onEnrolled={refresh}
+      />
+      <SetPasswordDialog
+        leadId={lead.id}
+        memberEmail={contact.email}
+        open={setPasswordOpen}
+        onOpenChange={setSetPasswordOpen}
       />
     </CrmPageLayout>
   );

@@ -1003,6 +1003,25 @@ export async function markLeadCheckoutPaidOffline(leadId: string): Promise<MarkC
   };
 }
 
+export type SetLeadPasswordResult = {
+  userId: string;
+  updated: boolean;
+};
+
+export async function setLeadPassword(leadId: string, password: string): Promise<SetLeadPasswordResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/set-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to set password.', response.status);
+  }
+  const row = (await response.json()) as { user_id: string; updated: boolean };
+  return { userId: row.user_id, updated: row.updated };
+}
+
 export type SetMembershipAccessResult = {
   enrollmentId: string;
   checkoutSessionId: string;
