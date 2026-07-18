@@ -12,7 +12,11 @@ function isNavActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function CrmSidebar() {
+type CrmSidebarProps = {
+  isSuperadmin?: boolean;
+};
+
+export function CrmSidebar({ isSuperadmin = false }: CrmSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -31,11 +35,13 @@ export function CrmSidebar() {
             )}
             {groupIndex === 0 && <div className="h-2" />}
             <nav className="flex flex-col gap-1">
-              {group.items.map(({ id, href, label, icon: Icon }) => {
-                const active = isNavActive(pathname, href);
+              {group.items
+                .filter((item) => !item.superadminOnly || isSuperadmin)
+                .map(({ id, href, label, icon: Icon }) => {
+                  const active = isNavActive(pathname, href);
 
-                return <CrmNavLink key={id} href={href} label={label} icon={Icon} active={active} />;
-              })}
+                  return <CrmNavLink key={id} href={href} label={label} icon={Icon} active={active} />;
+                })}
             </nav>
           </div>
         ))}

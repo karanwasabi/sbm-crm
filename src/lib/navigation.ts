@@ -3,6 +3,7 @@ import {
   Database,
   FileText,
   LayoutDashboard,
+  Library,
   MessageSquare,
   RefreshCw,
   Settings,
@@ -16,6 +17,7 @@ export type CrmNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  superadminOnly?: boolean;
 };
 
 export type CrmPageMeta = {
@@ -39,6 +41,13 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
     label: 'Setup',
     items: [
       { id: 'promos', href: '/promos', label: 'Promo Codes', icon: Tag },
+      {
+        id: 'resources',
+        href: '/resources',
+        label: 'Resource Manager',
+        icon: Library,
+        superadminOnly: true,
+      },
       { id: 'settings', href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -53,6 +62,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/renewals': { title: 'Renewals & Retention', subtitle: 'Subscription retention monitoring' },
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
+  '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
   '/settings': { title: 'Settings', subtitle: 'Profile, team, integrations & purge audit' },
 };
 

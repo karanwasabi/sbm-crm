@@ -2822,3 +2822,260 @@ export async function getAutomationEnrollmentLog(
     createdAt: row.created_at,
   }));
 }
+
+export type ResourceCategory = 'plans' | 'webinars' | 'exercise' | 'guides' | 'recipes';
+export type ResourceKind = 'pdf' | 'youtube';
+
+export type AdminResource = {
+  id: string;
+  category: ResourceCategory;
+  kind: ResourceKind | string;
+  title: string;
+  tag: string;
+  meta: string;
+  summary: string;
+  thumbnailLabel: string;
+  thumbnailUrl: string | null;
+  speaker: string | null;
+  duration: string | null;
+  youtubeVideoId: string | null;
+  pdfStoragePath: string | null;
+  published: boolean;
+  isFeatured?: boolean;
+  sortOrder?: number;
+};
+
+export type CohortResourceCategory = {
+  id: ResourceCategory;
+  label: string;
+  visible: boolean;
+};
+
+export type CreateAdminResourceInput = {
+  category: ResourceCategory;
+  kind: ResourceKind;
+  title: string;
+  tag: string;
+  summary?: string | null;
+  thumbnail_url?: string | null;
+  speaker?: string | null;
+  duration?: string | null;
+  youtube_url?: string | null;
+  youtube_video_id?: string | null;
+  pdf_storage_path?: string | null;
+  published?: boolean;
+};
+
+export type PatchAdminResourceInput = Partial<CreateAdminResourceInput>;
+
+export type ResourceUploadUrl = {
+  path: string;
+  uploadUrl: string;
+  token: string;
+};
+
+export type CohortResourceAssignmentInput = {
+  resource_id: string;
+  sort_order: number;
+  is_featured: boolean;
+};
+
+type ApiResourceResponse = {
+  id: string;
+  category: string;
+  kind: string;
+  title: string;
+  tag: string;
+  meta?: string;
+  summary?: string;
+  thumbnail_label?: string;
+  thumbnail_url?: string | null;
+  speaker?: string | null;
+  duration?: string | null;
+  youtube_video_id?: string | null;
+  pdf_storage_path?: string | null;
+  published?: boolean | null;
+  is_featured?: boolean | null;
+  sort_order?: number | null;
+};
+
+function mapAdminResource(row: ApiResourceResponse): AdminResource {
+  return {
+    id: row.id,
+    category: row.category as ResourceCategory,
+    kind: row.kind,
+    title: row.title,
+    tag: row.tag,
+    meta: row.meta ?? '',
+    summary: row.summary ?? '',
+    thumbnailLabel: row.thumbnail_label ?? '',
+    thumbnailUrl: row.thumbnail_url ?? null,
+    speaker: row.speaker ?? null,
+    duration: row.duration ?? null,
+    youtubeVideoId: row.youtube_video_id ?? null,
+    pdfStoragePath: row.pdf_storage_path ?? null,
+    published: row.published ?? true,
+    isFeatured: row.is_featured ?? undefined,
+    sortOrder: row.sort_order ?? undefined,
+  };
+}
+
+export async function listAdminResources(category?: ResourceCategory): Promise<AdminResource[]> {
+  const query = category ? `?category=${encodeURIComponent(category)}` : '';
+  const response = await requireApiFetch(`/admin/resources${query}`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load resources.');
+  }
+  const payload = (await response.json()) as { resources: ApiResourceResponse[] };
+  return (payload.resources ?? []).map(mapAdminResource);
+}
+
+export async function createAdminResource(input: CreateAdminResourceInput): Promise<AdminResource> {
+  const response = await requireApiFetch('/admin/resources', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to create resource.');
+  }
+  return mapAdminResource((await response.json()) as ApiResourceResponse);
+}
+
+export async function patchAdminResource(id: string, input: PatchAdminResourceInput): Promise<AdminResource> {
+  const response = await requireApiFetch(`/admin/resources/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to update resource.');
+  }
+  return mapAdminResource((await response.json()) as ApiResourceResponse);
+}
+
+export async function deleteAdminResource(id: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/resources/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to delete resource.');
+  }
+}
+
+export async function createResourceUploadUrl(filename: string): Promise<ResourceUploadUrl> {
+  const response = await requireApiFetch('/admin/resources/upload-url', {
+    method: 'POST',
+    body: JSON.stringify({ filename }),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to create upload URL.');
+  }
+  const payload = (await response.json()) as { path: string; upload_url: string; token: string };
+  return {
+    path: payload.path,
+    uploadUrl: payload.upload_url,
+    token: payload.token,
+  };
+}
+
+export async function getCohortResources(cohortId: string): Promise<{
+  cohortId: string;
+  featured: AdminResource | null;
+  resources: AdminResource[];
+}> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/resources`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load cohort resources.');
+  }
+  const payload = (await response.json()) as {
+    cohort_id: string;
+    featured: ApiResourceResponse | null;
+    resources: ApiResourceResponse[];
+  };
+  return {
+    cohortId: payload.cohort_id,
+    featured: payload.featured ? mapAdminResource(payload.featured) : null,
+    resources: (payload.resources ?? []).map(mapAdminResource),
+  };
+}
+
+export async function putCohortResources(
+  cohortId: string,
+  assignments: CohortResourceAssignmentInput[]
+): Promise<{
+  cohortId: string;
+  featured: AdminResource | null;
+  resources: AdminResource[];
+}> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/resources`, {
+    method: 'PUT',
+    body: JSON.stringify(assignments),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to save cohort resources.');
+  }
+  const payload = (await response.json()) as {
+    cohort_id: string;
+    featured: ApiResourceResponse | null;
+    resources: ApiResourceResponse[];
+  };
+  return {
+    cohortId: payload.cohort_id,
+    featured: payload.featured ? mapAdminResource(payload.featured) : null,
+    resources: (payload.resources ?? []).map(mapAdminResource),
+  };
+}
+
+export async function getCohortResourceCategories(cohortId: string): Promise<{
+  cohortId: string;
+  categories: CohortResourceCategory[];
+}> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/resource-categories`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load cohort resource categories.');
+  }
+  const payload = (await response.json()) as {
+    cohort_id: string;
+    categories: { id: string; label: string; visible?: boolean }[];
+  };
+  return {
+    cohortId: payload.cohort_id,
+    categories: (payload.categories ?? []).map((row) => ({
+      id: row.id as ResourceCategory,
+      label: row.label,
+      visible: row.visible ?? true,
+    })),
+  };
+}
+
+export type CohortResourceCategoryInput = {
+  category: ResourceCategory;
+  visible: boolean;
+};
+
+export async function putCohortResourceCategories(
+  cohortId: string,
+  categories: CohortResourceCategoryInput[]
+): Promise<{
+  cohortId: string;
+  categories: CohortResourceCategory[];
+}> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/resource-categories`, {
+    method: 'PUT',
+    body: JSON.stringify(categories),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to save cohort resource categories.');
+  }
+  const payload = (await response.json()) as {
+    cohort_id: string;
+    categories: { id: string; label: string; visible?: boolean }[];
+  };
+  return {
+    cohortId: payload.cohort_id,
+    categories: (payload.categories ?? []).map((row) => ({
+      id: row.id as ResourceCategory,
+      label: row.label,
+      visible: row.visible ?? true,
+    })),
+  };
+}

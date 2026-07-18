@@ -25,13 +25,15 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   }
 
   let accessLabel = 'Staff';
+  let superadmin = false;
   try {
     const access = await getMyAccess();
     if (!hasProduct(access.products, PRODUCT_CRM)) {
       redirect('/unauthorized');
     }
+    superadmin = isSuperadmin(access.roles);
     const visible = visibleStaffRoles(access.roles);
-    if (isSuperadmin(access.roles)) {
+    if (superadmin) {
       accessLabel = 'Superadmin';
     } else if (visible.length > 0) {
       accessLabel = visible.map((role) => role.charAt(0).toUpperCase() + role.slice(1)).join(', ');
@@ -56,7 +58,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError}>
+    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError} isSuperadmin={superadmin}>
       {children}
     </CrmShell>
   );
