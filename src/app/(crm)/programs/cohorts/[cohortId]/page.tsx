@@ -32,11 +32,20 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     members = membersResult;
     coaches = staff.active.filter((row) => row.roles.includes('coach'));
     emailTemplates = templates;
-    canManagePointA = isSuperadmin(access.roles);
-    canLockCohort = isSuperadmin(access.roles);
-    if (cohort.status === 'active') {
+    const superadmin = isSuperadmin(access.roles);
+    canManagePointA = superadmin;
+    canLockCohort = superadmin;
+    const canTransferFrom =
+      cohort.status === 'active' || (superadmin && (cohort.status === 'upcoming' || cohort.status === 'locked'));
+    if (canTransferFrom) {
       const programCohorts = await getProgramCohorts(cohort.programId);
-      transferTargets = programCohorts.filter((row) => row.status === 'active' && row.id !== cohortId);
+      transferTargets = programCohorts.filter((row) => {
+        if (row.id === cohortId) return false;
+        if (superadmin) {
+          return row.status === 'active' || row.status === 'upcoming' || row.status === 'locked';
+        }
+        return row.status === 'active';
+      });
     }
   } catch {
     cohort = null;

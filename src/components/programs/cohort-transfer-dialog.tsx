@@ -59,7 +59,7 @@ export function CohortTransferDialog({ cohortId, member, targets, open, onOpenCh
         <DialogHeader>
           <DialogTitle>Transfer member</DialogTitle>
           <DialogDescription>
-            Move {member?.memberName ?? 'this member'} to another active cohort. Billing dates and Razorpay
+            Move {member?.memberName ?? 'this member'} to another cohort in this program. Billing dates and Razorpay
             subscriptions stay unchanged.
           </DialogDescription>
         </DialogHeader>
@@ -72,7 +72,7 @@ export function CohortTransferDialog({ cohortId, member, targets, open, onOpenCh
             disabled={pending || targets.length === 0}
           >
             {targets.length === 0 ? (
-              <option value="">No other active cohorts</option>
+              <option value="">No eligible cohorts</option>
             ) : (
               targets.map((target) => (
                 <option key={target.id} value={target.id}>

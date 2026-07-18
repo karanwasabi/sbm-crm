@@ -1030,7 +1030,7 @@ export function CohortDetailView({
   const geoFiltersActive = cityFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
   const searchActive = searchQuery.trim().length > 0;
   const filtersActive = statusCoachFiltersActive || geoFiltersActive || searchActive;
-  const canTransfer = cohort.status === 'active' && transferTargets.length > 0;
+  const canTransfer = transferTargets.length > 0;
   const selectedList = useMemo(() => Array.from(selectedIds), [selectedIds]);
 
   const toggle = (enrollmentId: string) => {
