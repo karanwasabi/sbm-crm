@@ -59,8 +59,9 @@ export function CohortTransferDialog({ cohortId, member, targets, open, onOpenCh
         <DialogHeader>
           <DialogTitle>Transfer member</DialogTitle>
           <DialogDescription>
-            Move {member?.memberName ?? 'this member'} to another cohort in this program. Billing dates and Razorpay
-            subscriptions stay unchanged.
+            Move {member?.memberName ?? 'this member'} to another cohort in this program. Between upcoming and locked
+            cohorts, the 3-month access window is recalculated from the target start date. Transfers between active
+            cohorts leave billing dates unchanged.
           </DialogDescription>
         </DialogHeader>
 
