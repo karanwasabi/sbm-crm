@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BadgeCheck,
   Banknote,
   GraduationCap,
   KeyRound,
@@ -24,6 +25,7 @@ type ProfileOverflowMenuProps = {
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
   onSetPassword?: () => void;
+  onVerifyEmail?: () => void;
 };
 
 type MenuPosition = {
@@ -43,6 +45,7 @@ export function ProfileOverflowMenu({
   onMarkReturnee,
   onClearMemberKind,
   onSetPassword,
+  onVerifyEmail,
 }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -214,6 +217,20 @@ export function ProfileOverflowMenu({
               >
                 <KeyRound className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Set password
+              </button>
+            ) : null}
+            {onVerifyEmail ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onVerifyEmail();
+                }}
+              >
+                <BadgeCheck className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Verify email
               </button>
             ) : null}
             {onPurge ? (

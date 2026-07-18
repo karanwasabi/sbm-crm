@@ -1022,6 +1022,32 @@ export async function setLeadPassword(leadId: string, password: string): Promise
   return { userId: row.user_id, updated: row.updated };
 }
 
+export type VerifyLeadEmailResult = {
+  userId: string;
+  verified: boolean;
+  alreadyVerified: boolean;
+};
+
+export async function verifyLeadEmail(leadId: string): Promise<VerifyLeadEmailResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/verify-email`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to verify email.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    verified: boolean;
+    already_verified: boolean;
+  };
+  return {
+    userId: row.user_id,
+    verified: row.verified,
+    alreadyVerified: row.already_verified,
+  };
+}
+
 export type SetMembershipAccessResult = {
   enrollmentId: string;
   checkoutSessionId: string;

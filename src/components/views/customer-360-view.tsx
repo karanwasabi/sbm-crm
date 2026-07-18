@@ -7,6 +7,7 @@ import {
   syncLeadCheckoutAction,
   markLeadCheckoutPaidOfflineAction,
   setLeadMemberKindAction,
+  verifyLeadEmailAction,
 } from '@/app/(crm)/customers/actions';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
@@ -146,6 +147,25 @@ export function Customer360View({
     });
   };
 
+  const handleVerifyEmail = () => {
+    const confirmed = window.confirm(
+      `Mark ${contact.email} as verified? This enables OTP login and does not send an email.`
+    );
+    if (!confirmed) return;
+    startTransition(async () => {
+      const { result, error } = await verifyLeadEmailAction(lead.id);
+      if (error || !result) {
+        toast({ message: error ?? 'Failed to verify email.', variant: 'error' });
+        return;
+      }
+      toast({
+        message: result.alreadyVerified ? 'Email was already verified.' : 'Email verified. No email was sent.',
+        variant: 'success',
+      });
+      refresh();
+    });
+  };
+
   return (
     <CrmPageLayout>
       <ProfileHeader
@@ -167,6 +187,7 @@ export function Customer360View({
         }
         onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
         onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
+        onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
       />
       {lead.paymentPending ? (
         <PaymentPendingBanner

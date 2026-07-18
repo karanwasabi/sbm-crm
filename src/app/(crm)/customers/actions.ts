@@ -21,6 +21,7 @@ import {
   syncLeadCheckout,
   markLeadCheckoutPaidOffline,
   setLeadPassword,
+  verifyLeadEmail,
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
   promoteLeadToMember,
@@ -31,6 +32,7 @@ import type {
   LeadCheckoutSyncResult,
   MarkCheckoutPaidOfflineResult,
   SetLeadPasswordResult,
+  VerifyLeadEmailResult,
   SetMembershipAccessResult,
   SetMemberKindResult,
   PromoteToMemberResult,
@@ -222,6 +224,18 @@ export async function setLeadPasswordAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to set password.';
+    return { result: null, error: message };
+  }
+}
+
+export async function verifyLeadEmailAction(
+  leadId: string
+): Promise<{ result: VerifyLeadEmailResult | null; error: string | null }> {
+  try {
+    const result = await verifyLeadEmail(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to verify email.';
     return { result: null, error: message };
   }
 }
