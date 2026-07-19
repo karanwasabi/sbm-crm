@@ -43,8 +43,8 @@ export function CorrectWeightsDialog({ leadId, open, onOpenChange, onDone }: Cor
       const { result } = await getLeadMemberProfileAction(leadId);
       if (cancelled) return;
       if (result) {
-        setInitialKg(result.initialWeightKg != null ? String(result.initialWeightKg) : '');
-        setCurrentKg(result.currentWeightKg != null ? String(result.currentWeightKg) : '');
+        setInitialKg(result.initialWeightKg != null ? result.initialWeightKg.toFixed(1) : '');
+        setCurrentKg(result.currentWeightKg != null ? result.currentWeightKg.toFixed(1) : '');
       } else {
         setInitialKg('');
         setCurrentKg('');
