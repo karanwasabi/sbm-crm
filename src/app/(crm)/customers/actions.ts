@@ -26,6 +26,7 @@ import {
   forceLeadNutritionRecalc,
   putLeadServingAddons,
   correctLeadWeights,
+  correctLeadHeight,
   resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
@@ -40,6 +41,7 @@ import type {
   VerifyLeadEmailResult,
   MemberProfile,
   NutritionRecalcResult,
+  CorrectHeightResult,
   ServingAddons,
   ServingAddonsResult,
   ResetOnboardingPointAResult,
@@ -297,6 +299,19 @@ export async function correctLeadWeightsAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to correct weights.';
+    return { result: null, error: message };
+  }
+}
+
+export async function correctLeadHeightAction(
+  leadId: string,
+  heightCm: number
+): Promise<{ result: CorrectHeightResult | null; error: string | null }> {
+  try {
+    const result = await correctLeadHeight(leadId, heightCm);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to correct height.';
     return { result: null, error: message };
   }
 }

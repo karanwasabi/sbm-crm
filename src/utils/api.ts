@@ -1352,6 +1352,40 @@ export async function correctLeadWeights(
   };
 }
 
+export type CorrectHeightResult = {
+  userId: string;
+  heightCm: number;
+  initialWeightKg: number | null;
+  currentWeightKg: number | null;
+  bmi: number | null;
+};
+
+export async function correctLeadHeight(leadId: string, heightCm: number): Promise<CorrectHeightResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/correct-height`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ height_cm: heightCm }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to correct height.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    height_cm: number;
+    initial_weight_kg?: number | null;
+    current_weight_kg?: number | null;
+    bmi?: number | null;
+  };
+  return {
+    userId: row.user_id,
+    heightCm: row.height_cm,
+    initialWeightKg: row.initial_weight_kg ?? null,
+    currentWeightKg: row.current_weight_kg ?? null,
+    bmi: row.bmi ?? null,
+  };
+}
+
 export type ResetOnboardingPointAResult = {
   userId: string;
   onboardingCompletedAt: string | null;

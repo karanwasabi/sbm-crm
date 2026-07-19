@@ -8,6 +8,7 @@ import {
   MoreVertical,
   RefreshCw,
   RotateCcw,
+  Ruler,
   Scale,
   Trash2,
   UserRoundCheck,
@@ -29,6 +30,7 @@ type ProfileOverflowMenuProps = {
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
+  onCorrectHeight?: () => void;
   onResetOnboardingPointA?: () => void;
 };
 
@@ -52,6 +54,7 @@ export function ProfileOverflowMenu({
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
+  onCorrectHeight,
   onResetOnboardingPointA,
 }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
@@ -252,6 +255,20 @@ export function ProfileOverflowMenu({
               >
                 <Scale className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Correct weights
+              </button>
+            ) : null}
+            {onCorrectHeight ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onCorrectHeight();
+                }}
+              >
+                <Ruler className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Correct height
               </button>
             ) : null}
             {onResetOnboardingPointA ? (

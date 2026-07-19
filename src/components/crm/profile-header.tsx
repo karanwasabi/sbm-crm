@@ -29,6 +29,7 @@ type ProfileHeaderProps = {
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
+  onCorrectHeight?: () => void;
   onResetOnboardingPointA?: () => void;
   memberKind?: 'renewal' | 'returnee' | null;
 };
@@ -73,6 +74,7 @@ export function ProfileHeader({
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
+  onCorrectHeight,
   onResetOnboardingPointA,
   memberKind = null,
 }: ProfileHeaderProps) {
@@ -185,6 +187,7 @@ export function ProfileHeader({
           onVerifyEmail ||
           onForceNutritionRecalc ||
           onCorrectWeights ||
+          onCorrectHeight ||
           onResetOnboardingPointA ? (
             <ProfileOverflowMenu
               onPurge={onPurge}
@@ -198,6 +201,7 @@ export function ProfileHeader({
               onVerifyEmail={onVerifyEmail}
               onForceNutritionRecalc={onForceNutritionRecalc}
               onCorrectWeights={onCorrectWeights}
+              onCorrectHeight={onCorrectHeight}
               onResetOnboardingPointA={onResetOnboardingPointA}
             />
           ) : null}

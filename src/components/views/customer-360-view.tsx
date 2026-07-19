@@ -14,6 +14,7 @@ import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
+import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
 import { ResetOnboardingPointADialog } from '@/components/crm/reset-onboarding-point-a-dialog';
 import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
@@ -68,6 +69,7 @@ export function Customer360View({
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
+  const [correctHeightOpen, setCorrectHeightOpen] = useState(false);
   const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
   const [memberProfileKey, setMemberProfileKey] = useState(0);
   const [isRefreshing, startTransition] = useTransition();
@@ -232,6 +234,7 @@ export function Customer360View({
         onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
         onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
         onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
+        onCorrectHeight={canSyncPayment && lead.memberUserId != null ? () => setCorrectHeightOpen(true) : undefined}
         onResetOnboardingPointA={
           canSyncPayment && lead.memberUserId != null ? () => setResetOnboardingPointAOpen(true) : undefined
         }
@@ -329,6 +332,15 @@ export function Customer360View({
         leadId={lead.id}
         open={correctWeightsOpen}
         onOpenChange={setCorrectWeightsOpen}
+        onDone={() => {
+          setMemberProfileKey((k) => k + 1);
+          refresh();
+        }}
+      />
+      <CorrectHeightDialog
+        leadId={lead.id}
+        open={correctHeightOpen}
+        onOpenChange={setCorrectHeightOpen}
         onDone={() => {
           setMemberProfileKey((k) => k + 1);
           refresh();

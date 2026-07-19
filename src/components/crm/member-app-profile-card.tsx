@@ -18,6 +18,12 @@ function formatKg(value: number | null | undefined): string {
   return `${value.toFixed(1)} kg`;
 }
 
+function formatBmi(heightCm: number | null | undefined, weightKg: number | null | undefined): string {
+  if (heightCm == null || weightKg == null || !(heightCm > 0) || !(weightKg > 0)) return '—';
+  const heightM = heightCm / 100;
+  return (weightKg / (heightM * heightM)).toFixed(1);
+}
+
 function formatAddon(n: number): string {
   if (n > 0) return `+${n}`;
   return String(n);
@@ -92,6 +98,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
             <Row label="Height" value={profile.heightCm != null ? `${profile.heightCm.toFixed(1)} cm` : '—'} />
             <Row label="Initial weight" value={formatKg(profile.initialWeightKg)} />
             <Row label="Current weight" value={formatKg(profile.currentWeightKg)} />
+            <Row label="BMI" value={formatBmi(profile.heightCm, profile.currentWeightKg ?? profile.initialWeightKg)} />
             <Row
               label="Latest log"
               value={
