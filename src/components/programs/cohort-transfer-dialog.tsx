@@ -39,17 +39,14 @@ export function CohortTransferDialog({ cohortId, member, targets, open, onOpenCh
   const submit = () => {
     if (!member || !targetCohortId) return;
     startTransition(async () => {
-      try {
-        await transferEnrollmentAction(cohortId, member.enrollmentId, targetCohortId);
-        toast({ message: 'Member transferred', variant: 'success' });
-        onOpenChange(false);
-        router.refresh();
-      } catch (error) {
-        toast({
-          message: error instanceof Error ? error.message : 'Transfer failed.',
-          variant: 'error',
-        });
+      const { error } = await transferEnrollmentAction(cohortId, member.enrollmentId, targetCohortId);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
       }
+      toast({ message: 'Member transferred', variant: 'success' });
+      onOpenChange(false);
+      router.refresh();
     });
   };
 

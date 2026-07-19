@@ -47,11 +47,21 @@ export async function lockCohortAction(
   }
 }
 
-export async function transferEnrollmentAction(cohortId: string, enrollmentId: string, targetCohortId: string) {
-  await transferEnrollment(enrollmentId, targetCohortId);
-  revalidatePath(`/programs/cohorts/${cohortId}`);
-  revalidatePath(`/programs/cohorts/${targetCohortId}`);
-  revalidatePath('/programs');
+export async function transferEnrollmentAction(
+  cohortId: string,
+  enrollmentId: string,
+  targetCohortId: string
+): Promise<{ error: string | null }> {
+  try {
+    await transferEnrollment(enrollmentId, targetCohortId);
+    revalidatePath(`/programs/cohorts/${cohortId}`);
+    revalidatePath(`/programs/cohorts/${targetCohortId}`);
+    revalidatePath('/programs');
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to transfer member.';
+    return { error: message };
+  }
 }
 
 export async function assignCohortCoachAction(cohortId: string, enrollmentIds: string[], coachUserId: string | null) {
