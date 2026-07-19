@@ -5,6 +5,7 @@ import {
   assignCohortCoach,
   lockCohort,
   patchCohort,
+  patchCohortIsDemo,
   patchCohortPointAEnabled,
   transferEnrollment,
   type PatchCohortInput,
@@ -20,6 +21,13 @@ export async function patchCohortAction(cohortId: string, input: PatchCohortInpu
 
 export async function patchCohortPointAEnabledAction(cohortId: string, pointAEnabled: boolean) {
   const result = await patchCohortPointAEnabled(cohortId, pointAEnabled);
+  revalidatePath(`/programs/cohorts/${cohortId}`);
+  revalidatePath('/programs');
+  return result;
+}
+
+export async function patchCohortIsDemoAction(cohortId: string, isDemo: boolean) {
+  const result = await patchCohortIsDemo(cohortId, isDemo);
   revalidatePath(`/programs/cohorts/${cohortId}`);
   revalidatePath('/programs');
   return result;

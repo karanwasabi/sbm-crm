@@ -485,6 +485,8 @@ export type CohortDetail = CohortSummary & {
   pointAEnabled?: boolean;
   pointAEffective?: boolean;
   canEditPointAEnabled?: boolean;
+  isDemo?: boolean;
+  canEditIsDemo?: boolean;
 };
 
 export type CohortMember = {

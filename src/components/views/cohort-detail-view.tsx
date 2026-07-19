@@ -47,7 +47,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
 import { useToast } from '@/components/ui/toast';
-import { lockCohortAction, patchCohortPointAEnabledAction } from '@/app/(crm)/programs/actions';
+import {
+  lockCohortAction,
+  patchCohortIsDemoAction,
+  patchCohortPointAEnabledAction,
+} from '@/app/(crm)/programs/actions';
 import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
@@ -538,6 +542,9 @@ function CohortDetailHeader({
   pointAEffective,
   pointASaving,
   onTogglePointA,
+  isDemo,
+  isDemoSaving,
+  onToggleIsDemo,
 }: {
   cohort: CohortDetail;
   activeCount: number;
@@ -547,6 +554,9 @@ function CohortDetailHeader({
   pointAEffective: boolean;
   pointASaving?: boolean;
   onTogglePointA?: (enabled: boolean) => void;
+  isDemo: boolean;
+  isDemoSaving?: boolean;
+  onToggleIsDemo?: (enabled: boolean) => void;
 }) {
   const autoEnabled = pointAEffective && !pointAEnabled;
 
@@ -592,6 +602,21 @@ function CohortDetailHeader({
               ) : (
                 <span className="text-[11px] font-medium text-white/75">Members wait on home until enabled</span>
               )}
+              <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
+                <input
+                  type="checkbox"
+                  className="h-3.5 w-3.5 rounded border-white/40"
+                  checked={isDemo}
+                  disabled={isDemoSaving}
+                  onChange={(e) => onToggleIsDemo?.(e.target.checked)}
+                />
+                Demo cohort
+              </label>
+              {isDemo ? (
+                <span className="text-[11px] font-medium text-white/75">
+                  Members can use start-day demo clock in the app
+                </span>
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -843,11 +868,17 @@ export function CohortDetailView({
   const [pointAEnabled, setPointAEnabled] = useState(Boolean(cohort.pointAEnabled));
   const [pointAEffective, setPointAEffective] = useState(Boolean(cohort.pointAEffective ?? cohort.pointAEnabled));
   const [pointASaving, setPointASaving] = useState(false);
+  const [isDemo, setIsDemo] = useState(Boolean(cohort.isDemo));
+  const [isDemoSaving, setIsDemoSaving] = useState(false);
 
   useEffect(() => {
     setPointAEnabled(Boolean(cohort.pointAEnabled));
     setPointAEffective(Boolean(cohort.pointAEffective ?? cohort.pointAEnabled));
   }, [cohort.pointAEnabled, cohort.pointAEffective]);
+
+  useEffect(() => {
+    setIsDemo(Boolean(cohort.isDemo));
+  }, [cohort.isDemo]);
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -876,6 +907,29 @@ export function CohortDetailView({
       });
     } finally {
       setPointASaving(false);
+    }
+  };
+
+  const handleToggleIsDemo = async (enabled: boolean) => {
+    const prev = isDemo;
+    setIsDemo(enabled);
+    setIsDemoSaving(true);
+    try {
+      const updated = await patchCohortIsDemoAction(cohort.id, enabled);
+      setIsDemo(Boolean(updated.isDemo));
+      toast({
+        message: enabled ? 'Demo clock enabled for this cohort' : 'Demo clock disabled for this cohort',
+        variant: 'success',
+      });
+      router.refresh();
+    } catch (error) {
+      setIsDemo(prev);
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to update demo setting.',
+        variant: 'error',
+      });
+    } finally {
+      setIsDemoSaving(false);
     }
   };
 
@@ -1239,6 +1293,9 @@ export function CohortDetailView({
         pointAEffective={pointAEffective}
         pointASaving={pointASaving}
         onTogglePointA={(enabled) => void handleTogglePointA(enabled)}
+        isDemo={isDemo}
+        isDemoSaving={isDemoSaving}
+        onToggleIsDemo={(enabled) => void handleToggleIsDemo(enabled)}
       />
 
       <div className="flex flex-wrap items-start justify-between gap-3">
