@@ -3500,3 +3500,213 @@ export async function putCohortResourceCategories(
     })),
   };
 }
+
+export type PushSlot = 'am_9' | 'pm_3' | 'pm_8' | 'pm_9';
+export type PushTemplateStatus = 'draft' | 'active' | 'archived';
+
+export type PushTemplate = {
+  id: string;
+  name: string;
+  status: PushTemplateStatus;
+  maxWeek: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PushTemplateEntry = {
+  weekIndex: number;
+  dayIndex: number;
+  slot: PushSlot;
+  title: string;
+  body: string;
+};
+
+export type PushTemplateDetail = PushTemplate & {
+  entries: PushTemplateEntry[];
+};
+
+export type CohortPushAssignment = {
+  cohortId: string;
+  cohortName: string;
+  startsOn: string;
+  status: string;
+  programId: string;
+  programName: string;
+  templateId: string | null;
+  templateName: string | null;
+  templateStatus: PushTemplateStatus | null;
+};
+
+function mapPushTemplate(row: {
+  id: string;
+  name: string;
+  status: PushTemplateStatus;
+  max_week: number;
+  created_at: string;
+  updated_at: string;
+}): PushTemplate {
+  return {
+    id: row.id,
+    name: row.name,
+    status: row.status,
+    maxWeek: row.max_week,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapPushTemplateDetail(row: {
+  id: string;
+  name: string;
+  status: PushTemplateStatus;
+  max_week: number;
+  created_at: string;
+  updated_at: string;
+  entries: { week_index: number; day_index: number; slot: PushSlot; title: string; body: string }[];
+}): PushTemplateDetail {
+  return {
+    ...mapPushTemplate(row),
+    entries: (row.entries ?? []).map((e) => ({
+      weekIndex: e.week_index,
+      dayIndex: e.day_index,
+      slot: e.slot,
+      title: e.title,
+      body: e.body,
+    })),
+  };
+}
+
+export async function listPushTemplates(): Promise<PushTemplate[]> {
+  const response = await requireApiFetch('/admin/push-templates');
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to list push templates.');
+  }
+  const rows = (await response.json()) as Parameters<typeof mapPushTemplate>[0][];
+  return rows.map(mapPushTemplate);
+}
+
+export async function getPushTemplate(id: string): Promise<PushTemplateDetail> {
+  const response = await requireApiFetch(`/admin/push-templates/${encodeURIComponent(id)}`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load push template.');
+  }
+  return mapPushTemplateDetail(await response.json());
+}
+
+export async function createPushTemplate(name: string): Promise<PushTemplateDetail> {
+  const response = await requireApiFetch('/admin/push-templates', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to create push template.');
+  }
+  return mapPushTemplateDetail(await response.json());
+}
+
+export async function patchPushTemplate(
+  id: string,
+  input: { name?: string; status?: PushTemplateStatus }
+): Promise<PushTemplateDetail> {
+  const response = await requireApiFetch(`/admin/push-templates/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to update push template.');
+  }
+  return mapPushTemplateDetail(await response.json());
+}
+
+export async function deletePushTemplate(id: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/push-templates/${encodeURIComponent(id)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to delete push template.');
+  }
+}
+
+export async function putPushTemplateEntries(id: string, entries: PushTemplateEntry[]): Promise<PushTemplateDetail> {
+  const response = await requireApiFetch(`/admin/push-templates/${encodeURIComponent(id)}/entries`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      entries: entries.map((e) => ({
+        week_index: e.weekIndex,
+        day_index: e.dayIndex,
+        slot: e.slot,
+        title: e.title,
+        body: e.body,
+      })),
+    }),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to save push template entries.');
+  }
+  return mapPushTemplateDetail(await response.json());
+}
+
+export async function addPushTemplateWeek(id: string): Promise<PushTemplateDetail> {
+  const response = await requireApiFetch(`/admin/push-templates/${encodeURIComponent(id)}/weeks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to add week.');
+  }
+  return mapPushTemplateDetail(await response.json());
+}
+
+export async function removePushTemplateLastWeek(id: string): Promise<PushTemplateDetail> {
+  const response = await requireApiFetch(`/admin/push-templates/${encodeURIComponent(id)}/remove-last-week`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to remove week.');
+  }
+  return mapPushTemplateDetail(await response.json());
+}
+
+export async function listCohortPushAssignments(): Promise<CohortPushAssignment[]> {
+  const response = await requireApiFetch('/admin/push-template-assignments');
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to list cohort push assignments.');
+  }
+  const rows = (await response.json()) as {
+    cohort_id: string;
+    cohort_name: string;
+    starts_on: string;
+    status: string;
+    program_id: string;
+    program_name: string;
+    template_id: string | null;
+    template_name: string | null;
+    template_status: PushTemplateStatus | null;
+  }[];
+  return rows.map((row) => ({
+    cohortId: row.cohort_id,
+    cohortName: row.cohort_name,
+    startsOn: row.starts_on,
+    status: row.status,
+    programId: row.program_id,
+    programName: row.program_name,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    templateStatus: row.template_status,
+  }));
+}
+
+export async function patchCohortPushTemplate(cohortId: string, templateId: string | null): Promise<void> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-template`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ template_id: templateId }),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to update cohort push template.');
+  }
+}

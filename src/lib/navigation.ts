@@ -1,4 +1,5 @@
 import {
+  Bell,
   Calendar,
   Database,
   FileText,
@@ -48,6 +49,13 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
         icon: Library,
         superadminOnly: true,
       },
+      {
+        id: 'push-notifications',
+        href: '/push-notifications',
+        label: 'Push notifications',
+        icon: Bell,
+        superadminOnly: true,
+      },
       { id: 'settings', href: '/settings', label: 'Settings', icon: Settings },
     ],
   },
@@ -63,6 +71,10 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
+  '/push-notifications': {
+    title: 'Push notifications',
+    subtitle: 'Habit nudge templates & cohort assignment',
+  },
   '/settings': { title: 'Settings', subtitle: 'Profile, team, integrations & purge audit' },
 };
 
@@ -84,6 +96,9 @@ export function getPageMeta(pathname: string): CrmPageMeta {
   }
   if (pathname.startsWith('/promos/')) {
     return { title: 'Promo Detail', subtitle: 'Terms, history & usage' };
+  }
+  if (pathname.startsWith('/push-notifications/')) {
+    return { title: 'Push template', subtitle: 'Week × day × slot copy' };
   }
   return CRM_PAGES[pathname] ?? { title: 'CRM' };
 }
