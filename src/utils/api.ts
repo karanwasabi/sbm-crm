@@ -1580,6 +1580,7 @@ type ApiCohortMemberResponse = {
   lifecycle_stage?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;
   enrolled_at: string;
+  onboarding_completed_at?: string | null;
   coach_user_id?: string | null;
   coach_name?: string | null;
 };
@@ -1633,6 +1634,7 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     lifecycleStage: row.lifecycle_stage ?? undefined,
     memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : undefined,
     enrolledAt: row.enrolled_at,
+    onboardingCompletedAt: row.onboarding_completed_at?.trim() || null,
     coachUserId: row.coach_user_id ?? null,
     coachName: row.coach_name ?? null,
   };

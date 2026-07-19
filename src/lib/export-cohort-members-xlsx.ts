@@ -46,6 +46,13 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: 'Coach', key: 'coach', width: 20, kind: 'text', value: (m) => m.coachName?.trim() ?? '' },
   { header: 'Enrolled', key: 'enrolledAt', width: 20, kind: 'date', value: (m) => parseExportDate(m.enrolledAt) },
   {
+    header: 'Onboarding',
+    key: 'onboarding',
+    width: 14,
+    kind: 'text',
+    value: (m) => (m.onboardingCompletedAt ? 'Complete' : 'Incomplete'),
+  },
+  {
     header: 'Subscription',
     key: 'subscription',
     width: 14,

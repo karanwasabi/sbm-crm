@@ -10,6 +10,7 @@ import {
   ArrowUpDown,
   ArrowRightLeft,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   Globe2,
   Lock,
@@ -82,13 +83,23 @@ const STATUS_FILTER_OPTIONS = [
   { id: 'member', label: 'Member' },
 ] as const;
 
+const ONBOARDING_FILTER_OPTIONS = [
+  { id: 'completed', label: 'Complete' },
+  { id: 'incomplete', label: 'Incomplete' },
+] as const;
+
 type ActiveStatusId = (typeof STATUS_FILTER_OPTIONS)[number]['id'];
+type OnboardingFilterId = (typeof ONBOARDING_FILTER_OPTIONS)[number]['id'];
 
 function activeMemberStatusId(member: CohortMember): ActiveStatusId {
   if (member.memberKind === 'returnee') return 'returnee';
   if (member.memberKind === 'renewal') return 'renewal';
   if (member.lifecycleStage?.trim() === 'newbie') return 'newbie';
   return 'member';
+}
+
+function onboardingFilterId(member: CohortMember): OnboardingFilterId {
+  return member.onboardingCompletedAt ? 'completed' : 'incomplete';
 }
 
 function displayOrDash(value: string): string {
@@ -110,6 +121,7 @@ function MemberTableColGroup({ withActions }: { withActions: boolean }) {
       <col style={{ minWidth: 40 }} />
       <col style={{ minWidth: 200 }} />
       <col style={{ minWidth: 100 }} />
+      <col style={{ minWidth: 110 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 110 }} />
@@ -343,7 +355,7 @@ function MemberTable({
   toolbar?: ReactNode;
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
 }) {
-  const columnCount = transferColumn ? 10 : 9;
+  const columnCount = transferColumn ? 11 : 10;
   const rowIds = rows.map((row) => row.enrollmentId);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
@@ -354,7 +366,7 @@ function MemberTable({
       </div>
       {toolbar}
       <div className="overflow-x-auto">
-        <DataTable tableClassName="min-w-[1100px]">
+        <DataTable tableClassName="min-w-[1200px]">
           <MemberTableColGroup withActions={transferColumn} />
           <DataTableHead>
             <DataTableHeaderCell>
@@ -379,6 +391,7 @@ function MemberTable({
               )}
             </DataTableHeaderCell>
             <DataTableHeaderCell>Status</DataTableHeaderCell>
+            <DataTableHeaderCell>Onboarding</DataTableHeaderCell>
             <DataTableHeaderCell>
               {sortable && sortKey && sortOrder && onSort ? (
                 <LocalSortableHeader
@@ -494,6 +507,13 @@ function MemberTable({
                       <Pill tone="neutral">Lapsed</Pill>
                     ) : (
                       <ActiveMemberStatus member={member} />
+                    )}
+                  </DataTableCell>
+                  <DataTableCell>
+                    {member.onboardingCompletedAt ? (
+                      <Pill tone="success">Complete</Pill>
+                    ) : (
+                      <Pill tone="warn">Incomplete</Pill>
                     )}
                   </DataTableCell>
                   <DataTableCell>
@@ -863,6 +883,7 @@ export function CohortDetailView({
   const [lockPending, setLockPending] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [onboardingFilters, setOnboardingFilters] = useState<string[]>([]);
   const [coachFilters, setCoachFilters] = useState<string[]>([]);
   const [cityFilters, setCityFilters] = useState<string[]>([]);
   const [countryFilters, setCountryFilters] = useState<string[]>([]);
@@ -887,7 +908,7 @@ export function CohortDetailView({
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [statusFilters, coachFilters, cityFilters, countryFilters, timezoneFilters, searchQuery]);
+  }, [statusFilters, onboardingFilters, coachFilters, cityFilters, countryFilters, timezoneFilters, searchQuery]);
 
   const handleTogglePointA = async (enabled: boolean) => {
     const prevEnabled = pointAEnabled;
@@ -968,9 +989,12 @@ export function CohortDetailView({
       if (!matchesGeoFilter(cityFilters, member.city)) return false;
       if (!matchesGeoFilter(countryFilters, member.countryCode)) return false;
       if (!matchesGeoFilter(timezoneFilters, member.timezoneId)) return false;
+      if (onboardingFilters.length > 0) {
+        if (!onboardingFilters.includes(onboardingFilterId(member))) return false;
+      }
       return true;
     });
-  }, [cityFilters, countryFilters, members, searchQuery, timezoneFilters]);
+  }, [cityFilters, countryFilters, members, onboardingFilters, searchQuery, timezoneFilters]);
 
   const activeMembers = useMemo(
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'active'),
@@ -1085,7 +1109,7 @@ export function CohortDetailView({
 
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
-  const statusCoachFiltersActive = statusFilters.length > 0 || coachFilters.length > 0;
+  const statusCoachFiltersActive = statusFilters.length > 0 || coachFilters.length > 0 || onboardingFilters.length > 0;
   const geoFiltersActive = cityFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
   const searchActive = searchQuery.trim().length > 0;
   const filtersActive = statusCoachFiltersActive || geoFiltersActive || searchActive;
@@ -1126,6 +1150,20 @@ export function CohortDetailView({
     }));
   }, [activeMembers]);
 
+  const onboardingFilterOptions = useMemo(() => {
+    const counts = new Map<OnboardingFilterId, number>();
+    for (const option of ONBOARDING_FILTER_OPTIONS) counts.set(option.id, 0);
+    for (const member of members) {
+      const id = onboardingFilterId(member);
+      counts.set(id, (counts.get(id) ?? 0) + 1);
+    }
+    return ONBOARDING_FILTER_OPTIONS.map((option) => ({
+      value: option.id,
+      label: option.label,
+      count: counts.get(option.id) ?? 0,
+    }));
+  }, [members]);
+
   const handleSort = (key: ActiveSortKey) => {
     if (sortKey === key) {
       setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -1156,6 +1194,14 @@ export function CohortDetailView({
           selected={statusFilters}
           onChange={setStatusFilters}
           emptyLabel="No statuses yet."
+        />
+        <CohortMultiFilterPopover
+          label="Onboarding"
+          icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+          options={onboardingFilterOptions}
+          selected={onboardingFilters}
+          onChange={setOnboardingFilters}
+          emptyLabel="No onboarding states yet."
         />
         <CohortMultiFilterPopover
           label="Coach"
@@ -1203,6 +1249,14 @@ export function CohortDetailView({
               onDismiss={() => setStatusFilters((prev) => prev.filter((item) => item !== stage))}
             />
           ))}
+          {onboardingFilters.map((state) => (
+            <ActiveFilterTag
+              key={`onboarding-${state}`}
+              label="Onboarding"
+              value={ONBOARDING_FILTER_OPTIONS.find((option) => option.id === state)?.label ?? state}
+              onDismiss={() => setOnboardingFilters((prev) => prev.filter((item) => item !== state))}
+            />
+          ))}
           {coachFilters.map((coachId) => (
             <ActiveFilterTag
               key={`coach-${coachId}`}
@@ -1240,6 +1294,7 @@ export function CohortDetailView({
             onClick={() => {
               setSearchQuery('');
               setStatusFilters([]);
+              setOnboardingFilters([]);
               setCoachFilters([]);
               setCityFilters([]);
               setCountryFilters([]);

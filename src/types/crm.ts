@@ -509,6 +509,8 @@ export type CohortMember = {
   lifecycleStage?: string;
   memberKind?: 'renewal' | 'returnee';
   enrolledAt: string;
+  /** ISO timestamp when app onboarding finished; null if incomplete. */
+  onboardingCompletedAt: string | null;
   coachUserId?: string | null;
   coachName?: string | null;
 };
