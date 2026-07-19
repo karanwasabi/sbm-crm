@@ -414,18 +414,6 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
             />
           </Field>
 
-          <Field label="Duration">
-            <TextInput
-              value={form.duration}
-              onChange={(value) => setForm((prev) => ({ ...prev, duration: value }))}
-              placeholder="e.g. 12 min"
-            />
-          </Field>
-
-          <Field label="Speaker">
-            <TextInput value={form.speaker} onChange={(value) => setForm((prev) => ({ ...prev, speaker: value }))} />
-          </Field>
-
           {form.kind === 'youtube' ? (
             <Field label="YouTube URL or video ID">
               <TextInput
@@ -456,10 +444,10 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
                 <img
                   src={thumbnailPreview}
                   alt="Resource thumbnail preview"
-                  className="h-28 w-full rounded-xl border border-slate-200 object-cover"
+                  className="aspect-square w-28 rounded-xl border border-slate-200 object-cover"
                 />
               ) : (
-                <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-xs text-slate-400">
+                <div className="flex aspect-square w-28 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-center text-xs text-slate-400">
                   No thumbnail yet
                 </div>
               )}
