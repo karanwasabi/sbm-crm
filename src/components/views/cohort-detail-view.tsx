@@ -22,6 +22,9 @@ import {
   UserRoundPlus,
   X,
 } from 'lucide-react';
+import { CustomerDetailSkeleton } from '@/components/loading/customer-detail-skeleton';
+import { GenericCrmPageSkeleton } from '@/components/loading/crm-page-skeleton';
+import { useCrmNavigate } from '@/hooks/use-crm-navigate';
 import {
   DataTable,
   DataTableBody,
@@ -850,7 +853,9 @@ export function CohortDetailView({
   canLockCohort = false,
 }: CohortDetailViewProps) {
   const router = useRouter();
+  const { push, isPending, pendingHref } = useCrmNavigate();
   const { toast } = useToast();
+  const openCustomer = (leadId: string) => push(`/customers/${leadId}`);
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
@@ -1249,6 +1254,13 @@ export function CohortDetailView({
     </>
   );
 
+  if (isPending) {
+    if (pendingHref?.startsWith('/customers/')) {
+      return <CustomerDetailSkeleton />;
+    }
+    return <GenericCrmPageSkeleton />;
+  }
+
   return (
     <CrmPageLayout className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1340,7 +1352,7 @@ export function CohortDetailView({
           selectedIds={selectedIds}
           onToggle={toggle}
           onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && router.push(`/customers/${member.leadId}`)}
+          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
           onTransfer={setTransferMember}
           sortable
           sortKey={sortKey}
@@ -1360,7 +1372,7 @@ export function CohortDetailView({
           selectedIds={selectedIds}
           onToggle={toggle}
           onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && router.push(`/customers/${member.leadId}`)}
+          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
           onTransfer={() => undefined}
           sortable
           sortKey={sortKey}

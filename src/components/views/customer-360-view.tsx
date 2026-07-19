@@ -26,8 +26,11 @@ import { ProfileHeader } from '@/components/crm/profile-header';
 import { ProgramHistory } from '@/components/crm/program-history';
 import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { CohortDetailSkeleton } from '@/components/loading/cohort-detail-skeleton';
+import { GenericCrmPageSkeleton } from '@/components/loading/crm-page-skeleton';
 import { useToast } from '@/components/ui/toast';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
+import { useCrmNavigate } from '@/hooks/use-crm-navigate';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
 import type { EmailTemplate } from '@/utils/api';
@@ -54,6 +57,7 @@ export function Customer360View({
   canSyncPayment = false,
 }: Customer360ViewProps) {
   const router = useRouter();
+  const { push, isPending: isNavigating, pendingHref } = useCrmNavigate();
   const { toast } = useToast();
   const { setContactName } = useCrmContactName();
   const [lead, setLead] = useState(initialLead);
@@ -194,6 +198,14 @@ export function Customer360View({
     });
   };
 
+  if (isNavigating) {
+    // Browser back (no pendingHref) → cohort skeleton for the common cohort↔C360 flow.
+    if (!pendingHref || pendingHref.startsWith('/programs/cohorts/')) {
+      return <CohortDetailSkeleton />;
+    }
+    return <GenericCrmPageSkeleton />;
+  }
+
   return (
     <CrmPageLayout>
       <ProfileHeader
@@ -289,7 +301,7 @@ export function Customer360View({
         leadEmail={contact.email}
         leadName={contact.name}
         hasMemberAccount={lead.memberUserId != null}
-        onPurged={() => router.push('/database')}
+        onPurged={() => push('/database')}
       />
       <OfflineEnrollDialog
         open={enrollOpen}
