@@ -89,12 +89,36 @@ type ResourceFormState = {
   tag: string;
   summary: string;
   thumbnailUrl: string;
+  thumbnailCustom: boolean;
+  thumbnailFile: File | null;
   speaker: string;
   duration: string;
   youtubeUrl: string;
   published: boolean;
   pdfFile: File | null;
 };
+
+function youtubeThumbnailFromInput(raw: string): string {
+  const id = extractYouTubeVideoId(raw);
+  return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '';
+}
+
+function extractYouTubeVideoId(raw: string): string {
+  const s = raw.trim();
+  if (!s) return '';
+  if (/^[A-Za-z0-9_-]{6,32}$/.test(s) && !s.includes('/') && !s.includes('.')) {
+    return s;
+  }
+  const markers = ['v=', 'youtu.be/', '/embed/', '/shorts/'];
+  for (const marker of markers) {
+    const i = s.indexOf(marker);
+    if (i < 0) continue;
+    let rest = s.slice(i + marker.length);
+    rest = rest.split('&')[0]?.split('?')[0]?.split('#')[0]?.split('/')[0] ?? '';
+    if (/^[A-Za-z0-9_-]{6,32}$/.test(rest)) return rest;
+  }
+  return '';
+}
 
 function defaultFormState(category: ResourceCategory = 'plans'): ResourceFormState {
   return {
@@ -104,6 +128,8 @@ function defaultFormState(category: ResourceCategory = 'plans'): ResourceFormSta
     tag: '',
     summary: '',
     thumbnailUrl: '',
+    thumbnailCustom: false,
+    thumbnailFile: null,
     speaker: '',
     duration: '',
     youtubeUrl: '',
@@ -113,23 +139,28 @@ function defaultFormState(category: ResourceCategory = 'plans'): ResourceFormSta
 }
 
 function formStateFromResource(resource: AdminResource): ResourceFormState {
+  const youtubeUrl = resource.youtubeVideoId ?? '';
+  const autoThumb = resource.kind === 'youtube' ? youtubeThumbnailFromInput(youtubeUrl) : '';
+  const existingThumb = resource.thumbnailUrl ?? '';
+  const isYoutubeAuto = Boolean(autoThumb) && (existingThumb === autoThumb || existingThumb.includes('ytimg.com/vi/'));
   return {
     category: resource.category,
     kind: resource.kind === 'youtube' ? 'youtube' : 'pdf',
     title: resource.title,
     tag: resource.tag,
     summary: resource.summary,
-    thumbnailUrl: resource.thumbnailUrl ?? '',
+    thumbnailUrl: existingThumb,
+    thumbnailCustom: Boolean(existingThumb) && !isYoutubeAuto,
+    thumbnailFile: null,
     speaker: resource.speaker ?? '',
     duration: resource.duration ?? '',
-    youtubeUrl: resource.youtubeVideoId ?? '',
+    youtubeUrl,
     published: resource.published,
     pdfFile: null,
   };
 }
 
-async function uploadResourcePdf(file: File): Promise<string> {
-  const { path, uploadUrl, token } = await createResourceUploadUrlAction(file.name);
+async function putSignedUpload(file: File, uploadUrl: string, token: string, contentType: string) {
   // Supabase signed uploads authenticate via ?token= on the URL (not Bearer).
   let target = uploadUrl;
   if (token && !target.includes('token=')) {
@@ -138,15 +169,27 @@ async function uploadResourcePdf(file: File): Promise<string> {
   }
   const response = await fetch(target, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/pdf',
-    },
+    headers: { 'Content-Type': contentType },
     body: file,
   });
   if (!response.ok) {
-    throw new Error('PDF upload failed.');
+    throw new Error('Upload failed.');
   }
+}
+
+async function uploadResourcePdf(file: File): Promise<string> {
+  const { path, uploadUrl, token } = await createResourceUploadUrlAction(file.name, 'pdf');
+  await putSignedUpload(file, uploadUrl, token, 'application/pdf');
   return path;
+}
+
+async function uploadResourceThumbnail(file: File): Promise<string> {
+  const { uploadUrl, token, publicUrl } = await createResourceUploadUrlAction(file.name, 'thumbnail');
+  await putSignedUpload(file, uploadUrl, token, file.type || 'image/jpeg');
+  if (!publicUrl) {
+    throw new Error('Thumbnail upload did not return a public URL.');
+  }
+  return publicUrl;
 }
 
 function groupAssignmentsByCategory(resources: AdminResource[]): Record<ResourceCategory, CohortAssignment[]> {
@@ -210,6 +253,36 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
     }
   }, [open, mode, resource, defaultCategory]);
 
+  const thumbnailPreview = useMemo(() => {
+    if (form.thumbnailFile) {
+      return URL.createObjectURL(form.thumbnailFile);
+    }
+    if (form.thumbnailUrl.trim()) {
+      return form.thumbnailUrl.trim();
+    }
+    if (form.kind === 'youtube') {
+      return youtubeThumbnailFromInput(form.youtubeUrl);
+    }
+    return '';
+  }, [form.thumbnailFile, form.thumbnailUrl, form.kind, form.youtubeUrl]);
+
+  useEffect(() => {
+    if (!form.thumbnailFile || !thumbnailPreview.startsWith('blob:')) return;
+    return () => {
+      URL.revokeObjectURL(thumbnailPreview);
+    };
+  }, [form.thumbnailFile, thumbnailPreview]);
+
+  const applyYouTubeUrl = (value: string) => {
+    setForm((prev) => {
+      const next = { ...prev, youtubeUrl: value };
+      if (!prev.thumbnailCustom && !prev.thumbnailFile) {
+        next.thumbnailUrl = youtubeThumbnailFromInput(value);
+      }
+      return next;
+    });
+  };
+
   const handleSubmit = () => {
     const title = form.title.trim();
     const tag = form.tag.trim();
@@ -233,13 +306,21 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
           pdfStoragePath = await uploadResourcePdf(form.pdfFile);
         }
 
+        let thumbnailUrl = form.thumbnailUrl.trim();
+        if (form.thumbnailFile) {
+          thumbnailUrl = await uploadResourceThumbnail(form.thumbnailFile);
+        } else if (form.kind === 'youtube' && !form.thumbnailCustom) {
+          thumbnailUrl = youtubeThumbnailFromInput(form.youtubeUrl) || thumbnailUrl;
+        }
+
         const payload: CreateAdminResourceInput = {
           category: form.category,
           kind: form.kind,
           title,
           tag,
           summary: form.summary.trim() || null,
-          thumbnail_url: form.thumbnailUrl.trim() || null,
+          // Empty string clears an existing thumbnail on update; null/omit leaves it alone on backend create.
+          thumbnail_url: thumbnailUrl || (mode === 'edit' ? '' : null),
           speaker: form.speaker.trim() || null,
           duration: form.duration.trim() || null,
           published: form.published,
@@ -288,7 +369,16 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
               <select
                 value={form.kind}
                 disabled={mode === 'edit'}
-                onChange={(e) => setForm((prev) => ({ ...prev, kind: e.target.value as ResourceKind }))}
+                onChange={(e) => {
+                  const kind = e.target.value as ResourceKind;
+                  setForm((prev) => {
+                    const next = { ...prev, kind };
+                    if (kind === 'youtube' && !prev.thumbnailCustom && !prev.thumbnailFile) {
+                      next.thumbnailUrl = youtubeThumbnailFromInput(prev.youtubeUrl);
+                    }
+                    return next;
+                  });
+                }}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-brand/20"
               >
                 <option value="pdf">PDF</option>
@@ -324,21 +414,13 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
             />
           </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Thumbnail URL">
-              <TextInput
-                value={form.thumbnailUrl}
-                onChange={(value) => setForm((prev) => ({ ...prev, thumbnailUrl: value }))}
-              />
-            </Field>
-            <Field label="Duration">
-              <TextInput
-                value={form.duration}
-                onChange={(value) => setForm((prev) => ({ ...prev, duration: value }))}
-                placeholder="e.g. 12 min"
-              />
-            </Field>
-          </div>
+          <Field label="Duration">
+            <TextInput
+              value={form.duration}
+              onChange={(value) => setForm((prev) => ({ ...prev, duration: value }))}
+              placeholder="e.g. 12 min"
+            />
+          </Field>
 
           <Field label="Speaker">
             <TextInput value={form.speaker} onChange={(value) => setForm((prev) => ({ ...prev, speaker: value }))} />
@@ -348,7 +430,7 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
             <Field label="YouTube URL or video ID">
               <TextInput
                 value={form.youtubeUrl}
-                onChange={(value) => setForm((prev) => ({ ...prev, youtubeUrl: value }))}
+                onChange={applyYouTubeUrl}
                 placeholder="https://youtube.com/watch?v=…"
               />
             </Field>
@@ -362,6 +444,56 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
               />
             </Field>
           )}
+
+          <Field
+            label={
+              form.kind === 'youtube' ? 'Thumbnail (auto from YouTube; upload to override)' : 'Thumbnail (optional)'
+            }
+          >
+            <div className="space-y-3">
+              {thumbnailPreview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={thumbnailPreview}
+                  alt="Resource thumbnail preview"
+                  className="h-28 w-full rounded-xl border border-slate-200 object-cover"
+                />
+              ) : (
+                <div className="flex h-28 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-xs text-slate-400">
+                  No thumbnail yet
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp"
+                onChange={(e) => {
+                  const file = e.target.files?.[0] ?? null;
+                  setForm((prev) => ({
+                    ...prev,
+                    thumbnailFile: file,
+                    thumbnailCustom: Boolean(file) || prev.thumbnailCustom,
+                  }));
+                }}
+                className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-brand/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand"
+              />
+              {(form.thumbnailFile || form.thumbnailCustom || form.thumbnailUrl) && (
+                <button
+                  type="button"
+                  className="text-xs font-medium text-slate-500 underline-offset-2 hover:underline"
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      thumbnailFile: null,
+                      thumbnailCustom: false,
+                      thumbnailUrl: prev.kind === 'youtube' ? youtubeThumbnailFromInput(prev.youtubeUrl) : '',
+                    }))
+                  }
+                >
+                  {form.kind === 'youtube' ? 'Reset to YouTube thumbnail' : 'Remove thumbnail'}
+                </button>
+              )}
+            </div>
+          </Field>
 
           <Checkbox
             checked={form.published}

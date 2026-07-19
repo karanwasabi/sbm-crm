@@ -2868,10 +2868,14 @@ export type CreateAdminResourceInput = {
 
 export type PatchAdminResourceInput = Partial<CreateAdminResourceInput>;
 
+export type ResourceUploadPurpose = 'pdf' | 'thumbnail';
+
 export type ResourceUploadUrl = {
   path: string;
   uploadUrl: string;
   token: string;
+  purpose: ResourceUploadPurpose;
+  publicUrl?: string;
 };
 
 export type CohortResourceAssignmentInput = {
@@ -2961,19 +2965,30 @@ export async function deleteAdminResource(id: string): Promise<void> {
   }
 }
 
-export async function createResourceUploadUrl(filename: string): Promise<ResourceUploadUrl> {
+export async function createResourceUploadUrl(
+  filename: string,
+  purpose: ResourceUploadPurpose = 'pdf'
+): Promise<ResourceUploadUrl> {
   const response = await requireApiFetch('/admin/resources/upload-url', {
     method: 'POST',
-    body: JSON.stringify({ filename }),
+    body: JSON.stringify({ filename, purpose }),
   });
   if (!response.ok) {
     await parseApiError(response, 'Failed to create upload URL.');
   }
-  const payload = (await response.json()) as { path: string; upload_url: string; token: string };
+  const payload = (await response.json()) as {
+    path: string;
+    upload_url: string;
+    token: string;
+    purpose?: ResourceUploadPurpose;
+    public_url?: string;
+  };
   return {
     path: payload.path,
     uploadUrl: payload.upload_url,
     token: payload.token,
+    purpose: payload.purpose ?? purpose,
+    publicUrl: payload.public_url,
   };
 }
 

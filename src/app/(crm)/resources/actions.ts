@@ -41,8 +41,8 @@ export async function deleteAdminResourceAction(id: string) {
   revalidatePath('/resources');
 }
 
-export async function createResourceUploadUrlAction(filename: string) {
-  return createResourceUploadUrl(filename);
+export async function createResourceUploadUrlAction(filename: string, purpose: 'pdf' | 'thumbnail' = 'pdf') {
+  return createResourceUploadUrl(filename, purpose);
 }
 
 export async function getCohortResourcesAction(cohortId: string) {
