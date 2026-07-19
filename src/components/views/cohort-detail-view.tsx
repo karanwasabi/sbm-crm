@@ -46,6 +46,14 @@ import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Pill } from '@/components/ui/pill';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { SectionHead } from '@/components/ui/section-head';
@@ -564,10 +572,10 @@ function CohortDetailHeader({
   pointAEnabled,
   pointAEffective,
   pointASaving,
-  onTogglePointA,
+  onRequestTogglePointA,
   isDemo,
   isDemoSaving,
-  onToggleIsDemo,
+  onRequestToggleIsDemo,
 }: {
   cohort: CohortDetail;
   activeCount: number;
@@ -576,12 +584,13 @@ function CohortDetailHeader({
   pointAEnabled: boolean;
   pointAEffective: boolean;
   pointASaving?: boolean;
-  onTogglePointA?: (enabled: boolean) => void;
+  onRequestTogglePointA?: (enabled: boolean) => void;
   isDemo: boolean;
   isDemoSaving?: boolean;
-  onToggleIsDemo?: (enabled: boolean) => void;
+  onRequestToggleIsDemo?: (enabled: boolean) => void;
 }) {
   const autoEnabled = pointAEffective && !pointAEnabled;
+  const showDemoToggle = /demo/i.test(cohort.name);
 
   return (
     <div
@@ -614,7 +623,7 @@ function CohortDetailHeader({
                   className="h-3.5 w-3.5 rounded border-white/40"
                   checked={pointAEnabled}
                   disabled={pointASaving}
-                  onChange={(e) => onTogglePointA?.(e.target.checked)}
+                  onChange={(e) => onRequestTogglePointA?.(e.target.checked)}
                 />
                 Point A enabled
               </label>
@@ -625,20 +634,24 @@ function CohortDetailHeader({
               ) : (
                 <span className="text-[11px] font-medium text-white/75">Members wait on home until enabled</span>
               )}
-              <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-white/40"
-                  checked={isDemo}
-                  disabled={isDemoSaving}
-                  onChange={(e) => onToggleIsDemo?.(e.target.checked)}
-                />
-                Demo cohort
-              </label>
-              {isDemo ? (
-                <span className="text-[11px] font-medium text-white/75">
-                  Members can use start-day demo clock in the app
-                </span>
+              {showDemoToggle ? (
+                <>
+                  <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-white/40"
+                      checked={isDemo}
+                      disabled={isDemoSaving}
+                      onChange={(e) => onRequestToggleIsDemo?.(e.target.checked)}
+                    />
+                    Demo cohort
+                  </label>
+                  {isDemo ? (
+                    <span className="text-[11px] font-medium text-white/75">
+                      Members can use start-day demo clock in the app
+                    </span>
+                  ) : null}
+                </>
               ) : null}
             </div>
           ) : null}
@@ -651,6 +664,57 @@ function CohortDetailHeader({
         </div>
       </div>
     </div>
+  );
+}
+
+function CohortSettingConfirmDialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  body,
+  confirmLabel,
+  confirmVariant = 'primary',
+  pending,
+  onConfirm,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  title: string;
+  description: string;
+  body: string;
+  confirmLabel: string;
+  confirmVariant?: 'primary' | 'amber' | 'danger';
+  pending?: boolean;
+  onConfirm: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogHeader className="gap-0 border-b border-slate-100 px-6 py-5 pr-12">
+          <DialogTitle className="text-lg font-bold text-slate-900">{title}</DialogTitle>
+          <DialogDescription className="sr-only">{description}</DialogDescription>
+        </DialogHeader>
+        <div className="px-6 py-5">
+          <p className="text-sm leading-relaxed text-slate-600">{body}</p>
+        </div>
+        <DialogFooter className="mx-0 mb-0 border-t border-slate-100 bg-canvas-cool/60 px-6 py-4 sm:justify-end">
+          <Button type="button" variant="light" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant={confirmVariant}
+            size="sm"
+            loading={pending}
+            loadingLabel="Saving…"
+            onClick={onConfirm}
+          >
+            {confirmLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -904,8 +968,10 @@ export function CohortDetailView({
   const [pointAEnabled, setPointAEnabled] = useState(Boolean(cohort.pointAEnabled));
   const [pointAEffective, setPointAEffective] = useState(Boolean(cohort.pointAEffective ?? cohort.pointAEnabled));
   const [pointASaving, setPointASaving] = useState(false);
+  const [pendingPointAEnabled, setPendingPointAEnabled] = useState<boolean | null>(null);
   const [isDemo, setIsDemo] = useState(Boolean(cohort.isDemo));
   const [isDemoSaving, setIsDemoSaving] = useState(false);
+  const [pendingIsDemo, setPendingIsDemo] = useState<boolean | null>(null);
 
   useEffect(() => {
     setPointAEnabled(Boolean(cohort.pointAEnabled));
@@ -929,6 +995,7 @@ export function CohortDetailView({
       const updated = await patchCohortPointAEnabledAction(cohort.id, enabled);
       setPointAEnabled(Boolean(updated.pointAEnabled));
       setPointAEffective(Boolean(updated.pointAEffective ?? updated.pointAEnabled));
+      setPendingPointAEnabled(null);
       toast({
         message: enabled ? 'Point A enabled for this cohort' : 'Point A disabled for this cohort',
         variant: 'success',
@@ -953,6 +1020,7 @@ export function CohortDetailView({
     try {
       const updated = await patchCohortIsDemoAction(cohort.id, enabled);
       setIsDemo(Boolean(updated.isDemo));
+      setPendingIsDemo(null);
       toast({
         message: enabled ? 'Demo clock enabled for this cohort' : 'Demo clock disabled for this cohort',
         variant: 'success',
@@ -1377,10 +1445,58 @@ export function CohortDetailView({
         pointAEnabled={pointAEnabled}
         pointAEffective={pointAEffective}
         pointASaving={pointASaving}
-        onTogglePointA={(enabled) => void handleTogglePointA(enabled)}
+        onRequestTogglePointA={(enabled) => setPendingPointAEnabled(enabled)}
         isDemo={isDemo}
         isDemoSaving={isDemoSaving}
-        onToggleIsDemo={(enabled) => void handleToggleIsDemo(enabled)}
+        onRequestToggleIsDemo={(enabled) => setPendingIsDemo(enabled)}
+      />
+
+      <CohortSettingConfirmDialog
+        open={pendingPointAEnabled !== null}
+        onOpenChange={(open) => {
+          if (!open && !pointASaving) setPendingPointAEnabled(null);
+        }}
+        title={pendingPointAEnabled ? 'Enable Point A?' : 'Disable Point A?'}
+        description={
+          pendingPointAEnabled
+            ? 'Confirm enabling Point A for this cohort'
+            : 'Confirm disabling Point A for this cohort'
+        }
+        body={
+          pendingPointAEnabled
+            ? 'Members in this cohort will be able to take the Point A assessment. Once Point A is required, height and weight lock in the app profile.'
+            : 'Members will stay on home without Point A until you enable it again (or the start date auto-requires it). Turn this off only if you intend to delay assessment.'
+        }
+        confirmLabel={pendingPointAEnabled ? 'Enable Point A' : 'Disable Point A'}
+        confirmVariant={pendingPointAEnabled ? 'primary' : 'amber'}
+        pending={pointASaving}
+        onConfirm={() => {
+          if (pendingPointAEnabled === null) return;
+          void handleTogglePointA(pendingPointAEnabled);
+        }}
+      />
+
+      <CohortSettingConfirmDialog
+        open={pendingIsDemo !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDemoSaving) setPendingIsDemo(null);
+        }}
+        title={pendingIsDemo ? 'Enable demo cohort?' : 'Disable demo cohort?'}
+        description={
+          pendingIsDemo ? 'Confirm enabling demo clock for this cohort' : 'Confirm disabling demo clock for this cohort'
+        }
+        body={
+          pendingIsDemo
+            ? 'Members enrolled in this cohort can use the start-day demo clock in the app. Only use this on intentionally named demo batches.'
+            : 'Members will lose access to the demo clock. Their app day will follow the real cohort schedule again.'
+        }
+        confirmLabel={pendingIsDemo ? 'Enable demo' : 'Disable demo'}
+        confirmVariant={pendingIsDemo ? 'amber' : 'primary'}
+        pending={isDemoSaving}
+        onConfirm={() => {
+          if (pendingIsDemo === null) return;
+          void handleToggleIsDemo(pendingIsDemo);
+        }}
       />
 
       <CoachSummaryCard members={members} />
