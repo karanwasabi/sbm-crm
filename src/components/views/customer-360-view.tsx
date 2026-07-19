@@ -15,6 +15,7 @@ import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
+import { ResetOnboardingPointADialog } from '@/components/crm/reset-onboarding-point-a-dialog';
 import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
@@ -67,6 +68,7 @@ export function Customer360View({
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
+  const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
   const [memberProfileKey, setMemberProfileKey] = useState(0);
   const [isRefreshing, startTransition] = useTransition();
   const [syncingPayment, startSyncPayment] = useTransition();
@@ -230,6 +232,9 @@ export function Customer360View({
         onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
         onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
         onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
+        onResetOnboardingPointA={
+          canSyncPayment && lead.memberUserId != null ? () => setResetOnboardingPointAOpen(true) : undefined
+        }
       />
       {lead.paymentPending ? (
         <PaymentPendingBanner
@@ -320,6 +325,15 @@ export function Customer360View({
         leadId={lead.id}
         open={correctWeightsOpen}
         onOpenChange={setCorrectWeightsOpen}
+        onDone={() => {
+          setMemberProfileKey((k) => k + 1);
+          refresh();
+        }}
+      />
+      <ResetOnboardingPointADialog
+        leadId={lead.id}
+        open={resetOnboardingPointAOpen}
+        onOpenChange={setResetOnboardingPointAOpen}
         onDone={() => {
           setMemberProfileKey((k) => k + 1);
           refresh();

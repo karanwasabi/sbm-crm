@@ -29,6 +29,7 @@ type ProfileOverflowMenuProps = {
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
+  onResetOnboardingPointA?: () => void;
 };
 
 type MenuPosition = {
@@ -51,6 +52,7 @@ export function ProfileOverflowMenu({
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
+  onResetOnboardingPointA,
 }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -250,6 +252,20 @@ export function ProfileOverflowMenu({
               >
                 <Scale className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Correct weights
+              </button>
+            ) : null}
+            {onResetOnboardingPointA ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-amber-800 hover:bg-amber-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onResetOnboardingPointA();
+                }}
+              >
+                <RotateCcw className="h-4 w-4 shrink-0 text-amber-700" aria-hidden />
+                Reset onboarding & Point A
               </button>
             ) : null}
             {onForceNutritionRecalc ? (

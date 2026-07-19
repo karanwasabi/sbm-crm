@@ -25,6 +25,7 @@ import {
   getLeadMemberProfile,
   forceLeadNutritionRecalc,
   correctLeadWeights,
+  resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
   promoteLeadToMember,
@@ -38,6 +39,7 @@ import type {
   VerifyLeadEmailResult,
   MemberProfile,
   NutritionRecalcResult,
+  ResetOnboardingPointAResult,
   SetMembershipAccessResult,
   SetMemberKindResult,
   PromoteToMemberResult,
@@ -279,6 +281,18 @@ export async function correctLeadWeightsAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to correct weights.';
+    return { result: null, error: message };
+  }
+}
+
+export async function resetLeadOnboardingPointAAction(
+  leadId: string
+): Promise<{ result: ResetOnboardingPointAResult | null; error: string | null }> {
+  try {
+    const result = await resetLeadOnboardingPointA(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to reset onboarding and Point A.';
     return { result: null, error: message };
   }
 }

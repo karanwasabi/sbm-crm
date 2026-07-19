@@ -1276,6 +1276,52 @@ export async function correctLeadWeights(
   };
 }
 
+export type ResetOnboardingPointAResult = {
+  userId: string;
+  onboardingCompletedAt: string | null;
+  pointACompleted: boolean;
+  weightLogsCleared: boolean;
+  goalsCleared: boolean;
+  servingsCleared: boolean;
+  mealPlansCleared: boolean;
+  pointAAssessmentCleared: boolean;
+  pointALifestyleCleared: boolean;
+};
+
+export async function resetLeadOnboardingPointA(leadId: string): Promise<ResetOnboardingPointAResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/reset-onboarding-point-a`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: '{}',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to reset onboarding and Point A.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    onboarding_completed_at: string | null;
+    point_a_completed: boolean;
+    weight_logs_cleared: boolean;
+    goals_cleared: boolean;
+    servings_cleared: boolean;
+    meal_plans_cleared: boolean;
+    point_a_assessment_cleared: boolean;
+    point_a_lifestyle_cleared: boolean;
+  };
+  return {
+    userId: row.user_id,
+    onboardingCompletedAt: row.onboarding_completed_at,
+    pointACompleted: row.point_a_completed,
+    weightLogsCleared: row.weight_logs_cleared,
+    goalsCleared: row.goals_cleared,
+    servingsCleared: row.servings_cleared,
+    mealPlansCleared: row.meal_plans_cleared,
+    pointAAssessmentCleared: row.point_a_assessment_cleared,
+    pointALifestyleCleared: row.point_a_lifestyle_cleared,
+  };
+}
+
 export type SetMembershipAccessResult = {
   enrollmentId: string;
   checkoutSessionId: string;
