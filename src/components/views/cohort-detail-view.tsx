@@ -656,23 +656,33 @@ function CohortDetailHeader({
 
 /** Inspired by sbm-app nutrition category card gradients (c → p → deep). */
 const COACH_CARD_GRADIENTS = [
-  'from-[#16A34A] via-[#15803D] to-[#14532D]',
-  'from-[#E11D48] via-[#BE123C] to-[#9F1239]',
-  'from-[#D97706] via-[#B45309] to-[#92400E]',
-  'from-[#818CF8] via-[#6366F1] to-[#4338CA]',
-  'from-[#06B6D4] via-[#0891B2] to-[#155E75]',
-  'from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]',
-  'from-[#A18072] via-[#7C5A4A] to-[#57534E]',
+  'from-[#16A34A] via-[#15803D] to-[#14532D]', // green
+  'from-[#E11D48] via-[#BE123C] to-[#9F1239]', // rose
+  'from-[#D97706] via-[#B45309] to-[#92400E]', // amber
+  'from-[#818CF8] via-[#6366F1] to-[#4338CA]', // indigo
+  'from-[#06B6D4] via-[#0891B2] to-[#155E75]', // cyan
+  'from-[#7C3AED] via-[#6D28D9] to-[#5B21B6]', // violet
+  'from-[#A18072] via-[#7C5A4A] to-[#57534E]', // stone
+  'from-[#E879F9] via-[#C026D3] to-[#A21CAF]', // fuchsia
+  'from-[#38BDF8] via-[#0284C7] to-[#075985]', // sky
+  'from-[#F87171] via-[#DC2626] to-[#991B1B]', // red
+  'from-[#2DD4BF] via-[#0D9488] to-[#115E59]', // teal
+  'from-[#FACC15] via-[#CA8A04] to-[#854D0E]', // yellow
 ] as const;
 
 const COACH_PILL_TONES = [
-  { color: '#15803D', tint: '#DCFCE7' },
-  { color: '#BE123C', tint: '#FFE4E6' },
-  { color: '#B45309', tint: '#FEF3C7' },
-  { color: '#4F46E5', tint: '#E0E7FF' },
-  { color: '#0E7490', tint: '#CFFAFE' },
-  { color: '#6D28D9', tint: '#EDE9FE' },
-  { color: '#7C5A4A', tint: '#E7E5E4' },
+  { color: '#15803D', tint: '#DCFCE7' }, // green
+  { color: '#BE123C', tint: '#FFE4E6' }, // rose
+  { color: '#B45309', tint: '#FEF3C7' }, // amber
+  { color: '#4F46E5', tint: '#E0E7FF' }, // indigo
+  { color: '#0E7490', tint: '#CFFAFE' }, // cyan
+  { color: '#6D28D9', tint: '#EDE9FE' }, // violet
+  { color: '#7C5A4A', tint: '#E7E5E4' }, // stone
+  { color: '#C026D3', tint: '#FAE8FF' }, // fuchsia
+  { color: '#0369A1', tint: '#E0F2FE' }, // sky
+  { color: '#B91C1C', tint: '#FEE2E2' }, // red
+  { color: '#0F766E', tint: '#CCFBF1' }, // teal
+  { color: '#A16207', tint: '#FEF9C3' }, // yellow
 ] as const;
 
 function coachInitials(name: string): string {
@@ -749,22 +759,22 @@ function CoachSummaryCard({ members }: { members: CohortMember[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] items-stretch gap-3">
       {rows.map((row, index) => (
         <div
           key={row.id}
           className={cn(
-            'relative min-w-[148px] overflow-hidden rounded-2xl border-b-[3px] border-black/25 bg-linear-to-br px-4 py-3.5 text-white shadow-[0_10px_24px_-10px_rgba(15,23,42,0.35)]',
+            'relative flex h-full overflow-hidden rounded-2xl border-b-[3px] border-black/25 bg-linear-to-br px-4 py-3.5 text-white shadow-[0_10px_24px_-10px_rgba(15,23,42,0.35)]',
             COACH_CARD_GRADIENTS[index % COACH_CARD_GRADIENTS.length]
           )}
         >
           <div aria-hidden className="absolute -top-6 -right-4 h-20 w-20 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative z-1 flex items-start gap-3">
+          <div className="relative z-1 flex min-h-0 w-full items-start gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-extrabold tracking-wide text-white">
               {coachInitials(row.name)}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold tracking-tight">{row.name}</p>
+              <p className="text-sm leading-snug font-bold tracking-tight wrap-break-word">{row.name}</p>
               <p className="mt-1 text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase">Students</p>
               <p className="text-2xl font-extrabold tracking-tight tabular-nums">{row.count}</p>
             </div>
@@ -1338,6 +1348,14 @@ export function CohortDetailView({
               {lockPending ? 'Locking…' : 'Lock cohort'}
             </Button>
           ) : null}
+          <Button
+            variant="light"
+            size="sm"
+            onClick={() => setAutoAssignOpen(true)}
+            leftIcon={<UserRoundPlus className="h-3.5 w-3.5" />}
+          >
+            Auto-assign coaches
+          </Button>
           {cohort.canEdit && (
             <Button
               variant="primary"
@@ -1365,19 +1383,7 @@ export function CohortDetailView({
         onToggleIsDemo={(enabled) => void handleToggleIsDemo(enabled)}
       />
 
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <CoachSummaryCard members={members} />
-        </div>
-        <Button
-          variant="light"
-          size="sm"
-          onClick={() => setAutoAssignOpen(true)}
-          leftIcon={<UserRoundPlus className="h-3.5 w-3.5" />}
-        >
-          Auto-assign coaches
-        </Button>
-      </div>
+      <CoachSummaryCard members={members} />
 
       {selectedList.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-brand/20 bg-brand/5 px-4 py-3">
