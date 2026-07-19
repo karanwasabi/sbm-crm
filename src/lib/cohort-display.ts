@@ -27,6 +27,14 @@ export function formatCohortStartDateLong(startsOn: string): string {
   return formatCohortStartDateCard(startsOn);
 }
 
+/** Matches backend cohortPointAEffective UTC calendar comparison. */
+export function cohortStartDateReached(startsOn: string, now = new Date()): boolean {
+  const parsed = new Date(`${startsOn}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) return false;
+  const todayUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return parsed.getTime() <= todayUTC;
+}
+
 export function phasePillTone(phaseLabel: string): PhasePillTone {
   switch (phaseLabel) {
     case 'Queued':

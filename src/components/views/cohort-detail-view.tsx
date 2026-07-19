@@ -64,7 +64,7 @@ import {
   patchCohortIsDemoAction,
   patchCohortPointAEnabledAction,
 } from '@/app/(crm)/programs/actions';
-import { cohortHeaderAccent, formatCohortStartDateLong } from '@/lib/cohort-display';
+import { cohortHeaderAccent, formatCohortStartDateLong, cohortStartDateReached } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
 import type { EmailTemplate, StaffMember } from '@/utils/api';
@@ -589,8 +589,10 @@ function CohortDetailHeader({
   isDemoSaving?: boolean;
   onRequestToggleIsDemo?: (enabled: boolean) => void;
 }) {
-  const autoEnabled = pointAEffective && !pointAEnabled;
+  const startDateReached = cohortStartDateReached(cohort.startsOn);
+  const showPointAToggle = !startDateReached;
   const showDemoToggle = /demo/i.test(cohort.name);
+  const showSettingsRow = Boolean(canManagePointA && (showPointAToggle || showDemoToggle || startDateReached));
 
   return (
     <div
@@ -615,24 +617,30 @@ function CohortDetailHeader({
             </span>
             <span className="text-white/75">{cohort.programName}</span>
           </div>
-          {canManagePointA ? (
+          {showSettingsRow ? (
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
-                <input
-                  type="checkbox"
-                  className="h-3.5 w-3.5 rounded border-white/40"
-                  checked={pointAEnabled}
-                  disabled={pointASaving}
-                  onChange={(e) => onRequestTogglePointA?.(e.target.checked)}
-                />
-                Point A enabled
-              </label>
-              {autoEnabled ? (
-                <span className="text-[11px] font-medium text-white/75">Auto-required (start date reached)</span>
-              ) : pointAEffective ? (
-                <span className="text-[11px] font-medium text-white/75">Members can take Point A</span>
+              {showPointAToggle ? (
+                <>
+                  <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
+                    <input
+                      type="checkbox"
+                      className="h-3.5 w-3.5 rounded border-white/40"
+                      checked={pointAEnabled}
+                      disabled={pointASaving}
+                      onChange={(e) => onRequestTogglePointA?.(e.target.checked)}
+                    />
+                    Point A enabled
+                  </label>
+                  {pointAEffective ? (
+                    <span className="text-[11px] font-medium text-white/75">Members can take Point A</span>
+                  ) : (
+                    <span className="text-[11px] font-medium text-white/75">Members wait on home until enabled</span>
+                  )}
+                </>
               ) : (
-                <span className="text-[11px] font-medium text-white/75">Members wait on home until enabled</span>
+                <span className="inline-flex items-center rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-[11px] font-semibold text-white/90">
+                  Point A auto-required (start date reached)
+                </span>
               )}
               {showDemoToggle ? (
                 <>
@@ -833,14 +841,16 @@ function CoachSummaryCard({ members }: { members: CohortMember[] }) {
           )}
         >
           <div aria-hidden className="absolute -top-6 -right-4 h-20 w-20 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative z-1 flex min-h-0 w-full items-start gap-3">
+          <div className="relative z-1 flex min-h-0 w-full items-stretch gap-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-extrabold tracking-wide text-white">
               {coachInitials(row.name)}
             </div>
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
               <p className="text-sm leading-snug font-bold tracking-tight wrap-break-word">{row.name}</p>
-              <p className="mt-1 text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase">Students</p>
-              <p className="text-2xl font-extrabold tracking-tight tabular-nums">{row.count}</p>
+              <div>
+                <p className="text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase">Students</p>
+                <p className="text-2xl font-extrabold tracking-tight tabular-nums">{row.count}</p>
+              </div>
             </div>
           </div>
         </div>
