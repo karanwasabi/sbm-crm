@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Clock3, Plus, Save, Trash2 } from 'lucide-react';
 import {
   addPushTemplateWeekAction,
   deletePushTemplateAction,
@@ -14,17 +14,24 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
+import { FilterChip } from '@/components/ui/filter-chip';
 import { Pill } from '@/components/ui/pill';
+import { SectionHead } from '@/components/ui/section-head';
 import { TextInput } from '@/components/ui/text-input';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
+import { cn } from '@/lib/cn';
 import type { PushSlot, PushTemplateDetail, PushTemplateEntry, PushTemplateStatus } from '@/utils/api';
 
-const SLOTS: { slot: PushSlot; label: string; time: string }[] = [
-  { slot: 'am_9', label: 'Effort log catch-up', time: '9:00 am' },
-  { slot: 'pm_3', label: 'Nudge – Better effort', time: '3:00 pm' },
-  { slot: 'pm_8', label: 'Effort log', time: '8:00 pm' },
-  { slot: 'pm_9', label: 'Think about tomorrow', time: '9:00 pm' },
+const SLOTS: { slot: PushSlot; label: string; time: string; accent: string }[] = [
+  { slot: 'am_9', label: 'Effort log catch-up', time: '9:00 am', accent: '#5C65CF' },
+  { slot: 'pm_3', label: 'Nudge – Better effort', time: '3:00 pm', accent: '#0EA5E9' },
+  { slot: 'pm_8', label: 'Effort log', time: '8:00 pm', accent: '#8B5CF6' },
+  { slot: 'pm_9', label: 'Think about tomorrow', time: '9:00 pm', accent: '#10B981' },
 ];
+
+const selectClassName =
+  'w-full rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-brand disabled:bg-slate-50';
 
 type PushTemplateEditorViewProps = {
   template: PushTemplateDetail;
@@ -45,6 +52,12 @@ function buildMap(entries: PushTemplateEntry[]) {
   return map;
 }
 
+function statusTone(status: PushTemplateStatus): 'success' | 'neutral' | 'warn' {
+  if (status === 'active') return 'success';
+  if (status === 'archived') return 'neutral';
+  return 'warn';
+}
+
 export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -61,6 +74,17 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
     }
     return Math.max(max, template.maxWeek || 1);
   }, [map, template.maxWeek]);
+
+  const filledSlots = useMemo(() => {
+    let filled = 0;
+    for (let day = 1; day <= 7; day++) {
+      for (const { slot } of SLOTS) {
+        const cell = map.get(entryKey(week, day, slot));
+        if (cell && cell.title.trim() && cell.body.trim()) filled += 1;
+      }
+    }
+    return filled;
+  }, [map, week]);
 
   const setCell = (day: number, slot: PushSlot, field: 'title' | 'body', value: string) => {
     const key = entryKey(week, day, slot);
@@ -178,25 +202,61 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link
-          href="/push-notifications"
-          className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500 no-underline hover:text-slate-700"
-        >
-          <ArrowLeft size={16} />
-          Back to templates
-        </Link>
-        <Pill tone={status === 'active' ? 'success' : status === 'archived' ? 'neutral' : 'warn'}>{status}</Pill>
+      <div className="relative overflow-hidden rounded-[28px] border-b-[6px] border-[#4149AA] bg-linear-to-br from-brand from-0% via-[#6A71E6] via-55% to-brand-press to-100% px-6 py-6 text-white shadow-[0_12px_30px_-8px_rgba(92,101,207,0.30)]">
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
+          <div className="absolute -top-12 -right-8 h-60 w-60 rounded-full bg-white/18 blur-[36px]" />
+        </div>
+        <div className="relative z-1 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Link
+              href="/push-notifications"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-white/85 no-underline hover:text-white"
+            >
+              <ArrowLeft size={16} />
+              Back to templates
+            </Link>
+            <Pill tone={statusTone(status)} className="border border-white/20 bg-white/15 text-white capitalize">
+              {status}
+            </Pill>
+          </div>
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0 space-y-1">
+              <p className="text-[10px] font-bold tracking-[0.14em] text-white/70 uppercase">Push template</p>
+              <h2 className="truncate text-2xl font-extrabold tracking-tight">{name || 'Untitled template'}</h2>
+              <p className="text-sm font-medium text-white/80">
+                Week {week} of {maxWeek} · {filledSlots}/28 slots filled this week
+              </p>
+            </div>
+            <div className="inline-flex overflow-hidden rounded-2xl border border-white/20 bg-black/20">
+              <div className="px-4 py-2.5 text-center">
+                <p className="text-lg font-extrabold tabular-nums">{maxWeek}</p>
+                <p className="text-[10px] font-bold tracking-wide text-white/70 uppercase">Weeks</p>
+              </div>
+              <div className="border-l border-white/15 px-4 py-2.5 text-center">
+                <p className="text-lg font-extrabold tabular-nums">28</p>
+                <p className="text-[10px] font-bold tracking-wide text-white/70 uppercase">Slots/wk</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Card className="space-y-4 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+      <Card
+        padding="md"
+        className="border-[#B8BEF5] bg-linear-to-br from-[#F7F8FF] via-[#EEF0FF] to-[#E4E7FF] shadow-[0_1px_3px_rgba(92,101,207,0.08)]"
+      >
+        <SectionHead
+          title="Template settings"
+          subtitle="Only active templates are sent. Day 1 of week 1 is the cohort starts_on civil date."
+          className="mb-4"
+        />
+        <div className="grid gap-3 md:grid-cols-[1fr_180px]">
           <Field label="Template name">
             <TextInput value={name} onChange={setName} disabled={pending} />
           </Field>
           <Field label="Status">
             <select
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              className={selectClassName}
               value={status}
               disabled={pending}
               onChange={(event) => setStatus(event.target.value as PushTemplateStatus)}
@@ -206,65 +266,101 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
               <option value="archived">archived</option>
             </select>
           </Field>
-          <div className="flex items-end gap-2">
-            <Button variant="primary" onClick={saveMeta} loading={pending}>
-              Save settings
-            </Button>
-            <Button variant="ghost" onClick={removeTemplate} disabled={pending}>
-              Delete
-            </Button>
-          </div>
         </div>
-        <p className="text-xs text-slate-500">
-          Only <span className="font-semibold">active</span> templates are sent by the worker. Day 1 of week 1 is the
-          cohort <span className="font-semibold">starts_on</span> civil date.
-        </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="primary" onClick={saveMeta} loading={pending} leftIcon={<Save className="h-4 w-4" />}>
+            Save settings
+          </Button>
+          <Button variant="ghost" onClick={removeTemplate} disabled={pending} leftIcon={<Trash2 className="h-4 w-4" />}>
+            Delete template
+          </Button>
+        </div>
       </Card>
 
-      <Card className="space-y-4 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap gap-1">
-            {Array.from({ length: maxWeek }, (_, index) => index + 1).map((w) => (
-              <button
-                key={w}
-                type="button"
-                onClick={() => setWeek(w)}
-                className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-                  week === w ? 'bg-brand text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                }`}
-              >
-                Week {w}
-              </button>
-            ))}
-          </div>
+      <Card padding="none" className="overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-linear-to-r from-brand/[0.06] via-white to-white px-5 py-4">
+          <SectionHead
+            title="Notification copy"
+            subtitle={`Editing week ${week}. Empty title or body skips that send.`}
+            className="mb-0"
+          />
           <div className="flex flex-wrap gap-2">
-            <Button variant="light" size="sm" onClick={addWeek} disabled={pending}>
+            <Button
+              variant="light"
+              size="sm"
+              onClick={addWeek}
+              disabled={pending}
+              leftIcon={<Plus className="h-3.5 w-3.5" />}
+            >
               Add week
             </Button>
             <Button variant="ghost" size="sm" onClick={removeLastWeek} disabled={pending || maxWeek <= 1}>
               Remove last week
             </Button>
-            <Button variant="primary" size="sm" onClick={saveEntries} loading={pending}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={saveEntries}
+              loading={pending}
+              leftIcon={<Save className="h-3.5 w-3.5" />}
+            >
               Save copy
             </Button>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 p-5">
+          <div className="flex flex-wrap gap-2">
+            {Array.from({ length: maxWeek }, (_, index) => index + 1).map((w) => (
+              <FilterChip key={w} active={week === w} onClick={() => setWeek(w)}>
+                Week {w}
+              </FilterChip>
+            ))}
+          </div>
+
           {Array.from({ length: 7 }, (_, index) => index + 1).map((day) => (
-            <div key={day} className="rounded-2xl border border-slate-100 bg-canvas-cool/40 p-3">
-              <p className="mb-3 text-xs font-bold tracking-wide text-slate-500 uppercase">
-                Day {day}
-                {week === 1 && day === 1 ? ' · cohort starts_on' : ''}
-              </p>
-              <div className="grid gap-3 lg:grid-cols-2">
-                {SLOTS.map(({ slot, label, time }) => {
+            <div
+              key={day}
+              className="overflow-hidden rounded-[22px] border border-slate-100 bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+            >
+              <div className="border-b border-slate-100 bg-linear-to-r from-brand/[0.07] via-[#F7F8FF] to-white px-4 py-3">
+                <p className="text-xs font-bold tracking-[0.12em] text-slate-600 uppercase">
+                  Day {day}
+                  {week === 1 && day === 1 ? (
+                    <span className="ml-2 rounded-full bg-brand/10 px-2 py-0.5 text-[10px] font-bold tracking-normal text-brand normal-case">
+                      cohort starts_on
+                    </span>
+                  ) : null}
+                </p>
+              </div>
+              <div className="grid gap-3 p-4 lg:grid-cols-2">
+                {SLOTS.map(({ slot, label, time, accent }) => {
                   const cell = map.get(entryKey(week, day, slot)) ?? { title: '', body: '' };
+                  const ready = Boolean(cell.title.trim() && cell.body.trim());
                   return (
-                    <div key={slot} className="rounded-xl border border-slate-100 bg-white p-3">
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-800">{label}</p>
-                        <span className="text-[11px] font-semibold text-slate-400">{time}</span>
+                    <div
+                      key={slot}
+                      className={cn(
+                        'rounded-2xl border border-slate-100 bg-linear-to-br from-white via-white to-slate-50/80 p-3.5',
+                        ready && 'border-[#B8BEF5]'
+                      )}
+                    >
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-800">{label}</p>
+                          <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+                            <Clock3 className="h-3 w-3" style={{ color: accent }} aria-hidden />
+                            {time}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            'rounded-full px-2 py-0.5 text-[10px] font-bold',
+                            ready ? 'bg-success-press/10 text-success-press' : 'bg-slate-100 text-slate-500'
+                          )}
+                        >
+                          {ready ? 'Ready' : 'Empty'}
+                        </span>
                       </div>
                       <div className="space-y-2">
                         <TextInput
@@ -273,13 +369,13 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
                           placeholder="Title"
                           disabled={pending}
                         />
-                        <textarea
+                        <Textarea
                           value={cell.body}
                           onChange={(event) => setCell(day, slot, 'body', event.target.value)}
                           placeholder="Body"
                           disabled={pending}
                           rows={2}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-brand"
+                          className="min-h-[72px] rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-none focus-visible:border-brand focus-visible:ring-0"
                         />
                       </div>
                     </div>
