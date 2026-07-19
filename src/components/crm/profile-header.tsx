@@ -27,6 +27,8 @@ type ProfileHeaderProps = {
   onClearMemberKind?: () => void;
   onSetPassword?: () => void;
   onVerifyEmail?: () => void;
+  onForceNutritionRecalc?: () => void;
+  onCorrectWeights?: () => void;
   memberKind?: 'renewal' | 'returnee' | null;
 };
 
@@ -68,6 +70,8 @@ export function ProfileHeader({
   onClearMemberKind,
   onSetPassword,
   onVerifyEmail,
+  onForceNutritionRecalc,
+  onCorrectWeights,
   memberKind = null,
 }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
@@ -176,7 +180,9 @@ export function ProfileHeader({
           onMarkReturnee ||
           onClearMemberKind ||
           onSetPassword ||
-          onVerifyEmail ? (
+          onVerifyEmail ||
+          onForceNutritionRecalc ||
+          onCorrectWeights ? (
             <ProfileOverflowMenu
               onPurge={onPurge}
               onEnroll={onEnroll}
@@ -187,6 +193,8 @@ export function ProfileHeader({
               onClearMemberKind={onClearMemberKind}
               onSetPassword={onSetPassword}
               onVerifyEmail={onVerifyEmail}
+              onForceNutritionRecalc={onForceNutritionRecalc}
+              onCorrectWeights={onCorrectWeights}
             />
           ) : null}
         </div>

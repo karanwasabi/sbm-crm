@@ -8,11 +8,14 @@ import {
   markLeadCheckoutPaidOfflineAction,
   setLeadMemberKindAction,
   verifyLeadEmailAction,
+  forceLeadNutritionRecalcAction,
 } from '@/app/(crm)/customers/actions';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
+import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
+import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
@@ -59,9 +62,12 @@ export function Customer360View({
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
+  const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
+  const [memberProfileKey, setMemberProfileKey] = useState(0);
   const [isRefreshing, startTransition] = useTransition();
   const [syncingPayment, startSyncPayment] = useTransition();
   const [markingPaidOffline, startMarkPaidOffline] = useTransition();
+  const [recalcPending, startRecalc] = useTransition();
   const displayTimezone = useDisplayTimezone();
 
   useEffect(() => {
@@ -166,6 +172,28 @@ export function Customer360View({
     });
   };
 
+  const handleForceNutritionRecalc = () => {
+    if (recalcPending) return;
+    const confirmed = window.confirm(
+      'Rebuild this member’s active-week nutrition servings from their current weight? Saved meal plans will be cleared.'
+    );
+    if (!confirmed) return;
+    startRecalc(async () => {
+      const { result, error } = await forceLeadNutritionRecalcAction(lead.id);
+      if (error || !result) {
+        toast({ message: error ?? 'Failed to recalculate nutrition.', variant: 'error' });
+        return;
+      }
+      const used = result.servings?.weightKgUsed;
+      toast({
+        message: `Nutrition recalculated for week ${result.weekStartDate}${used != null ? ` · ${used.toFixed(1)} kg` : ''}.`,
+        variant: 'success',
+      });
+      setMemberProfileKey((k) => k + 1);
+      refresh();
+    });
+  };
+
   return (
     <CrmPageLayout>
       <ProfileHeader
@@ -188,6 +216,8 @@ export function Customer360View({
         onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
         onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
         onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
+        onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
+        onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
       />
       {lead.paymentPending ? (
         <PaymentPendingBanner
@@ -201,7 +231,7 @@ export function Customer360View({
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',
-          (isRefreshing || syncingPayment || markingPaidOffline) && 'pointer-events-none opacity-60'
+          (isRefreshing || syncingPayment || markingPaidOffline || recalcPending) && 'pointer-events-none opacity-60'
         )}
       >
         <ActivityTimeline events={lead.timeline} />
@@ -220,6 +250,9 @@ export function Customer360View({
             suggestions={lead.fieldSuggestions}
             onUpdated={refresh}
           />
+          {canSyncPayment && lead.memberUserId != null ? (
+            <MemberAppProfileCard leadId={lead.id} refreshKey={memberProfileKey} />
+          ) : null}
           <ProgramHistory
             items={programHistory}
             interest={lead.interest}
@@ -270,6 +303,15 @@ export function Customer360View({
         memberEmail={contact.email}
         open={setPasswordOpen}
         onOpenChange={setSetPasswordOpen}
+      />
+      <CorrectWeightsDialog
+        leadId={lead.id}
+        open={correctWeightsOpen}
+        onOpenChange={setCorrectWeightsOpen}
+        onDone={() => {
+          setMemberProfileKey((k) => k + 1);
+          refresh();
+        }}
       />
     </CrmPageLayout>
   );

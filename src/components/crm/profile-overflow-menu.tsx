@@ -8,6 +8,7 @@ import {
   MoreVertical,
   RefreshCw,
   RotateCcw,
+  Scale,
   Trash2,
   UserRoundCheck,
 } from 'lucide-react';
@@ -26,6 +27,8 @@ type ProfileOverflowMenuProps = {
   onClearMemberKind?: () => void;
   onSetPassword?: () => void;
   onVerifyEmail?: () => void;
+  onForceNutritionRecalc?: () => void;
+  onCorrectWeights?: () => void;
 };
 
 type MenuPosition = {
@@ -46,6 +49,8 @@ export function ProfileOverflowMenu({
   onClearMemberKind,
   onSetPassword,
   onVerifyEmail,
+  onForceNutritionRecalc,
+  onCorrectWeights,
 }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -231,6 +236,34 @@ export function ProfileOverflowMenu({
               >
                 <BadgeCheck className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Verify email
+              </button>
+            ) : null}
+            {onCorrectWeights ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onCorrectWeights();
+                }}
+              >
+                <Scale className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Correct weights
+              </button>
+            ) : null}
+            {onForceNutritionRecalc ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onForceNutritionRecalc();
+                }}
+              >
+                <RefreshCw className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Recalc nutrition week
               </button>
             ) : null}
             {onPurge ? (

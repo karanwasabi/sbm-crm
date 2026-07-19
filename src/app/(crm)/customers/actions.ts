@@ -22,6 +22,9 @@ import {
   markLeadCheckoutPaidOffline,
   setLeadPassword,
   verifyLeadEmail,
+  getLeadMemberProfile,
+  forceLeadNutritionRecalc,
+  correctLeadWeights,
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
   promoteLeadToMember,
@@ -33,6 +36,8 @@ import type {
   MarkCheckoutPaidOfflineResult,
   SetLeadPasswordResult,
   VerifyLeadEmailResult,
+  MemberProfile,
+  NutritionRecalcResult,
   SetMembershipAccessResult,
   SetMemberKindResult,
   PromoteToMemberResult,
@@ -236,6 +241,44 @@ export async function verifyLeadEmailAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to verify email.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadMemberProfileAction(
+  leadId: string
+): Promise<{ result: MemberProfile | null; error: string | null }> {
+  try {
+    const result = await getLeadMemberProfile(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load member profile.';
+    return { result: null, error: message };
+  }
+}
+
+export async function forceLeadNutritionRecalcAction(
+  leadId: string
+): Promise<{ result: NutritionRecalcResult | null; error: string | null }> {
+  try {
+    const result = await forceLeadNutritionRecalc(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to recalculate nutrition.';
+    return { result: null, error: message };
+  }
+}
+
+export async function correctLeadWeightsAction(
+  leadId: string,
+  initialWeightKg: number,
+  currentWeightKg: number
+): Promise<{ result: NutritionRecalcResult | null; error: string | null }> {
+  try {
+    const result = await correctLeadWeights(leadId, initialWeightKg, currentWeightKg);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to correct weights.';
     return { result: null, error: message };
   }
 }

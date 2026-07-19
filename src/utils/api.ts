@@ -1048,6 +1048,234 @@ export async function verifyLeadEmail(leadId: string): Promise<VerifyLeadEmailRe
   };
 }
 
+export type MemberServingsSnapshot = {
+  protein: number;
+  fiber: number;
+  starch: number;
+  dairy: number;
+  fun: number;
+  weightKgUsed: number;
+};
+
+export type MemberProfile = {
+  userId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  dateOfBirth: string | null;
+  sex: string | null;
+  timezoneId: string | null;
+  countryCode: string | null;
+  city: string | null;
+  mealPreference: string | null;
+  whatsapp: string | null;
+  heightCm: number | null;
+  initialWeightKg: number | null;
+  currentWeightKg: number | null;
+  latestWeightSource: string | null;
+  latestWeightLocalDate: string | null;
+  onboardingCompletedAt: string | null;
+  pointACompleted: boolean;
+  pointACompletedAt: string | null;
+  parentalConsent: boolean;
+  notifyWhatsapp: boolean;
+  notifyEmail: boolean;
+  notifyPush: boolean;
+  soundsEnabled: boolean;
+  awaitingStart: boolean;
+  programStartsOn: string | null;
+  activeWeekStartDate: string | null;
+  activeWeekServings: MemberServingsSnapshot | null;
+};
+
+export type NutritionRecalcResult = {
+  userId: string;
+  weekStartDate: string;
+  awaitingStart: boolean;
+  initialWeightKg: number | null;
+  currentWeightKg: number | null;
+  servings: MemberServingsSnapshot | null;
+  mealPlansCleared: boolean;
+};
+
+function mapServings(
+  row:
+    | {
+        protein: number;
+        fiber: number;
+        starch: number;
+        dairy: number;
+        fun: number;
+        weight_kg_used: number;
+      }
+    | null
+    | undefined
+): MemberServingsSnapshot | null {
+  if (!row) return null;
+  return {
+    protein: row.protein,
+    fiber: row.fiber,
+    starch: row.starch,
+    dairy: row.dairy,
+    fun: row.fun,
+    weightKgUsed: row.weight_kg_used,
+  };
+}
+
+export async function getLeadMemberProfile(leadId: string): Promise<MemberProfile> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/member-profile`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load member profile.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    date_of_birth: string | null;
+    sex: string | null;
+    timezone_id: string | null;
+    country_code: string | null;
+    city: string | null;
+    meal_preference: string | null;
+    whatsapp: string | null;
+    height_cm: number | null;
+    initial_weight_kg: number | null;
+    current_weight_kg: number | null;
+    latest_weight_source: string | null;
+    latest_weight_local_date: string | null;
+    onboarding_completed_at: string | null;
+    point_a_completed: boolean;
+    point_a_completed_at: string | null;
+    parental_consent: boolean;
+    notify_whatsapp: boolean;
+    notify_email: boolean;
+    notify_push: boolean;
+    sounds_enabled: boolean;
+    awaiting_start: boolean;
+    program_starts_on: string | null;
+    active_week_start_date: string | null;
+    active_week_servings: {
+      protein: number;
+      fiber: number;
+      starch: number;
+      dairy: number;
+      fun: number;
+      weight_kg_used: number;
+    } | null;
+  };
+  return {
+    userId: row.user_id,
+    email: row.email,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    dateOfBirth: row.date_of_birth,
+    sex: row.sex,
+    timezoneId: row.timezone_id,
+    countryCode: row.country_code,
+    city: row.city,
+    mealPreference: row.meal_preference,
+    whatsapp: row.whatsapp,
+    heightCm: row.height_cm,
+    initialWeightKg: row.initial_weight_kg,
+    currentWeightKg: row.current_weight_kg,
+    latestWeightSource: row.latest_weight_source,
+    latestWeightLocalDate: row.latest_weight_local_date,
+    onboardingCompletedAt: row.onboarding_completed_at,
+    pointACompleted: row.point_a_completed,
+    pointACompletedAt: row.point_a_completed_at,
+    parentalConsent: row.parental_consent,
+    notifyWhatsapp: row.notify_whatsapp,
+    notifyEmail: row.notify_email,
+    notifyPush: row.notify_push,
+    soundsEnabled: row.sounds_enabled,
+    awaitingStart: row.awaiting_start,
+    programStartsOn: row.program_starts_on,
+    activeWeekStartDate: row.active_week_start_date,
+    activeWeekServings: mapServings(row.active_week_servings),
+  };
+}
+
+export async function forceLeadNutritionRecalc(leadId: string): Promise<NutritionRecalcResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/force-nutrition-recalc`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to recalculate nutrition.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    week_start_date: string;
+    awaiting_start: boolean;
+    initial_weight_kg: number | null;
+    current_weight_kg: number | null;
+    servings: {
+      protein: number;
+      fiber: number;
+      starch: number;
+      dairy: number;
+      fun: number;
+      weight_kg_used: number;
+    } | null;
+    meal_plans_cleared: boolean;
+  };
+  return {
+    userId: row.user_id,
+    weekStartDate: row.week_start_date,
+    awaitingStart: row.awaiting_start,
+    initialWeightKg: row.initial_weight_kg,
+    currentWeightKg: row.current_weight_kg,
+    servings: mapServings(row.servings),
+    mealPlansCleared: row.meal_plans_cleared,
+  };
+}
+
+export async function correctLeadWeights(
+  leadId: string,
+  initialWeightKg: number,
+  currentWeightKg: number
+): Promise<NutritionRecalcResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/correct-weights`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      initial_weight_kg: initialWeightKg,
+      current_weight_kg: currentWeightKg,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to correct weights.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    week_start_date: string;
+    awaiting_start: boolean;
+    initial_weight_kg: number | null;
+    current_weight_kg: number | null;
+    servings: {
+      protein: number;
+      fiber: number;
+      starch: number;
+      dairy: number;
+      fun: number;
+      weight_kg_used: number;
+    } | null;
+    meal_plans_cleared: boolean;
+  };
+  return {
+    userId: row.user_id,
+    weekStartDate: row.week_start_date,
+    awaitingStart: row.awaiting_start,
+    initialWeightKg: row.initial_weight_kg,
+    currentWeightKg: row.current_weight_kg,
+    servings: mapServings(row.servings),
+    mealPlansCleared: row.meal_plans_cleared,
+  };
+}
+
 export type SetMembershipAccessResult = {
   enrollmentId: string;
   checkoutSessionId: string;
