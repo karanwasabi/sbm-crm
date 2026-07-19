@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronUp, FileText, Pencil, Plus, Star, Trash2, Video } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, FileText, Pencil, Plus, Star, Trash2, Video } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import {
@@ -739,10 +739,29 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
   );
   const [loading, setLoading] = useState(false);
   const [savePending, startSaveTransition] = useTransition();
+  const [copyPending, startCopyTransition] = useTransition();
   const [addCategory, setAddCategory] = useState<ResourceCategory | null>(null);
+  const [copyOpen, setCopyOpen] = useState(false);
+  const [copySourceProgramId, setCopySourceProgramId] = useState('');
+  const [copySourceCohortId, setCopySourceCohortId] = useState('');
 
   const selectedProgram = programCohorts.find((p) => p.id === selectedProgramId);
   const cohortOptions = selectedProgram?.cohorts ?? [];
+  const allCohortChoices = useMemo(
+    () =>
+      programCohorts.flatMap((program) =>
+        program.cohorts.map((cohort) => ({
+          programId: program.id,
+          programName: program.name,
+          cohortId: cohort.id,
+          cohortName: cohort.name,
+          startsOn: cohort.startsOn,
+        }))
+      ),
+    [programCohorts]
+  );
+  const copySourceProgram = programCohorts.find((p) => p.id === copySourceProgramId);
+  const copySourceCohortOptions = (copySourceProgram?.cohorts ?? []).filter((cohort) => cohort.id !== selectedCohortId);
 
   useEffect(() => {
     if (!selectedProgramId && programCohorts[0]) {
@@ -855,6 +874,41 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
     });
   };
 
+  const openCopyDialog = () => {
+    const fallback =
+      allCohortChoices.find((choice) => choice.cohortId !== selectedCohortId) ?? allCohortChoices[0] ?? null;
+    setCopySourceProgramId(fallback?.programId ?? selectedProgramId);
+    setCopySourceCohortId(fallback && fallback.cohortId !== selectedCohortId ? fallback.cohortId : '');
+    setCopyOpen(true);
+  };
+
+  const handleCopyFromCohort = () => {
+    if (!selectedCohortId || !copySourceCohortId || copySourceCohortId === selectedCohortId) {
+      toast({ message: 'Pick a different source cohort.', variant: 'error' });
+      return;
+    }
+    startCopyTransition(async () => {
+      try {
+        const [categoryData, resourceData] = await Promise.all([
+          getCohortResourceCategoriesAction(copySourceCohortId),
+          getCohortResourcesAction(copySourceCohortId),
+        ]);
+        setCategories(categoryData.categories);
+        setAssignmentsByCategory(groupAssignmentsByCategory(resourceData.resources));
+        setCopyOpen(false);
+        toast({
+          message: 'Copied assignments into this cohort. Review, then save to apply.',
+          variant: 'success',
+        });
+      } catch (error) {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to copy cohort assignments.',
+          variant: 'error',
+        });
+      }
+    });
+  };
+
   const featuredResourceId = useMemo(() => {
     for (const { id } of RESOURCE_CATEGORIES) {
       const featured = (assignmentsByCategory[id] ?? []).find((item) => item.isFeatured);
@@ -906,6 +960,18 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
               )}
             </select>
           </Field>
+        </div>
+        <div className="mt-4 flex justify-end">
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            leftIcon={<Copy className="h-4 w-4" />}
+            disabled={!selectedCohortId || loading || allCohortChoices.length < 2}
+            onClick={openCopyDialog}
+          >
+            Copy from another cohort
+          </Button>
         </div>
       </Card>
 
@@ -1033,6 +1099,73 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
           Save cohort assignments
         </Button>
       </div>
+
+      <Dialog open={copyOpen} onOpenChange={setCopyOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Copy from another cohort</DialogTitle>
+            <DialogDescription>
+              Replace this cohort&apos;s draft assignments and category visibility with another cohort&apos;s. You still
+              need to save to apply.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-1">
+            <Field label="Source program">
+              <select
+                value={copySourceProgramId}
+                onChange={(e) => {
+                  const programId = e.target.value;
+                  setCopySourceProgramId(programId);
+                  const nextCohorts =
+                    programCohorts.find((p) => p.id === programId)?.cohorts.filter((c) => c.id !== selectedCohortId) ??
+                    [];
+                  setCopySourceCohortId(nextCohorts[0]?.id ?? '');
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-brand/20"
+              >
+                {programCohorts.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {program.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Source cohort">
+              <select
+                value={copySourceCohortId}
+                onChange={(e) => setCopySourceCohortId(e.target.value)}
+                disabled={copySourceCohortOptions.length === 0}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-brand/20 disabled:opacity-60"
+              >
+                {copySourceCohortOptions.length === 0 ? (
+                  <option value="">No other cohorts in this program</option>
+                ) : (
+                  copySourceCohortOptions.map((cohort) => (
+                    <option key={cohort.id} value={cohort.id}>
+                      {cohort.name} · starts {cohort.startsOn}
+                    </option>
+                  ))
+                )}
+              </select>
+            </Field>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="light" size="sm" onClick={() => setCopyOpen(false)} disabled={copyPending}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              loading={copyPending}
+              disabled={!copySourceCohortId || copySourceCohortId === selectedCohortId}
+              onClick={handleCopyFromCohort}
+            >
+              Copy into draft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={addCategory != null} onOpenChange={(open) => !open && setAddCategory(null)}>
         <DialogContent className="sm:max-w-md">
