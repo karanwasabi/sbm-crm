@@ -23,11 +23,17 @@ import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/cn';
 import type { PushSlot, PushTemplateDetail, PushTemplateEntry, PushTemplateStatus } from '@/utils/api';
 
-const SLOTS: { slot: PushSlot; label: string; time: string; accent: string }[] = [
-  { slot: 'am_9', label: 'Effort log catch-up', time: '9:00 am', accent: '#5C65CF' },
-  { slot: 'pm_3', label: 'Nudge – Better effort', time: '3:00 pm', accent: '#0EA5E9' },
-  { slot: 'pm_8', label: 'Effort log', time: '8:00 pm', accent: '#8B5CF6' },
-  { slot: 'pm_9', label: 'Think about tomorrow', time: '9:00 pm', accent: '#10B981' },
+const SLOTS: { slot: PushSlot; label: string; time: string; accent: string; defaultTitle: string }[] = [
+  { slot: 'am_9', label: 'Effort log catch-up', time: '9:00 am', accent: '#5C65CF', defaultTitle: 'Good Morning!' },
+  { slot: 'pm_3', label: 'Nudge – Better effort', time: '3:00 pm', accent: '#0EA5E9', defaultTitle: 'Nudge' },
+  { slot: 'pm_8', label: 'Effort log', time: '8:00 pm', accent: '#8B5CF6', defaultTitle: 'Check-in!' },
+  {
+    slot: 'pm_9',
+    label: 'Think about tomorrow',
+    time: '9:00 pm',
+    accent: '#10B981',
+    defaultTitle: 'Think about Tomorrow',
+  },
 ];
 
 const selectClassName =
@@ -334,7 +340,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
                 </p>
               </div>
               <div className="grid gap-3 p-4 lg:grid-cols-2">
-                {SLOTS.map(({ slot, label, time, accent }) => {
+                {SLOTS.map(({ slot, label, time, accent, defaultTitle }) => {
                   const cell = map.get(entryKey(week, day, slot)) ?? { title: '', body: '' };
                   const ready = Boolean(cell.title.trim() && cell.body.trim());
                   return (
@@ -366,7 +372,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
                         <TextInput
                           value={cell.title}
                           onChange={(value) => setCell(day, slot, 'title', value)}
-                          placeholder="Title"
+                          placeholder={defaultTitle}
                           disabled={pending}
                         />
                         <Textarea
