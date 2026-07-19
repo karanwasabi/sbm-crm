@@ -24,6 +24,7 @@ import {
   verifyLeadEmail,
   getLeadMemberProfile,
   forceLeadNutritionRecalc,
+  putLeadServingAddons,
   correctLeadWeights,
   resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
@@ -39,6 +40,8 @@ import type {
   VerifyLeadEmailResult,
   MemberProfile,
   NutritionRecalcResult,
+  ServingAddons,
+  ServingAddonsResult,
   ResetOnboardingPointAResult,
   SetMembershipAccessResult,
   SetMemberKindResult,
@@ -267,6 +270,19 @@ export async function forceLeadNutritionRecalcAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to recalculate nutrition.';
+    return { result: null, error: message };
+  }
+}
+
+export async function putLeadServingAddonsAction(
+  leadId: string,
+  addons: ServingAddons
+): Promise<{ result: ServingAddonsResult | null; error: string | null }> {
+  try {
+    const result = await putLeadServingAddons(leadId, addons);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save serving addons.';
     return { result: null, error: message };
   }
 }

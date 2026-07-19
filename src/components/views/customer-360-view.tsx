@@ -268,7 +268,11 @@ export function Customer360View({
             onUpdated={refresh}
           />
           {canSyncPayment && lead.memberUserId != null ? (
-            <MemberAppProfileCard leadId={lead.id} refreshKey={memberProfileKey} />
+            <MemberAppProfileCard
+              leadId={lead.id}
+              refreshKey={memberProfileKey}
+              onProfileChanged={() => setMemberProfileKey((k) => k + 1)}
+            />
           ) : null}
           <ProgramHistory
             items={programHistory}

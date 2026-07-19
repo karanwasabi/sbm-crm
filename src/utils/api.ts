@@ -1057,6 +1057,14 @@ export type MemberServingsSnapshot = {
   weightKgUsed: number;
 };
 
+export type ServingAddons = {
+  protein: number;
+  fiber: number;
+  starch: number;
+  dairy: number;
+  fun: number;
+};
+
 export type MemberProfile = {
   userId: string;
   email: string;
@@ -1082,6 +1090,7 @@ export type MemberProfile = {
   notifyEmail: boolean;
   notifyPush: boolean;
   soundsEnabled: boolean;
+  servingAddons: ServingAddons;
   awaitingStart: boolean;
   programStartsOn: string | null;
   activeWeekStartDate: string | null;
@@ -1153,6 +1162,13 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
     notify_email: boolean;
     notify_push: boolean;
     sounds_enabled: boolean;
+    serving_addons: {
+      protein: number;
+      fiber: number;
+      starch: number;
+      dairy: number;
+      fun: number;
+    };
     awaiting_start: boolean;
     program_starts_on: string | null;
     active_week_start_date: string | null;
@@ -1190,6 +1206,13 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
     notifyEmail: row.notify_email,
     notifyPush: row.notify_push,
     soundsEnabled: row.sounds_enabled,
+    servingAddons: {
+      protein: row.serving_addons?.protein ?? 0,
+      fiber: row.serving_addons?.fiber ?? 0,
+      starch: row.serving_addons?.starch ?? 0,
+      dairy: row.serving_addons?.dairy ?? 0,
+      fun: row.serving_addons?.fun ?? 0,
+    },
     awaitingStart: row.awaiting_start,
     programStartsOn: row.program_starts_on,
     activeWeekStartDate: row.active_week_start_date,
@@ -1227,6 +1250,59 @@ export async function forceLeadNutritionRecalc(leadId: string): Promise<Nutritio
     awaitingStart: row.awaiting_start,
     initialWeightKg: row.initial_weight_kg,
     currentWeightKg: row.current_weight_kg,
+    servings: mapServings(row.servings),
+    mealPlansCleared: row.meal_plans_cleared,
+  };
+}
+
+export type ServingAddonsResult = {
+  userId: string;
+  servingAddons: ServingAddons;
+  weekStartDate: string;
+  servings: MemberServingsSnapshot | null;
+  mealPlansCleared: boolean;
+};
+
+export async function putLeadServingAddons(leadId: string, addons: ServingAddons): Promise<ServingAddonsResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/serving-addons`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      protein: addons.protein,
+      fiber: addons.fiber,
+      starch: addons.starch,
+      dairy: addons.dairy,
+      fun: addons.fun,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to save serving addons.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    serving_addons: ServingAddons;
+    week_start_date: string;
+    servings: {
+      protein: number;
+      fiber: number;
+      starch: number;
+      dairy: number;
+      fun: number;
+      weight_kg_used: number;
+    } | null;
+    meal_plans_cleared: boolean;
+  };
+  return {
+    userId: row.user_id,
+    servingAddons: {
+      protein: row.serving_addons.protein,
+      fiber: row.serving_addons.fiber,
+      starch: row.serving_addons.starch,
+      dairy: row.serving_addons.dairy,
+      fun: row.serving_addons.fun,
+    },
+    weekStartDate: row.week_start_date,
     servings: mapServings(row.servings),
     mealPlansCleared: row.meal_plans_cleared,
   };
