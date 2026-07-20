@@ -47,7 +47,7 @@ export function emailFromNamePlaceholder(): string {
 }
 
 /** Full wordmark — prod Supabase public storage (same staging + production). */
-export const EMAIL_LOGO_URL = 'https://jnygsverljnvjmyairag.supabase.co/storage/v1/object/public/static/sbm-logo.png';
+export const EMAIL_LOGO_URL = 'https://db.slowburnmethod.in/storage/v1/object/public/static/sbm-logo.png';
 
 export function normalizeEmailLocalPart(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9._-]/g, '');
