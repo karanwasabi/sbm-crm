@@ -27,6 +27,7 @@ import {
   getLeadMemberProfile,
   forceLeadNutritionRecalc,
   putLeadServingAddons,
+  putLeadHabitGoalAddons,
   correctLeadWeights,
   correctLeadHeight,
   correctLeadTimezone,
@@ -51,6 +52,8 @@ import type {
   CorrectTimezoneResult,
   ServingAddons,
   ServingAddonsResult,
+  HabitGoalAddons,
+  HabitGoalAddonsResult,
   PointAAssessment,
   PutPointAAssessmentInput,
   ResetOnboardingPointAResult,
@@ -333,6 +336,19 @@ export async function putLeadServingAddonsAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to save serving addons.';
+    return { result: null, error: message };
+  }
+}
+
+export async function putLeadHabitGoalAddonsAction(
+  leadId: string,
+  addons: HabitGoalAddons
+): Promise<{ result: HabitGoalAddonsResult | null; error: string | null }> {
+  try {
+    const result = await putLeadHabitGoalAddons(leadId, addons);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save habit goal addons.';
     return { result: null, error: message };
   }
 }

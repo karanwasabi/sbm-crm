@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getLeadMemberProfileAction } from '@/app/(crm)/customers/actions';
+import { HabitGoalAddonsDialog } from '@/components/crm/habit-goal-addons-dialog';
 import { ServingAddonsDialog } from '@/components/crm/serving-addons-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -43,6 +44,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [addonsOpen, setAddonsOpen] = useState(false);
+  const [habitAddonsOpen, setHabitAddonsOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -65,22 +67,35 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
   }, [leadId, refreshKey]);
 
   const addons = profile?.servingAddons;
+  const habitAddons = profile?.habitGoalAddons;
+  const goals = profile?.activeWeekGoals;
 
   return (
     <>
       <Card padding="sm" className="overflow-visible border-slate-100/80 shadow-none">
-        <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <p className="text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Member app profile</p>
           {profile && !loading ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs"
-              onClick={() => setAddonsOpen(true)}
-            >
-              Edit serving addons
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setAddonsOpen(true)}
+              >
+                Edit serving addons
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setHabitAddonsOpen(true)}
+              >
+                Edit habit modifiers
+              </Button>
+            </div>
           ) : null}
         </div>
         {loading ? <p className="text-sm font-medium text-slate-500">Loading…</p> : null}
@@ -124,6 +139,22 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
             />
             <Row label="Active week" value={profile.activeWeekStartDate ?? '—'} />
             <Row
+              label="Habit goals"
+              value={
+                goals
+                  ? `${goals.stepsDaily} steps · ${goals.exerciseDays} ex · ${goals.sleepHoursDaily}h · ${goals.nutritionPointsDaily} nutr`
+                  : 'None yet'
+              }
+            />
+            <Row
+              label="Habit modifiers"
+              value={
+                habitAddons
+                  ? `S${formatAddon(habitAddons.stepsDaily)}/E${formatAddon(habitAddons.exerciseDays)}/Sl${formatAddon(habitAddons.sleepHoursDaily)}/N${formatAddon(habitAddons.nutritionPointsDaily)}`
+                  : '—'
+              }
+            />
+            <Row
               label="Serving addons"
               value={
                 addons
@@ -143,6 +174,12 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
         ) : null}
       </Card>
       <ServingAddonsDialog leadId={leadId} open={addonsOpen} onOpenChange={setAddonsOpen} onDone={onProfileChanged} />
+      <HabitGoalAddonsDialog
+        leadId={leadId}
+        open={habitAddonsOpen}
+        onOpenChange={setHabitAddonsOpen}
+        onDone={onProfileChanged}
+      />
     </>
   );
 }

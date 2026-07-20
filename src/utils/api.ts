@@ -1241,6 +1241,23 @@ export type ServingAddons = {
   fun: number;
 };
 
+export type HabitGoalAddons = {
+  stepsDaily: number;
+  exerciseDays: number;
+  sleepHoursDaily: number;
+  nutritionPointsDaily: number;
+};
+
+export type HabitGoalsSnapshot = {
+  stepsDaily: number;
+  exerciseDays: number;
+  sleepHoursDaily: number;
+  nutritionPointsDaily: number;
+  stepsWeekly: number;
+  sleepHoursWeekly: number;
+  nutritionPointsWeekly: number;
+};
+
 export type MemberProfile = {
   userId: string;
   email: string;
@@ -1267,10 +1284,12 @@ export type MemberProfile = {
   notifyPush: boolean;
   soundsEnabled: boolean;
   servingAddons: ServingAddons;
+  habitGoalAddons: HabitGoalAddons;
   awaitingStart: boolean;
   programStartsOn: string | null;
   activeWeekStartDate: string | null;
   activeWeekServings: MemberServingsSnapshot | null;
+  activeWeekGoals: HabitGoalsSnapshot | null;
 };
 
 export type NutritionRecalcResult = {
@@ -1345,6 +1364,12 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
       dairy: number;
       fun: number;
     };
+    habit_goal_addons?: {
+      steps_daily: number;
+      exercise_days: number;
+      sleep_hours_daily: number;
+      nutrition_points_daily: number;
+    };
     awaiting_start: boolean;
     program_starts_on: string | null;
     active_week_start_date: string | null;
@@ -1355,6 +1380,15 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
       dairy: number;
       fun: number;
       weight_kg_used: number;
+    } | null;
+    active_week_goals?: {
+      steps_daily: number;
+      exercise_days: number;
+      sleep_hours_daily: number;
+      nutrition_points_daily: number;
+      steps_weekly: number;
+      sleep_hours_weekly: number;
+      nutrition_points_weekly: number;
     } | null;
   };
   return {
@@ -1389,10 +1423,27 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
       dairy: row.serving_addons?.dairy ?? 0,
       fun: row.serving_addons?.fun ?? 0,
     },
+    habitGoalAddons: {
+      stepsDaily: row.habit_goal_addons?.steps_daily ?? 0,
+      exerciseDays: row.habit_goal_addons?.exercise_days ?? 0,
+      sleepHoursDaily: row.habit_goal_addons?.sleep_hours_daily ?? 0,
+      nutritionPointsDaily: row.habit_goal_addons?.nutrition_points_daily ?? 0,
+    },
     awaitingStart: row.awaiting_start,
     programStartsOn: row.program_starts_on,
     activeWeekStartDate: row.active_week_start_date,
     activeWeekServings: mapServings(row.active_week_servings),
+    activeWeekGoals: row.active_week_goals
+      ? {
+          stepsDaily: row.active_week_goals.steps_daily,
+          exerciseDays: row.active_week_goals.exercise_days,
+          sleepHoursDaily: row.active_week_goals.sleep_hours_daily,
+          nutritionPointsDaily: row.active_week_goals.nutrition_points_daily,
+          stepsWeekly: row.active_week_goals.steps_weekly,
+          sleepHoursWeekly: row.active_week_goals.sleep_hours_weekly,
+          nutritionPointsWeekly: row.active_week_goals.nutrition_points_weekly,
+        }
+      : null,
   };
 }
 
@@ -1439,6 +1490,13 @@ export type ServingAddonsResult = {
   mealPlansCleared: boolean;
 };
 
+export type HabitGoalAddonsResult = {
+  userId: string;
+  habitGoalAddons: HabitGoalAddons;
+  weekStartDate: string;
+  goals: HabitGoalsSnapshot | null;
+};
+
 export async function putLeadServingAddons(leadId: string, addons: ServingAddons): Promise<ServingAddonsResult> {
   const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/serving-addons`, {
     method: 'PUT',
@@ -1481,6 +1539,63 @@ export async function putLeadServingAddons(leadId: string, addons: ServingAddons
     weekStartDate: row.week_start_date,
     servings: mapServings(row.servings),
     mealPlansCleared: row.meal_plans_cleared,
+  };
+}
+
+export async function putLeadHabitGoalAddons(leadId: string, addons: HabitGoalAddons): Promise<HabitGoalAddonsResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/habit-goal-addons`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      steps_daily: addons.stepsDaily,
+      exercise_days: addons.exerciseDays,
+      sleep_hours_daily: addons.sleepHoursDaily,
+      nutrition_points_daily: addons.nutritionPointsDaily,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to save habit goal addons.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    habit_goal_addons: {
+      steps_daily: number;
+      exercise_days: number;
+      sleep_hours_daily: number;
+      nutrition_points_daily: number;
+    };
+    week_start_date: string;
+    goals: {
+      steps_daily: number;
+      exercise_days: number;
+      sleep_hours_daily: number;
+      nutrition_points_daily: number;
+      steps_weekly: number;
+      sleep_hours_weekly: number;
+      nutrition_points_weekly: number;
+    } | null;
+  };
+  return {
+    userId: row.user_id,
+    habitGoalAddons: {
+      stepsDaily: row.habit_goal_addons.steps_daily,
+      exerciseDays: row.habit_goal_addons.exercise_days,
+      sleepHoursDaily: row.habit_goal_addons.sleep_hours_daily,
+      nutritionPointsDaily: row.habit_goal_addons.nutrition_points_daily,
+    },
+    weekStartDate: row.week_start_date,
+    goals: row.goals
+      ? {
+          stepsDaily: row.goals.steps_daily,
+          exerciseDays: row.goals.exercise_days,
+          sleepHoursDaily: row.goals.sleep_hours_daily,
+          nutritionPointsDaily: row.goals.nutrition_points_daily,
+          stepsWeekly: row.goals.steps_weekly,
+          sleepHoursWeekly: row.goals.sleep_hours_weekly,
+          nutritionPointsWeekly: row.goals.nutrition_points_weekly,
+        }
+      : null,
   };
 }
 
