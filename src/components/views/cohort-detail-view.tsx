@@ -373,7 +373,7 @@ function MemberTable({
   sortOrder?: SortOrder;
   onSort?: (key: ActiveSortKey) => void;
   emptyMessage?: string;
-  statusMode: 'lifecycle' | 'lapsed';
+  statusMode: 'lifecycle' | 'lapsed' | 'transferred';
   toolbar?: ReactNode;
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
   showBodyMetrics?: boolean;
@@ -533,7 +533,9 @@ function MemberTable({
                     </div>
                   </DataTableCell>
                   <DataTableCell>
-                    {statusMode === 'lapsed' ? (
+                    {statusMode === 'transferred' ? (
+                      <Pill tone="neutral">Transferred</Pill>
+                    ) : statusMode === 'lapsed' ? (
                       <Pill tone="neutral">Lapsed</Pill>
                     ) : (
                       <ActiveMemberStatus member={member} />
@@ -603,6 +605,7 @@ function CohortDetailHeader({
   cohort,
   activeCount,
   lapsedCount,
+  transferredCount,
   canManagePointA,
   pointAEnabled,
   pointAEffective,
@@ -615,6 +618,7 @@ function CohortDetailHeader({
   cohort: CohortDetail;
   activeCount: number;
   lapsedCount: number;
+  transferredCount: number;
   canManagePointA?: boolean;
   pointAEnabled: boolean;
   pointAEffective: boolean;
@@ -704,6 +708,8 @@ function CohortDetailHeader({
           <CohortHeaderStat label="Active" value={activeCount} />
           <div className="w-px self-stretch bg-white/20" aria-hidden />
           <CohortHeaderStat label="Lapsed" value={lapsedCount} />
+          <div className="w-px self-stretch bg-white/20" aria-hidden />
+          <CohortHeaderStat label="Transferred" value={transferredCount} />
         </div>
       </div>
     </div>
@@ -802,6 +808,7 @@ function coachInitials(name: string): string {
 function rankedCoachRows(members: CohortMember[]) {
   const counts = new Map<string, { name: string; count: number }>();
   for (const member of members) {
+    if (member.subscriptionState === 'transferred') continue;
     if (!member.coachUserId) continue;
     const existing = counts.get(member.coachUserId);
     if (existing) {
@@ -1129,9 +1136,17 @@ export function CohortDetailView({
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'lapsed'),
     [geoFilteredMembers]
   );
+  const transferredMembers = useMemo(
+    () => geoFilteredMembers.filter((member) => member.subscriptionState === 'transferred'),
+    [geoFilteredMembers]
+  );
 
   const allActiveMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'active'), [members]);
   const allLapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
+  const allTransferredMembers = useMemo(
+    () => members.filter((member) => member.subscriptionState === 'transferred'),
+    [members]
+  );
 
   const cityFilterOptions = useMemo(
     () =>
@@ -1231,6 +1246,10 @@ export function CohortDetailView({
   const sortedLapsedMembers = useMemo(() => {
     return [...lapsedMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
   }, [lapsedMembers, sortKey, sortOrder]);
+
+  const sortedTransferredMembers = useMemo(() => {
+    return [...transferredMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
+  }, [sortKey, sortOrder, transferredMembers]);
 
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
@@ -1499,6 +1518,7 @@ export function CohortDetailView({
         cohort={cohort}
         activeCount={allActiveMembers.length}
         lapsedCount={allLapsedMembers.length}
+        transferredCount={allTransferredMembers.length}
         canManagePointA={canManagePointA}
         pointAEnabled={pointAEnabled}
         pointAEffective={pointAEffective}
@@ -1620,6 +1640,26 @@ export function CohortDetailView({
           onSort={handleSort}
           emptyMessage={filtersActive ? 'No lapsed members match the current filters.' : undefined}
           statusMode="lapsed"
+          coachTones={coachTones}
+          showBodyMetrics={showBodyMetrics}
+        />
+        <MemberTable
+          title="Transferred"
+          subtitle={`${sortedTransferredMembers.length} membership transfer${sortedTransferredMembers.length === 1 ? '' : 's'} out of this batch`}
+          rows={sortedTransferredMembers}
+          deemphasized
+          transferColumn={false}
+          selectedIds={selectedIds}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+          onTransfer={() => undefined}
+          sortable
+          sortKey={sortKey}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          emptyMessage={filtersActive ? 'No transferred members match the current filters.' : undefined}
+          statusMode="transferred"
           coachTones={coachTones}
           showBodyMetrics={showBodyMetrics}
         />

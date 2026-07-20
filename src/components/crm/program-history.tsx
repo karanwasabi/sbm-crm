@@ -21,6 +21,8 @@ type ProgramHistoryProps = {
   batch?: string;
   attribution?: LeadAttribution | null;
   leadId?: string;
+  /** When the lead is transferred, cancelled enrollments show as Transferred. */
+  leadStage?: string;
   canEditAccess?: boolean;
   canPromoteToMember?: boolean;
   canDemoteToNewbie?: boolean;
@@ -59,8 +61,16 @@ function enrollmentStatusTone(status: string): 'success' | 'warn' | 'danger' | '
   if (normalized === 'upcoming') return 'brand';
   if (normalized === 'payment pending') return 'warn';
   if (normalized === 'cancelled') return 'danger';
+  if (normalized === 'transferred') return 'neutral';
   if (normalized === 'completed') return 'neutral';
   return 'neutral';
+}
+
+function displayEnrollmentStatus(item: ProgramHistoryItem, leadStage?: string): string {
+  if (leadStage === 'transferred' && item.status.trim().toLowerCase() === 'cancelled') {
+    return 'Transferred';
+  }
+  return item.status;
 }
 
 type AutoRenewInfo = {
@@ -96,6 +106,7 @@ function isGraceOpen(graceUntil: string | null | undefined): boolean {
 function EnrollmentRow({
   item,
   timezone,
+  leadStage,
   canEditAccess,
   canPromoteToMember,
   canDemoteToNewbie,
@@ -107,6 +118,7 @@ function EnrollmentRow({
 }: {
   item: ProgramHistoryItem;
   timezone: string;
+  leadStage?: string;
   canEditAccess?: boolean;
   canPromoteToMember?: boolean;
   canDemoteToNewbie?: boolean;
@@ -117,6 +129,7 @@ function EnrollmentRow({
   onDemoteToNewbie?: (item: ProgramHistoryItem) => void;
 }) {
   const renew = autoRenewInfo(item);
+  const statusLabel = displayEnrollmentStatus(item, leadStage);
   const activeFrom = formatMembershipDate(item.startsOn ?? item.date, timezone);
   const activeUntil = formatMembershipDate(item.accessUntil, timezone);
   const showGrace = isGraceOpen(item.graceUntil);
@@ -130,7 +143,7 @@ function EnrollmentRow({
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-sm font-bold text-slate-900">{item.program}</h3>
-            <Pill tone={enrollmentStatusTone(item.status)}>{item.status}</Pill>
+            <Pill tone={enrollmentStatusTone(statusLabel)}>{statusLabel}</Pill>
             {renew ? <Pill tone={renew.tone}>Auto-renew {renew.label}</Pill> : null}
           </div>
           <p className="mt-1 text-sm text-slate-600">{item.batch}</p>
@@ -266,6 +279,7 @@ export function ProgramHistory({
   batch,
   attribution,
   leadId,
+  leadStage,
   canEditAccess = false,
   canPromoteToMember = false,
   canDemoteToNewbie = false,
@@ -404,6 +418,7 @@ export function ProgramHistory({
               key={item.id}
               item={item}
               timezone={timezone}
+              leadStage={leadStage}
               canEditAccess={canEditAccess}
               canPromoteToMember={canPromoteToMember}
               canDemoteToNewbie={canDemoteToNewbie}

@@ -12,6 +12,7 @@ type ExportColumn = {
 };
 
 function memberStatusLabel(member: CohortMember): string {
+  if (member.subscriptionState === 'transferred') return 'Transferred';
   if (member.subscriptionState === 'lapsed') return 'Lapsed';
   if (member.memberKind === 'returnee') return 'Returnee';
   if (member.memberKind === 'renewal') return 'Renewal';

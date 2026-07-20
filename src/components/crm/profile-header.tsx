@@ -99,7 +99,11 @@ export function ProfileHeader({
               Marketing:{' '}
               {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
             </HeaderMetaPill>
-            {contact.batch && contact.batch !== '—' ? <HeaderMetaPill>{contact.batch}</HeaderMetaPill> : null}
+            {contact.batch && contact.batch !== '—' ? (
+              <HeaderMetaPill>
+                {contact.stage === 'transferred' ? `${contact.batch} · Transferred` : contact.batch}
+              </HeaderMetaPill>
+            ) : null}
             {leadHasTag(contact.tags, 'vip') ? (
               <span className={cn('border-b-2 border-[#C28C00] bg-motivation text-slate-900', HEADER_PILL_CLASS)}>
                 <Star className="h-2.75 w-2.75 fill-slate-900" />

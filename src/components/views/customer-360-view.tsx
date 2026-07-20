@@ -291,9 +291,10 @@ export function Customer360View({
           <ProgramHistory
             items={programHistory}
             interest={lead.interest}
-            batch={lead.batch}
+            batch={lead.stage === 'transferred' && lead.batch?.trim() ? `${lead.batch} · Transferred` : lead.batch}
             attribution={lead.attribution}
             leadId={lead.id}
+            leadStage={lead.stage}
             canEditAccess={canSyncPayment}
             canPromoteToMember={canSyncPayment && lead.stage === 'newbie'}
             canDemoteToNewbie={canSyncPayment && lead.stage === 'member'}
