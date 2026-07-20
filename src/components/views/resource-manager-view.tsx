@@ -59,6 +59,7 @@ const RESOURCE_CATEGORIES: { id: ResourceCategory; label: string }[] = [
   { id: 'exercise', label: 'Exercise Videos' },
   { id: 'guides', label: 'Guides' },
   { id: 'recipes', label: 'Recipes' },
+  { id: 'faqs', label: 'FAQs' },
 ];
 
 const CATEGORY_LABELS = Object.fromEntries(RESOURCE_CATEGORIES.map((c) => [c.id, c.label])) as Record<

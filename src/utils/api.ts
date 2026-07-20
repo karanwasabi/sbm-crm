@@ -3313,7 +3313,7 @@ export async function getAutomationEnrollmentLog(
   }));
 }
 
-export type ResourceCategory = 'plans' | 'webinars' | 'exercise' | 'guides' | 'recipes';
+export type ResourceCategory = 'plans' | 'webinars' | 'exercise' | 'guides' | 'recipes' | 'faqs';
 export type ResourceKind = 'pdf' | 'youtube';
 
 export type AdminResource = {
