@@ -23,18 +23,34 @@ import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/cn';
 import type { PushSlot, PushTemplateDetail, PushTemplateEntry, PushTemplateStatus } from '@/utils/api';
 
-const SLOTS: { slot: PushSlot; label: string; time: string; accent: string; defaultTitle: string }[] = [
-  { slot: 'am_9', label: 'Effort log catch-up', time: '9:00 am', accent: '#5C65CF', defaultTitle: 'Good Morning!' },
-  { slot: 'pm_3', label: 'Nudge – Better effort', time: '3:00 pm', accent: '#0EA5E9', defaultTitle: 'Nudge' },
-  { slot: 'pm_8', label: 'Effort log', time: '8:00 pm', accent: '#8B5CF6', defaultTitle: 'Check-in!' },
-  {
-    slot: 'pm_9',
+const SLOT_META: Record<PushSlot, { label: string; time: string; accent: string; defaultTitle: string }> = {
+  am_9: { label: 'Effort log catch-up', time: '9:00 am', accent: '#5C65CF', defaultTitle: 'Good Morning!' },
+  pm_3: { label: 'Nudge – Better effort', time: '3:00 pm', accent: '#0EA5E9', defaultTitle: 'Nudge' },
+  pm_6: { label: 'Nudge – Better effort', time: '6:00 pm', accent: '#F59E0B', defaultTitle: 'Nudge' },
+  noon: { label: 'Nudge – Better effort', time: '12:00 pm', accent: '#0EA5E9', defaultTitle: 'Nudge' },
+  pm_8: { label: 'Effort log', time: '8:00 pm', accent: '#8B5CF6', defaultTitle: 'Check-in!' },
+  pm_9: {
     label: 'Think about tomorrow',
     time: '9:00 pm',
     accent: '#10B981',
     defaultTitle: 'Think about Tomorrow',
   },
-];
+};
+
+/** Cohort-relative day (1–7): days 5–6 use 6pm instead of 9pm; day 7 uses noon instead of 3pm. */
+function slotsForDay(day: number): PushSlot[] {
+  if (day === 5 || day === 6) {
+    return ['am_9', 'pm_3', 'pm_6', 'pm_8'];
+  }
+  if (day === 7) {
+    return ['am_9', 'noon', 'pm_8', 'pm_9'];
+  }
+  return ['am_9', 'pm_3', 'pm_8', 'pm_9'];
+}
+
+function slotDefsForDay(day: number) {
+  return slotsForDay(day).map((slot) => ({ slot, ...SLOT_META[slot] }));
+}
 
 const selectClassName =
   'w-full rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 outline-none transition focus:border-brand disabled:bg-slate-50';
@@ -84,7 +100,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
   const filledSlots = useMemo(() => {
     let filled = 0;
     for (let day = 1; day <= 7; day++) {
-      for (const { slot } of SLOTS) {
+      for (const slot of slotsForDay(day)) {
         const cell = map.get(entryKey(week, day, slot));
         if (cell && cell.title.trim() && cell.body.trim()) filled += 1;
       }
@@ -102,18 +118,31 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
     });
   };
 
+  const trimCell = (day: number, slot: PushSlot, field: 'title' | 'body') => {
+    const key = entryKey(week, day, slot);
+    setMap((prev) => {
+      const current = prev.get(key);
+      if (!current) return prev;
+      const trimmed = current[field].trim();
+      if (trimmed === current[field]) return prev;
+      const next = new Map(prev);
+      next.set(key, { ...current, [field]: trimmed });
+      return next;
+    });
+  };
+
   const collectEntries = (): PushTemplateEntry[] => {
     const entries: PushTemplateEntry[] = [];
     for (let w = 1; w <= maxWeek; w++) {
       for (let day = 1; day <= 7; day++) {
-        for (const { slot } of SLOTS) {
+        for (const slot of slotsForDay(day)) {
           const cell = map.get(entryKey(w, day, slot)) ?? { title: '', body: '' };
           entries.push({
             weekIndex: w,
             dayIndex: day,
             slot,
-            title: cell.title,
-            body: cell.body,
+            title: cell.title.trim(),
+            body: cell.body.trim(),
           });
         }
       }
@@ -263,7 +292,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
       >
         <SectionHead
           title="Template settings"
-          subtitle="Only active templates are sent — and only when every slot has a title and body. Day 1 of week 1 is the cohort starts_on civil date."
+          subtitle="Only active templates are sent — and only when every slot has a title and body. Day 1 of week 1 is the cohort starts_on civil date. Days 5–6 send at 9am/3pm/6pm/8pm; day 7 at 9am/12pm/8pm/9pm."
           className="mb-4"
         />
         <div className="grid gap-3 md:grid-cols-[1fr_180px]">
@@ -350,7 +379,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
                 </p>
               </div>
               <div className="grid gap-3 p-4 lg:grid-cols-2">
-                {SLOTS.map(({ slot, label, time, accent, defaultTitle }) => {
+                {slotDefsForDay(day).map(({ slot, label, time, accent, defaultTitle }) => {
                   const cell = map.get(entryKey(week, day, slot)) ?? { title: '', body: '' };
                   const ready = Boolean(cell.title.trim() && cell.body.trim());
                   return (
@@ -382,17 +411,24 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
                         <TextInput
                           value={cell.title}
                           onChange={(value) => setCell(day, slot, 'title', value)}
+                          onBlur={() => trimCell(day, slot, 'title')}
                           placeholder={defaultTitle}
                           disabled={pending}
                         />
-                        <Textarea
-                          value={cell.body}
-                          onChange={(event) => setCell(day, slot, 'body', event.target.value)}
-                          placeholder="Body"
-                          disabled={pending}
-                          rows={2}
-                          className="min-h-[72px] rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-none focus-visible:border-brand focus-visible:ring-0"
-                        />
+                        <div className="space-y-1">
+                          <Textarea
+                            value={cell.body}
+                            onChange={(event) => setCell(day, slot, 'body', event.target.value)}
+                            onBlur={() => trimCell(day, slot, 'body')}
+                            placeholder="Body"
+                            disabled={pending}
+                            rows={2}
+                            className="min-h-[72px] rounded-2xl border-[1.5px] border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-800 shadow-none focus-visible:border-brand focus-visible:ring-0"
+                          />
+                          <p className="text-right text-[11px] font-medium text-slate-400 tabular-nums">
+                            {cell.body.length} characters
+                          </p>
+                        </div>
                       </div>
                     </div>
                   );

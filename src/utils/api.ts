@@ -3791,7 +3791,7 @@ export async function putCohortResourceCategories(
   };
 }
 
-export type PushSlot = 'am_9' | 'pm_3' | 'pm_8' | 'pm_9';
+export type PushSlot = 'am_9' | 'pm_3' | 'pm_8' | 'pm_9' | 'noon' | 'pm_6';
 export type PushTemplateStatus = 'draft' | 'active' | 'archived';
 
 export type PushTemplate = {
