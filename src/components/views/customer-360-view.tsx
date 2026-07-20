@@ -17,6 +17,7 @@ import { MembershipTransferDialog } from '@/components/crm/membership-transfer-d
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
+import { EditTimezoneDialog } from '@/components/crm/edit-timezone-dialog';
 import { ResetOnboardingPointADialog } from '@/components/crm/reset-onboarding-point-a-dialog';
 import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
 import { PointAAssessmentCard } from '@/components/crm/point-a-assessment-card';
@@ -73,6 +74,7 @@ export function Customer360View({
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
   const [correctHeightOpen, setCorrectHeightOpen] = useState(false);
+  const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
   const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
   const [memberProfileKey, setMemberProfileKey] = useState(0);
   const [isRefreshing, startTransition] = useTransition();
@@ -239,6 +241,7 @@ export function Customer360View({
         onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
         onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
         onCorrectHeight={canSyncPayment && lead.memberUserId != null ? () => setCorrectHeightOpen(true) : undefined}
+        onEditTimezone={canSyncPayment && lead.memberUserId != null ? () => setEditTimezoneOpen(true) : undefined}
         onResetOnboardingPointA={
           canSyncPayment && lead.memberUserId != null ? () => setResetOnboardingPointAOpen(true) : undefined
         }
@@ -361,6 +364,15 @@ export function Customer360View({
         leadId={lead.id}
         open={correctHeightOpen}
         onOpenChange={setCorrectHeightOpen}
+        onDone={() => {
+          setMemberProfileKey((k) => k + 1);
+          refresh();
+        }}
+      />
+      <EditTimezoneDialog
+        leadId={lead.id}
+        open={editTimezoneOpen}
+        onOpenChange={setEditTimezoneOpen}
         onDone={() => {
           setMemberProfileKey((k) => k + 1);
           refresh();

@@ -29,6 +29,7 @@ import {
   putLeadServingAddons,
   correctLeadWeights,
   correctLeadHeight,
+  correctLeadTimezone,
   getLeadPointA,
   putLeadPointA,
   resetLeadOnboardingPointA,
@@ -47,6 +48,7 @@ import type {
   MemberProfile,
   NutritionRecalcResult,
   CorrectHeightResult,
+  CorrectTimezoneResult,
   ServingAddons,
   ServingAddonsResult,
   PointAAssessment,
@@ -358,6 +360,19 @@ export async function correctLeadHeightAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to correct height.';
+    return { result: null, error: message };
+  }
+}
+
+export async function correctLeadTimezoneAction(
+  leadId: string,
+  timezoneId: string
+): Promise<{ result: CorrectTimezoneResult | null; error: string | null }> {
+  try {
+    const result = await correctLeadTimezone(leadId, timezoneId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to update timezone.';
     return { result: null, error: message };
   }
 }

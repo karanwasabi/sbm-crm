@@ -4,6 +4,7 @@ import {
   ArrowRightLeft,
   BadgeCheck,
   Banknote,
+  Clock,
   GraduationCap,
   KeyRound,
   MoreVertical,
@@ -33,6 +34,7 @@ type ProfileOverflowMenuProps = {
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
   onCorrectHeight?: () => void;
+  onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
 };
 
@@ -58,6 +60,7 @@ export function ProfileOverflowMenu({
   onForceNutritionRecalc,
   onCorrectWeights,
   onCorrectHeight,
+  onEditTimezone,
   onResetOnboardingPointA,
 }: ProfileOverflowMenuProps) {
   const [open, setOpen] = useState(false);
@@ -286,6 +289,20 @@ export function ProfileOverflowMenu({
               >
                 <Ruler className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Correct height
+              </button>
+            ) : null}
+            {onEditTimezone ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onEditTimezone();
+                }}
+              >
+                <Clock className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Edit timezone
               </button>
             ) : null}
             {onResetOnboardingPointA ? (

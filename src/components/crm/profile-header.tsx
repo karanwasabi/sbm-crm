@@ -31,6 +31,7 @@ type ProfileHeaderProps = {
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
   onCorrectHeight?: () => void;
+  onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
   memberKind?: 'renewal' | 'returnee' | null;
 };
@@ -77,6 +78,7 @@ export function ProfileHeader({
   onForceNutritionRecalc,
   onCorrectWeights,
   onCorrectHeight,
+  onEditTimezone,
   onResetOnboardingPointA,
   memberKind = null,
 }: ProfileHeaderProps) {
@@ -195,6 +197,7 @@ export function ProfileHeader({
           onForceNutritionRecalc ||
           onCorrectWeights ||
           onCorrectHeight ||
+          onEditTimezone ||
           onResetOnboardingPointA ? (
             <ProfileOverflowMenu
               onPurge={onPurge}
@@ -210,6 +213,7 @@ export function ProfileHeader({
               onForceNutritionRecalc={onForceNutritionRecalc}
               onCorrectWeights={onCorrectWeights}
               onCorrectHeight={onCorrectHeight}
+              onEditTimezone={onEditTimezone}
               onResetOnboardingPointA={onResetOnboardingPointA}
             />
           ) : null}

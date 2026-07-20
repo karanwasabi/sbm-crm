@@ -1562,6 +1562,31 @@ export async function correctLeadHeight(leadId: string, heightCm: number): Promi
   };
 }
 
+export type CorrectTimezoneResult = {
+  userId: string;
+  timezoneId: string;
+};
+
+export async function correctLeadTimezone(leadId: string, timezoneId: string): Promise<CorrectTimezoneResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/correct-timezone`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ timezone_id: timezoneId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update timezone.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    timezone_id: string;
+  };
+  return {
+    userId: row.user_id,
+    timezoneId: row.timezone_id,
+  };
+}
+
 export type ResetOnboardingPointAResult = {
   userId: string;
   onboardingCompletedAt: string | null;
