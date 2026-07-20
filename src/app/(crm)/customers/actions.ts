@@ -27,6 +27,8 @@ import {
   putLeadServingAddons,
   correctLeadWeights,
   correctLeadHeight,
+  getLeadPointA,
+  putLeadPointA,
   resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
@@ -44,6 +46,8 @@ import type {
   CorrectHeightResult,
   ServingAddons,
   ServingAddonsResult,
+  PointAAssessment,
+  PutPointAAssessmentInput,
   ResetOnboardingPointAResult,
   SetMembershipAccessResult,
   SetMemberKindResult,
@@ -324,6 +328,31 @@ export async function resetLeadOnboardingPointAAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to reset onboarding and Point A.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadPointAAction(
+  leadId: string
+): Promise<{ result: PointAAssessment | null; error: string | null }> {
+  try {
+    const result = await getLeadPointA(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load Point A assessment.';
+    return { result: null, error: message };
+  }
+}
+
+export async function putLeadPointAAction(
+  leadId: string,
+  input: PutPointAAssessmentInput
+): Promise<{ result: PointAAssessment | null; error: string | null }> {
+  try {
+    const result = await putLeadPointA(leadId, input);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save Point A assessment.';
     return { result: null, error: message };
   }
 }

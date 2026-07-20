@@ -18,6 +18,7 @@ import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
 import { ResetOnboardingPointADialog } from '@/components/crm/reset-onboarding-point-a-dialog';
 import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
+import { PointAAssessmentCard } from '@/components/crm/point-a-assessment-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
@@ -271,11 +272,18 @@ export function Customer360View({
             onUpdated={refresh}
           />
           {canSyncPayment && lead.memberUserId != null ? (
-            <MemberAppProfileCard
-              leadId={lead.id}
-              refreshKey={memberProfileKey}
-              onProfileChanged={() => setMemberProfileKey((k) => k + 1)}
-            />
+            <div className="grid w-full grid-cols-1 items-start gap-4 xl:grid-cols-2">
+              <MemberAppProfileCard
+                leadId={lead.id}
+                refreshKey={memberProfileKey}
+                onProfileChanged={() => setMemberProfileKey((k) => k + 1)}
+              />
+              <PointAAssessmentCard
+                leadId={lead.id}
+                refreshKey={memberProfileKey}
+                onChanged={() => setMemberProfileKey((k) => k + 1)}
+              />
+            </div>
           ) : null}
           <ProgramHistory
             items={programHistory}

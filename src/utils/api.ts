@@ -1398,6 +1398,84 @@ export type ResetOnboardingPointAResult = {
   pointALifestyleCleared: boolean;
 };
 
+export type PointAAssessment = {
+  stepsPerDay: number | null;
+  exerciseDaysPerWeek: number | null;
+  sleepHours: number | null;
+  nutritionAnswers: Record<string, string>;
+  nutritionInitialScore: number | null;
+  completed: boolean;
+  completedAt: string | null;
+  goalsRegenerated?: boolean;
+  awaitingStart?: boolean;
+  programWeekOffset?: number;
+  firstCompleted?: boolean;
+};
+
+export type PutPointAAssessmentInput = {
+  stepsPerDay: number;
+  exerciseDaysPerWeek: number;
+  sleepHours: number;
+  nutritionAnswers: Record<string, string>;
+};
+
+function mapPointAAssessment(row: {
+  steps_per_day: number | null;
+  exercise_days_per_week: number | null;
+  sleep_hours: number | null;
+  nutrition_answers: Record<string, string> | null;
+  nutrition_initial_score: number | null;
+  completed: boolean;
+  completed_at: string | null;
+  goals_regenerated?: boolean;
+  awaiting_start?: boolean;
+  program_week_offset?: number;
+  first_completed?: boolean;
+}): PointAAssessment {
+  return {
+    stepsPerDay: row.steps_per_day,
+    exerciseDaysPerWeek: row.exercise_days_per_week,
+    sleepHours: row.sleep_hours,
+    nutritionAnswers: row.nutrition_answers ?? {},
+    nutritionInitialScore: row.nutrition_initial_score,
+    completed: row.completed,
+    completedAt: row.completed_at,
+    goalsRegenerated: row.goals_regenerated,
+    awaitingStart: row.awaiting_start,
+    programWeekOffset: row.program_week_offset,
+    firstCompleted: row.first_completed,
+  };
+}
+
+export async function getLeadPointA(leadId: string): Promise<PointAAssessment> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/point-a`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load Point A assessment.', response.status);
+  }
+  const row = (await response.json()) as Parameters<typeof mapPointAAssessment>[0];
+  return mapPointAAssessment(row);
+}
+
+export async function putLeadPointA(leadId: string, input: PutPointAAssessmentInput): Promise<PointAAssessment> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/point-a`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      steps_per_day: input.stepsPerDay,
+      exercise_days_per_week: input.exerciseDaysPerWeek,
+      sleep_hours: input.sleepHours,
+      nutrition_answers: input.nutritionAnswers,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to save Point A assessment.', response.status);
+  }
+  const row = (await response.json()) as Parameters<typeof mapPointAAssessment>[0];
+  return mapPointAAssessment(row);
+}
+
 export async function resetLeadOnboardingPointA(leadId: string): Promise<ResetOnboardingPointAResult> {
   const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/reset-onboarding-point-a`, {
     method: 'POST',
