@@ -203,29 +203,43 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
               <DataTableHead>
                 <DataTableHeaderCell>Name</DataTableHeaderCell>
                 <DataTableHeaderCell>Status</DataTableHeaderCell>
+                <DataTableHeaderCell>Copy ready</DataTableHeaderCell>
                 <DataTableHeaderCell>Weeks</DataTableHeaderCell>
                 <DataTableHeaderCell className="text-right">Open</DataTableHeaderCell>
               </DataTableHead>
               <DataTableBody>
                 {templates.length === 0 ? (
                   <DataTableRow>
-                    <DataTableCell colSpan={4} className="py-10 text-center text-sm text-slate-500">
+                    <DataTableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
                       No templates yet. Create one above to get started.
                     </DataTableCell>
                   </DataTableRow>
                 ) : (
-                  templates.map((template) => (
-                    <DataTableRow key={template.id}>
-                      <DataTableCell className="font-semibold text-slate-800">{template.name}</DataTableCell>
-                      <DataTableCell>
-                        <Pill tone={statusTone(template.status)}>{template.status}</Pill>
-                      </DataTableCell>
-                      <DataTableCell className="tabular-nums">{template.maxWeek}</DataTableCell>
-                      <DataTableCell className="text-right">
-                        <CrmTableLink href={`/push-notifications/${template.id}`}>Edit</CrmTableLink>
-                      </DataTableCell>
-                    </DataTableRow>
-                  ))
+                  templates.map((template) => {
+                    const incomplete = template.totalSlots > 0 && template.readySlots < template.totalSlots;
+                    return (
+                      <DataTableRow key={template.id}>
+                        <DataTableCell className="font-semibold text-slate-800">{template.name}</DataTableCell>
+                        <DataTableCell>
+                          <Pill tone={statusTone(template.status)}>{template.status}</Pill>
+                          {template.status === 'active' && incomplete ? (
+                            <p className="mt-1 text-[11px] font-medium text-amber-700">
+                              Active but incomplete — worker skips empty slots
+                            </p>
+                          ) : null}
+                        </DataTableCell>
+                        <DataTableCell className="tabular-nums">
+                          <span className={incomplete ? 'font-semibold text-amber-700' : 'text-slate-700'}>
+                            {template.readySlots}/{template.totalSlots || '—'}
+                          </span>
+                        </DataTableCell>
+                        <DataTableCell className="tabular-nums">{template.maxWeek}</DataTableCell>
+                        <DataTableCell className="text-right">
+                          <CrmTableLink href={`/push-notifications/${template.id}`}>Edit</CrmTableLink>
+                        </DataTableCell>
+                      </DataTableRow>
+                    );
+                  })
                 )}
               </DataTableBody>
             </DataTable>
@@ -272,13 +286,28 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
                         value={row.templateId ?? ''}
                         onChange={(event) => {
                           const value = event.target.value;
-                          if (value && activeTemplates.find((t) => t.id === value)?.status === 'draft') {
-                            const confirmed = window.confirm(
-                              'This template is still draft. The worker only sends active templates. Assign anyway?'
-                            );
-                            if (!confirmed) {
-                              event.target.value = row.templateId ?? '';
-                              return;
+                          if (value) {
+                            const selected = activeTemplates.find((t) => t.id === value);
+                            if (selected?.status === 'draft') {
+                              const confirmed = window.confirm(
+                                'This template is still draft. The worker only sends active templates. Assign anyway?'
+                              );
+                              if (!confirmed) {
+                                event.target.value = row.templateId ?? '';
+                                return;
+                              }
+                            } else if (
+                              selected &&
+                              selected.totalSlots > 0 &&
+                              selected.readySlots < selected.totalSlots
+                            ) {
+                              const confirmed = window.confirm(
+                                `This template only has ${selected.readySlots}/${selected.totalSlots} slots with copy. Empty slots will not send. Assign anyway?`
+                              );
+                              if (!confirmed) {
+                                event.target.value = row.templateId ?? '';
+                                return;
+                              }
                             }
                           }
                           assign(row.cohortId, value || null);
@@ -287,7 +316,7 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
                         <option value="">— None —</option>
                         {activeTemplates.map((template) => (
                           <option key={template.id} value={template.id}>
-                            {template.name} ({template.status})
+                            {template.name} ({template.status}, {template.readySlots}/{template.totalSlots} ready)
                           </option>
                         ))}
                       </select>

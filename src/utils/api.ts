@@ -3799,6 +3799,8 @@ export type PushTemplate = {
   name: string;
   status: PushTemplateStatus;
   maxWeek: number;
+  totalSlots: number;
+  readySlots: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -3832,6 +3834,8 @@ function mapPushTemplate(row: {
   name: string;
   status: PushTemplateStatus;
   max_week: number;
+  total_slots?: number;
+  ready_slots?: number;
   created_at: string;
   updated_at: string;
 }): PushTemplate {
@@ -3840,6 +3844,8 @@ function mapPushTemplate(row: {
     name: row.name,
     status: row.status,
     maxWeek: row.max_week,
+    totalSlots: row.total_slots ?? 0,
+    readySlots: row.ready_slots ?? 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -3850,6 +3856,8 @@ function mapPushTemplateDetail(row: {
   name: string;
   status: PushTemplateStatus;
   max_week: number;
+  total_slots?: number;
+  ready_slots?: number;
   created_at: string;
   updated_at: string;
   entries: { week_index: number; day_index: number; slot: PushSlot; title: string; body: string }[];

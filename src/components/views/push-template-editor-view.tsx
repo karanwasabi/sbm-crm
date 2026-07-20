@@ -124,6 +124,16 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
   const saveMeta = () => {
     startTransition(async () => {
       try {
+        if (status === 'active') {
+          const incomplete = collectEntries().filter((e) => !e.title.trim() || !e.body.trim()).length;
+          if (incomplete > 0) {
+            toast({
+              message: `Cannot activate: ${incomplete} slot(s) still need a title and body. Save copy first.`,
+              variant: 'error',
+            });
+            return;
+          }
+        }
         await patchPushTemplateAction(template.id, { name: name.trim(), status });
         toast({ message: 'Template settings saved.', variant: 'success' });
         router.refresh();
@@ -253,7 +263,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
       >
         <SectionHead
           title="Template settings"
-          subtitle="Only active templates are sent. Day 1 of week 1 is the cohort starts_on civil date."
+          subtitle="Only active templates are sent — and only when every slot has a title and body. Day 1 of week 1 is the cohort starts_on civil date."
           className="mb-4"
         />
         <div className="grid gap-3 md:grid-cols-[1fr_180px]">
