@@ -20,6 +20,7 @@ type ProfileHeaderProps = {
   onSendEmail?: () => void;
   onPurge?: () => void;
   onEnroll?: () => void;
+  onTransferMembership?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
   onMarkRenewal?: () => void;
@@ -65,6 +66,7 @@ export function ProfileHeader({
   onSendEmail,
   onPurge,
   onEnroll,
+  onTransferMembership,
   onSyncPayment,
   onMarkPaidOffline,
   onMarkRenewal,
@@ -178,6 +180,7 @@ export function ProfileHeader({
           ) : null}
           {onPurge ||
           onEnroll ||
+          onTransferMembership ||
           onSyncPayment ||
           onMarkPaidOffline ||
           onMarkRenewal ||
@@ -192,6 +195,7 @@ export function ProfileHeader({
             <ProfileOverflowMenu
               onPurge={onPurge}
               onEnroll={onEnroll}
+              onTransferMembership={onTransferMembership}
               onSyncPayment={onSyncPayment}
               onMarkPaidOffline={onMarkPaidOffline}
               onMarkRenewal={onMarkRenewal}

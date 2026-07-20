@@ -242,6 +242,7 @@ type ApiLeadResponse = {
   can_mark_lost?: boolean;
   can_purge?: boolean;
   can_offline_enroll?: boolean;
+  can_transfer_membership?: boolean;
   payment_pending?: {
     checkout_session_id: string;
     program_name: string;
@@ -821,6 +822,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     canMarkLost: row.can_mark_lost ?? false,
     canPurge: row.can_purge ?? false,
     canOfflineEnroll: row.can_offline_enroll ?? false,
+    canTransferMembership: row.can_transfer_membership ?? false,
     paymentPending: row.payment_pending
       ? {
           checkoutSessionId: row.payment_pending.checkout_session_id,
@@ -940,6 +942,180 @@ export async function offlineEnrollLead(leadId: string, cohortId: string): Promi
     inviteSent: row.invite_sent,
     stage: row.stage,
   };
+}
+
+type ApiMembershipTransferOverwriteCandidate = {
+  current: string | null;
+  proposed: string;
+  conflict: boolean;
+};
+
+type ApiMembershipTransferPreviewResponse = {
+  donor: {
+    lead_id: string;
+    user_id: string | null;
+    enrollment_id: string | null;
+    cohort_id: string | null;
+    cohort_name: string | null;
+    access_until: string | null;
+    razorpay_customer_ids?: string[];
+  };
+  match: import('@/types/crm').MembershipTransferMatch;
+  overwrite_candidates: {
+    first_name: ApiMembershipTransferOverwriteCandidate;
+    last_name: ApiMembershipTransferOverwriteCandidate;
+    email: ApiMembershipTransferOverwriteCandidate;
+    whatsapp: ApiMembershipTransferOverwriteCandidate;
+  };
+  razorpay_conflict?: {
+    customer_id: string;
+    status: 'idle' | 'live';
+    resolve_required: boolean;
+    message?: string | null;
+  } | null;
+  blocking_errors?: string[];
+  can_apply: boolean;
+};
+
+type ApiMembershipTransferApplyResponse = {
+  status: 'transferred' | 'failed';
+  donor_lead_id?: string;
+  recipient_lead_id?: string;
+  rolled_back?: boolean;
+  error?: string | null;
+  razorpay?: {
+    status: string;
+    customer_ids?: string[];
+    parked_customer_id?: string | null;
+  } | null;
+  razorpay_conflict?: {
+    customer_id: string;
+    status: 'idle' | 'live';
+    resolve_required: boolean;
+    message?: string | null;
+  } | null;
+  razorpay_errors?: string[];
+};
+
+function mapOverwriteCandidate(
+  row: ApiMembershipTransferOverwriteCandidate
+): import('@/types/crm').MembershipTransferOverwriteCandidate {
+  return {
+    current: row.current,
+    proposed: row.proposed,
+    conflict: row.conflict,
+  };
+}
+
+function mapRazorpayConflict(
+  row: NonNullable<ApiMembershipTransferPreviewResponse['razorpay_conflict']>
+): import('@/types/crm').MembershipTransferRazorpayConflict {
+  return {
+    customerId: row.customer_id,
+    status: row.status,
+    resolveRequired: row.resolve_required,
+    message: row.message ?? null,
+  };
+}
+
+function mapMembershipTransferPreview(
+  row: ApiMembershipTransferPreviewResponse
+): import('@/types/crm').MembershipTransferPreviewResponse {
+  return {
+    donor: {
+      leadId: row.donor.lead_id,
+      userId: row.donor.user_id,
+      enrollmentId: row.donor.enrollment_id,
+      cohortId: row.donor.cohort_id,
+      cohortName: row.donor.cohort_name,
+      accessUntil: row.donor.access_until,
+      razorpayCustomerIds: row.donor.razorpay_customer_ids ?? [],
+    },
+    match: row.match,
+    overwriteCandidates: {
+      first_name: mapOverwriteCandidate(row.overwrite_candidates.first_name),
+      last_name: mapOverwriteCandidate(row.overwrite_candidates.last_name),
+      email: mapOverwriteCandidate(row.overwrite_candidates.email),
+      whatsapp: mapOverwriteCandidate(row.overwrite_candidates.whatsapp),
+    },
+    razorpayConflict: row.razorpay_conflict ? mapRazorpayConflict(row.razorpay_conflict) : null,
+    blockingErrors: row.blocking_errors ?? [],
+    canApply: row.can_apply,
+  };
+}
+
+function mapMembershipTransferApply(
+  row: ApiMembershipTransferApplyResponse
+): import('@/types/crm').MembershipTransferApplyResult {
+  return {
+    status: row.status,
+    donorLeadId: row.donor_lead_id,
+    recipientLeadId: row.recipient_lead_id,
+    rolledBack: row.rolled_back,
+    error: row.error ?? null,
+    razorpay: row.razorpay
+      ? {
+          status: row.razorpay.status,
+          customerIds: row.razorpay.customer_ids ?? [],
+          parkedCustomerId: row.razorpay.parked_customer_id ?? null,
+        }
+      : null,
+    razorpayConflict: row.razorpay_conflict ? mapRazorpayConflict(row.razorpay_conflict) : null,
+    razorpayErrors: row.razorpay_errors ?? [],
+  };
+}
+
+export async function previewMembershipTransfer(
+  leadId: string,
+  body: import('@/types/crm').MembershipTransferPreviewRequest
+): Promise<import('@/types/crm').MembershipTransferPreviewResponse> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership-transfer/preview`, {
+    method: 'POST',
+    body: JSON.stringify({
+      first_name: body.firstName,
+      last_name: body.lastName,
+      email: body.email,
+      whatsapp: body.whatsapp,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to preview membership transfer.', response.status);
+  }
+  return mapMembershipTransferPreview((await response.json()) as ApiMembershipTransferPreviewResponse);
+}
+
+export async function applyMembershipTransfer(
+  leadId: string,
+  body: import('@/types/crm').MembershipTransferApplyRequest
+): Promise<import('@/types/crm').MembershipTransferApplyResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership-transfer`, {
+    method: 'POST',
+    body: JSON.stringify({
+      first_name: body.firstName,
+      last_name: body.lastName,
+      email: body.email,
+      whatsapp: body.whatsapp,
+      overwrite: body.overwrite,
+      confirm_existing: body.confirmExisting,
+      resolve_razorpay_conflict: body.resolveRazorpayConflict,
+    }),
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | ApiMembershipTransferApplyResponse
+    | { error?: string }
+    | null;
+  if (!response.ok) {
+    if (payload && typeof payload === 'object' && 'status' in payload && payload.status === 'failed') {
+      return mapMembershipTransferApply(payload as ApiMembershipTransferApplyResponse);
+    }
+    throw new ApiError(
+      (payload && 'error' in payload && typeof payload.error === 'string' ? payload.error : null) ??
+        'Failed to transfer membership.',
+      response.status
+    );
+  }
+  return mapMembershipTransferApply(payload as ApiMembershipTransferApplyResponse);
 }
 
 export type LeadCheckoutSyncResult = {

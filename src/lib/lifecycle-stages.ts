@@ -14,5 +14,6 @@ export const LIFECYCLE_STAGES: Record<LifecycleStage, StageConfig> = {
   member: { label: 'Member', color: '#8338EC', tint: '#F3E8FF' },
   grace: { label: 'Grace', color: '#FFB703', tint: '#FEF3C7' },
   lapsed: { label: 'Lapsed', color: '#94A3B8', tint: '#F1F5F9' },
+  transferred: { label: 'Transferred', color: '#64748B', tint: '#EEF2FF' },
   lost: { label: 'Lost', color: '#F43F5E', tint: '#FEE2E5' },
 };

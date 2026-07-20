@@ -1,4 +1,13 @@
-export type LifecycleStage = 'inquiry' | 'engaged' | 'registered' | 'newbie' | 'member' | 'grace' | 'lapsed' | 'lost';
+export type LifecycleStage =
+  | 'inquiry'
+  | 'engaged'
+  | 'registered'
+  | 'newbie'
+  | 'member'
+  | 'grace'
+  | 'lapsed'
+  | 'transferred'
+  | 'lost';
 
 export type LeadMedium = 'paid' | 'organic' | 'offline';
 
@@ -237,12 +246,86 @@ export type LeadDetail = Lead & {
   canMarkLost: boolean;
   canPurge: boolean;
   canOfflineEnroll: boolean;
+  canTransferMembership?: boolean;
   paymentPending: PaymentPending | null;
   attribution: LeadAttribution | null;
   fieldSuggestions: FieldSuggestion[];
   contactDuplicates: ContactDuplicate[];
   manualIntakeRecords: ManualIntakeRecord[];
   timeline: TimelineEvent[];
+};
+
+export type MembershipTransferMatch = 'none' | 'lead_only' | 'user_only' | 'lead_and_user';
+
+export type MembershipTransferOverwriteField = 'first_name' | 'last_name' | 'email' | 'whatsapp';
+
+export type MembershipTransferOverwriteCandidate = {
+  current: string | null;
+  proposed: string;
+  conflict: boolean;
+};
+
+export type MembershipTransferOverwriteCandidates = Record<
+  MembershipTransferOverwriteField,
+  MembershipTransferOverwriteCandidate
+>;
+
+export type MembershipTransferOverwriteFlags = Record<MembershipTransferOverwriteField, boolean>;
+
+export type MembershipTransferIdentityInput = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  whatsapp: string;
+};
+
+export type MembershipTransferPreviewRequest = MembershipTransferIdentityInput;
+
+export type MembershipTransferDonorSummary = {
+  leadId: string;
+  userId: string | null;
+  enrollmentId: string | null;
+  cohortId: string | null;
+  cohortName: string | null;
+  accessUntil: string | null;
+  razorpayCustomerIds: string[];
+};
+
+export type MembershipTransferRazorpayConflict = {
+  customerId: string;
+  status: 'idle' | 'live';
+  resolveRequired: boolean;
+  message?: string | null;
+};
+
+export type MembershipTransferPreviewResponse = {
+  donor: MembershipTransferDonorSummary;
+  match: MembershipTransferMatch;
+  overwriteCandidates: MembershipTransferOverwriteCandidates;
+  razorpayConflict: MembershipTransferRazorpayConflict | null;
+  blockingErrors: string[];
+  canApply: boolean;
+};
+
+export type MembershipTransferApplyRequest = MembershipTransferIdentityInput & {
+  overwrite: MembershipTransferOverwriteFlags;
+  confirmExisting: boolean;
+  resolveRazorpayConflict: boolean;
+};
+
+export type MembershipTransferApplyResult = {
+  status: 'transferred' | 'failed';
+  donorLeadId?: string;
+  recipientLeadId?: string;
+  rolledBack?: boolean;
+  error?: string | null;
+  razorpay?: {
+    status: string;
+    customerIds: string[];
+    parkedCustomerId: string | null;
+  } | null;
+  razorpayConflict?: MembershipTransferRazorpayConflict | null;
+  razorpayErrors?: string[];
 };
 
 export type PaymentPending = {

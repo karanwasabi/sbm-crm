@@ -15,7 +15,7 @@ type FunnelChartProps = {
 
 const LIFECYCLE_LEGEND_COLUMNS = [
   ['inquiry', 'engaged', 'registered', 'newbie'],
-  ['member', 'grace', 'lapsed', 'lost'],
+  ['member', 'grace', 'lapsed', 'transferred', 'lost'],
 ] as const;
 
 function LifecycleStageCell({ step, total }: { step: FunnelStep; total: number }) {

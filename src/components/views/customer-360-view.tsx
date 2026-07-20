@@ -13,6 +13,7 @@ import {
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
+import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
@@ -68,6 +69,7 @@ export function Customer360View({
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
   const [correctHeightOpen, setCorrectHeightOpen] = useState(false);
@@ -222,6 +224,7 @@ export function Customer360View({
         }
         onPurge={() => setPurgeOpen(true)}
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
+        onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
         onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
         onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
         onMarkRenewal={
@@ -329,6 +332,13 @@ export function Customer360View({
         leadId={lead.id}
         leadName={contact.name}
         onEnrolled={refresh}
+      />
+      <MembershipTransferDialog
+        open={transferOpen}
+        onOpenChange={setTransferOpen}
+        leadId={lead.id}
+        leadName={contact.name}
+        onTransferred={refresh}
       />
       <SetPasswordDialog
         leadId={lead.id}

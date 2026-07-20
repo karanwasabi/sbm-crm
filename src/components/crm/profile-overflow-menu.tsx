@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowRightLeft,
   BadgeCheck,
   Banknote,
   GraduationCap,
@@ -21,6 +22,7 @@ import { cn } from '@/lib/cn';
 type ProfileOverflowMenuProps = {
   onPurge?: () => void;
   onEnroll?: () => void;
+  onTransferMembership?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
   onMarkRenewal?: () => void;
@@ -45,6 +47,7 @@ const menuItemClass =
 export function ProfileOverflowMenu({
   onPurge,
   onEnroll,
+  onTransferMembership,
   onSyncPayment,
   onMarkPaidOffline,
   onMarkRenewal,
@@ -143,6 +146,20 @@ export function ProfileOverflowMenu({
               >
                 <GraduationCap className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Enroll
+              </button>
+            ) : null}
+            {onTransferMembership ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onTransferMembership();
+                }}
+              >
+                <ArrowRightLeft className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Transfer membership
               </button>
             ) : null}
             {onMarkRenewal ? (

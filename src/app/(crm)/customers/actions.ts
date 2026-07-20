@@ -18,6 +18,8 @@ import {
   updateLeadTags,
   offlineEnrollLead,
   listOfflineEnrollCohorts,
+  previewMembershipTransfer,
+  applyMembershipTransfer,
   syncLeadCheckout,
   markLeadCheckoutPaidOffline,
   setLeadPassword,
@@ -53,7 +55,13 @@ import type {
   SetMemberKindResult,
   PromoteToMemberResult,
 } from '@/utils/api';
-import type { OfflineEnrollCohort } from '@/types/crm';
+import type {
+  OfflineEnrollCohort,
+  MembershipTransferPreviewRequest,
+  MembershipTransferApplyRequest,
+  MembershipTransferPreviewResponse,
+  MembershipTransferApplyResult,
+} from '@/types/crm';
 
 export async function updateLeadTagsAction(leadId: string, manualTags: string[]): Promise<{ error: string | null }> {
   try {
@@ -204,6 +212,38 @@ export async function listOfflineEnrollCohortsAction(): Promise<{
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load cohorts.';
     return { cohorts: null, error: message };
+  }
+}
+
+export async function previewMembershipTransferAction(
+  leadId: string,
+  body: MembershipTransferPreviewRequest
+): Promise<{ preview: MembershipTransferPreviewResponse | null; error: string | null }> {
+  try {
+    const preview = await previewMembershipTransfer(leadId, body);
+    return { preview, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to preview membership transfer.';
+    return { preview: null, error: message };
+  }
+}
+
+export async function applyMembershipTransferAction(
+  leadId: string,
+  body: MembershipTransferApplyRequest
+): Promise<{ result: MembershipTransferApplyResult | null; error: string | null }> {
+  try {
+    const result = await applyMembershipTransfer(leadId, body);
+    if (result.status === 'failed') {
+      return {
+        result,
+        error: result.error ?? 'Membership transfer failed.',
+      };
+    }
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to transfer membership.';
+    return { result: null, error: message };
   }
 }
 

@@ -136,6 +136,7 @@ export const LIFECYCLE_STAGE_OPTIONS = [
   'member',
   'grace',
   'lapsed',
+  'transferred',
   'lost',
 ] as const;
 
