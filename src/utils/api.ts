@@ -1777,6 +1777,34 @@ export async function promoteLeadToMember(leadId: string, enrollmentId: string):
   };
 }
 
+export type DemoteToNewbieResult = {
+  enrollmentId: string;
+  phase: string;
+  stage: string;
+};
+
+export async function demoteLeadToNewbie(leadId: string, enrollmentId: string): Promise<DemoteToNewbieResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership/demote-to-newbie`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enrollment_id: enrollmentId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to demote to newbie.', response.status);
+  }
+  const row = (await response.json()) as {
+    enrollment_id: string;
+    phase: string;
+    stage: string;
+  };
+  return {
+    enrollmentId: row.enrollment_id,
+    phase: row.phase,
+    stage: row.stage,
+  };
+}
+
 export type LeadPurgeTestSignal = {
   rule: string;
   matched: boolean;
@@ -2071,6 +2099,7 @@ type ApiEnrollmentResponse = {
   cancel_at_period_end?: boolean | null;
   subscription_status?: string | null;
   recurring_start_at?: string | null;
+  drives_lifecycle?: boolean;
 };
 
 export async function listPrograms(): Promise<ApiProgramResponse[]> {
@@ -2210,6 +2239,7 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     cancelAtPeriodEnd: row.cancel_at_period_end ?? null,
     subscriptionStatus: row.subscription_status ?? null,
     recurringStartAt: row.recurring_start_at ?? null,
+    drivesLifecycle: Boolean(row.drives_lifecycle),
   }));
 }
 

@@ -35,6 +35,7 @@ import {
   setLeadMembershipAccessUntil,
   setLeadMemberKind,
   promoteLeadToMember,
+  demoteLeadToNewbie,
 } from '@/utils/api';
 import type {
   LeadPurgeInput,
@@ -54,6 +55,7 @@ import type {
   SetMembershipAccessResult,
   SetMemberKindResult,
   PromoteToMemberResult,
+  DemoteToNewbieResult,
 } from '@/utils/api';
 import type {
   OfflineEnrollCohort,
@@ -433,6 +435,19 @@ export async function promoteLeadToMemberAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to promote to member.';
+    return { result: null, error: message };
+  }
+}
+
+export async function demoteLeadToNewbieAction(
+  leadId: string,
+  enrollmentId: string
+): Promise<{ result: DemoteToNewbieResult | null; error: string | null }> {
+  try {
+    const result = await demoteLeadToNewbie(leadId, enrollmentId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to demote to newbie.';
     return { result: null, error: message };
   }
 }

@@ -547,6 +547,8 @@ export type ProgramHistoryItem = {
   cancelAtPeriodEnd?: boolean | null;
   subscriptionStatus?: string | null;
   recurringStartAt?: string | null;
+  /** True for the enrollment that drives lead lifecycle stage (latest paid checkout). */
+  drivesLifecycle?: boolean;
 };
 
 export type CohortSummary = {

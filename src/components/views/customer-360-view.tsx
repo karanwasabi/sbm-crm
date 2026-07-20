@@ -296,6 +296,7 @@ export function Customer360View({
             leadId={lead.id}
             canEditAccess={canSyncPayment}
             canPromoteToMember={canSyncPayment && lead.stage === 'newbie'}
+            canDemoteToNewbie={canSyncPayment && lead.stage === 'member'}
           />
         </div>
       </div>

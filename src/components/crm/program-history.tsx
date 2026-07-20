@@ -2,9 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowUpRight, CalendarRange } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CalendarRange } from 'lucide-react';
 import { EditMembershipAccessDialog } from '@/components/crm/edit-membership-access-dialog';
-import { promoteLeadToMemberAction } from '@/app/(crm)/customers/actions';
+import { demoteLeadToNewbieAction, promoteLeadToMemberAction } from '@/app/(crm)/customers/actions';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
@@ -23,6 +23,7 @@ type ProgramHistoryProps = {
   leadId?: string;
   canEditAccess?: boolean;
   canPromoteToMember?: boolean;
+  canDemoteToNewbie?: boolean;
 };
 
 function label(value: string | null | undefined) {
@@ -97,17 +98,23 @@ function EnrollmentRow({
   timezone,
   canEditAccess,
   canPromoteToMember,
+  canDemoteToNewbie,
   promotePending,
+  demotePending,
   onEditAccess,
   onPromoteToMember,
+  onDemoteToNewbie,
 }: {
   item: ProgramHistoryItem;
   timezone: string;
   canEditAccess?: boolean;
   canPromoteToMember?: boolean;
+  canDemoteToNewbie?: boolean;
   promotePending?: boolean;
+  demotePending?: boolean;
   onEditAccess?: (item: ProgramHistoryItem) => void;
   onPromoteToMember?: (item: ProgramHistoryItem) => void;
+  onDemoteToNewbie?: (item: ProgramHistoryItem) => void;
 }) {
   const renew = autoRenewInfo(item);
   const activeFrom = formatMembershipDate(item.startsOn ?? item.date, timezone);
@@ -115,6 +122,7 @@ function EnrollmentRow({
   const showGrace = isGraceOpen(item.graceUntil);
   const hasMembershipWindow = Boolean(item.startsOn || item.accessUntil);
   const showPromote = Boolean(canPromoteToMember && onPromoteToMember && item.phase === 'initial');
+  const showDemote = Boolean(canDemoteToNewbie && onDemoteToNewbie && item.phase === 'monthly' && item.drivesLifecycle);
 
   return (
     <article className="border-t border-slate-100 px-5 py-4">
@@ -164,6 +172,18 @@ function EnrollmentRow({
                   Convert to member
                 </Button>
               ) : null}
+              {showDemote ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  leftIcon={<ArrowDownRight className="h-3.5 w-3.5" />}
+                  loading={demotePending}
+                  onClick={() => onDemoteToNewbie?.(item)}
+                >
+                  Downgrade to newbie
+                </Button>
+              ) : null}
               {canEditAccess && onEditAccess ? (
                 <Button
                   type="button"
@@ -190,6 +210,18 @@ function EnrollmentRow({
               onClick={() => onPromoteToMember?.(item)}
             >
               Convert to member
+            </Button>
+          ) : null}
+          {showDemote ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              leftIcon={<ArrowDownRight className="h-3.5 w-3.5" />}
+              loading={demotePending}
+              onClick={() => onDemoteToNewbie?.(item)}
+            >
+              Downgrade to newbie
             </Button>
           ) : null}
           {canEditAccess && onEditAccess ? (
@@ -236,6 +268,7 @@ export function ProgramHistory({
   leadId,
   canEditAccess = false,
   canPromoteToMember = false,
+  canDemoteToNewbie = false,
 }: ProgramHistoryProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -243,6 +276,8 @@ export function ProgramHistory({
   const [editItem, setEditItem] = useState<ProgramHistoryItem | null>(null);
   const [promotePendingId, setPromotePendingId] = useState<string | null>(null);
   const [promotePending, startPromote] = useTransition();
+  const [demotePendingId, setDemotePendingId] = useState<string | null>(null);
+  const [demotePending, startDemote] = useTransition();
   const showSummary = Boolean(interest?.trim() || batch?.trim() || attribution);
   const formLabel = attribution ? attributionFormLabel(attribution) : null;
 
@@ -264,6 +299,28 @@ export function ProgramHistory({
         message: result.stage
           ? `Converted to member. Stage is now ${result.stage}.`
           : 'Converted enrollment to monthly phase.',
+        variant: 'success',
+      });
+      router.refresh();
+    });
+  };
+
+  const handleDemote = (item: ProgramHistoryItem) => {
+    if (!leadId) return;
+    const confirmed = window.confirm(
+      'Downgrade this enrollment to newbie (initial phase)? Access end date will not change, and stage-changed automations will not run.'
+    );
+    if (!confirmed) return;
+    setDemotePendingId(item.id);
+    startDemote(async () => {
+      const { result, error } = await demoteLeadToNewbieAction(leadId, item.id);
+      setDemotePendingId(null);
+      if (error || !result) {
+        toast({ message: error ?? 'Failed to downgrade to newbie.', variant: 'error' });
+        return;
+      }
+      toast({
+        message: `Downgraded to newbie. Stage is now ${result.stage}.`,
         variant: 'success',
       });
       router.refresh();
@@ -349,9 +406,12 @@ export function ProgramHistory({
               timezone={timezone}
               canEditAccess={canEditAccess}
               canPromoteToMember={canPromoteToMember}
+              canDemoteToNewbie={canDemoteToNewbie}
               promotePending={promotePending && promotePendingId === item.id}
+              demotePending={demotePending && demotePendingId === item.id}
               onEditAccess={canEditAccess ? setEditItem : undefined}
               onPromoteToMember={canPromoteToMember ? handlePromote : undefined}
+              onDemoteToNewbie={canDemoteToNewbie ? handleDemote : undefined}
             />
           ))}
         </div>
