@@ -19,6 +19,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
   let emailTemplates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
   let canManagePointA = false;
   let canLockCohort = false;
+  let isSuperadminUser = false;
 
   try {
     const [cohortResult, membersResult, staff, templates, access] = await Promise.all([
@@ -35,6 +36,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     const superadmin = isSuperadmin(access.roles);
     canManagePointA = superadmin;
     canLockCohort = superadmin;
+    isSuperadminUser = superadmin;
     const canTransferFrom =
       cohort.status === 'active' || (superadmin && (cohort.status === 'upcoming' || cohort.status === 'locked'));
     if (canTransferFrom) {
@@ -55,6 +57,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     emailTemplates = [];
     canManagePointA = false;
     canLockCohort = false;
+    isSuperadminUser = false;
   }
 
   if (!cohort) {
@@ -70,6 +73,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
       emailTemplates={emailTemplates}
       canManagePointA={canManagePointA}
       canLockCohort={canLockCohort}
+      isSuperadmin={isSuperadminUser}
     />
   );
 }

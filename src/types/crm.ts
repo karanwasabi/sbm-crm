@@ -513,6 +513,10 @@ export type CohortMember = {
   onboardingCompletedAt: string | null;
   coachUserId?: string | null;
   coachName?: string | null;
+  /** Superadmin-only body metrics from member profile. */
+  heightCm?: number | null;
+  initialWeightKg?: number | null;
+  bmi?: number | null;
 };
 
 /** @deprecated Use CohortSummary */

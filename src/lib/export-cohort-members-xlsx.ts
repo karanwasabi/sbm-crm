@@ -35,7 +35,12 @@ function parseExportDate(iso: string): Date | string {
   return parsed;
 }
 
-const EXPORT_COLUMNS: ExportColumn[] = [
+function formatMetric(value: number | null | undefined): string {
+  if (value == null || value <= 0) return '';
+  return value.toFixed(1);
+}
+
+const BASE_EXPORT_COLUMNS: ExportColumn[] = [
   { header: 'Name', key: 'name', width: 24, kind: 'text', value: (m) => m.memberName },
   { header: 'Email', key: 'email', width: 28, kind: 'text', value: (m) => m.email },
   { header: 'WhatsApp', key: 'whatsapp', width: 18, kind: 'text', value: (m) => m.whatsapp },
@@ -61,6 +66,37 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   },
 ];
 
+const BODY_METRIC_EXPORT_COLUMNS: ExportColumn[] = [
+  {
+    header: 'Initial weight (kg)',
+    key: 'initialWeightKg',
+    width: 18,
+    kind: 'text',
+    value: (m) => formatMetric(m.initialWeightKg),
+  },
+  {
+    header: 'Height (cm)',
+    key: 'heightCm',
+    width: 14,
+    kind: 'text',
+    value: (m) => formatMetric(m.heightCm),
+  },
+  {
+    header: 'BMI',
+    key: 'bmi',
+    width: 10,
+    kind: 'text',
+    value: (m) => formatMetric(m.bmi),
+  },
+];
+
+function exportColumns(includeBodyMetrics: boolean): ExportColumn[] {
+  if (!includeBodyMetrics) {
+    return BASE_EXPORT_COLUMNS;
+  }
+  return [...BASE_EXPORT_COLUMNS, ...BODY_METRIC_EXPORT_COLUMNS];
+}
+
 function exportFilename(): string {
   const now = new Date();
   const date = now.toISOString().slice(0, 10);
@@ -80,8 +116,8 @@ function downloadBlob(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-function applyColumnFormats(sheet: import('exceljs').Worksheet): void {
-  EXPORT_COLUMNS.forEach((column, index) => {
+function applyColumnFormats(sheet: import('exceljs').Worksheet, columns: ExportColumn[]): void {
+  columns.forEach((column, index) => {
     const excelColumn = sheet.getColumn(index + 1);
     excelColumn.width = column.width;
     const numFmt = column.kind === 'date' ? DATE_NUMFMT : TEXT_NUMFMT;
@@ -99,7 +135,11 @@ function applyColumnFormats(sheet: import('exceljs').Worksheet): void {
   });
 }
 
-export async function downloadCohortMembersXlsx(members: CohortMember[]): Promise<void> {
+export async function downloadCohortMembersXlsx(
+  members: CohortMember[],
+  options?: { includeBodyMetrics?: boolean }
+): Promise<void> {
+  const columns = exportColumns(Boolean(options?.includeBodyMetrics));
   const ExcelJS = (await import('exceljs')).default;
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'SBM CRM';
@@ -109,7 +149,7 @@ export async function downloadCohortMembersXlsx(members: CohortMember[]): Promis
     views: [{ state: 'frozen', ySplit: 1 }],
   });
 
-  sheet.columns = EXPORT_COLUMNS.map((column) => ({
+  sheet.columns = columns.map((column) => ({
     header: column.header,
     key: column.key,
   }));
@@ -119,18 +159,18 @@ export async function downloadCohortMembersXlsx(members: CohortMember[]): Promis
 
   for (const member of members) {
     const row: Record<string, string | Date> = {};
-    for (const column of EXPORT_COLUMNS) {
+    for (const column of columns) {
       row[column.key] = column.value(member);
     }
     sheet.addRow(row);
   }
 
-  applyColumnFormats(sheet);
+  applyColumnFormats(sheet, columns);
 
   if (members.length > 0) {
     sheet.autoFilter = {
       from: { row: 1, column: 1 },
-      to: { row: members.length + 1, column: EXPORT_COLUMNS.length },
+      to: { row: members.length + 1, column: columns.length },
     };
   }
 

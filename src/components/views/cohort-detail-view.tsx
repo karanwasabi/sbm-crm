@@ -77,6 +77,7 @@ type CohortDetailViewProps = {
   emailTemplates: EmailTemplate[];
   canManagePointA?: boolean;
   canLockCohort?: boolean;
+  isSuperadmin?: boolean;
 };
 
 type ActiveSortKey = 'name' | 'coach' | 'whatsapp' | 'city' | 'country' | 'timezone' | 'enrolled';
@@ -115,6 +116,11 @@ function displayOrDash(value: string): string {
   return trimmed || '—';
 }
 
+function formatBodyMetric(value: number | null | undefined, suffix: string): string {
+  if (value == null || value <= 0) return '—';
+  return `${value.toFixed(1)} ${suffix}`;
+}
+
 function countryDisplay(member: CohortMember): string {
   return member.countryName.trim() || member.countryCode.trim();
 }
@@ -123,7 +129,7 @@ function timezoneDisplay(member: CohortMember): string {
   return member.timezoneLabel.trim() || member.timezoneId.trim();
 }
 
-function MemberTableColGroup({ withActions }: { withActions: boolean }) {
+function MemberTableColGroup({ withActions, showBodyMetrics }: { withActions: boolean; showBodyMetrics?: boolean }) {
   return (
     <colgroup>
       <col style={{ minWidth: 40 }} />
@@ -136,6 +142,13 @@ function MemberTableColGroup({ withActions }: { withActions: boolean }) {
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 160 }} />
       <col style={{ minWidth: 120 }} />
+      {showBodyMetrics ? (
+        <>
+          <col style={{ minWidth: 110 }} />
+          <col style={{ minWidth: 90 }} />
+          <col style={{ minWidth: 72 }} />
+        </>
+      ) : null}
       {withActions ? <col style={{ minWidth: 48 }} /> : null}
     </colgroup>
   );
@@ -342,6 +355,7 @@ function MemberTable({
   statusMode,
   toolbar,
   coachTones,
+  showBodyMetrics,
 }: {
   title: string;
   subtitle: string;
@@ -362,8 +376,9 @@ function MemberTable({
   statusMode: 'lifecycle' | 'lapsed';
   toolbar?: ReactNode;
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
+  showBodyMetrics?: boolean;
 }) {
-  const columnCount = transferColumn ? 11 : 10;
+  const columnCount = 10 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
   const rowIds = rows.map((row) => row.enrollmentId);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
@@ -375,7 +390,7 @@ function MemberTable({
       {toolbar}
       <div className="overflow-x-auto">
         <DataTable tableClassName="min-w-[1200px]">
-          <MemberTableColGroup withActions={transferColumn} />
+          <MemberTableColGroup withActions={transferColumn} showBodyMetrics={showBodyMetrics} />
           <DataTableHead>
             <DataTableHeaderCell>
               <input
@@ -478,6 +493,13 @@ function MemberTable({
                 'Enrolled'
               )}
             </DataTableHeaderCell>
+            {showBodyMetrics ? (
+              <>
+                <DataTableHeaderCell>Initial weight</DataTableHeaderCell>
+                <DataTableHeaderCell>Height</DataTableHeaderCell>
+                <DataTableHeaderCell>BMI</DataTableHeaderCell>
+              </>
+            ) : null}
             {transferColumn ? <DataTableHeaderCell className="text-right">{'\u00a0'}</DataTableHeaderCell> : null}
           </DataTableHead>
           <DataTableBody>
@@ -538,6 +560,19 @@ function MemberTable({
                   <DataTableCell className="text-slate-600">
                     <LeadTableTimestamp iso={member.enrolledAt} />
                   </DataTableCell>
+                  {showBodyMetrics ? (
+                    <>
+                      <DataTableCell className="text-slate-600 tabular-nums">
+                        {formatBodyMetric(member.initialWeightKg, 'kg')}
+                      </DataTableCell>
+                      <DataTableCell className="text-slate-600 tabular-nums">
+                        {formatBodyMetric(member.heightCm, 'cm')}
+                      </DataTableCell>
+                      <DataTableCell className="text-slate-600 tabular-nums">
+                        {member.bmi != null && member.bmi > 0 ? member.bmi.toFixed(1) : '—'}
+                      </DataTableCell>
+                    </>
+                  ) : null}
                   {transferColumn ? (
                     <DataTableCell className="text-right">
                       {showTransfer ? <MemberRowMenu onTransfer={() => onTransfer(member)} /> : null}
@@ -955,6 +990,7 @@ export function CohortDetailView({
   emailTemplates,
   canManagePointA = false,
   canLockCohort = false,
+  isSuperadmin = false,
 }: CohortDetailViewProps) {
   const router = useRouter();
   const { push, isPending, pendingHref } = useCrmNavigate();
@@ -972,6 +1008,7 @@ export function CohortDetailView({
   const [cityFilters, setCityFilters] = useState<string[]>([]);
   const [countryFilters, setCountryFilters] = useState<string[]>([]);
   const [timezoneFilters, setTimezoneFilters] = useState<string[]>([]);
+  const [showBodyMetrics, setShowBodyMetrics] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -1323,6 +1360,17 @@ export function CohortDetailView({
           onChange={setTimezoneFilters}
           emptyLabel="No timezones yet."
         />
+        {isSuperadmin ? (
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.25 text-[13px] font-semibold text-slate-700 shadow-sm">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 rounded border-slate-300"
+              checked={showBodyMetrics}
+              onChange={(event) => setShowBodyMetrics(event.target.checked)}
+            />
+            Body metrics
+          </label>
+        ) : null}
       </div>
       {filtersActive ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
@@ -1524,7 +1572,11 @@ export function CohortDetailView({
               Assign coach
             </Button>
             <CohortBulkSendButton members={members} selectedEnrollmentIds={selectedList} templates={emailTemplates} />
-            <CohortExportButton members={members} selectedEnrollmentIds={selectedList} />
+            <CohortExportButton
+              members={members}
+              selectedEnrollmentIds={selectedList}
+              includeBodyMetrics={showBodyMetrics}
+            />
           </div>
         </div>
       ) : null}
@@ -1549,6 +1601,7 @@ export function CohortDetailView({
           statusMode="lifecycle"
           toolbar={activeFilterToolbar}
           coachTones={coachTones}
+          showBodyMetrics={showBodyMetrics}
         />
         <MemberTable
           title="Lapsed"
@@ -1568,6 +1621,7 @@ export function CohortDetailView({
           emptyMessage={filtersActive ? 'No lapsed members match the current filters.' : undefined}
           statusMode="lapsed"
           coachTones={coachTones}
+          showBodyMetrics={showBodyMetrics}
         />
       </div>
 

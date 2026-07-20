@@ -1817,6 +1817,9 @@ type ApiCohortMemberResponse = {
   onboarding_completed_at?: string | null;
   coach_user_id?: string | null;
   coach_name?: string | null;
+  height_cm?: number | null;
+  initial_weight_kg?: number | null;
+  bmi?: number | null;
 };
 
 function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortSummary {
@@ -1871,6 +1874,9 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     onboardingCompletedAt: row.onboarding_completed_at?.trim() || null,
     coachUserId: row.coach_user_id ?? null,
     coachName: row.coach_name ?? null,
+    heightCm: row.height_cm ?? null,
+    initialWeightKg: row.initial_weight_kg ?? null,
+    bmi: row.bmi ?? null,
   };
 }
 

@@ -10,9 +10,14 @@ import type { CohortMember } from '@/types/crm';
 type CohortExportButtonProps = {
   members: CohortMember[];
   selectedEnrollmentIds: string[];
+  includeBodyMetrics?: boolean;
 };
 
-export function CohortExportButton({ members, selectedEnrollmentIds }: CohortExportButtonProps) {
+export function CohortExportButton({
+  members,
+  selectedEnrollmentIds,
+  includeBodyMetrics = false,
+}: CohortExportButtonProps) {
   const { toast } = useToast();
   const isDisabled = selectedEnrollmentIds.length === 0;
 
@@ -37,7 +42,7 @@ export function CohortExportButton({ members, selectedEnrollmentIds }: CohortExp
       return;
     }
 
-    void downloadCohortMembersXlsx(rows)
+    void downloadCohortMembersXlsx(rows, { includeBodyMetrics })
       .then(() => {
         toast({
           message: `Exported ${rows.length} member${rows.length === 1 ? '' : 's'}.`,
