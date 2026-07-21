@@ -71,7 +71,8 @@ export function SearchableSelect({
 
   const selected = useMemo(() => options.find((o) => o.value === value), [options, value]);
   const triggerIcon = selected?.icon ?? leftIcon;
-  const triggerLabel = selected?.triggerLabel ?? selected?.label;
+  const triggerLabel = selected?.triggerLabel ?? selected?.label ?? (value.trim() || undefined);
+  const triggerTitle = selected?.label ?? triggerLabel;
 
   const visibleOptions = useMemo(() => {
     if (!searchable || !search.trim()) return options;
@@ -122,16 +123,17 @@ export function SearchableSelect({
         type="button"
         disabled={disabled}
         className={cn(
-          'flex h-11 w-full items-center justify-between rounded-2xl border border-input bg-background px-3.5 text-sm font-medium shadow-none transition-colors outline-none',
+          'flex h-11 w-full min-w-0 items-center justify-between overflow-hidden rounded-2xl border border-input bg-background px-3.5 text-sm font-medium shadow-none transition-colors outline-none',
           'hover:bg-muted/30 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50',
           'disabled:cursor-not-allowed disabled:opacity-50',
-          !selected && 'text-muted-foreground',
+          !triggerLabel && 'text-muted-foreground',
           className
         )}
+        title={triggerTitle}
       >
-        <span className="flex min-w-0 flex-1 items-center gap-2.5">
+        <span className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
           {triggerIcon ? <span className="shrink-0 text-muted-foreground">{triggerIcon}</span> : null}
-          <span className="truncate">{triggerLabel ?? placeholder}</span>
+          <span className="min-w-0 truncate">{triggerLabel ?? placeholder}</span>
         </span>
         {selected?.rightLabel && !selected?.triggerLabel ? (
           <span className="ml-2 shrink-0 text-sm font-semibold text-primary tabular-nums">{selected.rightLabel}</span>

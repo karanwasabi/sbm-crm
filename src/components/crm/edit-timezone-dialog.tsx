@@ -70,7 +70,7 @@ export function EditTimezoneDialog({ leadId, open, onOpenChange, onDone }: EditT
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="overflow-visible sm:max-w-md">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader className="pr-8">
           <DialogTitle>Edit timezone</DialogTitle>
           <DialogDescription>
@@ -78,8 +78,8 @@ export function EditTimezoneDialog({ leadId, open, onOpenChange, onDone }: EditT
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          <Field label="Timezone">
+        <div className="min-w-0 space-y-4">
+          <Field label="Timezone" className="min-w-0">
             <LazyTimezonePicker value={timezoneId} onChange={setTimezoneId} disabled={pending || loadingProfile} />
           </Field>
           {loadingProfile ? <p className="text-xs font-medium text-slate-500">Loading current value…</p> : null}

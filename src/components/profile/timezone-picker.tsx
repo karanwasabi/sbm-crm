@@ -12,13 +12,26 @@ type TimezonePickerProps = {
   disabled?: boolean;
 };
 
+function compactTimezoneTriggerLabel(title: string, offsetStr: string): string {
+  if (title.length <= 32) return title;
+  const first = title.split(' · ')[0] ?? title;
+  return `${first} · ${offsetStr}`;
+}
+
 export function TimezonePicker({ value, onChange, disabled = false }: TimezonePickerProps) {
   const groups = useMemo(() => getOnboardingTimezoneGroups(), []);
 
   const options = useMemo(() => {
     const seen = new Map<
       string,
-      { value: string; label: string; searchText: string; subtitle: string; rightLabel: string }
+      {
+        value: string;
+        label: string;
+        triggerLabel: string;
+        searchText: string;
+        subtitle: string;
+        rightLabel: string;
+      }
     >();
     for (const group of groups) {
       const pickedId = group.ids[0]!;
@@ -27,6 +40,7 @@ export function TimezonePicker({ value, onChange, disabled = false }: TimezonePi
       seen.set(canonical, {
         value: canonical,
         label: group.title,
+        triggerLabel: compactTimezoneTriggerLabel(group.title, group.offsetStr),
         searchText: `${group.title} ${group.searchString}`,
         subtitle: group.regionLabel,
         rightLabel: group.offsetStr,
