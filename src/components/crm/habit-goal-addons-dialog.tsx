@@ -30,7 +30,7 @@ const FIELDS: {
   max: number;
   integer?: boolean;
 }[] = [
-  { key: 'stepsDaily', label: 'Steps / day', min: -3000, max: 3000, integer: true },
+  { key: 'stepsDaily', label: 'Steps / day', min: -12000, max: 3000, integer: true },
   { key: 'exerciseDays', label: 'Exercise days', min: -2, max: 2, integer: true },
   { key: 'sleepHoursDaily', label: 'Sleep hours / day', min: -1.5, max: 1.5 },
   { key: 'nutritionPointsDaily', label: 'Nutrition points / day', min: -20, max: 20, integer: true },
