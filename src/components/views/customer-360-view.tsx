@@ -17,6 +17,7 @@ import { MembershipTransferDialog } from '@/components/crm/membership-transfer-d
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
+import { CheckInEditorDialog } from '@/components/crm/check-in-editor-dialog';
 import { EditTimezoneDialog } from '@/components/crm/edit-timezone-dialog';
 import { ResetOnboardingPointADialog } from '@/components/crm/reset-onboarding-point-a-dialog';
 import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
@@ -73,6 +74,7 @@ export function Customer360View({
   const [transferOpen, setTransferOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
+  const [checkInsOpen, setCheckInsOpen] = useState(false);
   const [correctHeightOpen, setCorrectHeightOpen] = useState(false);
   const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
   const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
@@ -240,6 +242,7 @@ export function Customer360View({
         onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
         onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
         onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
+        onViewCheckIns={canSyncPayment && lead.memberUserId != null ? () => setCheckInsOpen(true) : undefined}
         onCorrectHeight={canSyncPayment && lead.memberUserId != null ? () => setCorrectHeightOpen(true) : undefined}
         onEditTimezone={canSyncPayment && lead.memberUserId != null ? () => setEditTimezoneOpen(true) : undefined}
         onResetOnboardingPointA={
@@ -360,6 +363,7 @@ export function Customer360View({
           refresh();
         }}
       />
+      <CheckInEditorDialog leadId={lead.id} open={checkInsOpen} onOpenChange={setCheckInsOpen} />
       <CorrectHeightDialog
         leadId={lead.id}
         open={correctHeightOpen}

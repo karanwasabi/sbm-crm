@@ -38,6 +38,9 @@ import {
   setLeadMemberKind,
   promoteLeadToMember,
   demoteLeadToNewbie,
+  getLeadCheckInSchedule,
+  getLeadCheckIn,
+  putLeadCheckIn,
 } from '@/utils/api';
 import type {
   LeadPurgeInput,
@@ -61,6 +64,10 @@ import type {
   SetMemberKindResult,
   PromoteToMemberResult,
   DemoteToNewbieResult,
+  CheckInSchedule,
+  CheckInDay,
+  PutCheckInInput,
+  PutCheckInResult,
 } from '@/utils/api';
 import type {
   OfflineEnrollCohort,
@@ -479,6 +486,45 @@ export async function demoteLeadToNewbieAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to demote to newbie.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadCheckInScheduleAction(
+  leadId: string,
+  weekOffset = 0
+): Promise<{ result: CheckInSchedule | null; error: string | null }> {
+  try {
+    const result = await getLeadCheckInSchedule(leadId, weekOffset);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load check-in schedule.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadCheckInAction(
+  leadId: string,
+  localDate: string
+): Promise<{ result: CheckInDay | null; error: string | null }> {
+  try {
+    const result = await getLeadCheckIn(leadId, localDate);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load check-in.';
+    return { result: null, error: message };
+  }
+}
+
+export async function putLeadCheckInAction(
+  leadId: string,
+  input: PutCheckInInput
+): Promise<{ result: PutCheckInResult | null; error: string | null }> {
+  try {
+    const result = await putLeadCheckIn(leadId, input);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save check-in.';
     return { result: null, error: message };
   }
 }

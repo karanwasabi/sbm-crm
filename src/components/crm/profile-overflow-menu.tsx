@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ClipboardList,
   ArrowRightLeft,
   BadgeCheck,
   Banknote,
@@ -33,6 +34,7 @@ type ProfileOverflowMenuProps = {
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
+  onViewCheckIns?: () => void;
   onCorrectHeight?: () => void;
   onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
@@ -59,6 +61,7 @@ export function ProfileOverflowMenu({
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
+  onViewCheckIns,
   onCorrectHeight,
   onEditTimezone,
   onResetOnboardingPointA,
@@ -261,6 +264,20 @@ export function ProfileOverflowMenu({
               >
                 <BadgeCheck className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Verify email
+              </button>
+            ) : null}
+            {onViewCheckIns ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onViewCheckIns();
+                }}
+              >
+                <ClipboardList className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                View check-ins
               </button>
             ) : null}
             {onCorrectWeights ? (

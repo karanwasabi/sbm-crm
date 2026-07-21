@@ -4176,3 +4176,219 @@ export async function patchCohortPushTemplate(cohortId: string, templateId: stri
     await parseApiError(response, 'Failed to update cohort push template.');
   }
 }
+
+export type CheckInServingsSnapshot = {
+  protein: number;
+  fiber: number;
+  starch: number;
+  dairy: number;
+  fun: number;
+};
+
+export type CheckInWeekOption = {
+  offset: number;
+  weekStartDate: string;
+  weekNumber: number;
+  label: string;
+};
+
+export type CheckInDayOption = {
+  date: string;
+  status: string;
+  selectable: boolean;
+};
+
+export type CheckInSchedule = {
+  timezoneId?: string;
+  currentProgramDay: string;
+  programStartMonday?: string;
+  startsOn?: string;
+  maxOffset: number;
+  weekOffset: number;
+  awaitingStart: boolean;
+  pointAComplete: boolean;
+  weeks: CheckInWeekOption[];
+  days: CheckInDayOption[];
+  recommendedServings?: CheckInServingsSnapshot;
+};
+
+export type CheckInDay = {
+  exists: boolean;
+  localDate: string;
+  steps?: number;
+  sleepHours?: number;
+  exercised?: boolean;
+  exerciseType?: string;
+  exerciseIntensity?: string;
+  nutritionAnswers?: Record<string, string>;
+  nutritionScore?: number;
+  stars?: number;
+  servingsSnapshot: CheckInServingsSnapshot;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
+export type PutCheckInInput = {
+  localDate: string;
+  steps: number;
+  sleepHours: number;
+  exercised: boolean;
+  exerciseType?: string;
+  exerciseIntensity?: string;
+  nutritionAnswers: Record<string, string>;
+};
+
+export type PutCheckInResult = {
+  localDate: string;
+  steps: number;
+  sleepHours: number;
+  exercised: boolean;
+  exerciseType?: string;
+  exerciseIntensity?: string;
+  nutritionAnswers: Record<string, string>;
+  nutritionScore: number;
+  stars: number;
+  goalsRebuilt: boolean;
+};
+
+function mapCheckInServings(row: {
+  protein: number;
+  fiber: number;
+  starch: number;
+  dairy: number;
+  fun: number;
+}): CheckInServingsSnapshot {
+  return {
+    protein: row.protein,
+    fiber: row.fiber,
+    starch: row.starch,
+    dairy: row.dairy,
+    fun: row.fun,
+  };
+}
+
+export async function getLeadCheckInSchedule(leadId: string, weekOffset = 0): Promise<CheckInSchedule> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/check-ins/schedule?week_offset=${weekOffset}`
+  );
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load check-in schedule.');
+  }
+  const row = (await response.json()) as {
+    timezone_id?: string;
+    current_program_day: string;
+    program_start_monday?: string;
+    starts_on?: string;
+    max_offset: number;
+    week_offset: number;
+    awaiting_start: boolean;
+    point_a_complete: boolean;
+    weeks: { offset: number; week_start_date: string; week_number: number; label: string }[];
+    days: { date: string; status: string; selectable: boolean }[];
+    recommended_servings?: { protein: number; fiber: number; starch: number; dairy: number; fun: number };
+  };
+  return {
+    timezoneId: row.timezone_id,
+    currentProgramDay: row.current_program_day,
+    programStartMonday: row.program_start_monday,
+    startsOn: row.starts_on,
+    maxOffset: row.max_offset,
+    weekOffset: row.week_offset,
+    awaitingStart: row.awaiting_start,
+    pointAComplete: row.point_a_complete,
+    weeks: row.weeks.map((w) => ({
+      offset: w.offset,
+      weekStartDate: w.week_start_date,
+      weekNumber: w.week_number,
+      label: w.label,
+    })),
+    days: row.days.map((d) => ({
+      date: d.date,
+      status: d.status,
+      selectable: d.selectable,
+    })),
+    recommendedServings: row.recommended_servings ? mapCheckInServings(row.recommended_servings) : undefined,
+  };
+}
+
+export async function getLeadCheckIn(leadId: string, localDate: string): Promise<CheckInDay> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/check-ins?local_date=${encodeURIComponent(localDate)}`
+  );
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load check-in.');
+  }
+  const row = (await response.json()) as {
+    exists: boolean;
+    local_date: string;
+    steps?: number;
+    sleep_hours?: number;
+    exercised?: boolean;
+    exercise_type?: string;
+    exercise_intensity?: string;
+    nutrition_answers?: Record<string, string>;
+    nutrition_score?: number;
+    stars?: number;
+    servings_snapshot: { protein: number; fiber: number; starch: number; dairy: number; fun: number };
+    updated_at?: string;
+    updated_by?: string;
+  };
+  return {
+    exists: row.exists,
+    localDate: row.local_date,
+    steps: row.steps,
+    sleepHours: row.sleep_hours,
+    exercised: row.exercised,
+    exerciseType: row.exercise_type,
+    exerciseIntensity: row.exercise_intensity,
+    nutritionAnswers: row.nutrition_answers,
+    nutritionScore: row.nutrition_score,
+    stars: row.stars,
+    servingsSnapshot: mapCheckInServings(row.servings_snapshot),
+    updatedAt: row.updated_at,
+    updatedBy: row.updated_by,
+  };
+}
+
+export async function putLeadCheckIn(leadId: string, input: PutCheckInInput): Promise<PutCheckInResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/check-ins`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      local_date: input.localDate,
+      steps: input.steps,
+      sleep_hours: input.sleepHours,
+      exercised: input.exercised,
+      exercise_type: input.exerciseType,
+      exercise_intensity: input.exerciseIntensity,
+      nutrition_answers: input.nutritionAnswers,
+    }),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to save check-in.');
+  }
+  const row = (await response.json()) as {
+    local_date: string;
+    steps: number;
+    sleep_hours: number;
+    exercised: boolean;
+    exercise_type?: string;
+    exercise_intensity?: string;
+    nutrition_answers: Record<string, string>;
+    nutrition_score: number;
+    stars: number;
+    goals_rebuilt: boolean;
+  };
+  return {
+    localDate: row.local_date,
+    steps: row.steps,
+    sleepHours: row.sleep_hours,
+    exercised: row.exercised,
+    exerciseType: row.exercise_type,
+    exerciseIntensity: row.exercise_intensity,
+    nutritionAnswers: row.nutrition_answers,
+    nutritionScore: row.nutrition_score,
+    stars: row.stars,
+    goalsRebuilt: row.goals_rebuilt,
+  };
+}
