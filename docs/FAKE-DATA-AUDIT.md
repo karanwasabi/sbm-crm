@@ -20,11 +20,12 @@ Last updated: 2026-06-27
 
 **Still limited (not fake, but incomplete):**
 
-| Element        | Notes                                                |
-| -------------- | ---------------------------------------------------- |
-| CAC column     | Always `—` until Meta Ads spend API                  |
-| Conversion KPI | All-time; paid = registered+active+completed+renewal |
-| Revenue chart  | No ad spend overlay (requires Meta Ads API)          |
+| Element        | Notes                                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------------------ |
+| CAC column     | Live when `sync-meta-ad-spend` cron runs; see [`meta-cac-audit-report.md`](./meta-cac-audit-report.md) |
+| CPL column     | Not implemented — marketing often compares Meta CPL to CRM CAC by mistake                              |
+| Conversion KPI | All-time; paid = newbie + member + grace (not registered)                                              |
+| Revenue chart  | No ad spend overlay                                                                                    |
 
 ---
 
