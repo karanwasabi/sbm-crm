@@ -572,6 +572,9 @@ export type CohortDetail = CohortSummary & {
   canEditPointAEnabled?: boolean;
   isDemo?: boolean;
   canEditIsDemo?: boolean;
+  canDelete?: boolean;
+  canArchive?: boolean;
+  cleanupBlockers?: string[];
 };
 
 export type CohortMember = {

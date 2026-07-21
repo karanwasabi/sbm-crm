@@ -2136,6 +2136,9 @@ type ApiCohortDetailResponse = ApiCohortResponse & {
   can_edit_point_a_enabled?: boolean;
   is_demo?: boolean;
   can_edit_is_demo?: boolean;
+  can_delete?: boolean;
+  can_archive?: boolean;
+  cleanup_blockers?: string[];
 };
 
 type ApiCohortMemberResponse = {
@@ -2191,6 +2194,9 @@ function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').Co
     canEditPointAEnabled: row.can_edit_point_a_enabled,
     isDemo: row.is_demo,
     canEditIsDemo: row.can_edit_is_demo,
+    canDelete: row.can_delete,
+    canArchive: row.can_archive,
+    cleanupBlockers: row.cleanup_blockers,
   };
 }
 
@@ -2330,6 +2336,28 @@ export async function lockCohort(cohortId: string): Promise<{ id: string; status
     throw new ApiError(payload?.error ?? 'Failed to lock cohort.', response.status);
   }
   return (await response.json()) as { id: string; status: string; name: string };
+}
+
+export async function archiveCohort(cohortId: string): Promise<{ id: string; archived_at: string }> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/archive`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to archive cohort.', response.status);
+  }
+  return (await response.json()) as { id: string; archived_at: string };
+}
+
+export async function deleteCohort(cohortId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string; suggest?: string } | null;
+    const message = payload?.error ?? 'Failed to delete cohort.';
+    throw new ApiError(message, response.status);
+  }
 }
 
 export async function assignCohortCoach(

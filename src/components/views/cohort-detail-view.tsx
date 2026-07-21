@@ -8,6 +8,7 @@ import {
   ArrowLeft,
   ArrowUp,
   ArrowUpDown,
+  Archive,
   ArrowRightLeft,
   CalendarDays,
   CheckCircle2,
@@ -19,6 +20,7 @@ import {
   Pencil,
   Search,
   Tags,
+  Trash2,
   UserRound,
   UserRoundPlus,
   X,
@@ -60,6 +62,8 @@ import { SectionHead } from '@/components/ui/section-head';
 import { StagePill } from '@/components/ui/stage-pill';
 import { useToast } from '@/components/ui/toast';
 import {
+  archiveCohortAction,
+  deleteCohortAction,
   lockCohortAction,
   patchCohortIsDemoAction,
   patchCohortPointAEnabledAction,
@@ -1026,6 +1030,12 @@ export function CohortDetailView({
   const [isDemo, setIsDemo] = useState(Boolean(cohort.isDemo));
   const [isDemoSaving, setIsDemoSaving] = useState(false);
   const [pendingIsDemo, setPendingIsDemo] = useState<boolean | null>(null);
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [cleanupPending, setCleanupPending] = useState(false);
+
+  const showCleanupActions = isSuperadmin && (cohort.canDelete || cohort.canArchive);
 
   useEffect(() => {
     setPointAEnabled(Boolean(cohort.pointAEnabled));
@@ -1112,6 +1122,52 @@ export function CohortDetailView({
       });
     } finally {
       setLockPending(false);
+    }
+  };
+
+  const handleArchiveCohort = async () => {
+    setCleanupPending(true);
+    try {
+      const { error } = await archiveCohortAction(cohort.id);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
+      }
+      toast({ message: 'Cohort archived.', variant: 'success' });
+      setArchiveOpen(false);
+      router.push('/programs');
+    } catch (error) {
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to archive cohort.',
+        variant: 'error',
+      });
+    } finally {
+      setCleanupPending(false);
+    }
+  };
+
+  const handleDeleteCohort = async () => {
+    if (deleteConfirmName.trim() !== cohort.name.trim()) {
+      toast({ message: 'Cohort name does not match.', variant: 'error' });
+      return;
+    }
+    setCleanupPending(true);
+    try {
+      const { error } = await deleteCohortAction(cohort.id);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
+      }
+      toast({ message: 'Cohort deleted.', variant: 'success' });
+      setDeleteOpen(false);
+      router.push('/programs');
+    } catch (error) {
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to delete cohort.',
+        variant: 'error',
+      });
+    } finally {
+      setCleanupPending(false);
     }
   };
 
@@ -1482,6 +1538,33 @@ export function CohortDetailView({
           Back to cohorts
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          {showCleanupActions ? (
+            <>
+              {cohort.canArchive ? (
+                <Button
+                  variant="light"
+                  size="sm"
+                  onClick={() => setArchiveOpen(true)}
+                  leftIcon={<Archive className="h-3.5 w-3.5" />}
+                >
+                  Archive cohort
+                </Button>
+              ) : null}
+              {cohort.canDelete ? (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => {
+                    setDeleteConfirmName('');
+                    setDeleteOpen(true);
+                  }}
+                  leftIcon={<Trash2 className="h-3.5 w-3.5" />}
+                >
+                  Delete cohort
+                </Button>
+              ) : null}
+            </>
+          ) : null}
           {canLockCohort && cohort.status === 'upcoming' ? (
             <Button
               variant="light"
@@ -1576,6 +1659,80 @@ export function CohortDetailView({
           void handleToggleIsDemo(pendingIsDemo);
         }}
       />
+
+      <CohortSettingConfirmDialog
+        open={archiveOpen}
+        onOpenChange={(open) => {
+          if (!open && !cleanupPending) setArchiveOpen(false);
+        }}
+        title="Archive cohort?"
+        description="Confirm archiving this empty cohort"
+        body="This cohort will be hidden from programs, enrollment, and resource assignment. Billing and checkout history are preserved for audit."
+        confirmLabel="Archive cohort"
+        confirmVariant="amber"
+        pending={cleanupPending}
+        onConfirm={() => void handleArchiveCohort()}
+      />
+
+      <Dialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !cleanupPending) {
+            setDeleteOpen(false);
+            setDeleteConfirmName('');
+          }
+        }}
+      >
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="gap-0 border-b border-slate-100 px-6 py-5 pr-12">
+            <DialogTitle className="text-lg font-bold text-slate-900">Delete cohort permanently?</DialogTitle>
+            <DialogDescription className="sr-only">Confirm permanent deletion of this empty cohort</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 px-6 py-5">
+            <p className="text-sm leading-relaxed text-slate-600">
+              This permanently removes the cohort and its resource assignments, category visibility, and push send
+              history. This cannot be undone.
+            </p>
+            <label
+              className="block text-xs font-bold tracking-wide text-slate-500 uppercase"
+              htmlFor="delete-cohort-name"
+            >
+              Type {cohort.name} to confirm
+            </label>
+            <input
+              id="delete-cohort-name"
+              type="text"
+              value={deleteConfirmName}
+              onChange={(event) => setDeleteConfirmName(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm text-slate-900"
+              placeholder={cohort.name}
+              autoComplete="off"
+            />
+          </div>
+          <DialogFooter className="mx-0 mb-0 border-t border-slate-100 bg-canvas-cool/60 px-6 py-4 sm:justify-end">
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              disabled={cleanupPending}
+              onClick={() => setDeleteOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              loading={cleanupPending}
+              loadingLabel="Deleting…"
+              disabled={deleteConfirmName.trim() !== cohort.name.trim()}
+              onClick={() => void handleDeleteCohort()}
+            >
+              Delete cohort
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <CoachSummaryCard members={members} />
 

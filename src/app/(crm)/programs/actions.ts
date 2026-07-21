@@ -2,7 +2,9 @@
 
 import { revalidatePath } from 'next/cache';
 import {
+  archiveCohort,
   assignCohortCoach,
+  deleteCohort,
   lockCohort,
   patchCohort,
   patchCohortIsDemo,
@@ -44,6 +46,28 @@ export async function lockCohortAction(
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to lock cohort.';
     return { result: null, error: message };
+  }
+}
+
+export async function archiveCohortAction(cohortId: string): Promise<{ error: string | null }> {
+  try {
+    await archiveCohort(cohortId);
+    revalidatePath('/programs');
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to archive cohort.';
+    return { error: message };
+  }
+}
+
+export async function deleteCohortAction(cohortId: string): Promise<{ error: string | null }> {
+  try {
+    await deleteCohort(cohortId);
+    revalidatePath('/programs');
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to delete cohort.';
+    return { error: message };
   }
 }
 
