@@ -1,5 +1,8 @@
 /** Daily check-in habit helpers — mirrors sbm-app format-habit-values + nutrition-checkin. */
 
+import type { CheckInQuestionCopy } from '@/lib/check-in-question-copy';
+import { nutritionDayPhrase } from '@/lib/check-in-question-copy';
+
 export type RecommendedNutritionServings = {
   protein: number;
   fiber: number;
@@ -81,7 +84,11 @@ export function isLegacyWaterId(id: string): boolean {
   return LEGACY_WATER_IDS.has(id);
 }
 
-export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings): NutritionMcqQuestion[] {
+export function buildDailyNutritionMcqQuestions(
+  x: RecommendedNutritionServings,
+  copy: CheckInQuestionCopy
+): NutritionMcqQuestion[] {
+  const day = nutritionDayPhrase(copy);
   const proteinXm1 = x.protein - 1;
   const fiberXm1 = x.fiber - 1;
   const starchXm1 = x.starch - 1;
@@ -89,7 +96,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
   return [
     {
       id: 'hunger',
-      question: 'For how long did you experience hunger today?',
+      question: `For how long did you experience hunger ${day}?`,
       options: [
         { id: 'none', label: 'Was not hungry at all' },
         { id: '1to2', label: '1-2 hours' },
@@ -99,7 +106,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
     },
     {
       id: 'protein',
-      question: 'How many protein servings did you have today?',
+      question: `How many protein servings did you have ${day}?`,
       options: [
         { id: 'lt', label: `Under ${formatServingsLabel(proteinXm1)}` },
         { id: 'xm1', label: formatServingsLabel(proteinXm1) },
@@ -109,7 +116,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
     },
     {
       id: 'fiber',
-      question: 'How many fiber servings did you have today?',
+      question: `How many fiber servings did you have ${day}?`,
       options: [
         { id: 'lt', label: `Under ${formatServingsLabel(fiberXm1)}` },
         { id: 'xm1', label: formatServingsLabel(fiberXm1) },
@@ -119,7 +126,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
     },
     {
       id: 'starch',
-      question: 'How many starch servings did you have today?',
+      question: `How many starch servings did you have ${day}?`,
       options: [
         { id: 'lt', label: `Under ${formatServingsLabel(starchXm1)}` },
         { id: 'xm1', label: formatServingsLabel(starchXm1) },
@@ -129,7 +136,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
     },
     {
       id: 'fun',
-      question: 'How many fun food servings did you have today?',
+      question: `How many fun food servings did you have ${day}?`,
       options: [
         { id: 'none', label: 'None' },
         { id: 'x', label: formatServingsLabel(x.fun) },
@@ -138,7 +145,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
     },
     {
       id: 'dairy',
-      question: 'How many milk/yogurt servings did you have today?',
+      question: `How many milk/yogurt servings did you have ${day}?`,
       options: [
         { id: 'none', label: 'None' },
         { id: 'x', label: formatServingsLabel(x.dairy) },
@@ -147,7 +154,7 @@ export function buildDailyNutritionMcqQuestions(x: RecommendedNutritionServings)
     },
     {
       id: 'water',
-      question: 'How much water did you drink today?',
+      question: `How much water did you drink ${day}?`,
       options: [
         { id: 'lt1', label: 'Under 1 litre' },
         { id: '1to2', label: '1-2 litres' },

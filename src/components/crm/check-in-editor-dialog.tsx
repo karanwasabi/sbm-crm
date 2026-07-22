@@ -33,6 +33,12 @@ import {
   snapSteps,
   type RecommendedNutritionServings,
 } from '@/lib/check-in-habits';
+import {
+  buildCheckInQuestionCopy,
+  exerciseDidQuestion,
+  sleepQuestion,
+  walkingQuestion,
+} from '@/lib/check-in-question-copy';
 import type { CheckInDay, CheckInSchedule } from '@/utils/api';
 import { cn } from '@/lib/cn';
 
@@ -131,7 +137,20 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
     };
   }, [checkIn?.servingsSnapshot, schedule?.recommendedServings]);
 
-  const nutritionQuestions = useMemo(() => buildDailyNutritionMcqQuestions(servings), [servings]);
+  const questionCopy = useMemo(() => {
+    if (!selectedDate) return null;
+    return buildCheckInQuestionCopy({
+      programDayYmd: selectedDate,
+      timeZone: 'UTC',
+      openedAt: new Date(),
+      mode: 'namedDay',
+    });
+  }, [selectedDate]);
+
+  const nutritionQuestions = useMemo(() => {
+    if (!questionCopy) return [];
+    return buildDailyNutritionMcqQuestions(servings, questionCopy);
+  }, [servings, questionCopy]);
 
   const loadSchedule = useCallback(
     async (offset: number, preferDate?: string | null) => {
@@ -311,7 +330,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
               <div className="space-y-4">
                 {editing ? (
                   <>
-                    <Field label="Sleep">
+                    <Field label={questionCopy ? sleepQuestion(questionCopy) : 'Sleep'}>
                       <div className="flex items-center gap-2">
                         <TextInput
                           type="number"
@@ -333,7 +352,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
                         <span className="text-sm text-slate-500">m</span>
                       </div>
                     </Field>
-                    <Field label="Steps">
+                    <Field label={questionCopy ? walkingQuestion(questionCopy) : 'Steps'}>
                       <TextInput
                         type="number"
                         inputMode="numeric"
@@ -349,7 +368,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
                         placeholder="e.g. 8000"
                       />
                     </Field>
-                    <Field label="Exercise">
+                    <Field label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}>
                       <div className="flex gap-3">
                         {(['yes', 'no'] as const).map((v) => (
                           <label key={v} className="flex cursor-pointer items-center gap-1.5 text-sm">
@@ -422,10 +441,16 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
                   </>
                 ) : checkIn?.exists ? (
                   <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
-                    <Row label="Sleep" value={formatSleepDuration(checkIn.sleepHours ?? 0)} />
-                    <Row label="Steps" value={checkIn.steps != null ? formatSteps(checkIn.steps) : '—'} />
                     <Row
-                      label="Exercise"
+                      label={questionCopy ? sleepQuestion(questionCopy) : 'Sleep'}
+                      value={formatSleepDuration(checkIn.sleepHours ?? 0)}
+                    />
+                    <Row
+                      label={questionCopy ? walkingQuestion(questionCopy) : 'Steps'}
+                      value={checkIn.steps != null ? formatSteps(checkIn.steps) : '—'}
+                    />
+                    <Row
+                      label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}
                       value={
                         checkIn.exercised
                           ? `${exerciseTypeLabel(checkIn.exerciseType)} · ${exerciseIntensityLabel(checkIn.exerciseIntensity)}`
@@ -433,7 +458,11 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
                       }
                     />
                     {nutritionQuestions.map((q) => (
-                      <Row key={q.id} label={q.id} value={viewNutritionLabel(q.id, checkIn.nutritionAnswers?.[q.id])} />
+                      <Row
+                        key={q.id}
+                        label={q.question}
+                        value={viewNutritionLabel(q.id, checkIn.nutritionAnswers?.[q.id])}
+                      />
                     ))}
                     {checkIn.nutritionScore != null ? (
                       <Row label="Nutrition score" value={String(checkIn.nutritionScore)} />
