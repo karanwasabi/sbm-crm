@@ -25,8 +25,8 @@ const WINDOW_OPTIONS: WindowOption[] = [
 ];
 
 function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'Interest-form leads by ad, all time';
-  return `Interest-form leads by ad, last ${days} days`;
+  if (days === 'all') return 'Leads with ad UTMs by content, all time';
+  return `Leads with ad UTMs by content, last ${days} days`;
 }
 
 export function AdPerformanceTable() {
@@ -90,7 +90,7 @@ export function AdPerformanceTable() {
             {rows.length === 0 ? (
               <DataTableRow>
                 <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
-                  {!loaded ? 'Loading…' : 'No ad-attributed interest-form leads in this window.'}
+                  {!loaded ? 'Loading…' : 'No leads with utm_content in this window.'}
                 </DataTableCell>
               </DataTableRow>
             ) : (
