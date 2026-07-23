@@ -32,8 +32,8 @@ function formatRupees(value: number | null): string {
 }
 
 function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'CAC by campaign, all time';
-  return `CAC by campaign, last ${days} days`;
+  if (days === 'all') return 'Spend, CPL, and CAC by campaign, all time';
+  return `Spend, CPL, and CAC by campaign, last ${days} days`;
 }
 
 export function MetaCampaignPerformanceTable() {
@@ -89,14 +89,14 @@ export function MetaCampaignPerformanceTable() {
         </div>
         <DataTable>
           <DataTableHead>
-            {['Campaign', 'Leads', 'Paid', 'CVR', 'Spend', 'CAC'].map((h) => (
+            {['Campaign', 'Leads', 'Paid', 'CVR', 'Spend', 'CPL', 'CAC'].map((h) => (
               <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
             ))}
           </DataTableHead>
           <DataTableBody>
             {rows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={6} className="py-8 text-center text-sm text-slate-500">
+                <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
                   {!loaded
                     ? 'Loading…'
                     : 'No Meta campaign data in this window. Run the ad-spend sync and ensure leads carry a campaign id.'}
@@ -126,6 +126,7 @@ export function MetaCampaignPerformanceTable() {
                     </div>
                   </DataTableCell>
                   <DataTableCell className="tabular-nums">{formatRupees(row.spend)}</DataTableCell>
+                  <DataTableCell className="tabular-nums">{formatRupees(row.cpl)}</DataTableCell>
                   <DataTableCell
                     className={
                       row.cac != null && row.cac > 500

@@ -24,26 +24,34 @@ const mediumTone: Record<LeadMedium, 'paid' | 'organic' | 'offline'> = {
   offline: 'offline',
 };
 
+function formatRupees(value: number | null): string {
+  if (value == null) return '—';
+  return `₹${value.toLocaleString('en-IN')}`;
+}
+
 export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePerformanceTableProps) {
   return (
     <Card padding="none">
       <div className="p-5">
         <SectionHead
           title="Source performance"
-          subtitle={subtitle ?? 'Lead volume + conversion by UTM source'}
+          subtitle={
+            subtitle ??
+            'Lead volume and conversion by source. CPL = spend ÷ leads; CAC = spend ÷ paying members (native Meta only).'
+          }
           right={headerRight}
         />
       </div>
       <DataTable>
         <DataTableHead>
-          {['Source', 'Medium', 'Leads', 'Paid', 'CVR', 'CAC'].map((h) => (
+          {['Source', 'Medium', 'Leads', 'Paid', 'CVR', 'CPL', 'CAC'].map((h) => (
             <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
           ))}
         </DataTableHead>
         <DataTableBody>
           {rows.length === 0 ? (
             <DataTableRow>
-              <DataTableCell colSpan={6} className="py-8 text-center text-sm text-slate-500">
+              <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
                 No attributed leads in this window.
               </DataTableCell>
             </DataTableRow>
@@ -67,6 +75,7 @@ export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePe
                     <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
                   </div>
                 </DataTableCell>
+                <DataTableCell className="font-semibold tabular-nums">{formatRupees(row.cpl)}</DataTableCell>
                 <DataTableCell
                   className={
                     row.cac != null && row.cac > 500
@@ -74,7 +83,7 @@ export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePe
                       : 'font-semibold tabular-nums'
                   }
                 >
-                  {row.cac != null ? `₹${row.cac}` : '—'}
+                  {formatRupees(row.cac)}
                 </DataTableCell>
               </DataTableRow>
             ))

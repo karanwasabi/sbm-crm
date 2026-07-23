@@ -2740,6 +2740,7 @@ export async function getSourcePerformance(
       leads: number;
       paid: number;
       cvr: number;
+      cpl: number | null;
       cac: number | null;
     }>;
   };
@@ -2749,6 +2750,7 @@ export async function getSourcePerformance(
     leads: row.leads,
     paid: row.paid,
     cvr: row.cvr,
+    cpl: row.cpl,
     cac: row.cac,
   }));
 }
@@ -2769,6 +2771,7 @@ export async function getMetaCampaignPerformance(
       paid: number;
       spend: number | null;
       cvr: number;
+      cpl: number | null;
       cac: number | null;
     }>;
   };
@@ -2779,6 +2782,7 @@ export async function getMetaCampaignPerformance(
     paid: row.paid,
     spend: row.spend,
     cvr: row.cvr,
+    cpl: row.cpl,
     cac: row.cac,
   }));
 }

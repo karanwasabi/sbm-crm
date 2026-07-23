@@ -395,6 +395,7 @@ export type SourcePerformanceRow = {
   leads: number;
   paid: number;
   cvr: number;
+  cpl: number | null;
   cac: number | null;
 };
 
@@ -405,6 +406,7 @@ export type MetaCampaignPerformanceRow = {
   paid: number;
   spend: number | null;
   cvr: number;
+  cpl: number | null;
   cac: number | null;
 };
 
