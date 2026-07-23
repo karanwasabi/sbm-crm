@@ -399,6 +399,8 @@ export type SourcePerformanceRow = {
   cvr: number;
   cpl: number | null;
   cac: number | null;
+  /** Lead-volume sub-row under Meta purchases; do not sum purchases across rows. */
+  detail?: boolean;
 };
 
 export type MetaCampaignPerformanceRow = {

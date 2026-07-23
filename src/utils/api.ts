@@ -2746,6 +2746,7 @@ export async function getSourcePerformance(
       cvr: number;
       cpl: number | null;
       cac: number | null;
+      detail?: boolean;
     }>;
   };
   return payload.rows.map((row) => ({
@@ -2756,6 +2757,7 @@ export async function getSourcePerformance(
     cvr: row.cvr,
     cpl: row.cpl,
     cac: row.cac,
+    detail: row.detail,
   }));
 }
 
