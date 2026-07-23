@@ -32,8 +32,8 @@ function formatRupees(value: number | null): string {
 }
 
 function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'Spend, CPL, and CAC by campaign, all time';
-  return `Spend, CPL, and CAC by campaign, last ${days} days`;
+  if (days === 'all') return 'Spend, CPL, and CAC by campaign, all time · purchases by enrollment date';
+  return `Spend, CPL, and CAC by campaign, last ${days} days · purchases by enrollment date`;
 }
 
 export function MetaCampaignPerformanceTable() {
@@ -89,7 +89,7 @@ export function MetaCampaignPerformanceTable() {
         </div>
         <DataTable>
           <DataTableHead>
-            {['Campaign', 'Leads', 'Paid', 'CVR', 'Spend', 'CPL', 'CAC'].map((h) => (
+            {['Campaign', 'Leads', 'Purchases', 'CVR', 'Spend', 'CPL', 'CAC'].map((h) => (
               <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
             ))}
           </DataTableHead>

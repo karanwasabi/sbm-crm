@@ -37,14 +37,14 @@ export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePe
           title="Source performance"
           subtitle={
             subtitle ??
-            'Lead volume and conversion by source. CPL = spend ÷ leads; CAC = spend ÷ paying members (native Meta only).'
+            'Meta purchases = paying members with Meta influence (any source). Purchases use enrollment date; leads use created date. Compare to Meta pixel Purchases.'
           }
           right={headerRight}
         />
       </div>
       <DataTable>
         <DataTableHead>
-          {['Source', 'Medium', 'Leads', 'Paid', 'CVR', 'CPL', 'CAC'].map((h) => (
+          {['Source', 'Medium', 'Leads', 'Purchases', 'CVR', 'CPL', 'CAC'].map((h) => (
             <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
           ))}
         </DataTableHead>
@@ -57,7 +57,7 @@ export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePe
             </DataTableRow>
           ) : (
             rows.map((row) => (
-              <DataTableRow key={row.source}>
+              <DataTableRow key={row.source} className={row.source === 'Meta purchases' ? 'bg-brand/5' : undefined}>
                 <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
                 <DataTableCell>
                   <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>

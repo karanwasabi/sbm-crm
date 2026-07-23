@@ -16,8 +16,8 @@ const WINDOW_OPTIONS: WindowOption[] = [
 ];
 
 function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'Lead volume + conversion, all time · Meta CAC over the same window';
-  return `Lead volume + conversion, last ${days} days · Meta CAC over the same window`;
+  if (days === 'all') return 'Lead volume + Meta purchases (influenced), all time';
+  return `Lead volume + Meta purchases (influenced), last ${days} days`;
 }
 
 type SourcePerformanceSectionProps = {

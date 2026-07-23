@@ -62,6 +62,21 @@ Only fills **blank** `meta_campaign_id`; stamps `raw_payload.repair` for audit. 
 
 ---
 
+## Step 3c — Sync portal UTMs into attribution (recommended)
+
+Copies first-touch UTMs from `auth.users` into `lead_attribution` for converted members. Improves **Meta purchases** row for `interest_form` / `portal_signup` checkouts.
+
+```bash
+cd code/sbm-backend
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/sync-auth-attribution-utm --dry-run
+
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/sync-auth-attribution-utm --apply --allow-production
+```
+
+---
+
 ## Pre-flight
 
 1. Confirm webhook healthy: CRM → Lead Intake → Integrations; `integration_sync_events` has recent `native_meta` `ok` rows.
