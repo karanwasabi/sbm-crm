@@ -1,4 +1,5 @@
 import type { CohortMember } from '@/types/crm';
+import { SEX_OPTIONS } from '@/types/profile';
 
 const TEXT_NUMFMT = '@';
 const DATE_NUMFMT = 'yyyy-mm-dd hh:mm';
@@ -28,6 +29,12 @@ function timezoneDisplay(member: CohortMember): string {
   return member.timezoneLabel.trim() || member.timezoneId.trim();
 }
 
+function sexLabel(sex: string | null | undefined): string {
+  const value = sex?.trim();
+  if (!value) return '';
+  return SEX_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
 function parseExportDate(iso: string): Date | string {
   const parsed = new Date(iso);
   if (Number.isNaN(parsed.getTime())) {
@@ -46,6 +53,13 @@ const BASE_EXPORT_COLUMNS: ExportColumn[] = [
   { header: 'Email', key: 'email', width: 28, kind: 'text', value: (m) => m.email },
   { header: 'WhatsApp', key: 'whatsapp', width: 18, kind: 'text', value: (m) => m.whatsapp },
   { header: 'City', key: 'city', width: 18, kind: 'text', value: (m) => m.city },
+  {
+    header: 'Sex',
+    key: 'sex',
+    width: 12,
+    kind: 'text',
+    value: (m) => sexLabel(m.sex),
+  },
   { header: 'Country', key: 'country', width: 18, kind: 'text', value: countryDisplay },
   { header: 'Timezone', key: 'timezone', width: 28, kind: 'text', value: timezoneDisplay },
   { header: 'Status', key: 'status', width: 14, kind: 'text', value: memberStatusLabel },

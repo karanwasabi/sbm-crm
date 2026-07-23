@@ -2152,6 +2152,7 @@ type ApiCohortMemberResponse = {
   city?: string | null;
   country_code?: string | null;
   country_name?: string | null;
+  sex?: string | null;
   timezone_id?: string | null;
   timezone_label?: string | null;
   enrollment_status: string;
@@ -2212,6 +2213,7 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     city: row.city?.trim() ?? '',
     countryCode: row.country_code?.trim() ?? '',
     countryName: row.country_name?.trim() ?? '',
+    sex: row.sex?.trim() || null,
     timezoneId: row.timezone_id?.trim() ?? '',
     timezoneLabel: row.timezone_label?.trim() || row.timezone_id?.trim() || '',
     enrollmentStatus: row.enrollment_status,

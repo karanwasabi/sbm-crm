@@ -23,6 +23,7 @@ import {
   Trash2,
   UserRound,
   UserRoundPlus,
+  Users,
   X,
 } from 'lucide-react';
 import { CustomerDetailSkeleton } from '@/components/loading/customer-detail-skeleton';
@@ -71,6 +72,7 @@ import {
 import { cohortHeaderAccent, formatCohortStartDateLong, cohortStartDateReached } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
+import { SEX_OPTIONS } from '@/types/profile';
 import type { EmailTemplate, StaffMember } from '@/utils/api';
 
 type CohortDetailViewProps = {
@@ -133,6 +135,12 @@ function timezoneDisplay(member: CohortMember): string {
   return member.timezoneLabel.trim() || member.timezoneId.trim();
 }
 
+function sexDisplay(member: CohortMember): string {
+  const value = member.sex?.trim();
+  if (!value) return '';
+  return SEX_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
 function MemberTableColGroup({ withActions, showBodyMetrics }: { withActions: boolean; showBodyMetrics?: boolean }) {
   return (
     <colgroup>
@@ -143,6 +151,7 @@ function MemberTableColGroup({ withActions, showBodyMetrics }: { withActions: bo
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 110 }} />
+      <col style={{ minWidth: 90 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 160 }} />
       <col style={{ minWidth: 120 }} />
@@ -382,7 +391,7 @@ function MemberTable({
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
   showBodyMetrics?: boolean;
 }) {
-  const columnCount = 10 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
+  const columnCount = 11 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
   const rowIds = rows.map((row) => row.enrollmentId);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
@@ -458,6 +467,7 @@ function MemberTable({
                 'City'
               )}
             </DataTableHeaderCell>
+            <DataTableHeaderCell>Sex</DataTableHeaderCell>
             <DataTableHeaderCell>
               {sortable && sortKey && sortOrder && onSort ? (
                 <LocalSortableHeader
@@ -557,6 +567,7 @@ function MemberTable({
                   </DataTableCell>
                   <DataTableCell className="text-slate-600">{displayOrDash(member.whatsapp)}</DataTableCell>
                   <DataTableCell className="text-slate-600">{displayOrDash(member.city)}</DataTableCell>
+                  <DataTableCell className="text-slate-600">{displayOrDash(sexDisplay(member))}</DataTableCell>
                   <DataTableCell className="text-slate-600">{displayOrDash(countryDisplay(member))}</DataTableCell>
                   <DataTableCell className="text-slate-600">
                     <span className="block max-w-[180px] truncate" title={timezoneDisplay(member) || undefined}>
@@ -1017,6 +1028,7 @@ export function CohortDetailView({
   const [onboardingFilters, setOnboardingFilters] = useState<string[]>([]);
   const [coachFilters, setCoachFilters] = useState<string[]>([]);
   const [cityFilters, setCityFilters] = useState<string[]>([]);
+  const [sexFilters, setSexFilters] = useState<string[]>([]);
   const [countryFilters, setCountryFilters] = useState<string[]>([]);
   const [timezoneFilters, setTimezoneFilters] = useState<string[]>([]);
   const [showBodyMetrics, setShowBodyMetrics] = useState(false);
@@ -1048,7 +1060,16 @@ export function CohortDetailView({
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [statusFilters, onboardingFilters, coachFilters, cityFilters, countryFilters, timezoneFilters, searchQuery]);
+  }, [
+    statusFilters,
+    onboardingFilters,
+    coachFilters,
+    cityFilters,
+    sexFilters,
+    countryFilters,
+    timezoneFilters,
+    searchQuery,
+  ]);
 
   const handleTogglePointA = async (enabled: boolean) => {
     const prevEnabled = pointAEnabled;
@@ -1175,6 +1196,7 @@ export function CohortDetailView({
     return members.filter((member) => {
       if (!memberMatchesSearch(member, searchQuery)) return false;
       if (!matchesGeoFilter(cityFilters, member.city)) return false;
+      if (!matchesGeoFilter(sexFilters, member.sex ?? '')) return false;
       if (!matchesGeoFilter(countryFilters, member.countryCode)) return false;
       if (!matchesGeoFilter(timezoneFilters, member.timezoneId)) return false;
       if (onboardingFilters.length > 0) {
@@ -1182,7 +1204,7 @@ export function CohortDetailView({
       }
       return true;
     });
-  }, [cityFilters, countryFilters, members, onboardingFilters, searchQuery, timezoneFilters]);
+  }, [cityFilters, countryFilters, members, onboardingFilters, searchQuery, sexFilters, timezoneFilters]);
 
   const activeMembers = useMemo(
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'active'),
@@ -1213,6 +1235,25 @@ export function CohortDetailView({
       ),
     [members]
   );
+  const sexFilterOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const option of SEX_OPTIONS) counts.set(option.value, 0);
+    let unspecified = 0;
+    for (const member of members) {
+      const value = member.sex?.trim();
+      if (!value) {
+        unspecified += 1;
+        continue;
+      }
+      counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    const named = SEX_OPTIONS.map((option) => ({
+      value: option.value,
+      label: option.label,
+      count: counts.get(option.value) ?? 0,
+    }));
+    return [{ value: UNSPECIFIED_FILTER, label: 'Unspecified', count: unspecified }, ...named];
+  }, [members]);
   const countryFilterOptions = useMemo(
     () =>
       buildGeoFilterOptions(
@@ -1270,6 +1311,12 @@ export function CohortDetailView({
     return map;
   }, [cityFilterOptions]);
 
+  const sexLabelByValue = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of sexFilterOptions) map.set(option.value, option.label);
+    return map;
+  }, [sexFilterOptions]);
+
   const countryLabelByValue = useMemo(() => {
     const map = new Map<string, string>();
     for (const option of countryFilterOptions) map.set(option.value, option.label);
@@ -1310,7 +1357,8 @@ export function CohortDetailView({
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
   const statusCoachFiltersActive = statusFilters.length > 0 || coachFilters.length > 0 || onboardingFilters.length > 0;
-  const geoFiltersActive = cityFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
+  const geoFiltersActive =
+    cityFilters.length > 0 || sexFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
   const searchActive = searchQuery.trim().length > 0;
   const filtersActive = statusCoachFiltersActive || geoFiltersActive || searchActive;
   const canTransfer = transferTargets.length > 0;
@@ -1420,6 +1468,14 @@ export function CohortDetailView({
           emptyLabel="No cities yet."
         />
         <CohortMultiFilterPopover
+          label="Sex"
+          icon={<Users className="h-3.5 w-3.5" />}
+          options={sexFilterOptions}
+          selected={sexFilters}
+          onChange={setSexFilters}
+          emptyLabel="No sex values yet."
+        />
+        <CohortMultiFilterPopover
           label="Country"
           icon={<Globe2 className="h-3.5 w-3.5" />}
           options={countryFilterOptions}
@@ -1484,6 +1540,14 @@ export function CohortDetailView({
               onDismiss={() => setCityFilters((prev) => prev.filter((item) => item !== city))}
             />
           ))}
+          {sexFilters.map((sex) => (
+            <ActiveFilterTag
+              key={`sex-${sex}`}
+              label="Sex"
+              value={sexLabelByValue.get(sex) ?? sex}
+              onDismiss={() => setSexFilters((prev) => prev.filter((item) => item !== sex))}
+            />
+          ))}
           {countryFilters.map((country) => (
             <ActiveFilterTag
               key={`country-${country}`}
@@ -1508,6 +1572,7 @@ export function CohortDetailView({
               setOnboardingFilters([]);
               setCoachFilters([]);
               setCityFilters([]);
+              setSexFilters([]);
               setCountryFilters([]);
               setTimezoneFilters([]);
             }}

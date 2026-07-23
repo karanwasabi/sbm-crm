@@ -590,6 +590,7 @@ export type CohortMember = {
   city: string;
   countryCode: string;
   countryName: string;
+  sex?: string | null;
   timezoneId: string;
   timezoneLabel: string;
   enrollmentStatus: string;
