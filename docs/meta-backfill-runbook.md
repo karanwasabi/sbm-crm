@@ -77,6 +77,33 @@ DATABASE_URL='<prod-write-url>' \
 
 ---
 
+## Step 3d — Repair `meta` tags (one-time + ongoing)
+
+Single tag for all Meta-related leads: **`meta`** (Zoho Meta Leads, native webhook, campaign IDs, Meta UTMs).
+
+This repair also **removes** the mistaken `meta-influenced` tag from the partial backfill.
+
+**CRM filter:** Lead database → Tags → **`meta`**
+
+**Dry run:**
+
+```bash
+cd code/sbm-backend
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/sync-meta-tags --dry-run
+```
+
+**Apply:**
+
+```bash
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/sync-meta-tags --apply --allow-production
+```
+
+Re-run dry-run until `leads needing meta tag repair: 0`. Going forward, `meta` is applied automatically on attribution changes.
+
+---
+
 ## Pre-flight
 
 1. Confirm webhook healthy: CRM → Lead Intake → Integrations; `integration_sync_events` has recent `native_meta` `ok` rows.
