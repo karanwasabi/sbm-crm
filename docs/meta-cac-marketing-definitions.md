@@ -8,13 +8,34 @@ One-page guide for marketing. Full audit: [`meta-cac-audit-report.md`](./meta-ca
 
 ## Quick answers
 
-| You want to know…            | Trust **Meta Ads Manager** | Trust **CRM dashboard**                                                                           |
-| ---------------------------- | -------------------------- | ------------------------------------------------------------------------------------------------- |
-| How much we spent            | Yes                        | Yes (should match ~₹7.84L for 90d)                                                                |
-| How many Lead Ad form fills  | Yes                        | Use **native webhook** count (~612 in 90d), not CRM “Meta Leads” row (2,360 includes Zoho import) |
-| Cost per lead (CPL)          | Yes                        | **Not shown** — compute: spend ÷ leads ≈ **₹332** (all meta rows)                                 |
-| Cost per paying member (CAC) | No                         | Yes — **₹21,185** on Meta Leads row                                                               |
-| Who became a paying member   | No                         | Yes — CVR / paid columns                                                                          |
+| You want to know…            | Trust **Meta Ads Manager**         | Trust **CRM dashboard**                                                                           |
+| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| How much we spent            | Yes                                | Yes (should match ~₹7.84L for 90d)                                                                |
+| How many Lead Ad form fills  | Yes                                | Use **native webhook** count (~612 in 90d), not CRM “Meta Leads” row (2,360 includes Zoho import) |
+| Cost per lead (CPL)          | Yes                                | **Not shown** — compute: spend ÷ leads ≈ **₹332** (all meta rows)                                 |
+| Cost per paying member (CAC) | No                                 | Yes — **₹21,185** on Meta Leads row                                                               |
+| Who became a paying member   | No                                 | Yes — CVR / paid columns (`newbie` + `member` + `grace`)                                          |
+| Meta pixel “Purchase” events | Yes (~133 in sales campaigns, 90d) | **Not comparable** — pixel fires on checkout; CRM ties paid to lifecycle stage, not pixel         |
+
+---
+
+## Paid count: why CRM is much lower than Meta
+
+Meta **Purchase** (pixel) counts website checkouts attributed to ad clicks. CRM **Paid** counts programme members by lifecycle stage. They measure different things.
+
+**90d snapshot (production):**
+
+| Metric                                                |  Count |
+| ----------------------------------------------------- | -----: |
+| Meta pixel Purchase (sales campaigns in export)       |   ~133 |
+| CRM paid, `source=meta`                               | **37** |
+| CRM paid + `registered`                               |     64 |
+| CRM paid with any `meta_campaign_id` / Meta UTM       |     33 |
+| CRM paid, `interest_form` (often ad-driven site path) |    113 |
+
+Most Meta purchases land on **portal / register / interest-form** flows. Those leads keep `source=interest_form` or `portal_signup`, not `meta`, so they never appear in the CRM “Meta Leads” paid column even when Meta attributes the conversion to an ad.
+
+Attributing the 971 Zoho cohort fixes **campaign-level lead counts** (~13 paid move into the 14July campaign bucket) but does **not** close the 37 vs 133 gap — that needs either a separate “Meta-influenced paid” view (UTM + campaign across all sources) or offline conversion upload from CRM to Meta.
 
 ---
 

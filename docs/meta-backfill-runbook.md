@@ -24,6 +24,41 @@
 - Leads older than Meta’s ~90-day retention
 - Pixel-web campaigns (`WEB_ALL_AUD`, `WEB_RTG`) — not Lead Ads webhook leads
 - Lovable webinar pages (`session.*`, `livesession.*`) — no CRM integration today
+- **970 Zoho `csv_import` rows** tagged `meta-leads-cv-jul-2026` with **no `native_meta` identity** — emails exist in Zoho but **not** in Meta Lead Center export; Graph cannot match them. Use **cohort repair** (Step 3b) instead.
+
+---
+
+## Step 3b — Zoho cohort attribution repair (970 unattributed)
+
+For the June 2026 Zoho bulk (`Meta Leads CV Jul 2026`), assign the verified campaign id from enriched native leads and `meta_ad_spend`:
+
+| Manual tag               | Campaign ID          | Campaign name                                   |
+| ------------------------ | -------------------- | ----------------------------------------------- |
+| `meta-leads-cv-jul-2026` | `120246131515940453` | `14July_SBM_WeightLoss_Program_InstantForm_ABO` |
+
+**Dry run:**
+
+```bash
+cd code/sbm-backend
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/repair-zoho-meta-cohort --dry-run
+```
+
+Expect **~968** rows for `meta-leads-cv-jul-2026`.
+
+**Apply:**
+
+```bash
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/repair-zoho-meta-cohort --apply --allow-production
+```
+
+Only fills **blank** `meta_campaign_id`; stamps `raw_payload.repair` for audit. Re-run is idempotent (0 rows on second apply).
+
+**Still unattributed after repair (~3 leads):**
+
+- 2 × `meta-leads-jan-26` — ambiguous across two webinar campaigns; manual review
+- 1 × `native_meta` member — re-run Graph backfill or enrich from Ads Manager
 
 ---
 
