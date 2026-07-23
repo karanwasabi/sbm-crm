@@ -13,30 +13,16 @@ One-page guide for marketing. Full audit: [`meta-cac-audit-report.md`](./meta-ca
 | How much we spent            | Yes                                | Yes (should match ~₹7.84L for 90d)                                                                |
 | How many Lead Ad form fills  | Yes                                | Use **native webhook** count (~612 in 90d), not CRM “Meta Leads” row (2,360 includes Zoho import) |
 | Cost per lead (CPL)          | Yes                                | **Not shown** — compute: spend ÷ leads ≈ **₹332** (all meta rows)                                 |
-| Cost per paying member (CAC) | No                                 | Yes — **Meta purchases** row (influenced conversions, enrollment date)                            |
-| Meta pixel “Purchase” events | Yes (~133 in sales campaigns, 90d) | Compare to **Meta purchases** row — same intent; CRM uses lifecycle + attribution signals         |
+| Cost per paying member (CAC) | No                                 | Yes — **Meta** row (influenced conversions)                                                       |
+| Meta pixel “Purchase” events | Yes (~133 in sales campaigns, 90d) | Compare to **Meta** row purchases column                                                          |
 
 ---
 
-## Meta purchases (CRM row — compare to Meta pixel Purchases)
+## Meta row (source performance)
 
-Counts paying members (`newbie` + `member` + `grace`) who **enrolled in the window** and have any Meta influence signal:
+Single row for paid social. Counts paying members who enrolled in the window and have a Meta influence signal (lead ads, campaign id, Meta UTMs on the lead or portal signup).
 
-- `source=meta` or `native_meta` integration / identity
-- `meta_campaign_id`, `meta_ad_id`, or `meta_form_id`
-- Meta UTMs on `lead_attribution` **or** first-touch UTMs on `auth.users` (portal signup)
-
-Includes `interest_form` / `portal_signup` when Meta UTMs are present — they no longer take credit away from Meta.
-
-**After deploy**, run once to backfill portal UTMs into attribution:
-
-```bash
-cd code/sbm-backend
-DATABASE_URL='<prod-write-url>' \
-  go run ./cmd/sync-auth-attribution-utm --apply --allow-production
-```
-
-Remaining gap vs pixel Purchases = unattributed checkouts (no UTMs stored) or pixel duplicate events.
+Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrations, not duplicated on this dashboard.
 
 ---
 

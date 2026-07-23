@@ -24,27 +24,19 @@ const mediumTone: Record<LeadMedium, 'paid' | 'organic' | 'offline'> = {
   offline: 'offline',
 };
 
+const DEFAULT_SUBTITLE =
+  'Lead volume and purchases by source. Meta includes influenced conversions across channels; CPL and CAC use synced ad spend.';
+
 function formatRupees(value: number | null): string {
   if (value == null) return '—';
   return `₹${value.toLocaleString('en-IN')}`;
-}
-
-function dash(): string {
-  return '—';
 }
 
 export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePerformanceTableProps) {
   return (
     <Card padding="none">
       <div className="p-5">
-        <SectionHead
-          title="Source performance"
-          subtitle={
-            subtitle ??
-            'Meta purchases = paying members with Meta influence (compare to pixel Purchases). Lead ads rows below are volume only — not added to purchases.'
-          }
-          right={headerRight}
-        />
+        <SectionHead title="Source performance" subtitle={subtitle ?? DEFAULT_SUBTITLE} right={headerRight} />
       </div>
       <DataTable>
         <DataTableHead>
@@ -60,59 +52,37 @@ export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePe
               </DataTableCell>
             </DataTableRow>
           ) : (
-            rows.map((row) => {
-              const isHeadline = row.source === 'Meta purchases';
-              const isDetail = row.detail === true;
-
-              return (
-                <DataTableRow
-                  key={row.source}
-                  className={isHeadline ? 'bg-brand/5' : isDetail ? 'bg-slate-50/80' : undefined}
+            rows.map((row) => (
+              <DataTableRow key={row.source}>
+                <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
+                <DataTableCell>
+                  <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>
+                </DataTableCell>
+                <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
+                <DataTableCell className="font-bold tabular-nums">{row.paid}</DataTableCell>
+                <DataTableCell>
+                  <div className="flex items-center gap-2">
+                    <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
+                        style={{ width: `${row.cvr * 200}%` }}
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
+                  </div>
+                </DataTableCell>
+                <DataTableCell className="font-semibold tabular-nums">{formatRupees(row.cpl)}</DataTableCell>
+                <DataTableCell
+                  className={
+                    row.cac != null && row.cac > 500
+                      ? 'font-semibold text-danger-press tabular-nums'
+                      : 'font-semibold tabular-nums'
+                  }
                 >
-                  <DataTableCell
-                    className={isDetail ? 'pl-8 text-sm font-medium text-slate-600' : 'font-semibold text-slate-800'}
-                  >
-                    {row.source}
-                  </DataTableCell>
-                  <DataTableCell>
-                    <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>
-                  </DataTableCell>
-                  <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
-                  <DataTableCell className={isDetail ? 'text-slate-400 tabular-nums' : 'font-bold tabular-nums'}>
-                    {isDetail ? dash() : row.paid}
-                  </DataTableCell>
-                  <DataTableCell>
-                    {isDetail ? (
-                      <span className="text-slate-400">{dash()}</span>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
-                          <div
-                            className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
-                            style={{ width: `${row.cvr * 200}%` }}
-                          />
-                        </div>
-                        <span className="text-xs font-bold text-slate-800 tabular-nums">
-                          {Math.round(row.cvr * 100)}%
-                        </span>
-                      </div>
-                    )}
-                  </DataTableCell>
-                  <DataTableCell className="font-semibold tabular-nums">
-                    {isDetail ? dash() : formatRupees(row.cpl)}
-                  </DataTableCell>
-                  <DataTableCell
-                    className={
-                      !isDetail && row.cac != null && row.cac > 500
-                        ? 'font-semibold text-danger-press tabular-nums'
-                        : 'font-semibold tabular-nums'
-                    }
-                  >
-                    {isDetail ? dash() : formatRupees(row.cac)}
-                  </DataTableCell>
-                </DataTableRow>
-              );
-            })
+                  {formatRupees(row.cac)}
+                </DataTableCell>
+              </DataTableRow>
+            ))
           )}
         </DataTableBody>
       </DataTable>

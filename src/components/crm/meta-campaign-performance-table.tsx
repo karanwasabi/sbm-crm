@@ -32,8 +32,8 @@ function formatRupees(value: number | null): string {
 }
 
 function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'Spend, CPL, and CAC by campaign, all time · purchases by enrollment date';
-  return `Spend, CPL, and CAC by campaign, last ${days} days · purchases by enrollment date`;
+  if (days === 'all') return 'Spend, CPL, and CAC by campaign, all time';
+  return `Spend, CPL, and CAC by campaign, last ${days} days`;
 }
 
 export function MetaCampaignPerformanceTable() {

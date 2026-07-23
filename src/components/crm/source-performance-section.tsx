@@ -17,9 +17,9 @@ const WINDOW_OPTIONS: WindowOption[] = [
 
 function windowSubtitle(days: number | 'all'): string {
   if (days === 'all') {
-    return 'Meta purchases = compare to pixel Purchases. Lead ads rows = volume breakdown only.';
+    return 'Lead volume and purchases by source, all time';
   }
-  return `Last ${days} days · Meta purchases compare to pixel Purchases · lead ads rows are volume only`;
+  return `Lead volume and purchases by source, last ${days} days`;
 }
 
 type SourcePerformanceSectionProps = {
