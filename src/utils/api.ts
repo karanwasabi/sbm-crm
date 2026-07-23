@@ -2380,6 +2380,72 @@ export async function assignCohortCoach(
   return (await response.json()) as { updated: number };
 }
 
+export type CohortPushBroadcastPreview = {
+  activeMembers: number;
+  reachableMembers: number;
+  skippedOptOut: number;
+  skippedNoToken: number;
+};
+
+export type CohortPushBroadcastResult = CohortPushBroadcastPreview & {
+  membersReached: number;
+  devicesSent: number;
+  staleRemoved: number;
+};
+
+export async function getCohortPushBroadcastPreview(cohortId: string): Promise<CohortPushBroadcastPreview> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast/preview`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load push broadcast preview.', response.status);
+  }
+  const row = (await response.json()) as {
+    active_members: number;
+    reachable_members: number;
+    skipped_opt_out: number;
+    skipped_no_token: number;
+  };
+  return {
+    activeMembers: row.active_members,
+    reachableMembers: row.reachable_members,
+    skippedOptOut: row.skipped_opt_out,
+    skippedNoToken: row.skipped_no_token,
+  };
+}
+
+export async function sendCohortPushBroadcast(
+  cohortId: string,
+  input: { title: string; body: string }
+): Promise<CohortPushBroadcastResult> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ title: input.title, body: input.body }),
+  });
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+    active_members?: number;
+    reachable_members?: number;
+    members_reached?: number;
+    devices_sent?: number;
+    stale_removed?: number;
+    skipped_opt_out?: number;
+    skipped_no_token?: number;
+  } | null;
+  if (!response.ok) {
+    throw new ApiError(payload?.error ?? 'Failed to send push broadcast.', response.status);
+  }
+  return {
+    activeMembers: payload?.active_members ?? 0,
+    reachableMembers: payload?.reachable_members ?? 0,
+    skippedOptOut: payload?.skipped_opt_out ?? 0,
+    skippedNoToken: payload?.skipped_no_token ?? 0,
+    membersReached: payload?.members_reached ?? 0,
+    devicesSent: payload?.devices_sent ?? 0,
+    staleRemoved: payload?.stale_removed ?? 0,
+  };
+}
+
 export async function transferEnrollment(enrollmentId: string, targetCohortId: string): Promise<void> {
   const response = await requireApiFetch(`/admin/enrollments/${encodeURIComponent(enrollmentId)}/transfer`, {
     method: 'POST',

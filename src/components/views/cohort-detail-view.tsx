@@ -44,6 +44,7 @@ import { CohortAutoAssignCoachesDialog } from '@/components/programs/cohort-auto
 import { CohortBulkSendButton } from '@/components/programs/cohort-bulk-send-button';
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
 import { CohortExportButton } from '@/components/programs/cohort-export-button';
+import { CohortPushBroadcastButton } from '@/components/programs/cohort-push-broadcast-button';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
@@ -1641,6 +1642,7 @@ export function CohortDetailView({
               {lockPending ? 'Locking…' : 'Lock cohort'}
             </Button>
           ) : null}
+          {isSuperadmin ? <CohortPushBroadcastButton cohortId={cohort.id} cohortName={cohort.name} /> : null}
           <Button
             variant="light"
             size="sm"

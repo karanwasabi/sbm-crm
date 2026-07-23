@@ -9,8 +9,12 @@ import {
   patchCohort,
   patchCohortIsDemo,
   patchCohortPointAEnabled,
+  sendCohortPushBroadcast,
+  getCohortPushBroadcastPreview,
   transferEnrollment,
   type PatchCohortInput,
+  type CohortPushBroadcastPreview,
+  type CohortPushBroadcastResult,
   ApiError,
 } from '@/utils/api';
 
@@ -95,4 +99,29 @@ export async function assignCohortCoachAction(cohortId: string, enrollmentIds: s
   });
   revalidatePath(`/programs/cohorts/${cohortId}`);
   return result;
+}
+
+export async function getCohortPushBroadcastPreviewAction(
+  cohortId: string
+): Promise<{ preview: CohortPushBroadcastPreview | null; error: string | null }> {
+  try {
+    const preview = await getCohortPushBroadcastPreview(cohortId);
+    return { preview, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load push broadcast preview.';
+    return { preview: null, error: message };
+  }
+}
+
+export async function sendCohortPushBroadcastAction(
+  cohortId: string,
+  input: { title: string; body: string }
+): Promise<{ result: CohortPushBroadcastResult | null; error: string | null }> {
+  try {
+    const result = await sendCohortPushBroadcast(cohortId, input);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to send push broadcast.';
+    return { result: null, error: message };
+  }
 }
