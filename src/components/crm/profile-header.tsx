@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Calendar, Globe, Mail, Phone, Star } from 'lucide-react';
+import { Calendar, Globe, Mail, Phone, Star, UserRound } from 'lucide-react';
 import { formatActivityTimestamp } from '@/lib/datetime-display';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
@@ -143,6 +143,12 @@ export function ProfileHeader({
             {contact.manualSourceLabel && (
               <span className="inline-flex items-center gap-1.5">Source · {contact.manualSourceLabel}</span>
             )}
+            {contact.coachName ? (
+              <span className="inline-flex items-center gap-1.5">
+                <UserRound className="h-3 w-3" />
+                Coach · {contact.coachName}
+              </span>
+            ) : null}
           </div>
           {showMemberStats && (
             <div className="mt-3.5 inline-flex items-center gap-4.5 rounded-2xl border-b-2 border-black/22 bg-black/16 px-4.5 py-3">

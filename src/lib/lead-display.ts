@@ -59,6 +59,7 @@ export function leadDetailToContactProfile(
     marketingContactStatus: lead.marketingContactStatus,
     marketingContactSyncedAt: lead.marketingContactSyncedAt,
     marketingUnsubscribedAt: lead.marketingUnsubscribedAt,
+    coachName: lead.coachName ?? null,
   };
 }
 
