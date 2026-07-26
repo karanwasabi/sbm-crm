@@ -164,6 +164,60 @@ export function buildDailyNutritionMcqQuestions(
   ];
 }
 
+const SERVING_CATEGORY_IDS = ['protein', 'fiber', 'starch', 'fun', 'dairy'] as const;
+
+export function isServingCategoryActive(id: string, servings: RecommendedNutritionServings): boolean {
+  switch (id) {
+    case 'protein':
+      return servings.protein > 0;
+    case 'fiber':
+      return servings.fiber > 0;
+    case 'starch':
+      return servings.starch > 0;
+    case 'fun':
+      return servings.fun > 0;
+    case 'dairy':
+      return servings.dairy > 0;
+    default:
+      return true;
+  }
+}
+
+export function zeroServingOnTargetAnswer(id: string): string | null {
+  switch (id) {
+    case 'fun':
+      return 'none';
+    case 'protein':
+    case 'fiber':
+    case 'starch':
+    case 'dairy':
+      return 'x';
+    default:
+      return null;
+  }
+}
+
+export function filterDailyNutritionQuestions(
+  questions: NutritionMcqQuestion[],
+  servings: RecommendedNutritionServings
+): NutritionMcqQuestion[] {
+  return questions.filter((q) => isServingCategoryActive(q.id, servings));
+}
+
+export function mergeZeroServingNutritionAnswers(
+  answers: Record<string, string>,
+  servings: RecommendedNutritionServings
+): Record<string, string> {
+  const out: Record<string, string> = { ...answers };
+  for (const id of SERVING_CATEGORY_IDS) {
+    if (!isServingCategoryActive(id, servings)) {
+      const opt = zeroServingOnTargetAnswer(id);
+      if (opt) out[id] = opt;
+    }
+  }
+  return out;
+}
+
 export function nutritionOptionsForQuestion(
   question: NutritionMcqQuestion,
   selectedId: string | undefined

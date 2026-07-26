@@ -24,9 +24,11 @@ import {
   EXERCISE_TYPE_OPTIONS,
   exerciseIntensityLabel,
   exerciseTypeLabel,
+  filterDailyNutritionQuestions,
   formatSleepDuration,
   formatSteps,
   hoursMinutesToSleepHours,
+  mergeZeroServingNutritionAnswers,
   nutritionOptionsForQuestion,
   sleepHoursToHoursMinutes,
   snapSleepHours,
@@ -149,7 +151,8 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
 
   const nutritionQuestions = useMemo(() => {
     if (!questionCopy) return [];
-    return buildDailyNutritionMcqQuestions(servings, questionCopy);
+    const all = buildDailyNutritionMcqQuestions(servings, questionCopy);
+    return filterDailyNutritionQuestions(all, servings);
   }, [servings, questionCopy]);
 
   const loadSchedule = useCallback(
@@ -242,7 +245,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
         exercised: draft.exercised,
         exerciseType: draft.exercised ? draft.exerciseType : undefined,
         exerciseIntensity: draft.exercised ? draft.exerciseIntensity : undefined,
-        nutritionAnswers: draft.nutritionAnswers,
+        nutritionAnswers: mergeZeroServingNutritionAnswers(draft.nutritionAnswers, servings),
       });
       if (error || !result) {
         toast({ message: error ?? 'Failed to save check-in.', variant: 'error' });

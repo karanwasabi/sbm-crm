@@ -122,8 +122,8 @@ export function ServingAddonsDialog({ leadId, open, onOpenChange, onDone }: Serv
         <DialogHeader className="pr-8">
           <DialogTitle>Serving addons</DialogTitle>
           <DialogDescription>
-            Permanent deltas on top of weight-bracket targets. Negatives allowed. Saving rebuilds this week&apos;s
-            nutrition plan.
+            Permanent deltas on top of weight-bracket targets. Negatives allowed — effective servings can reach 0.
+            Saving rebuilds this week&apos;s nutrition plan.
           </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-2 gap-3">
