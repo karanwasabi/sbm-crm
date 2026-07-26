@@ -1250,6 +1250,17 @@ export type HabitGoalAddons = {
   nutritionPointsDaily: number;
 };
 
+export type HabitGoalCaps = {
+  stepsDailyMin: number | null;
+  stepsDailyMax: number | null;
+  exerciseDaysMin: number | null;
+  exerciseDaysMax: number | null;
+  sleepHoursDailyMin: number | null;
+  sleepHoursDailyMax: number | null;
+  nutritionPointsDailyMin: number | null;
+  nutritionPointsDailyMax: number | null;
+};
+
 export type HabitGoalsSnapshot = {
   stepsDaily: number;
   exerciseDays: number;
@@ -1287,6 +1298,7 @@ export type MemberProfile = {
   soundsEnabled: boolean;
   servingAddons: ServingAddons;
   habitGoalAddons: HabitGoalAddons;
+  habitGoalCaps: HabitGoalCaps;
   awaitingStart: boolean;
   programStartsOn: string | null;
   activeWeekStartDate: string | null;
@@ -1372,6 +1384,16 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
       sleep_hours_daily: number;
       nutrition_points_daily: number;
     };
+    habit_goal_caps?: {
+      steps_daily_min: number | null;
+      steps_daily_max: number | null;
+      exercise_days_min: number | null;
+      exercise_days_max: number | null;
+      sleep_hours_daily_min: number | null;
+      sleep_hours_daily_max: number | null;
+      nutrition_points_daily_min: number | null;
+      nutrition_points_daily_max: number | null;
+    };
     awaiting_start: boolean;
     program_starts_on: string | null;
     active_week_start_date: string | null;
@@ -1430,6 +1452,16 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
       exerciseDays: row.habit_goal_addons?.exercise_days ?? 0,
       sleepHoursDaily: row.habit_goal_addons?.sleep_hours_daily ?? 0,
       nutritionPointsDaily: row.habit_goal_addons?.nutrition_points_daily ?? 0,
+    },
+    habitGoalCaps: {
+      stepsDailyMin: row.habit_goal_caps?.steps_daily_min ?? null,
+      stepsDailyMax: row.habit_goal_caps?.steps_daily_max ?? null,
+      exerciseDaysMin: row.habit_goal_caps?.exercise_days_min ?? null,
+      exerciseDaysMax: row.habit_goal_caps?.exercise_days_max ?? null,
+      sleepHoursDailyMin: row.habit_goal_caps?.sleep_hours_daily_min ?? null,
+      sleepHoursDailyMax: row.habit_goal_caps?.sleep_hours_daily_max ?? null,
+      nutritionPointsDailyMin: row.habit_goal_caps?.nutrition_points_daily_min ?? null,
+      nutritionPointsDailyMax: row.habit_goal_caps?.nutrition_points_daily_max ?? null,
     },
     awaitingStart: row.awaiting_start,
     programStartsOn: row.program_starts_on,
@@ -1497,6 +1529,13 @@ export type HabitGoalAddonsResult = {
   habitGoalAddons: HabitGoalAddons;
   weekStartDate: string;
   goals: HabitGoalsSnapshot | null;
+};
+
+export type HabitGoalCapsResult = {
+  userId: string;
+  habitGoalCaps: HabitGoalCaps;
+  weekStartDate: string;
+  activeWeekGoals: HabitGoalsSnapshot | null;
 };
 
 export async function putLeadServingAddons(leadId: string, addons: ServingAddons): Promise<ServingAddonsResult> {
@@ -1596,6 +1635,75 @@ export async function putLeadHabitGoalAddons(leadId: string, addons: HabitGoalAd
           stepsWeekly: row.goals.steps_weekly,
           sleepHoursWeekly: row.goals.sleep_hours_weekly,
           nutritionPointsWeekly: row.goals.nutrition_points_weekly,
+        }
+      : null,
+  };
+}
+
+export async function putLeadHabitGoalCaps(leadId: string, caps: HabitGoalCaps): Promise<HabitGoalCapsResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/habit-goal-caps`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      steps_daily_min: caps.stepsDailyMin,
+      steps_daily_max: caps.stepsDailyMax,
+      exercise_days_min: caps.exerciseDaysMin,
+      exercise_days_max: caps.exerciseDaysMax,
+      sleep_hours_daily_min: caps.sleepHoursDailyMin,
+      sleep_hours_daily_max: caps.sleepHoursDailyMax,
+      nutrition_points_daily_min: caps.nutritionPointsDailyMin,
+      nutrition_points_daily_max: caps.nutritionPointsDailyMax,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to save habit goal caps.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    habit_goal_caps: {
+      steps_daily_min: number | null;
+      steps_daily_max: number | null;
+      exercise_days_min: number | null;
+      exercise_days_max: number | null;
+      sleep_hours_daily_min: number | null;
+      sleep_hours_daily_max: number | null;
+      nutrition_points_daily_min: number | null;
+      nutrition_points_daily_max: number | null;
+    };
+    week_start_date: string;
+    active_week_goals: {
+      steps_daily: number;
+      exercise_days: number;
+      sleep_hours_daily: number;
+      nutrition_points_daily: number;
+      steps_weekly: number;
+      sleep_hours_weekly: number;
+      nutrition_points_weekly: number;
+    } | null;
+  };
+  return {
+    userId: row.user_id,
+    habitGoalCaps: {
+      stepsDailyMin: row.habit_goal_caps.steps_daily_min,
+      stepsDailyMax: row.habit_goal_caps.steps_daily_max,
+      exerciseDaysMin: row.habit_goal_caps.exercise_days_min,
+      exerciseDaysMax: row.habit_goal_caps.exercise_days_max,
+      sleepHoursDailyMin: row.habit_goal_caps.sleep_hours_daily_min,
+      sleepHoursDailyMax: row.habit_goal_caps.sleep_hours_daily_max,
+      nutritionPointsDailyMin: row.habit_goal_caps.nutrition_points_daily_min,
+      nutritionPointsDailyMax: row.habit_goal_caps.nutrition_points_daily_max,
+    },
+    weekStartDate: row.week_start_date,
+    activeWeekGoals: row.active_week_goals
+      ? {
+          stepsDaily: row.active_week_goals.steps_daily,
+          exerciseDays: row.active_week_goals.exercise_days,
+          sleepHoursDaily: row.active_week_goals.sleep_hours_daily,
+          nutritionPointsDaily: row.active_week_goals.nutrition_points_daily,
+          stepsWeekly: row.active_week_goals.steps_weekly,
+          sleepHoursWeekly: row.active_week_goals.sleep_hours_weekly,
+          nutritionPointsWeekly: row.active_week_goals.nutrition_points_weekly,
         }
       : null,
   };

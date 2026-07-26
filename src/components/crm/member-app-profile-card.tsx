@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getLeadMemberProfileAction } from '@/app/(crm)/customers/actions';
 import { HabitGoalAddonsDialog } from '@/components/crm/habit-goal-addons-dialog';
+import { HabitGoalCapsDialog } from '@/components/crm/habit-goal-caps-dialog';
 import { ServingAddonsDialog } from '@/components/crm/serving-addons-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,6 +31,19 @@ function formatAddon(n: number): string {
   return String(n);
 }
 
+function formatCapSummary(caps: MemberProfile['habitGoalCaps']): string {
+  const parts: string[] = [];
+  if (caps.stepsDailyMin != null) parts.push(`Steps min ${caps.stepsDailyMin}`);
+  if (caps.stepsDailyMax != null) parts.push(`Steps max ${caps.stepsDailyMax}`);
+  if (caps.exerciseDaysMin != null) parts.push(`Ex min ${caps.exerciseDaysMin}`);
+  if (caps.exerciseDaysMax != null) parts.push(`Ex max ${caps.exerciseDaysMax}`);
+  if (caps.sleepHoursDailyMin != null) parts.push(`Sleep min ${caps.sleepHoursDailyMin}h`);
+  if (caps.sleepHoursDailyMax != null) parts.push(`Sleep max ${caps.sleepHoursDailyMax}h`);
+  if (caps.nutritionPointsDailyMin != null) parts.push(`Nutr min ${caps.nutritionPointsDailyMin}`);
+  if (caps.nutritionPointsDailyMax != null) parts.push(`Nutr max ${caps.nutritionPointsDailyMax}`);
+  return parts.length > 0 ? parts.join(' · ') : '—';
+}
+
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-3 border-b border-slate-50 py-1.5 last:border-b-0">
@@ -45,6 +59,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
   const [loading, setLoading] = useState(true);
   const [addonsOpen, setAddonsOpen] = useState(false);
   const [habitAddonsOpen, setHabitAddonsOpen] = useState(false);
+  const [habitCapsOpen, setHabitCapsOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,6 +83,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
 
   const addons = profile?.servingAddons;
   const habitAddons = profile?.habitGoalAddons;
+  const habitCaps = profile?.habitGoalCaps;
   const goals = profile?.activeWeekGoals;
 
   return (
@@ -94,6 +110,15 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
                 onClick={() => setHabitAddonsOpen(true)}
               >
                 Edit habit modifiers
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setHabitCapsOpen(true)}
+              >
+                Edit habit caps
               </Button>
             </div>
           ) : null}
@@ -154,6 +179,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
                   : '—'
               }
             />
+            <Row label="Habit caps" value={habitCaps ? formatCapSummary(habitCaps) : '—'} />
             <Row
               label="Serving addons"
               value={
@@ -178,6 +204,12 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
         leadId={leadId}
         open={habitAddonsOpen}
         onOpenChange={setHabitAddonsOpen}
+        onDone={onProfileChanged}
+      />
+      <HabitGoalCapsDialog
+        leadId={leadId}
+        open={habitCapsOpen}
+        onOpenChange={setHabitCapsOpen}
         onDone={onProfileChanged}
       />
     </>
