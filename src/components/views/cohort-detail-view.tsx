@@ -890,31 +890,36 @@ function CoachSummaryCard({ members }: { members: CohortMember[] }) {
   if (rows.length === 0) return null;
 
   return (
-    <div className="grid grid-cols-[repeat(auto-fill,minmax(168px,1fr))] items-stretch gap-3">
-      {rows.map((row, index) => (
-        <div
-          key={row.id}
-          className={cn(
-            'relative flex h-full overflow-hidden rounded-2xl border-b-[3px] border-black/25 bg-linear-to-br px-4 py-3.5 text-white shadow-[0_10px_24px_-10px_rgba(15,23,42,0.35)]',
-            COACH_CARD_GRADIENTS[index % COACH_CARD_GRADIENTS.length]
-          )}
-        >
-          <div aria-hidden className="absolute -top-6 -right-4 h-20 w-20 rounded-full bg-white/10 blur-2xl" />
-          <div className="relative z-1 flex min-h-0 w-full items-stretch gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-extrabold tracking-wide text-white">
-              {coachInitials(row.name)}
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col justify-between gap-3">
-              <p className="text-sm leading-snug font-bold tracking-tight wrap-break-word">{row.name}</p>
-              <div>
-                <p className="text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase">Students</p>
-                <p className="text-2xl font-extrabold tracking-tight tabular-nums">{row.count}</p>
+    <section className="w-full min-w-0">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
+        {rows.map((row, index) => (
+          <div
+            key={row.id}
+            className={cn(
+              'relative flex overflow-hidden rounded-2xl border-b-[3px] border-black/25 bg-linear-to-br px-4 py-3.5 text-white shadow-[0_10px_24px_-10px_rgba(15,23,42,0.35)]',
+              COACH_CARD_GRADIENTS[index % COACH_CARD_GRADIENTS.length]
+            )}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -top-6 -right-4 h-20 w-20 rounded-full bg-white/10 blur-2xl"
+            />
+            <div className="relative z-1 flex w-full min-w-0 gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15 text-[11px] font-extrabold tracking-wide text-white">
+                {coachInitials(row.name)}
+              </div>
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <p className="line-clamp-2 text-sm leading-snug font-bold tracking-tight">{row.name}</p>
+                <div>
+                  <p className="text-[10px] font-semibold tracking-[0.12em] text-white/65 uppercase">Students</p>
+                  <p className="text-2xl font-extrabold tracking-tight tabular-nums">{row.count}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
