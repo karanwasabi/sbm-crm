@@ -1,8 +1,5 @@
-import { CommunicationsView } from '@/components/views/communications-view';
-import { loadCommsBulkSendsTab } from '@/app/(crm)/communications/_lib/comms-page-data';
+import { redirect } from 'next/navigation';
 
-export default async function CommunicationsBulkSendsPage() {
-  const data = await loadCommsBulkSendsTab();
-
-  return <CommunicationsView {...data} tab="bulk-sends" />;
+export default function LegacyBulkSendsPage() {
+  redirect('/communications/email/bulk-sends');
 }

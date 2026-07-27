@@ -3,9 +3,11 @@ import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 
 export type AutomationTriggerType = 'lead_created' | 'tag_added' | 'stage_changed' | 'checkout_started';
 
+export type AutomationChannel = 'email' | 'whatsapp';
+
 export type AutomationStatus = 'draft' | 'active' | 'paused' | 'archived';
 
-export type AutomationNodeType = 'trigger' | 'condition_group' | 'wait' | 'send_email' | 'end';
+export type AutomationNodeType = 'trigger' | 'condition_group' | 'wait' | 'send_email' | 'send_whatsapp' | 'end';
 
 export type AutomationCondition = {
   field: string;
@@ -27,6 +29,10 @@ export type AutomationSendEmailData = {
   template_id: string;
 };
 
+export type AutomationSendWhatsAppData = {
+  template_id: string;
+};
+
 export type AutomationTriggerData = {
   trigger_type: AutomationTriggerType;
   config?: Record<string, string>;
@@ -41,6 +47,7 @@ export type AutomationGraphNode = {
     | AutomationConditionGroupData
     | AutomationWaitData
     | AutomationSendEmailData
+    | AutomationSendWhatsAppData
     | Record<string, never>;
 };
 
@@ -60,6 +67,7 @@ export type Automation = {
   id: string;
   name: string;
   description: string;
+  channel: AutomationChannel;
   triggerType: AutomationTriggerType;
   triggerConfig: Record<string, unknown>;
   graphJson: AutomationGraph;
@@ -211,7 +219,11 @@ export function normalizeStageTriggerConfig(
   };
 }
 
-export function defaultAutomationGraph(triggerType: AutomationTriggerType = 'lead_created'): AutomationGraph {
+export function defaultAutomationGraph(
+  triggerType: AutomationTriggerType = 'lead_created',
+  channel: AutomationChannel = 'email'
+): AutomationGraph {
+  const sendNodeType = channel === 'whatsapp' ? 'send_whatsapp' : 'send_email';
   return {
     nodes: [
       {
@@ -237,7 +249,7 @@ export function defaultAutomationGraph(triggerType: AutomationTriggerType = 'lea
       },
       {
         id: 'send-1',
-        type: 'send_email',
+        type: sendNodeType,
         position: { x: -40, y: 520 },
         data: { template_id: '' },
       },
@@ -293,6 +305,8 @@ export function nodeLabel(type: AutomationNodeType): string {
       return 'Wait';
     case 'send_email':
       return 'Send email';
+    case 'send_whatsapp':
+      return 'Send WhatsApp';
     case 'end':
       return 'End';
     default:
@@ -332,6 +346,8 @@ export function automationRunOutcomeLabel(outcome: string): string {
   switch (outcome) {
     case 'email_sent':
       return 'Email step';
+    case 'whatsapp_sent':
+      return 'WhatsApp step';
     case 'waiting':
       return 'Scheduled wait';
     case 'wait_completed':

@@ -3331,6 +3331,391 @@ export async function listBulkLeadEmailSendJobSends(
   return (await response.json()) as BulkLeadEmailSendList;
 }
 
+export type WhatsAppTemplate = {
+  id: string;
+  convoniteId?: string;
+  name: string;
+  status: import('@/lib/whatsapp-template-types').WhatsAppTemplateStatus;
+  category: import('@/lib/whatsapp-template-types').WhatsAppTemplateCategory;
+  language: string;
+  purpose: import('@/lib/whatsapp-template-types').WhatsAppTemplatePurpose;
+  runtimeParams: unknown;
+  content: unknown;
+  rating?: string;
+  lastSyncedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function mapWhatsAppTemplate(row: {
+  id: string;
+  convonite_id?: string;
+  name: string;
+  status: string;
+  category: string;
+  language: string;
+  purpose: string;
+  runtime_params: unknown;
+  content: unknown;
+  rating?: string;
+  last_synced_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}): WhatsAppTemplate {
+  return {
+    id: row.id,
+    convoniteId: row.convonite_id,
+    name: row.name,
+    status: row.status as WhatsAppTemplate['status'],
+    category: row.category as WhatsAppTemplate['category'],
+    language: row.language,
+    purpose: row.purpose as WhatsAppTemplate['purpose'],
+    runtimeParams: row.runtime_params ?? [],
+    content: row.content ?? {},
+    rating: row.rating,
+    lastSyncedAt: row.last_synced_at ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function listWhatsAppTemplates(): Promise<WhatsAppTemplate[]> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/templates');
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp templates.', response.status);
+  }
+  const rows = (await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0][];
+  return rows.map(mapWhatsAppTemplate);
+}
+
+export async function getWhatsAppTemplate(id: string): Promise<WhatsAppTemplate> {
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates/${id}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp template.', response.status);
+  }
+  return mapWhatsAppTemplate((await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0]);
+}
+
+export async function createWhatsAppTemplate(input: {
+  name: string;
+  category: WhatsAppTemplate['category'];
+  language: string;
+  purpose: WhatsAppTemplate['purpose'];
+  runtimeParams: unknown;
+  content: unknown;
+}): Promise<WhatsAppTemplate> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/templates', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.name,
+      category: input.category,
+      language: input.language,
+      purpose: input.purpose,
+      runtime_params: input.runtimeParams,
+      content: input.content,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to create WhatsApp template.', response.status);
+  }
+  return mapWhatsAppTemplate((await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0]);
+}
+
+export async function updateWhatsAppTemplate(
+  id: string,
+  input: {
+    name: string;
+    category: WhatsAppTemplate['category'];
+    language: string;
+    purpose: WhatsAppTemplate['purpose'];
+    runtimeParams: unknown;
+    content: unknown;
+  }
+): Promise<WhatsAppTemplate> {
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      name: input.name,
+      category: input.category,
+      language: input.language,
+      purpose: input.purpose,
+      runtime_params: input.runtimeParams,
+      content: input.content,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update WhatsApp template.', response.status);
+  }
+  return mapWhatsAppTemplate((await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0]);
+}
+
+async function postWhatsAppTemplateAction(
+  id: string,
+  action: 'submit' | 'activate' | 'deactivate'
+): Promise<WhatsAppTemplate> {
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates/${id}/${action}`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? `Failed to ${action} WhatsApp template.`, response.status);
+  }
+  return mapWhatsAppTemplate((await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0]);
+}
+
+export function submitWhatsAppTemplate(id: string): Promise<WhatsAppTemplate> {
+  return postWhatsAppTemplateAction(id, 'submit');
+}
+
+export function activateWhatsAppTemplate(id: string): Promise<WhatsAppTemplate> {
+  return postWhatsAppTemplateAction(id, 'activate');
+}
+
+export function deactivateWhatsAppTemplate(id: string): Promise<WhatsAppTemplate> {
+  return postWhatsAppTemplateAction(id, 'deactivate');
+}
+
+export async function syncWhatsAppTemplates(): Promise<{ synced: number }> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/templates/sync', {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to sync WhatsApp templates.', response.status);
+  }
+  return (await response.json()) as { synced: number };
+}
+
+export async function sendWhatsAppTemplateTest(id: string, toPhone: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates/${id}/send-test`, {
+    method: 'POST',
+    body: JSON.stringify({ to_phone: toPhone }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to send test WhatsApp.', response.status);
+  }
+}
+
+export async function sendLeadWhatsApp(leadId: string, templateId: string): Promise<void> {
+  const response = await requireApiFetch(`/admin/comms/leads/${leadId}/whatsapp/send`, {
+    method: 'POST',
+    body: JSON.stringify({ template_id: templateId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to send WhatsApp.', response.status);
+  }
+}
+
+export type LeadWhatsAppChat = {
+  deepLink: string;
+  unreadCount: number;
+  contactId?: string;
+  chatId?: string;
+};
+
+export async function getLeadWhatsAppChat(leadId: string): Promise<LeadWhatsAppChat> {
+  const response = await requireApiFetch(`/admin/comms/leads/${leadId}/whatsapp/chat`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load WhatsApp chat.', response.status);
+  }
+  const row = (await response.json()) as {
+    deep_link: string;
+    unread_count: number;
+    contact_id?: string;
+    chat_id?: string;
+  };
+  return {
+    deepLink: row.deep_link,
+    unreadCount: row.unread_count,
+    contactId: row.contact_id,
+    chatId: row.chat_id,
+  };
+}
+
+export type WhatsAppSend = {
+  id: string;
+  templateId: string;
+  templateName: string;
+  leadId: string;
+  recipientPhone: string;
+  status: string;
+  skipReason?: string;
+  convoniteMessageId?: string;
+  createdAt: string;
+  sentAt?: string | null;
+};
+
+export async function listWhatsAppSends(options?: { limit?: number; offset?: number }): Promise<WhatsAppSend[]> {
+  const params = new URLSearchParams();
+  if (options?.limit != null) {
+    params.set('limit', String(options.limit));
+  }
+  if (options?.offset != null) {
+    params.set('offset', String(options.offset));
+  }
+  const query = params.toString();
+  const response = await requireApiFetch(`/admin/comms/whatsapp/sends${query ? `?${query}` : ''}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp sends.', response.status);
+  }
+  const rows = (await response.json()) as Array<{
+    id: string;
+    template_id: string;
+    template_name: string;
+    lead_id: string;
+    recipient_phone: string;
+    status: string;
+    skip_reason?: string;
+    convonite_message_id?: string;
+    created_at: string;
+    sent_at?: string | null;
+  }>;
+  return rows.map((row) => ({
+    id: row.id,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    leadId: row.lead_id,
+    recipientPhone: row.recipient_phone,
+    status: row.status,
+    skipReason: row.skip_reason,
+    convoniteMessageId: row.convonite_message_id,
+    createdAt: row.created_at,
+    sentAt: row.sent_at,
+  }));
+}
+
+export type BulkLeadWhatsAppPreview = {
+  template_id: string;
+  category: string;
+  selected: number;
+  will_send: number;
+  already_sent: number;
+  will_send_if_skip_duplicates: number;
+  skipped: {
+    no_consent: number;
+    no_phone: number;
+    invalid_phone: number;
+    opted_out: number;
+    notify_whatsapp_disabled: number;
+    already_sent: number;
+    template_not_active: number;
+    whatsapp_not_configured: number;
+  };
+};
+
+export type BulkLeadWhatsAppSendJob = {
+  id: string;
+  template_id: string;
+  template_name?: string;
+  template_category?: string;
+  sent_by_name?: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  selected: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  skip_breakdown: BulkLeadWhatsAppPreview['skipped'];
+  error_message?: string | null;
+  created_at: string;
+  started_at?: string | null;
+  completed_at?: string | null;
+};
+
+export type BulkLeadWhatsAppSendRow = {
+  id: string;
+  lead_id?: string;
+  recipient_phone: string;
+  status: 'queued' | 'sent' | 'failed' | 'skipped';
+  skip_reason?: string;
+  created_at: string;
+  sent_at?: string | null;
+};
+
+export type BulkLeadWhatsAppSendList = {
+  items: BulkLeadWhatsAppSendRow[];
+  total: number;
+};
+
+export async function previewBulkLeadWhatsAppSend(
+  templateId: string,
+  leadIds: string[]
+): Promise<BulkLeadWhatsAppPreview> {
+  const response = await requireApiFetch('/admin/comms/leads/bulk-whatsapp/preview', {
+    method: 'POST',
+    body: JSON.stringify({ template_id: templateId, lead_ids: leadIds }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to preview bulk WhatsApp send.', response.status);
+  }
+  return (await response.json()) as BulkLeadWhatsAppPreview;
+}
+
+export async function startBulkLeadWhatsAppSend(
+  templateId: string,
+  leadIds: string[],
+  options?: { skipAlreadySent?: boolean }
+): Promise<{ job_id: string }> {
+  const response = await requireApiFetch('/admin/comms/leads/bulk-whatsapp', {
+    method: 'POST',
+    body: JSON.stringify({
+      template_id: templateId,
+      lead_ids: leadIds,
+      skip_already_sent: options?.skipAlreadySent ?? false,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to start bulk WhatsApp send.', response.status);
+  }
+  return (await response.json()) as { job_id: string };
+}
+
+export async function getBulkLeadWhatsAppSendJob(jobId: string): Promise<BulkLeadWhatsAppSendJob> {
+  const response = await requireApiFetch(`/admin/comms/bulk-whatsapp/${encodeURIComponent(jobId)}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load bulk WhatsApp send job.', response.status);
+  }
+  return (await response.json()) as BulkLeadWhatsAppSendJob;
+}
+
+export async function listBulkLeadWhatsAppSendJobs(limit = 50): Promise<BulkLeadWhatsAppSendJob[]> {
+  const response = await requireApiFetch(`/admin/comms/bulk-whatsapp?limit=${encodeURIComponent(String(limit))}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to list bulk WhatsApp send jobs.', response.status);
+  }
+  return (await response.json()) as BulkLeadWhatsAppSendJob[];
+}
+
+export async function listBulkLeadWhatsAppSendJobSends(
+  jobId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<BulkLeadWhatsAppSendList> {
+  const params = new URLSearchParams();
+  if (options?.limit != null) {
+    params.set('limit', String(options.limit));
+  }
+  if (options?.offset != null) {
+    params.set('offset', String(options.offset));
+  }
+  const query = params.toString();
+  const response = await requireApiFetch(
+    `/admin/comms/bulk-whatsapp/${encodeURIComponent(jobId)}/sends${query ? `?${query}` : ''}`
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load bulk WhatsApp send recipients.', response.status);
+  }
+  return (await response.json()) as BulkLeadWhatsAppSendList;
+}
+
 export const getMarketingContactsSummary = cache(async (): Promise<MarketingContactsSummary> => {
   const response = await requireApiFetch('/admin/comms/contacts/summary');
   if (!response.ok) {
@@ -3660,6 +4045,7 @@ function mapAutomation(row: {
   id: string;
   name: string;
   description: string;
+  channel?: string;
   trigger_type: string;
   trigger_config: unknown;
   graph_json: unknown;
@@ -3672,6 +4058,7 @@ function mapAutomation(row: {
     id: row.id,
     name: row.name,
     description: row.description,
+    channel: (row.channel === 'whatsapp' ? 'whatsapp' : 'email') as Automation['channel'],
     triggerType: row.trigger_type as Automation['triggerType'],
     triggerConfig:
       row.trigger_config && typeof row.trigger_config === 'object' && !Array.isArray(row.trigger_config)
@@ -3688,8 +4075,9 @@ function mapAutomation(row: {
   };
 }
 
-export async function listAutomations(): Promise<Automation[]> {
-  const response = await requireApiFetch('/admin/comms/automations');
+export async function listAutomations(channel?: Automation['channel']): Promise<Automation[]> {
+  const query = channel ? `?channel=${encodeURIComponent(channel)}` : '';
+  const response = await requireApiFetch(`/admin/comms/automations${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load automations.', response.status);
   }
@@ -3708,6 +4096,7 @@ export async function getAutomation(id: string): Promise<Automation> {
 export async function createAutomation(input: {
   name: string;
   description: string;
+  channel?: Automation['channel'];
   triggerType: Automation['triggerType'];
   triggerConfig: Record<string, unknown>;
   graphJson: Automation['graphJson'];
@@ -3718,6 +4107,7 @@ export async function createAutomation(input: {
     body: JSON.stringify({
       name: input.name,
       description: input.description,
+      channel: input.channel ?? 'email',
       trigger_type: input.triggerType,
       trigger_config: input.triggerConfig,
       graph_json: input.graphJson,
@@ -3736,6 +4126,7 @@ export async function updateAutomation(
   input: {
     name: string;
     description: string;
+    channel?: Automation['channel'];
     triggerType: Automation['triggerType'];
     triggerConfig: Record<string, unknown>;
     graphJson: Automation['graphJson'];
@@ -3747,6 +4138,7 @@ export async function updateAutomation(
     body: JSON.stringify({
       name: input.name,
       description: input.description,
+      channel: input.channel ?? 'email',
       trigger_type: input.triggerType,
       trigger_config: input.triggerConfig,
       graph_json: input.graphJson,

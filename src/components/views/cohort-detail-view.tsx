@@ -74,7 +74,7 @@ import { cohortHeaderAccent, formatCohortStartDateLong, cohortStartDateReached }
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
 import { SEX_OPTIONS } from '@/types/profile';
-import type { EmailTemplate, StaffMember } from '@/utils/api';
+import type { EmailTemplate, StaffMember, WhatsAppTemplate } from '@/utils/api';
 
 type CohortDetailViewProps = {
   cohort: CohortDetail;
@@ -82,6 +82,7 @@ type CohortDetailViewProps = {
   transferTargets: CohortSummary[];
   coaches: StaffMember[];
   emailTemplates: EmailTemplate[];
+  whatsappTemplates: WhatsAppTemplate[];
   canManagePointA?: boolean;
   canLockCohort?: boolean;
   isSuperadmin?: boolean;
@@ -1011,6 +1012,7 @@ export function CohortDetailView({
   transferTargets,
   coaches,
   emailTemplates,
+  whatsappTemplates,
   canManagePointA = false,
   canLockCohort = false,
   isSuperadmin = false,
@@ -1815,7 +1817,12 @@ export function CohortDetailView({
             <Button variant="primary" size="sm" onClick={() => setAssignOpen(true)}>
               Assign coach
             </Button>
-            <CohortBulkSendButton members={members} selectedEnrollmentIds={selectedList} templates={emailTemplates} />
+            <CohortBulkSendButton
+              members={members}
+              selectedEnrollmentIds={selectedList}
+              emailTemplates={emailTemplates}
+              whatsappTemplates={whatsappTemplates}
+            />
             <CohortExportButton
               members={members}
               selectedEnrollmentIds={selectedList}

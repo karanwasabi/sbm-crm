@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { commsAutomationHref } from '@/lib/comms-channel';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
@@ -137,7 +138,7 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
                 <DataTableRow key={row.automationId}>
                   <DataTableCell>
                     <Link
-                      href={`/communications/automations/${row.automationId}`}
+                      href={commsAutomationHref('email', row.automationId)}
                       className="text-sm font-semibold text-slate-800 hover:text-brand"
                     >
                       {row.name}

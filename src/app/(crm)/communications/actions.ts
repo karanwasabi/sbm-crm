@@ -3,6 +3,13 @@
 import {
   createEmailTemplate,
   updateEmailTemplate,
+  createWhatsAppTemplate,
+  updateWhatsAppTemplate,
+  submitWhatsAppTemplate,
+  activateWhatsAppTemplate,
+  deactivateWhatsAppTemplate,
+  sendWhatsAppTemplateTest,
+  syncWhatsAppTemplates,
   createAutomation,
   updateAutomation,
   activateAutomation,
@@ -15,20 +22,28 @@ import {
   getBulkLeadEmailSendJob,
   listBulkLeadEmailSendJobs,
   listBulkLeadEmailSendJobSends,
+  getBulkLeadWhatsAppSendJob,
+  listBulkLeadWhatsAppSendJobs,
+  listBulkLeadWhatsAppSendJobSends,
   ApiError,
   type EmailTemplate,
+  type WhatsAppTemplate,
   type Automation,
   type BulkLeadEmailSendJob,
   type BulkLeadEmailSendList,
+  type BulkLeadWhatsAppSendJob,
+  type BulkLeadWhatsAppSendList,
 } from '@/utils/api';
 import type {
   AutomationGraph,
   AutomationTriggerType,
   AutomationStatus,
+  AutomationChannel,
   AutomationEnrollment,
   AutomationRunLogEntry,
 } from '@/lib/automation-types';
 import type { EmailTemplateClassification, GrapesProjectData } from '@/lib/email-template-types';
+import type { WhatsAppTemplateCategory, WhatsAppTemplatePurpose } from '@/lib/whatsapp-template-types';
 
 export type SaveEmailTemplateInput = {
   name: string;
@@ -57,9 +72,49 @@ export async function saveEmailTemplateAction(
   return createEmailTemplate(payload);
 }
 
+export type SaveWhatsAppTemplateInput = {
+  name: string;
+  category: WhatsAppTemplateCategory;
+  language: string;
+  purpose: WhatsAppTemplatePurpose;
+  runtimeParams: unknown;
+  content: unknown;
+};
+
+export async function saveWhatsAppTemplateAction(
+  templateId: string | null,
+  input: SaveWhatsAppTemplateInput
+): Promise<WhatsAppTemplate> {
+  if (templateId) {
+    return updateWhatsAppTemplate(templateId, input);
+  }
+  return createWhatsAppTemplate(input);
+}
+
+export async function submitWhatsAppTemplateAction(templateId: string): Promise<WhatsAppTemplate> {
+  return submitWhatsAppTemplate(templateId);
+}
+
+export async function activateWhatsAppTemplateAction(templateId: string): Promise<WhatsAppTemplate> {
+  return activateWhatsAppTemplate(templateId);
+}
+
+export async function deactivateWhatsAppTemplateAction(templateId: string): Promise<WhatsAppTemplate> {
+  return deactivateWhatsAppTemplate(templateId);
+}
+
+export async function sendWhatsAppTemplateTestAction(templateId: string, toPhone: string): Promise<void> {
+  await sendWhatsAppTemplateTest(templateId, toPhone);
+}
+
+export async function syncWhatsAppTemplatesAction(): Promise<{ synced: number }> {
+  return syncWhatsAppTemplates();
+}
+
 export type SaveAutomationInput = {
   name: string;
   description: string;
+  channel?: AutomationChannel;
   triggerType: AutomationTriggerType;
   triggerConfig: Record<string, unknown>;
   graphJson: AutomationGraph;
@@ -73,6 +128,7 @@ export async function saveAutomationAction(
   const payload = {
     name: input.name,
     description: input.description,
+    channel: input.channel ?? 'email',
     triggerType: input.triggerType,
     triggerConfig: input.triggerConfig,
     graphJson: input.graphJson,
@@ -138,6 +194,31 @@ export async function listBulkLeadEmailSendJobSendsAction(
     return { data, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load bulk send recipients.';
+    return { data: null, error: message };
+  }
+}
+
+export async function getBulkLeadWhatsAppSendJobAction(
+  jobId: string
+): Promise<{ job: BulkLeadWhatsAppSendJob | null; error: string | null }> {
+  try {
+    const job = await getBulkLeadWhatsAppSendJob(jobId);
+    return { job, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load bulk WhatsApp send job.';
+    return { job: null, error: message };
+  }
+}
+
+export async function listBulkLeadWhatsAppSendJobSendsAction(
+  jobId: string,
+  options?: { limit?: number; offset?: number }
+): Promise<{ data: BulkLeadWhatsAppSendList | null; error: string | null }> {
+  try {
+    const data = await listBulkLeadWhatsAppSendJobSends(jobId, options);
+    return { data, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load bulk WhatsApp send recipients.';
     return { data: null, error: message };
   }
 }

@@ -1,20 +1,26 @@
 import { Send } from 'lucide-react';
 import Link from 'next/link';
 import { Pill } from '@/components/ui/pill';
+import { commsBulkSendHref, type CommsChannel } from '@/lib/comms-channel';
 import { bulkJobStatusLabel, bulkJobStatusTone, formatCommsWhen } from '@/lib/comms-display';
-import type { BulkLeadEmailSendJob } from '@/utils/api';
+import type { BulkLeadEmailSendJob, BulkLeadWhatsAppSendJob } from '@/utils/api';
 
 type BulkSendListRowProps = {
-  job: BulkLeadEmailSendJob;
+  job: BulkLeadEmailSendJob | BulkLeadWhatsAppSendJob;
+  channel?: CommsChannel;
 };
 
-export function BulkSendListRow({ job }: BulkSendListRowProps) {
+export function BulkSendListRow({ job, channel = 'email' }: BulkSendListRowProps) {
   const templateName = job.template_name ?? 'Unknown template';
   const progressLabel = `${job.sent.toLocaleString('en-IN')} sent · ${job.skipped.toLocaleString('en-IN')} skipped · ${job.failed.toLocaleString('en-IN')} failed`;
+  const classification =
+    channel === 'email'
+      ? (job as BulkLeadEmailSendJob).template_classification
+      : (job as BulkLeadWhatsAppSendJob).template_category;
 
   return (
     <Link
-      href={`/communications/bulk-sends/${job.id}`}
+      href={commsBulkSendHref(channel, job.id)}
       className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
     >
       <div className="flex min-w-0 items-center gap-3">
@@ -33,9 +39,9 @@ export function BulkSendListRow({ job }: BulkSendListRowProps) {
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1.5 sm:flex-row sm:items-center">
-        {job.template_classification ? (
-          <Pill tone={job.template_classification === 'marketing' ? 'brand' : 'neutral'}>
-            {job.template_classification === 'marketing' ? 'Marketing' : 'Transactional'}
+        {classification ? (
+          <Pill tone={classification === 'marketing' ? 'brand' : 'neutral'}>
+            {classification === 'marketing' ? 'Marketing' : channel === 'email' ? 'Transactional' : classification}
           </Pill>
         ) : null}
         <Pill tone={bulkJobStatusTone(job.status)}>{bulkJobStatusLabel(job.status)}</Pill>

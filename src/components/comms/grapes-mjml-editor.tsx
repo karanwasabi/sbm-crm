@@ -16,6 +16,7 @@ import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
 import { Skeleton } from '@/components/loading/skeleton';
 import { saveEmailTemplateAction } from '@/app/(crm)/communications/actions';
+import { commsTemplateHref } from '@/lib/comms-channel';
 import {
   compileEditorHtml,
   cacheAllMergeTargetContent,
@@ -475,7 +476,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
         setTemplateStatus('active');
         setMessage(wasArchived ? 'Template activated.' : 'Template saved.');
         if (!template?.id) {
-          router.replace(`/communications/templates/${saved.id}`);
+          router.replace(commsTemplateHref('email', saved.id));
         } else {
           router.refresh();
         }

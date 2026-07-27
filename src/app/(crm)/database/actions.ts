@@ -48,3 +48,46 @@ export async function getBulkLeadEmailSendJobAction(
     return { job: null, error: message };
   }
 }
+
+export async function previewBulkLeadWhatsAppSendAction(
+  templateId: string,
+  leadIds: string[]
+): Promise<{ preview: import('@/utils/api').BulkLeadWhatsAppPreview | null; error: string | null }> {
+  try {
+    const { previewBulkLeadWhatsAppSend } = await import('@/utils/api');
+    const preview = await previewBulkLeadWhatsAppSend(templateId, leadIds);
+    return { preview, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to preview bulk WhatsApp send.';
+    return { preview: null, error: message };
+  }
+}
+
+export async function startBulkLeadWhatsAppSendAction(
+  templateId: string,
+  leadIds: string[],
+  options?: { skipAlreadySent?: boolean }
+): Promise<{ job: import('@/utils/api').BulkLeadWhatsAppSendJob | null; error: string | null }> {
+  try {
+    const { getBulkLeadWhatsAppSendJob, startBulkLeadWhatsAppSend } = await import('@/utils/api');
+    const started = await startBulkLeadWhatsAppSend(templateId, leadIds, options);
+    const job = await getBulkLeadWhatsAppSendJob(started.job_id);
+    return { job, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to start bulk WhatsApp send.';
+    return { job: null, error: message };
+  }
+}
+
+export async function getBulkLeadWhatsAppSendJobAction(
+  jobId: string
+): Promise<{ job: import('@/utils/api').BulkLeadWhatsAppSendJob | null; error: string | null }> {
+  try {
+    const { getBulkLeadWhatsAppSendJob } = await import('@/utils/api');
+    const job = await getBulkLeadWhatsAppSendJob(jobId);
+    return { job, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load bulk WhatsApp send progress.';
+    return { job: null, error: message };
+  }
+}

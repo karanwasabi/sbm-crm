@@ -1,45 +1,49 @@
 'use client';
 
-import { Mail, Plus, Send, Workflow } from 'lucide-react';
+import { Mail, MessageCircle, Plus, RefreshCw, Send, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState, useTransition } from 'react';
+import { syncWhatsAppTemplatesAction } from '@/app/(crm)/communications/actions';
 import { BulkSendListRow } from '@/components/comms/bulk-send-list-row';
 import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
+import { AutomationListRow } from '@/components/comms/automation-list-row';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
 import { Pill } from '@/components/ui/pill';
+import { Button } from '@/components/ui/button';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import { AutomationListRow } from '@/components/comms/automation-list-row';
+import {
+  COMMS_CHANNELS,
+  COMMS_TABS,
+  commsAutomationHref,
+  commsTabHref,
+  commsTemplateHref,
+  type CommsChannel,
+  type CommsTab,
+} from '@/lib/comms-channel';
+import {
+  whatsAppTemplateCategoryLabel,
+  whatsAppTemplateStatusLabel,
+  whatsAppTemplateStatusTone,
+} from '@/lib/whatsapp-template-types';
 import type {
   Automation,
   BulkLeadEmailSendJob,
+  BulkLeadWhatsAppSendJob,
   CommsAnalytics,
   CommsAnalyticsSummary,
   EmailTemplate,
   MarketingContactsSummary,
+  WhatsAppTemplate,
 } from '@/utils/api';
 
-export type CommsTab = 'templates' | 'automations' | 'bulk-sends' | 'performance';
-
-const COMMS_TABS: { id: CommsTab; label: string }[] = [
-  { id: 'templates', label: 'Templates' },
-  { id: 'automations', label: 'Automations' },
-  { id: 'bulk-sends', label: 'Bulk sends' },
-  { id: 'performance', label: 'Performance' },
-];
-
-const COMMS_TAB_HREF: Record<CommsTab, string> = {
-  templates: '/communications/templates',
-  automations: '/communications/automations',
-  'bulk-sends': '/communications/bulk-sends',
-  performance: '/communications/performance',
-};
-
 type CommunicationsViewProps = {
-  templates?: EmailTemplate[];
+  channel?: CommsChannel;
+  templates?: EmailTemplate[] | WhatsAppTemplate[];
   automations?: Automation[];
-  bulkSendJobs?: BulkLeadEmailSendJob[];
+  bulkSendJobs?: BulkLeadEmailSendJob[] | BulkLeadWhatsAppSendJob[];
   bulkSendJobsError?: string | null;
   marketingSummary: MarketingContactsSummary;
   analyticsSummary: CommsAnalyticsSummary | null;
@@ -48,6 +52,7 @@ type CommunicationsViewProps = {
 };
 
 export function CommunicationsView({
+  channel = 'email',
   templates = [],
   automations = [],
   bulkSendJobs = [],
@@ -58,10 +63,30 @@ export function CommunicationsView({
   tab,
 }: CommunicationsViewProps) {
   const router = useRouter();
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [isSyncing, startSync] = useTransition();
   const activeAutomationCount = analyticsSummary?.activeAutomations ?? 0;
+  const isWhatsApp = channel === 'whatsapp';
+
+  const selectChannel = (next: CommsChannel) => {
+    router.push(commsTabHref(next, tab));
+  };
 
   const selectTab = (next: CommsTab) => {
-    router.push(COMMS_TAB_HREF[next]);
+    router.push(commsTabHref(channel, next));
+  };
+
+  const handleSyncTemplates = () => {
+    setSyncMessage(null);
+    startSync(async () => {
+      try {
+        const result = await syncWhatsAppTemplatesAction();
+        setSyncMessage(`Synced ${result.synced} template${result.synced === 1 ? '' : 's'} from Convonite.`);
+        router.refresh();
+      } catch (error) {
+        setSyncMessage(error instanceof Error ? error.message : 'Failed to sync templates.');
+      }
+    });
   };
 
   return (
@@ -72,6 +97,21 @@ export function CommunicationsView({
         activeAutomationCount={activeAutomationCount}
         onOpenPerformance={() => selectTab('performance')}
       />
+
+      <div className="flex flex-wrap gap-2">
+        {COMMS_CHANNELS.map(({ id, label }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => selectChannel(id)}
+            className={`rounded-full px-3 py-1.5 text-xs font-bold ${
+              channel === id ? 'bg-brand text-white' : 'border border-slate-100 bg-white text-slate-600'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {COMMS_TABS.map(({ id, label }) => (
@@ -91,25 +131,68 @@ export function CommunicationsView({
       {tab === 'templates' ? (
         <Card>
           <SectionHead
-            title="Email templates"
+            title={isWhatsApp ? 'WhatsApp templates' : 'Email templates'}
             right={
-              <Link
-                href="/communications/templates/new"
-                className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                New template
-              </Link>
+              <div className="flex flex-wrap items-center gap-2">
+                {isWhatsApp ? (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
+                    loading={isSyncing}
+                    loadingLabel="Syncing…"
+                    onClick={handleSyncTemplates}
+                  >
+                    Sync from Convonite
+                  </Button>
+                ) : null}
+                <Link
+                  href={commsTemplateHref(channel, 'new')}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  New template
+                </Link>
+              </div>
             }
           />
+          {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
           <div className="flex flex-col gap-2">
             {templates.length === 0 ? (
-              <p className="text-sm text-slate-500">No templates yet. Create your first email template.</p>
-            ) : (
-              templates.map((template) => (
+              <p className="text-sm text-slate-500">
+                No templates yet. Create your first {isWhatsApp ? 'WhatsApp' : 'email'} template.
+              </p>
+            ) : isWhatsApp ? (
+              (templates as WhatsAppTemplate[]).map((template) => (
                 <Link
                   key={template.id}
-                  href={`/communications/templates/${template.id}`}
+                  href={commsTemplateHref(channel, template.id)}
+                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                      <MessageCircle className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
+                      <p className="truncate text-xs font-medium text-slate-500">
+                        {template.language} · {whatsAppTemplateCategoryLabel(template.category)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <Pill tone="neutral">{template.purpose === 'broadcast' ? 'Broadcast' : 'Individual'}</Pill>
+                    <Pill tone={whatsAppTemplateStatusTone(template.status)}>
+                      {whatsAppTemplateStatusLabel(template.status)}
+                    </Pill>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              (templates as EmailTemplate[]).map((template) => (
+                <Link
+                  key={template.id}
+                  href={commsTemplateHref(channel, template.id)}
                   className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
                 >
                   <div className="flex min-w-0 items-center gap-3">
@@ -150,10 +233,14 @@ export function CommunicationsView({
         <Card>
           <SectionHead
             title="Automations"
-            subtitle="Delay-based nurture workflows with conditions"
+            subtitle={
+              isWhatsApp
+                ? 'Delay-based nurture workflows with WhatsApp sends'
+                : 'Delay-based nurture workflows with conditions'
+            }
             right={
               <Link
-                href="/communications/automations/new"
+                href={commsAutomationHref(channel, 'new')}
                 className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
               >
                 <Plus className="h-3.5 w-3.5" />
@@ -168,12 +255,14 @@ export function CommunicationsView({
                   <Workflow className="h-5 w-5" />
                 </div>
                 <p className="max-w-md text-sm font-medium text-slate-600">
-                  Build visual nurture flows — wait, check conditions, send emails — triggered when leads are created or
-                  start checkout.
+                  Build visual nurture flows — wait, check conditions, send{' '}
+                  {isWhatsApp ? 'WhatsApp messages' : 'emails'} — triggered when leads are created or start checkout.
                 </p>
               </div>
             ) : (
-              automations.map((automation) => <AutomationListRow key={automation.id} automation={automation} />)
+              automations.map((automation) => (
+                <AutomationListRow key={automation.id} automation={automation} channel={channel} />
+              ))
             )}
           </div>
         </Card>
@@ -199,10 +288,11 @@ export function CommunicationsView({
               <p className="text-sm font-medium text-danger-press">{bulkSendJobsError}</p>
             ) : bulkSendJobs.length === 0 ? (
               <p className="text-sm text-slate-500">
-                No bulk sends yet. Select leads in Lead Database and use Send email to start a campaign.
+                No bulk sends yet. Select leads in Lead Database and use Send {isWhatsApp ? 'WhatsApp' : 'email'} to
+                start a campaign.
               </p>
             ) : (
-              bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} />)
+              bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} channel={channel} />)
             )}
           </div>
         </Card>

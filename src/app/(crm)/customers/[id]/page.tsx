@@ -8,6 +8,7 @@ import {
   getMyAccess,
   listEmailTemplates,
   listTagSuggestions,
+  listWhatsAppTemplates,
 } from '@/utils/api';
 
 type CustomerPageProps = {
@@ -19,9 +20,10 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
 
   try {
     const [lead, access] = await Promise.all([getLead(id), getMyAccess()]);
-    const [programHistory, emailTemplates, tagSuggestions] = await Promise.all([
+    const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions] = await Promise.all([
       lead.memberUserId != null ? getMemberEnrollments(lead.memberUserId).catch(() => []) : Promise.resolve([]),
       listEmailTemplates().catch(() => []),
+      listWhatsAppTemplates().catch(() => []),
       listTagSuggestions().catch(() => []),
     ]);
     return (
@@ -29,6 +31,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         lead={lead}
         programHistory={programHistory}
         emailTemplates={emailTemplates}
+        whatsappTemplates={whatsappTemplates}
         tagSuggestions={tagSuggestions}
         canSyncPayment={isSuperadmin(access.roles)}
       />

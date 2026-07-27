@@ -2,7 +2,13 @@ import { Suspense } from 'react';
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
-import { getLeadFilterOptions, getLeadSummary, listEmailTemplates, listTagSuggestions } from '@/utils/api';
+import {
+  getLeadFilterOptions,
+  getLeadSummary,
+  listEmailTemplates,
+  listTagSuggestions,
+  listWhatsAppTemplates,
+} from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary } from '@/types/crm';
 import { LeadDatabaseTableLoader } from './lead-database-table-loader';
 
@@ -43,6 +49,7 @@ export default async function DatabasePage({
   let filterOptions = EMPTY_FILTER_OPTIONS;
   let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
   let emailTemplates: import('@/utils/api').EmailTemplate[] = [];
+  let whatsappTemplates: import('@/utils/api').WhatsAppTemplate[] = [];
 
   try {
     [summary, filterOptions] = await Promise.all([getLeadSummary(), getLeadFilterOptions()]);
@@ -58,9 +65,10 @@ export default async function DatabasePage({
   }
 
   try {
-    emailTemplates = await listEmailTemplates();
+    [emailTemplates, whatsappTemplates] = await Promise.all([listEmailTemplates(), listWhatsAppTemplates()]);
   } catch {
     emailTemplates = [];
+    whatsappTemplates = [];
   }
 
   return (
@@ -70,6 +78,7 @@ export default async function DatabasePage({
       filterOptions={filterOptions}
       tagSuggestions={tagSuggestions}
       emailTemplates={emailTemplates}
+      whatsappTemplates={whatsappTemplates}
     >
       <Suspense key={suspenseKey} fallback={<LeadDatabaseTableFallback />}>
         <LeadDatabaseTableLoader filters={filters} summary={summary} />

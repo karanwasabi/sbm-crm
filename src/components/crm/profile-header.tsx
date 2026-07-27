@@ -1,7 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Calendar, Globe, Mail, Phone, Star, UserRound } from 'lucide-react';
+import { Calendar, Globe, Mail, MessageCircle, Phone, Star, UserRound } from 'lucide-react';
 import { formatActivityTimestamp } from '@/lib/datetime-display';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
@@ -18,6 +18,8 @@ type ProfileHeaderProps = {
   contact: ContactProfile;
   onLogCall?: () => void;
   onSendEmail?: () => void;
+  onSendWhatsApp?: () => void;
+  onOpenConvonite?: () => void;
   onPurge?: () => void;
   onEnroll?: () => void;
   onTransferMembership?: () => void;
@@ -66,6 +68,8 @@ export function ProfileHeader({
   contact,
   onLogCall,
   onSendEmail,
+  onSendWhatsApp,
+  onOpenConvonite,
   onPurge,
   onEnroll,
   onTransferMembership,
@@ -190,6 +194,26 @@ export function ProfileHeader({
           {onSendEmail ? (
             <Button variant="light" size="sm" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={onSendEmail}>
               Send email
+            </Button>
+          ) : null}
+          {onSendWhatsApp ? (
+            <Button
+              variant="light"
+              size="sm"
+              leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+              onClick={onSendWhatsApp}
+            >
+              Send WhatsApp
+            </Button>
+          ) : null}
+          {onOpenConvonite ? (
+            <Button
+              variant="light"
+              size="sm"
+              leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+              onClick={onOpenConvonite}
+            >
+              Open in Convonite
             </Button>
           ) : null}
           {onPurge ||

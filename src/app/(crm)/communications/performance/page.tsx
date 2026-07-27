@@ -1,8 +1,5 @@
-import { CommunicationsView } from '@/components/views/communications-view';
-import { loadCommsPerformanceTab } from '@/app/(crm)/communications/_lib/comms-page-data';
+import { redirect } from 'next/navigation';
 
-export default async function CommunicationsPerformancePage() {
-  const data = await loadCommsPerformanceTab();
-
-  return <CommunicationsView {...data} tab="performance" />;
+export default function LegacyPerformancePage() {
+  redirect('/communications/email/performance');
 }

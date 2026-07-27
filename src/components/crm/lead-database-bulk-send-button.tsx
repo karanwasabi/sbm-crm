@@ -1,40 +1,51 @@
 'use client';
 
-import { Mail } from 'lucide-react';
+import { Mail, MessageCircle } from 'lucide-react';
 import { useState } from 'react';
 import { BulkSendEmailDialog } from '@/components/comms/bulk-send-email-dialog';
+import { BulkSendWhatsAppDialog } from '@/components/comms/bulk-send-whatsapp-dialog';
 import { LeadExportPreparingDialog } from '@/components/crm/lead-export-preparing-dialog';
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
 import { Button } from '@/components/ui/button';
-import type { EmailTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import { cn } from '@/lib/cn';
 
 type LeadDatabaseBulkSendButtonProps = {
-  templates: EmailTemplate[];
+  emailTemplates: EmailTemplate[];
+  whatsappTemplates: WhatsAppTemplate[];
 };
 
-export function LeadDatabaseBulkSendButton({ templates }: LeadDatabaseBulkSendButtonProps) {
+export function LeadDatabaseBulkSendButton({ emailTemplates, whatsappTemplates }: LeadDatabaseBulkSendButtonProps) {
   const { selectedCount, getExportLeads, needsPrefetchForExport, waitForPrefetch, cancelPendingExport } =
     useLeadDatabaseSelection();
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [preparingOpen, setPreparingOpen] = useState(false);
   const [leadIds, setLeadIds] = useState<string[]>([]);
 
-  const activeTemplates = templates.filter((template) => template.status === 'active');
-  const isDisabled = selectedCount === 0 || activeTemplates.length === 0;
+  const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
+  const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
+  const isDisabled = selectedCount === 0;
 
-  const openWithLeads = (ids: string[]) => {
+  const openWithLeads = (ids: string[], channel: 'email' | 'whatsapp') => {
     setLeadIds(ids);
-    setDialogOpen(true);
+    if (channel === 'email') {
+      setEmailDialogOpen(true);
+    } else {
+      setWhatsappDialogOpen(true);
+    }
   };
 
-  const handleClick = () => {
+  const handleClick = (channel: 'email' | 'whatsapp') => {
     if (selectedCount === 0) {
       return;
     }
 
     if (!needsPrefetchForExport()) {
-      openWithLeads(getExportLeads().map((lead) => lead.id));
+      openWithLeads(
+        getExportLeads().map((lead) => lead.id),
+        channel
+      );
       return;
     }
 
@@ -44,7 +55,10 @@ export function LeadDatabaseBulkSendButton({ templates }: LeadDatabaseBulkSendBu
       if (!leads) {
         return;
       }
-      openWithLeads(leads.map((lead) => lead.id));
+      openWithLeads(
+        leads.map((lead) => lead.id),
+        channel
+      );
     });
   };
 
@@ -60,20 +74,45 @@ export function LeadDatabaseBulkSendButton({ templates }: LeadDatabaseBulkSendBu
         variant="light"
         size="sm"
         leftIcon={<Mail className="h-3.5 w-3.5" />}
-        aria-disabled={isDisabled}
-        className={cn(isDisabled && 'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none')}
-        onClick={handleClick}
+        aria-disabled={isDisabled || activeEmailTemplates.length === 0}
+        className={cn(
+          (isDisabled || activeEmailTemplates.length === 0) &&
+            'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none'
+        )}
+        onClick={() => handleClick('email')}
       >
         Send email
+      </Button>
+
+      <Button
+        type="button"
+        variant="light"
+        size="sm"
+        leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+        aria-disabled={isDisabled || activeWhatsappTemplates.length === 0}
+        className={cn(
+          (isDisabled || activeWhatsappTemplates.length === 0) &&
+            'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none'
+        )}
+        onClick={() => handleClick('whatsapp')}
+      >
+        Send WhatsApp
       </Button>
 
       <LeadExportPreparingDialog open={preparingOpen} selectedCount={selectedCount} onCancel={handleCancelPrepare} />
 
       <BulkSendEmailDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        open={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
         leadIds={leadIds}
-        templates={activeTemplates}
+        templates={activeEmailTemplates}
+      />
+
+      <BulkSendWhatsAppDialog
+        open={whatsappDialogOpen}
+        onClose={() => setWhatsappDialogOpen(false)}
+        leadIds={leadIds}
+        templates={activeWhatsappTemplates}
       />
     </>
   );

@@ -12,7 +12,7 @@ import { LeadDatabasePhoneDuplicatesFilter } from '@/components/crm/lead-databas
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
-import type { EmailTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import {
   buildLeadDatabaseHref,
   isStageFilterActive,
@@ -33,6 +33,7 @@ type FilterBarProps = {
   filterOptions: LeadFilterOptions;
   tagSuggestions: TagSuggestion[];
   emailTemplates: EmailTemplate[];
+  whatsappTemplates: WhatsAppTemplate[];
   unseenUpdatesCount: number;
 };
 
@@ -42,6 +43,7 @@ export function FilterBar({
   filterOptions,
   tagSuggestions,
   emailTemplates,
+  whatsappTemplates,
   unseenUpdatesCount,
 }: FilterBarProps) {
   return (
@@ -108,7 +110,7 @@ export function FilterBar({
           ))}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <LeadDatabaseBulkSendButton templates={emailTemplates} />
+          <LeadDatabaseBulkSendButton emailTemplates={emailTemplates} whatsappTemplates={whatsappTemplates} />
           <LeadDatabaseExportButton />
         </div>
       </div>

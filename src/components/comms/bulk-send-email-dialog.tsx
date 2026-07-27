@@ -10,6 +10,7 @@ import {
 } from '@/app/(crm)/database/actions';
 import { BulkSendPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
 import { formatBulkSkipSummary } from '@/lib/bulk-send-display';
+import { commsBulkSendHref } from '@/lib/comms-channel';
 import { Button } from '@/components/ui/button';
 import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate } from '@/utils/api';
 
@@ -219,7 +220,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
             )}
             <p className="mt-3 text-xs font-medium text-slate-500">
               {sending ? 'Sending continues if you close this dialog. ' : null}
-              <Link href={`/communications/bulk-sends/${job.id}`} className="font-bold text-brand hover:underline">
+              <Link href={commsBulkSendHref('email', job.id)} className="font-bold text-brand hover:underline">
                 View job details
               </Link>
             </p>

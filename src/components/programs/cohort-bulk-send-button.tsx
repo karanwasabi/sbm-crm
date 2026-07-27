@@ -1,24 +1,33 @@
 'use client';
 
-import { Mail } from 'lucide-react';
+import { Mail, MessageCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { BulkSendEmailDialog } from '@/components/comms/bulk-send-email-dialog';
+import { BulkSendWhatsAppDialog } from '@/components/comms/bulk-send-whatsapp-dialog';
 import { Button } from '@/components/ui/button';
 import type { CohortMember } from '@/types/crm';
-import type { EmailTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 
 type CohortBulkSendButtonProps = {
   members: CohortMember[];
   selectedEnrollmentIds: string[];
-  templates: EmailTemplate[];
+  emailTemplates: EmailTemplate[];
+  whatsappTemplates: WhatsAppTemplate[];
 };
 
-export function CohortBulkSendButton({ members, selectedEnrollmentIds, templates }: CohortBulkSendButtonProps) {
-  const [dialogOpen, setDialogOpen] = useState(false);
+export function CohortBulkSendButton({
+  members,
+  selectedEnrollmentIds,
+  emailTemplates,
+  whatsappTemplates,
+}: CohortBulkSendButtonProps) {
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [leadIds, setLeadIds] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const activeTemplates = templates.filter((template) => template.status === 'active');
+  const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
+  const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
 
   const memberByEnrollment = useMemo(() => {
     const map = new Map<string, CohortMember>();
@@ -52,11 +61,12 @@ export function CohortBulkSendButton({ members, selectedEnrollmentIds, templates
     setNotice(null);
   }, [selectedEnrollmentIds]);
 
-  const isDisabled =
-    selectedEnrollmentIds.length === 0 || activeTemplates.length === 0 || selectedLeadIds.ids.length === 0;
+  const isDisabled = selectedEnrollmentIds.length === 0 || selectedLeadIds.ids.length === 0;
 
-  const handleClick = () => {
+  const handleClick = (channel: 'email' | 'whatsapp') => {
     if (isDisabled) return;
+    if (channel === 'email' && activeEmailTemplates.length === 0) return;
+    if (channel === 'whatsapp' && activeWhatsappTemplates.length === 0) return;
 
     if (selectedLeadIds.missing > 0) {
       setNotice(
@@ -67,29 +77,52 @@ export function CohortBulkSendButton({ members, selectedEnrollmentIds, templates
     }
 
     setLeadIds(selectedLeadIds.ids);
-    setDialogOpen(true);
+    if (channel === 'email') {
+      setEmailDialogOpen(true);
+    } else {
+      setWhatsappDialogOpen(true);
+    }
   };
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <Button
-        type="button"
-        variant="light"
-        size="sm"
-        leftIcon={<Mail className="h-3.5 w-3.5" />}
-        disabled={isDisabled}
-        onClick={handleClick}
-      >
-        Send email
-      </Button>
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button
+          type="button"
+          variant="light"
+          size="sm"
+          leftIcon={<Mail className="h-3.5 w-3.5" />}
+          disabled={isDisabled || activeEmailTemplates.length === 0}
+          onClick={() => handleClick('email')}
+        >
+          Send email
+        </Button>
+        <Button
+          type="button"
+          variant="light"
+          size="sm"
+          leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+          disabled={isDisabled || activeWhatsappTemplates.length === 0}
+          onClick={() => handleClick('whatsapp')}
+        >
+          Send WhatsApp
+        </Button>
+      </div>
 
       {notice ? <p className="max-w-xs text-right text-xs text-amber-700">{notice}</p> : null}
 
       <BulkSendEmailDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        open={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
         leadIds={leadIds}
-        templates={activeTemplates}
+        templates={activeEmailTemplates}
+      />
+
+      <BulkSendWhatsAppDialog
+        open={whatsappDialogOpen}
+        onClose={() => setWhatsappDialogOpen(false)}
+        leadIds={leadIds}
+        templates={activeWhatsappTemplates}
       />
     </div>
   );

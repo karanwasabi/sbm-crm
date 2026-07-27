@@ -2,7 +2,12 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
-import { getBulkLeadEmailSendJobAction, listBulkLeadEmailSendJobSendsAction } from '@/app/(crm)/communications/actions';
+import {
+  getBulkLeadEmailSendJobAction,
+  getBulkLeadWhatsAppSendJobAction,
+  listBulkLeadEmailSendJobSendsAction,
+  listBulkLeadWhatsAppSendJobSendsAction,
+} from '@/app/(crm)/communications/actions';
 import {
   DataTable,
   DataTableBody,
@@ -16,7 +21,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
-import { bulkSkipTotal, formatBulkSkipSummary } from '@/lib/bulk-send-display';
+import {
+  bulkSkipTotal,
+  bulkWhatsAppSkipTotal,
+  formatBulkSkipSummary,
+  formatBulkWhatsAppSkipSummary,
+} from '@/lib/bulk-send-display';
+import { commsTemplateHref, type CommsChannel } from '@/lib/comms-channel';
 import {
   bulkJobStatusLabel,
   bulkJobStatusTone,
@@ -24,17 +35,28 @@ import {
   emailSendStatusTone,
   formatCommsWhen,
 } from '@/lib/comms-display';
-import type { BulkLeadEmailSendJob, BulkLeadEmailSendRow } from '@/utils/api';
+import type { BulkLeadEmailSendJob, BulkLeadWhatsAppSendJob } from '@/utils/api';
 
 const PAGE_SIZE = 50;
 
 type BulkSendJobDetailViewProps = {
-  initialJob: BulkLeadEmailSendJob;
+  channel?: CommsChannel;
+  initialJob: BulkLeadEmailSendJob | BulkLeadWhatsAppSendJob;
 };
 
-export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps) {
+type RecipientRow = {
+  id: string;
+  leadId?: string;
+  recipient: string;
+  detail?: string;
+  status: string;
+  skipReason?: string;
+  sentAt?: string | null;
+};
+
+export function BulkSendJobDetailView({ channel = 'email', initialJob }: BulkSendJobDetailViewProps) {
   const [job, setJob] = useState(initialJob);
-  const [sends, setSends] = useState<BulkLeadEmailSendRow[]>([]);
+  const [sends, setSends] = useState<RecipientRow[]>([]);
   const [sendTotal, setSendTotal] = useState(0);
   const [page, setPage] = useState(0);
   const [sendsLoading, setSendsLoading] = useState(true);
@@ -42,31 +64,67 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
   const [jobError, setJobError] = useState<string | null>(null);
 
   const isActive = job.status === 'queued' || job.status === 'running';
-  const skipLines = formatBulkSkipSummary(job.skip_breakdown);
-  const skippedTotal = bulkSkipTotal(job.skip_breakdown);
+  const skipLines =
+    channel === 'whatsapp'
+      ? formatBulkWhatsAppSkipSummary((job as BulkLeadWhatsAppSendJob).skip_breakdown)
+      : formatBulkSkipSummary((job as BulkLeadEmailSendJob).skip_breakdown);
+  const skippedTotal =
+    channel === 'whatsapp'
+      ? bulkWhatsAppSkipTotal((job as BulkLeadWhatsAppSendJob).skip_breakdown)
+      : bulkSkipTotal((job as BulkLeadEmailSendJob).skip_breakdown);
 
-  const loadSends = useCallback(async (jobId: string, pageIndex: number, options?: { silent?: boolean }) => {
-    if (!options?.silent) {
-      setSendsLoading(true);
-    }
-    const result = await listBulkLeadEmailSendJobSendsAction(jobId, {
-      limit: PAGE_SIZE,
-      offset: pageIndex * PAGE_SIZE,
-    });
-    if (result.error || !result.data) {
-      setSendsError(result.error ?? 'Failed to load recipients.');
+  const loadSends = useCallback(
+    async (jobId: string, pageIndex: number, options?: { silent?: boolean }) => {
+      if (!options?.silent) {
+        setSendsLoading(true);
+      }
+      const result =
+        channel === 'whatsapp'
+          ? await listBulkLeadWhatsAppSendJobSendsAction(jobId, {
+              limit: PAGE_SIZE,
+              offset: pageIndex * PAGE_SIZE,
+            })
+          : await listBulkLeadEmailSendJobSendsAction(jobId, {
+              limit: PAGE_SIZE,
+              offset: pageIndex * PAGE_SIZE,
+            });
+      if (result.error || !result.data) {
+        setSendsError(result.error ?? 'Failed to load recipients.');
+        if (!options?.silent) {
+          setSendsLoading(false);
+        }
+        return;
+      }
+      setSendsError(null);
+      setSends(
+        result.data.items.map((send) =>
+          channel === 'whatsapp'
+            ? {
+                id: send.id,
+                leadId: send.lead_id,
+                recipient: (send as { recipient_phone: string }).recipient_phone,
+                status: send.status,
+                skipReason: send.skip_reason,
+                sentAt: send.sent_at,
+              }
+            : {
+                id: send.id,
+                leadId: send.lead_id,
+                recipient: (send as { recipient_email: string }).recipient_email,
+                detail: (send as { subject_rendered?: string }).subject_rendered,
+                status: send.status,
+                skipReason: send.skip_reason,
+                sentAt: send.sent_at,
+              }
+        )
+      );
+      setSendTotal(result.data.total);
       if (!options?.silent) {
         setSendsLoading(false);
       }
-      return;
-    }
-    setSendsError(null);
-    setSends(result.data.items);
-    setSendTotal(result.data.total);
-    if (!options?.silent) {
-      setSendsLoading(false);
-    }
-  }, []);
+    },
+    [channel]
+  );
 
   useEffect(() => {
     void loadSends(job.id, page);
@@ -78,7 +136,9 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
     }
 
     const timer = window.setInterval(() => {
-      void getBulkLeadEmailSendJobAction(job.id).then((result) => {
+      const fetchJob =
+        channel === 'whatsapp' ? getBulkLeadWhatsAppSendJobAction(job.id) : getBulkLeadEmailSendJobAction(job.id);
+      void fetchJob.then((result) => {
         if (result.job) {
           setJob(result.job);
           setJobError(null);
@@ -90,11 +150,15 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
     }, 2500);
 
     return () => window.clearInterval(timer);
-  }, [isActive, job.id, page, loadSends]);
+  }, [isActive, job.id, page, loadSends, channel]);
 
   const pageCount = Math.max(1, Math.ceil(sendTotal / PAGE_SIZE));
   const canPrev = page > 0;
   const canNext = page + 1 < pageCount;
+  const classification =
+    channel === 'email'
+      ? (job as BulkLeadEmailSendJob).template_classification
+      : (job as BulkLeadWhatsAppSendJob).template_category;
 
   return (
     <div className="flex flex-col gap-4">
@@ -105,14 +169,14 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
         />
         <div className="flex flex-wrap items-center gap-2">
           <Pill tone={bulkJobStatusTone(job.status)}>{bulkJobStatusLabel(job.status)}</Pill>
-          {job.template_classification ? (
-            <Pill tone={job.template_classification === 'marketing' ? 'brand' : 'neutral'}>
-              {job.template_classification === 'marketing' ? 'Marketing' : 'Transactional'}
+          {classification ? (
+            <Pill tone={classification === 'marketing' ? 'brand' : 'neutral'}>
+              {classification === 'marketing' ? 'Marketing' : channel === 'email' ? 'Transactional' : classification}
             </Pill>
           ) : null}
           {job.template_id ? (
             <Link
-              href={`/communications/templates/${job.template_id}`}
+              href={commsTemplateHref(channel, job.template_id)}
               className="text-xs font-bold text-brand hover:underline"
             >
               View template
@@ -179,7 +243,7 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
             <DataTable>
               <DataTableHead>
                 <DataTableHeaderCell>Recipient</DataTableHeaderCell>
-                <DataTableHeaderCell>Subject</DataTableHeaderCell>
+                {channel === 'email' ? <DataTableHeaderCell>Subject</DataTableHeaderCell> : null}
                 <DataTableHeaderCell>Status</DataTableHeaderCell>
                 <DataTableHeaderCell>Sent</DataTableHeaderCell>
               </DataTableHead>
@@ -187,20 +251,22 @@ export function BulkSendJobDetailView({ initialJob }: BulkSendJobDetailViewProps
                 {sends.map((send) => (
                   <DataTableRow key={send.id}>
                     <DataTableCell>
-                      {send.lead_id ? (
-                        <Link href={`/customers/${send.lead_id}`} className="font-semibold text-brand hover:underline">
-                          {send.recipient_email}
+                      {send.leadId ? (
+                        <Link href={`/customers/${send.leadId}`} className="font-semibold text-brand hover:underline">
+                          {send.recipient}
                         </Link>
                       ) : (
-                        send.recipient_email
+                        send.recipient
                       )}
-                      {send.skip_reason ? <p className="mt-0.5 text-xs text-slate-500">{send.skip_reason}</p> : null}
+                      {send.skipReason ? <p className="mt-0.5 text-xs text-slate-500">{send.skipReason}</p> : null}
                     </DataTableCell>
-                    <DataTableCell className="max-w-[12rem] truncate">{send.subject_rendered || '—'}</DataTableCell>
+                    {channel === 'email' ? (
+                      <DataTableCell className="max-w-[12rem] truncate">{send.detail || '—'}</DataTableCell>
+                    ) : null}
                     <DataTableCell>
                       <Pill tone={emailSendStatusTone(send.status)}>{emailSendStatusLabel(send.status)}</Pill>
                     </DataTableCell>
-                    <DataTableCell>{formatCommsWhen(send.sent_at ?? undefined)}</DataTableCell>
+                    <DataTableCell>{formatCommsWhen(send.sentAt ?? undefined)}</DataTableCell>
                   </DataTableRow>
                 ))}
               </DataTableBody>

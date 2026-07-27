@@ -7,6 +7,7 @@ import {
   getProgramCohorts,
   listEmailTemplates,
   listStaff,
+  listWhatsAppTemplates,
 } from '@/utils/api';
 
 export default async function CohortDetailPage({ params }: { params: Promise<{ cohortId: string }> }) {
@@ -17,22 +18,25 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
   let transferTargets: Awaited<ReturnType<typeof getProgramCohorts>> = [];
   let coaches: Awaited<ReturnType<typeof listStaff>>['active'] = [];
   let emailTemplates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
+  let whatsappTemplates: Awaited<ReturnType<typeof listWhatsAppTemplates>> = [];
   let canManagePointA = false;
   let canLockCohort = false;
   let isSuperadminUser = false;
 
   try {
-    const [cohortResult, membersResult, staff, templates, access] = await Promise.all([
+    const [cohortResult, membersResult, staff, templates, whatsappTemplatesResult, access] = await Promise.all([
       getCohort(cohortId),
       getCohortMembers(cohortId),
       listStaff(),
       listEmailTemplates().catch(() => []),
+      listWhatsAppTemplates().catch(() => []),
       getMyAccess(),
     ]);
     cohort = cohortResult;
     members = membersResult;
     coaches = staff.active.filter((row) => row.roles.includes('coach'));
     emailTemplates = templates;
+    whatsappTemplates = whatsappTemplatesResult;
     const superadmin = isSuperadmin(access.roles);
     canManagePointA = superadmin;
     canLockCohort = superadmin;
@@ -55,6 +59,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     transferTargets = [];
     coaches = [];
     emailTemplates = [];
+    whatsappTemplates = [];
     canManagePointA = false;
     canLockCohort = false;
     isSuperadminUser = false;
@@ -71,6 +76,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
       transferTargets={transferTargets}
       coaches={coaches}
       emailTemplates={emailTemplates}
+      whatsappTemplates={whatsappTemplates}
       canManagePointA={canManagePointA}
       canLockCohort={canLockCohort}
       isSuperadmin={isSuperadminUser}

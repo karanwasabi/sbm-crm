@@ -187,6 +187,24 @@ export async function sendLeadEmailAction(leadId: string, templateId: string): P
   await sendLeadEmail(leadId, templateId);
 }
 
+export async function sendLeadWhatsAppAction(leadId: string, templateId: string): Promise<void> {
+  const { sendLeadWhatsApp } = await import('@/utils/api');
+  await sendLeadWhatsApp(leadId, templateId);
+}
+
+export async function getLeadWhatsAppChatAction(
+  leadId: string
+): Promise<{ chat: import('@/utils/api').LeadWhatsAppChat | null; error: string | null }> {
+  try {
+    const { getLeadWhatsAppChat } = await import('@/utils/api');
+    const chat = await getLeadWhatsAppChat(leadId);
+    return { chat, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to open WhatsApp chat.';
+    return { chat: null, error: message };
+  }
+}
+
 export async function getLeadPurgePreviewAction(
   leadId: string
 ): Promise<{ preview: LeadPurgePreview | null; error: string | null }> {

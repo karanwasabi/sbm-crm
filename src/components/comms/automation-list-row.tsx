@@ -8,13 +8,15 @@ import { archiveAutomationAction, deleteAutomationAction } from '@/app/(crm)/com
 import { AutomationConfirmDialog, type AutomationConfirmAction } from '@/components/comms/automation-confirm-dialog';
 import { Pill } from '@/components/ui/pill';
 import { TRIGGER_LABELS, automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
+import { commsAutomationHref, type CommsChannel } from '@/lib/comms-channel';
 import type { Automation } from '@/utils/api';
 
 type AutomationListRowProps = {
   automation: Automation;
+  channel?: CommsChannel;
 };
 
-export function AutomationListRow({ automation }: AutomationListRowProps) {
+export function AutomationListRow({ automation, channel = 'email' }: AutomationListRowProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [confirmAction, setConfirmAction] = useState<AutomationConfirmAction | null>(null);
@@ -63,7 +65,7 @@ export function AutomationListRow({ automation }: AutomationListRowProps) {
         />
       ) : null}
       <Link
-        href={`/communications/automations/${automation.id}`}
+        href={commsAutomationHref(automation.channel ?? channel, automation.id)}
         className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
       >
         <div className="flex min-w-0 items-center gap-3">

@@ -8,7 +8,7 @@ import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
 import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { buildStageFilterOptions } from '@/lib/lead-display';
-import type { EmailTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary, TagSuggestion } from '@/types/crm';
 
 type LeadDatabaseViewProps = {
@@ -17,6 +17,7 @@ type LeadDatabaseViewProps = {
   filterOptions: LeadFilterOptions;
   tagSuggestions: TagSuggestion[];
   emailTemplates: EmailTemplate[];
+  whatsappTemplates: WhatsAppTemplate[];
   children: ReactNode;
 };
 
@@ -26,6 +27,7 @@ export function LeadDatabaseView({
   filterOptions,
   tagSuggestions,
   emailTemplates,
+  whatsappTemplates,
   children,
 }: LeadDatabaseViewProps) {
   const { setLeadTotal } = useCrmLeadSummary();
@@ -45,6 +47,7 @@ export function LeadDatabaseView({
           filterOptions={filterOptions}
           tagSuggestions={tagSuggestions}
           emailTemplates={emailTemplates}
+          whatsappTemplates={whatsappTemplates}
           unseenUpdatesCount={summary.withUnseenSuggestions}
         />
 

@@ -9,8 +9,10 @@ import {
   setLeadMemberKindAction,
   verifyLeadEmailAction,
   forceLeadNutritionRecalcAction,
+  getLeadWhatsAppChatAction,
 } from '@/app/(crm)/customers/actions';
 import { SendEmailDialog } from '@/components/comms/send-email-dialog';
+import { SendWhatsAppDialog } from '@/components/comms/send-whatsapp-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
@@ -39,7 +41,7 @@ import { leadDetailToContactProfile } from '@/lib/lead-display';
 import { useCrmNavigate } from '@/hooks/use-crm-navigate';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
-import type { EmailTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import type { LeadDetail, ProgramHistoryItem, TagSuggestion } from '@/types/crm';
 
 const CallLogModal = dynamic(
@@ -51,6 +53,7 @@ type Customer360ViewProps = {
   lead: LeadDetail;
   programHistory: ProgramHistoryItem[];
   emailTemplates: EmailTemplate[];
+  whatsappTemplates: WhatsAppTemplate[];
   tagSuggestions: TagSuggestion[];
   canSyncPayment?: boolean;
 };
@@ -59,6 +62,7 @@ export function Customer360View({
   lead: initialLead,
   programHistory,
   emailTemplates,
+  whatsappTemplates,
   tagSuggestions,
   canSyncPayment = false,
 }: Customer360ViewProps) {
@@ -69,6 +73,7 @@ export function Customer360View({
   const [lead, setLead] = useState(initialLead);
   const [callModalOpen, setCallModalOpen] = useState(false);
   const [sendEmailOpen, setSendEmailOpen] = useState(false);
+  const [sendWhatsAppOpen, setSendWhatsAppOpen] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
@@ -209,6 +214,17 @@ export function Customer360View({
     });
   };
 
+  const handleOpenConvonite = () => {
+    startTransition(async () => {
+      const { chat, error } = await getLeadWhatsAppChatAction(lead.id);
+      if (error || !chat?.deepLink) {
+        toast({ message: error ?? 'Could not open Convonite chat.', variant: 'error' });
+        return;
+      }
+      window.open(chat.deepLink, '_blank', 'noopener,noreferrer');
+    });
+  };
+
   if (isNavigating) {
     // Browser back (no pendingHref) → cohort skeleton for the common cohort↔C360 flow.
     if (!pendingHref || pendingHref.startsWith('/programs/cohorts/')) {
@@ -226,6 +242,12 @@ export function Customer360View({
         onSendEmail={
           emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
         }
+        onSendWhatsApp={
+          whatsappTemplates.some((template) => template.status === 'active')
+            ? () => setSendWhatsAppOpen(true)
+            : undefined
+        }
+        onOpenConvonite={contact.phone ? handleOpenConvonite : undefined}
         onPurge={() => setPurgeOpen(true)}
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
         onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
@@ -323,6 +345,13 @@ export function Customer360View({
         onClose={() => setSendEmailOpen(false)}
         leadId={lead.id}
         templates={emailTemplates}
+        onSent={refresh}
+      />
+      <SendWhatsAppDialog
+        open={sendWhatsAppOpen}
+        onClose={() => setSendWhatsAppOpen(false)}
+        leadId={lead.id}
+        templates={whatsappTemplates}
         onSent={refresh}
       />
       <LeadPurgeModal
