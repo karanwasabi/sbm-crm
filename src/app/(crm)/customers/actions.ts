@@ -15,6 +15,7 @@ import {
   markLeadLost,
   purgeLead,
   sendLeadEmail,
+  sendLeadWhatsApp,
   updateLeadTags,
   offlineEnrollLead,
   listOfflineEnrollCohorts,
@@ -187,9 +188,15 @@ export async function sendLeadEmailAction(leadId: string, templateId: string): P
   await sendLeadEmail(leadId, templateId);
 }
 
-export async function sendLeadWhatsAppAction(leadId: string, templateId: string): Promise<void> {
-  const { sendLeadWhatsApp } = await import('@/utils/api');
-  await sendLeadWhatsApp(leadId, templateId);
+export async function sendLeadWhatsAppAction(leadId: string, templateId: string): Promise<{ error: string | null }> {
+  try {
+    await sendLeadWhatsApp(leadId, templateId);
+    return { error: null };
+  } catch (error) {
+    const { formatWhatsAppSendError } = await import('@/lib/whatsapp-send-errors');
+    const message = error instanceof ApiError ? error.message : 'Failed to send WhatsApp.';
+    return { error: formatWhatsAppSendError(message) };
+  }
 }
 
 export async function getLeadWhatsAppChatAction(

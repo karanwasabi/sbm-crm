@@ -103,8 +103,18 @@ export async function deactivateWhatsAppTemplateAction(templateId: string): Prom
   return deactivateWhatsAppTemplate(templateId);
 }
 
-export async function sendWhatsAppTemplateTestAction(templateId: string, toPhone: string): Promise<void> {
-  await sendWhatsAppTemplateTest(templateId, toPhone);
+export async function sendWhatsAppTemplateTestAction(
+  templateId: string,
+  toPhone: string
+): Promise<{ error: string | null }> {
+  try {
+    await sendWhatsAppTemplateTest(templateId, toPhone);
+    return { error: null };
+  } catch (error) {
+    const { formatWhatsAppSendError } = await import('@/lib/whatsapp-send-errors');
+    const message = error instanceof ApiError ? error.message : 'Failed to send test WhatsApp.';
+    return { error: formatWhatsAppSendError(message) };
+  }
 }
 
 export async function syncWhatsAppTemplatesAction(): Promise<{ synced: number }> {

@@ -60,13 +60,13 @@ export function SendWhatsAppDialog({ open, onClose, leadId, templates, onSent }:
             onClick={() => {
               setError(null);
               startTransition(async () => {
-                try {
-                  await sendLeadWhatsAppAction(leadId, templateId);
-                  onSent();
-                  onClose();
-                } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Failed to send WhatsApp.');
+                const { error: sendError } = await sendLeadWhatsAppAction(leadId, templateId);
+                if (sendError) {
+                  setError(sendError);
+                  return;
                 }
+                onSent();
+                onClose();
               });
             }}
           >

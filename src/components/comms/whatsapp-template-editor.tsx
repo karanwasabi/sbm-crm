@@ -133,12 +133,12 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
     startTransition(async () => {
       setError(null);
       setMessage(null);
-      try {
-        await sendWhatsAppTemplateTestAction(template.id, testPhone.trim());
-        setMessage('Test message sent.');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to send test.');
+      const { error: sendError } = await sendWhatsAppTemplateTestAction(template.id, testPhone.trim());
+      if (sendError) {
+        setError(sendError);
+        return;
       }
+      setMessage('Test message sent.');
     });
   };
 
