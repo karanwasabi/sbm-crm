@@ -27,5 +27,9 @@ export function formatWhatsAppSendError(message: string): string {
     return SKIP_REASON_LABELS[reason] ?? `Send was skipped: ${reason.replaceAll('_', ' ')}`;
   }
 
+  if (trimmed === 'recipient phone is required') {
+    return 'This lead has no phone number. Add WhatsApp in the member app — it will sync to the lead automatically.';
+  }
+
   return trimmed;
 }

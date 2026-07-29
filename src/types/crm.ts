@@ -113,7 +113,7 @@ export type FieldSuggestion = {
   field: 'name' | 'phone' | 'city' | 'country';
   currentValue: string;
   suggestedValue: string;
-  source: 'leadsync' | 'native_meta' | 'manual_intake' | 'phone_match' | 'lead_intake_form';
+  source: 'leadsync' | 'native_meta' | 'manual_intake' | 'phone_match' | 'lead_intake_form' | 'member_profile';
   sourceLabel: string;
   contactEventId?: number | null;
   editable: boolean;
