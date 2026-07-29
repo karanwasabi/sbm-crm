@@ -43,6 +43,9 @@ function sectionTitle(suggestions: FieldSuggestion[]) {
   if (sources.size === 1 && sources.has('Interest Form Leads')) {
     return 'Interest form updates';
   }
+  if (sources.size === 1 && sources.has('Member app')) {
+    return 'Member app updates';
+  }
   return 'Suggested updates';
 }
 
@@ -81,7 +84,7 @@ function subtitleForSuggestions(
 export function LeadDataSuggestionsCard({ leadId, suggestions, onUpdated }: LeadDataSuggestionsCardProps) {
   const [pending, startTransition] = useTransition();
 
-  const externalSuggestions = suggestions.filter((s) => s.source !== 'manual_intake');
+  const externalSuggestions = suggestions.filter((s) => s.source !== 'manual_intake' && s.source !== 'member_profile');
 
   if (externalSuggestions.length === 0) {
     return null;
