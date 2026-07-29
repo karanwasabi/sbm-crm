@@ -2501,8 +2501,18 @@ export type CohortPushBroadcastResult = CohortPushBroadcastPreview & {
   staleRemoved: number;
 };
 
-export async function getCohortPushBroadcastPreview(cohortId: string): Promise<CohortPushBroadcastPreview> {
-  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast/preview`);
+export async function getCohortPushBroadcastPreview(
+  cohortId: string,
+  userIds?: string[]
+): Promise<CohortPushBroadcastPreview> {
+  const response =
+    userIds && userIds.length > 0
+      ? await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast/preview`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_ids: userIds }),
+        })
+      : await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast/preview`);
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to load push broadcast preview.', response.status);
@@ -2523,12 +2533,16 @@ export async function getCohortPushBroadcastPreview(cohortId: string): Promise<C
 
 export async function sendCohortPushBroadcast(
   cohortId: string,
-  input: { title: string; body: string }
+  input: { title: string; body: string; userIds?: string[] }
 ): Promise<CohortPushBroadcastResult> {
   const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ title: input.title, body: input.body }),
+    body: JSON.stringify({
+      title: input.title,
+      body: input.body,
+      ...(input.userIds && input.userIds.length > 0 ? { user_ids: input.userIds } : {}),
+    }),
   });
   const payload = (await response.json().catch(() => null)) as {
     error?: string;

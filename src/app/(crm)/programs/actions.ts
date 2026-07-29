@@ -102,10 +102,11 @@ export async function assignCohortCoachAction(cohortId: string, enrollmentIds: s
 }
 
 export async function getCohortPushBroadcastPreviewAction(
-  cohortId: string
+  cohortId: string,
+  userIds?: string[]
 ): Promise<{ preview: CohortPushBroadcastPreview | null; error: string | null }> {
   try {
-    const preview = await getCohortPushBroadcastPreview(cohortId);
+    const preview = await getCohortPushBroadcastPreview(cohortId, userIds);
     return { preview, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load push broadcast preview.';
@@ -115,7 +116,7 @@ export async function getCohortPushBroadcastPreviewAction(
 
 export async function sendCohortPushBroadcastAction(
   cohortId: string,
-  input: { title: string; body: string }
+  input: { title: string; body: string; userIds?: string[] }
 ): Promise<{ result: CohortPushBroadcastResult | null; error: string | null }> {
   try {
     const result = await sendCohortPushBroadcast(cohortId, input);

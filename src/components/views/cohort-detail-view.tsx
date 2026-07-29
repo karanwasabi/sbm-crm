@@ -1823,10 +1823,13 @@ export function CohortDetailView({
               Assign coach
             </Button>
             <CohortBulkSendButton
+              cohortId={cohort.id}
+              cohortName={cohort.name}
               members={members}
               selectedEnrollmentIds={selectedList}
               emailTemplates={emailTemplates}
               whatsappTemplates={whatsappTemplates}
+              showPush={isSuperadmin}
             />
             <CohortExportButton
               members={members}

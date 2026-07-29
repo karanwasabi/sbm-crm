@@ -1,29 +1,38 @@
 'use client';
 
-import { Mail, MessageCircle } from 'lucide-react';
+import { Bell, Mail, MessageCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { BulkSendEmailDialog } from '@/components/comms/bulk-send-email-dialog';
 import { BulkSendWhatsAppDialog } from '@/components/comms/bulk-send-whatsapp-dialog';
+import { CohortPushSendDialog } from '@/components/programs/cohort-push-send-dialog';
 import { Button } from '@/components/ui/button';
 import type { CohortMember } from '@/types/crm';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 
 type CohortBulkSendButtonProps = {
+  cohortId: string;
+  cohortName: string;
   members: CohortMember[];
   selectedEnrollmentIds: string[];
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  showPush?: boolean;
 };
 
 export function CohortBulkSendButton({
+  cohortId,
+  cohortName,
   members,
   selectedEnrollmentIds,
   emailTemplates,
   whatsappTemplates,
+  showPush = false,
 }: CohortBulkSendButtonProps) {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
+  const [pushDialogOpen, setPushDialogOpen] = useState(false);
   const [leadIds, setLeadIds] = useState<string[]>([]);
+  const [userIds, setUserIds] = useState<string[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
 
   const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
@@ -57,11 +66,27 @@ export function CohortBulkSendButton({
     return { ids, missing };
   }, [memberByEnrollment, selectedEnrollmentIds]);
 
+  const selectedUserIds = useMemo(() => {
+    const ids: string[] = [];
+    const seen = new Set<string>();
+
+    for (const enrollmentId of selectedEnrollmentIds) {
+      const member = memberByEnrollment.get(enrollmentId);
+      const userId = member?.userId?.trim();
+      if (!userId || seen.has(userId)) continue;
+      seen.add(userId);
+      ids.push(userId);
+    }
+
+    return ids;
+  }, [memberByEnrollment, selectedEnrollmentIds]);
+
   useEffect(() => {
     setNotice(null);
   }, [selectedEnrollmentIds]);
 
   const isDisabled = selectedEnrollmentIds.length === 0 || selectedLeadIds.ids.length === 0;
+  const pushDisabled = selectedEnrollmentIds.length === 0 || selectedUserIds.length === 0;
 
   const handleClick = (channel: 'email' | 'whatsapp') => {
     if (isDisabled) return;
@@ -82,6 +107,12 @@ export function CohortBulkSendButton({
     } else {
       setWhatsappDialogOpen(true);
     }
+  };
+
+  const handlePushClick = () => {
+    if (pushDisabled) return;
+    setUserIds(selectedUserIds);
+    setPushDialogOpen(true);
   };
 
   return (
@@ -107,6 +138,18 @@ export function CohortBulkSendButton({
         >
           Send WhatsApp
         </Button>
+        {showPush ? (
+          <Button
+            type="button"
+            variant="light"
+            size="sm"
+            leftIcon={<Bell className="h-3.5 w-3.5" />}
+            disabled={pushDisabled}
+            onClick={handlePushClick}
+          >
+            Send push
+          </Button>
+        ) : null}
       </div>
 
       {notice ? <p className="max-w-xs text-right text-xs text-amber-700">{notice}</p> : null}
@@ -124,6 +167,16 @@ export function CohortBulkSendButton({
         leadIds={leadIds}
         templates={activeWhatsappTemplates}
       />
+
+      {showPush ? (
+        <CohortPushSendDialog
+          cohortId={cohortId}
+          cohortName={cohortName}
+          userIds={userIds}
+          open={pushDialogOpen}
+          onClose={() => setPushDialogOpen(false)}
+        />
+      ) : null}
     </div>
   );
 }
