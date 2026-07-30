@@ -254,6 +254,7 @@ export type LeadDetail = Lead & {
   manualIntakeRecords: ManualIntakeRecord[];
   timeline: TimelineEvent[];
   coachName?: string | null;
+  cohortId?: string | null;
 };
 
 export type MembershipTransferMatch = 'none' | 'lead_only' | 'user_only' | 'lead_and_user';
@@ -365,6 +366,7 @@ export type ContactProfile = {
   programs?: number;
   loggingPct?: number;
   coachName?: string | null;
+  cohortId?: string | null;
 };
 
 export type StaffUser = {

@@ -11,9 +11,10 @@ import type { LeadDetail, TagSuggestion } from '@/types/crm';
 type LeadTagsCardProps = {
   lead: LeadDetail;
   suggestions: TagSuggestion[];
+  embedded?: boolean;
 };
 
-export function LeadTagsCard({ lead, suggestions }: LeadTagsCardProps) {
+export function LeadTagsCard({ lead, suggestions, embedded = false }: LeadTagsCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
@@ -50,25 +51,43 @@ export function LeadTagsCard({ lead, suggestions }: LeadTagsCardProps) {
     });
   };
 
-  return (
-    <Card padding="sm" className="overflow-visible border-slate-100/80 shadow-none">
-      <p className="mb-2 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Tags</p>
-
-      <LeadTagEditor
-        systemTags={systemTags}
-        manualTags={displayManualTags}
-        suggestions={suggestions}
-        disabled={pending}
-        saving={pending && pendingAddSlugs.length > 0}
-        skeletonSlugs={pendingAddSlugs}
-        onError={setError}
-        onManualTagsChange={(next) => {
-          const added = next.length > lead.manualTags.length;
-          persistTags(next, added ? 'Tag added' : 'Tag removed');
-        }}
-      />
+  const content = (
+    <>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <p className="shrink-0 text-[11px] font-semibold tracking-wide text-slate-400 uppercase">Tags</p>
+        <div className="min-w-0 flex-1">
+          <LeadTagEditor
+            systemTags={systemTags}
+            manualTags={displayManualTags}
+            suggestions={suggestions}
+            disabled={pending}
+            saving={pending && pendingAddSlugs.length > 0}
+            skeletonSlugs={pendingAddSlugs}
+            tone={embedded ? 'profile' : 'default'}
+            onError={setError}
+            onManualTagsChange={(next) => {
+              const added = next.length > lead.manualTags.length;
+              persistTags(next, added ? 'Tag added' : 'Tag removed');
+            }}
+          />
+        </div>
+      </div>
 
       {error ? <p className="mt-2 text-[11px] text-danger-press">{error}</p> : null}
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <div className="overflow-visible rounded-b-[22px] bg-linear-to-b from-white via-[#FAFAFA] to-[#F5F5F5] px-4 py-3 sm:px-5">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <Card padding="sm" className="overflow-visible border-slate-100/80 shadow-none">
+      {content}
     </Card>
   );
 }

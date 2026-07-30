@@ -148,6 +148,7 @@ export function CommunicationsView({
   const isAutomations = section === 'automations';
   const channel = isAutomations ? 'email' : section;
   const isWhatsApp = channel === 'whatsapp';
+  const canSyncWhatsAppTemplates = whatsappFlags?.sendsEnabled ?? false;
   const canManageWhatsAppTemplates = whatsappFlags?.templatesEnabled ?? false;
 
   const selectChannelTab = (nextChannel: CommsChannel, nextTab: CommsChannelTab) => {
@@ -267,7 +268,7 @@ export function CommunicationsView({
                 </Button>
               ) : tab === 'templates' ? (
                 <div className="flex flex-wrap items-center gap-2">
-                  {isWhatsApp && canManageWhatsAppTemplates ? (
+                  {isWhatsApp && canSyncWhatsAppTemplates ? (
                     <Button
                       variant="light"
                       size="sm"
@@ -328,9 +329,11 @@ export function CommunicationsView({
                 {templates.length === 0 ? (
                   <p className="text-sm text-slate-500">
                     No templates yet.
-                    {isWhatsApp && !canManageWhatsAppTemplates
-                      ? ' Templates synced from production will appear here when sends are enabled.'
-                      : ` Create your first ${isWhatsApp ? 'WhatsApp' : 'email'} template.`}
+                    {isWhatsApp && !canSyncWhatsAppTemplates
+                      ? ' Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'
+                      : isWhatsApp
+                        ? ' Use Sync from Convonite to import templates.'
+                        : ' Create your first email template.'}
                   </p>
                 ) : isWhatsApp ? (
                   (templates as WhatsAppTemplate[]).map((template) => (

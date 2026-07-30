@@ -244,6 +244,7 @@ type ApiLeadResponse = {
   can_offline_enroll?: boolean;
   can_transfer_membership?: boolean;
   coach_name?: string | null;
+  cohort_id?: string | null;
   payment_pending?: {
     checkout_session_id: string;
     program_name: string;
@@ -856,6 +857,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     manualIntakeRecords: row.manual_intake_records ? mapManualIntakeRecords(row.manual_intake_records) : [],
     timeline: row.timeline ? mapTimelineEvents(row.timeline) : [],
     coachName: row.coach_name?.trim() || null,
+    cohortId: row.cohort_id?.trim() || null,
   };
 }
 

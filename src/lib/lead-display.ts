@@ -60,6 +60,7 @@ export function leadDetailToContactProfile(
     marketingContactSyncedAt: lead.marketingContactSyncedAt,
     marketingUnsubscribedAt: lead.marketingUnsubscribedAt,
     coachName: lead.coachName ?? null,
+    cohortId: lead.cohortId ?? null,
   };
 }
 

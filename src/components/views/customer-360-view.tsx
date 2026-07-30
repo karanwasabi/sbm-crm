@@ -277,42 +277,46 @@ export function Customer360View({
 
   return (
     <CrmPageLayout>
-      <ProfileHeader
-        contact={contact}
-        memberKind={lead.memberKind}
-        onLogCall={() => setCallModalOpen(true)}
-        onSendEmail={
-          emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
-        }
-        sendWhatsApp={{
-          onClick: () => setSendWhatsAppOpen(true),
-          disabled: sendWhatsAppState.disabled,
-          disabledReason: sendWhatsAppState.disabledReason,
-        }}
-        onOpenConvonite={contact.phone ? handleOpenConvonite : undefined}
-        onPurge={() => setPurgeOpen(true)}
-        onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
-        onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
-        onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
-        onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
-        onMarkRenewal={
-          canSyncPayment && lead.memberKind !== 'renewal' ? () => handleSetMemberKind('renewal') : undefined
-        }
-        onMarkReturnee={
-          canSyncPayment && lead.memberKind !== 'returnee' ? () => handleSetMemberKind('returnee') : undefined
-        }
-        onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
-        onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
-        onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
-        onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
-        onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
-        onViewCheckIns={canSyncPayment && lead.memberUserId != null ? () => setCheckInsOpen(true) : undefined}
-        onCorrectHeight={canSyncPayment && lead.memberUserId != null ? () => setCorrectHeightOpen(true) : undefined}
-        onEditTimezone={canSyncPayment && lead.memberUserId != null ? () => setEditTimezoneOpen(true) : undefined}
-        onResetOnboardingPointA={
-          canSyncPayment && lead.memberUserId != null ? () => setResetOnboardingPointAOpen(true) : undefined
-        }
-      />
+      <div className="rounded-[22px] shadow-[0_10px_24px_-8px_rgba(92,101,207,0.18)]">
+        <ProfileHeader
+          className="rounded-b-none shadow-none"
+          contact={contact}
+          memberKind={lead.memberKind}
+          onLogCall={() => setCallModalOpen(true)}
+          onSendEmail={
+            emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
+          }
+          sendWhatsApp={{
+            onClick: () => setSendWhatsAppOpen(true),
+            disabled: sendWhatsAppState.disabled,
+            disabledReason: sendWhatsAppState.disabledReason,
+          }}
+          onOpenConvonite={contact.phone ? handleOpenConvonite : undefined}
+          onPurge={() => setPurgeOpen(true)}
+          onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
+          onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
+          onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
+          onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
+          onMarkRenewal={
+            canSyncPayment && lead.memberKind !== 'renewal' ? () => handleSetMemberKind('renewal') : undefined
+          }
+          onMarkReturnee={
+            canSyncPayment && lead.memberKind !== 'returnee' ? () => handleSetMemberKind('returnee') : undefined
+          }
+          onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
+          onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
+          onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
+          onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
+          onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
+          onViewCheckIns={canSyncPayment && lead.memberUserId != null ? () => setCheckInsOpen(true) : undefined}
+          onCorrectHeight={canSyncPayment && lead.memberUserId != null ? () => setCorrectHeightOpen(true) : undefined}
+          onEditTimezone={canSyncPayment && lead.memberUserId != null ? () => setEditTimezoneOpen(true) : undefined}
+          onResetOnboardingPointA={
+            canSyncPayment && lead.memberUserId != null ? () => setResetOnboardingPointAOpen(true) : undefined
+          }
+        />
+        <LeadTagsCard lead={lead} suggestions={tagSuggestions} embedded />
+      </div>
       {lead.paymentPending ? (
         <PaymentPendingBanner
           paymentPending={lead.paymentPending}
@@ -321,7 +325,6 @@ export function Customer360View({
         />
       ) : null}
       <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
-      <LeadTagsCard lead={lead} suggestions={tagSuggestions} />
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',

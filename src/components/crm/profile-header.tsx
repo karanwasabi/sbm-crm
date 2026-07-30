@@ -1,15 +1,20 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { Calendar, Globe, Mail, MessageCircle, Phone, Star, UserRound } from 'lucide-react';
+import Link from 'next/link';
+import { Mail, Phone, Star } from 'lucide-react';
 import { formatActivityTimestamp } from '@/lib/datetime-display';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { MARKETING_CONTACT_STATUS_LABELS } from '@/lib/email-template-types';
+import { ConvoniteIcon } from '@/components/icons/convonite-icon';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { ProfileOverflowMenu } from '@/components/crm/profile-overflow-menu';
 import { MemberKindPill } from '@/components/ui/member-kind-pill';
 import { Avatar } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import { StagePill } from '@/components/ui/stage-pill';
+import { TCButton } from '@/components/ui/tc-button';
+import { useToast } from '@/components/ui/toast';
+import { cohortCardHref } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import { leadHasTag } from '@/lib/lead-tags';
 import type { ContactProfile } from '@/types/crm';
@@ -43,19 +48,80 @@ type ProfileHeaderProps = {
   onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
   memberKind?: 'renewal' | 'returnee' | null;
+  className?: string;
 };
 
 const HEADER_PILL_CLASS =
-  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.25 text-[10px] font-bold tracking-wide normal-case';
+  'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold tracking-wide normal-case';
 
-function HeaderMetaPill({ children, className, title }: { children: ReactNode; className?: string; title?: string }) {
+function HeaderMetaPill({
+  children,
+  className,
+  title,
+  href,
+}: {
+  children: ReactNode;
+  className?: string;
+  title?: string;
+  href?: string;
+}) {
+  const classes = cn('border-b-2 border-black/22 bg-black/18 text-white', HEADER_PILL_CLASS, className);
+
+  if (href) {
+    return (
+      <Link href={href} title={title} className={cn(classes, 'no-underline transition-colors hover:bg-black/28')}>
+        {children}
+      </Link>
+    );
+  }
+
   return (
-    <span
-      title={title}
-      className={cn('border-b-2 border-black/22 bg-black/18 text-white', HEADER_PILL_CLASS, className)}
-    >
+    <span title={title} className={classes}>
       {children}
     </span>
+  );
+}
+
+function ProfileDetailField({
+  label,
+  children,
+  copyValue,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  copyValue?: string;
+  className?: string;
+}) {
+  const { toast } = useToast();
+
+  const copy = async () => {
+    if (!copyValue?.trim()) return;
+    try {
+      await navigator.clipboard.writeText(copyValue);
+      toast({ message: `Copied ${label.toLowerCase()}`, variant: 'success' });
+    } catch {
+      toast({ message: `Could not copy ${label.toLowerCase()}`, variant: 'error' });
+    }
+  };
+
+  const valueClass = 'mt-0.5 truncate text-[12.5px] leading-snug font-semibold text-white';
+
+  return (
+    <div className={cn('min-w-0', className)}>
+      <div className="text-[10px] font-bold tracking-[0.08em] text-white/55 uppercase">{label}</div>
+      {copyValue ? (
+        <button
+          type="button"
+          onClick={copy}
+          className={cn(valueClass, 'block w-full cursor-pointer text-left hover:underline')}
+        >
+          {children}
+        </button>
+      ) : (
+        <div className={valueClass}>{children}</div>
+      )}
+    </div>
   );
 }
 
@@ -93,173 +159,162 @@ export function ProfileHeader({
   onEditTimezone,
   onResetOnboardingPointA,
   memberKind = null,
+  className,
 }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
-  const showMemberStats = contact.isMember && contact.clv != null;
+  const showCommunicate = (contact.stage !== 'lost' && onLogCall) || onSendEmail || sendWhatsApp || onOpenConvonite;
+  const hasOverflowMenu = Boolean(
+    onPurge ||
+    onEnroll ||
+    onTransferMembership ||
+    onSyncPayment ||
+    onMarkPaidOffline ||
+    onMarkRenewal ||
+    onMarkReturnee ||
+    onClearMemberKind ||
+    onSetPassword ||
+    onVerifyEmail ||
+    onForceNutritionRecalc ||
+    onCorrectWeights ||
+    onViewCheckIns ||
+    onCorrectHeight ||
+    onEditTimezone ||
+    onResetOnboardingPointA
+  );
 
   return (
-    <div className="relative rounded-[28px] border-b-[6px] border-[#4149AA] bg-linear-to-br from-brand from-0% via-[#6A71E6] via-55% to-brand-press to-100% px-6 py-6 text-white shadow-[0_12px_30px_-8px_rgba(92,101,207,0.30)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
-        <div className="absolute -top-12 -right-8 h-60 w-60 rounded-full bg-white/18 blur-[36px]" />
-      </div>
-      <div className="relative z-1 flex items-center gap-5.5">
-        <Avatar initials={contact.initials} size="lg" tone="white" className="shrink-0" />
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-3">
-            <h2 className="text-[26px] font-extrabold tracking-tight">{contact.name}</h2>
-            <StagePill stage={contact.stage} className="tracking-wide normal-case" />
-            {memberKind === 'renewal' || memberKind === 'returnee' ? <MemberKindPill kind={memberKind} /> : null}
-            <HeaderMetaPill title={marketingContactTitle(contact, displayTimezone)}>
-              Marketing:{' '}
-              {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
-            </HeaderMetaPill>
-            {contact.batch && contact.batch !== '—' ? (
-              <HeaderMetaPill>
-                {contact.stage === 'transferred' ? `${contact.batch} · Transferred` : contact.batch}
-              </HeaderMetaPill>
-            ) : null}
-            {leadHasTag(contact.tags, 'vip') ? (
-              <span className={cn('border-b-2 border-[#C28C00] bg-motivation text-slate-900', HEADER_PILL_CLASS)}>
-                <Star className="h-2.75 w-2.75 fill-slate-900" />
-                VIP
-              </span>
-            ) : null}
-            {!contact.isMember ? <HeaderMetaPill>Not a member yet</HeaderMetaPill> : null}
-          </div>
-          <div className="mt-2.5 flex flex-wrap gap-5.5 text-xs opacity-92">
-            <span className="inline-flex items-center gap-1.5">
-              <Mail className="h-3 w-3" />
-              {contact.email}
-            </span>
-            {contact.phone && (
-              <a
-                href={`tel:${contact.phone}`}
-                className="inline-flex items-center gap-1.5 font-semibold text-white no-underline"
-              >
-                <Phone className="h-3 w-3" />
-                {contact.phone}
-              </a>
-            )}
-            {contact.location && contact.location !== '—' && (
-              <span className="inline-flex items-center gap-1.5">
-                <Globe className="h-3 w-3" />
-                {contact.location}
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1.5">
-              <Calendar className="h-3 w-3" />
-              Added {contact.joinedAt}
-            </span>
-            {contact.manualSourceLabel && (
-              <span className="inline-flex items-center gap-1.5">Source · {contact.manualSourceLabel}</span>
-            )}
-            {contact.coachName ? (
-              <span className="inline-flex items-center gap-1.5">
-                <UserRound className="h-3 w-3" />
-                Coach · {contact.coachName}
-              </span>
-            ) : null}
-          </div>
-          {showMemberStats && (
-            <div className="mt-3.5 inline-flex items-center gap-4.5 rounded-2xl border-b-2 border-black/22 bg-black/16 px-4.5 py-3">
-              <div>
-                <div className="text-[22px] font-extrabold">{contact.clv}</div>
-                <div className="text-[9px] tracking-[0.16em] uppercase opacity-80">Lifetime value</div>
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-[22px] border-b-[5px] border-[#4149AA] bg-linear-to-br from-brand from-0% via-[#6A71E6] via-55% to-brand-press to-100% text-white shadow-[0_8px_20px_-8px_rgba(92,101,207,0.25)]',
+        className
+      )}
+    >
+      <div className="relative z-1">
+        <div className="px-4 py-3.5 sm:px-5">
+          <div className="grid grid-cols-[3rem_1fr] items-center gap-x-3">
+            <Avatar
+              initials={contact.initials}
+              size="md"
+              tone="white"
+              className="col-start-1 h-12 w-12 border-2 border-white/35 text-sm"
+            />
+
+            <div className="col-start-2 flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1.5">
+                <h2 className="shrink-0 text-xl leading-tight font-extrabold tracking-tight">{contact.name}</h2>
+                <StagePill stage={contact.stage} className="tracking-wide normal-case" />
+                {memberKind === 'renewal' || memberKind === 'returnee' ? <MemberKindPill kind={memberKind} /> : null}
+                <HeaderMetaPill title={marketingContactTitle(contact, displayTimezone)}>
+                  Marketing:{' '}
+                  {MARKETING_CONTACT_STATUS_LABELS[contact.marketingContactStatus] ?? contact.marketingContactStatus}
+                </HeaderMetaPill>
+                {contact.batch && contact.batch !== '—' ? (
+                  <HeaderMetaPill
+                    href={contact.cohortId ? cohortCardHref(contact.cohortId) : undefined}
+                    title={contact.cohortId ? 'Open cohort program management' : undefined}
+                  >
+                    Cohort: {contact.stage === 'transferred' ? `${contact.batch} · Transferred` : contact.batch}
+                  </HeaderMetaPill>
+                ) : null}
+                {leadHasTag(contact.tags, 'vip') ? (
+                  <span className={cn('border-b-2 border-[#C28C00] bg-motivation text-slate-900', HEADER_PILL_CLASS)}>
+                    <Star className="h-2.5 w-2.5 fill-slate-900" />
+                    VIP
+                  </span>
+                ) : null}
+                {!contact.isMember ? <HeaderMetaPill>Not a member yet</HeaderMetaPill> : null}
               </div>
-              <div className="h-7.5 w-px bg-white/25" />
-              <div>
-                <div className="text-[22px] font-extrabold">{contact.programs}</div>
-                <div className="text-[9px] tracking-[0.16em] uppercase opacity-80">Programs</div>
-              </div>
-              <div className="h-7.5 w-px bg-white/25" />
-              <div>
-                <div className="text-[22px] font-extrabold">{contact.loggingPct}%</div>
-                <div className="text-[9px] tracking-[0.16em] uppercase opacity-80">Logging</div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {showCommunicate ? (
+                  <>
+                    {contact.stage !== 'lost' && onLogCall ? (
+                      <TCButton gradient="call" leftIcon={<Phone className="h-3.5 w-3.5" />} onClick={onLogCall}>
+                        Log Call
+                      </TCButton>
+                    ) : null}
+                    {onSendEmail ? (
+                      <TCButton gradient="email" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={onSendEmail}>
+                        Send Email
+                      </TCButton>
+                    ) : null}
+                    {sendWhatsApp ? (
+                      <span
+                        title={sendWhatsApp.disabled ? sendWhatsApp.disabledReason : undefined}
+                        className="inline-flex"
+                      >
+                        <TCButton
+                          gradient="whatsapp"
+                          leftIcon={<WhatsAppIcon />}
+                          onClick={sendWhatsApp.onClick}
+                          disabled={sendWhatsApp.disabled}
+                        >
+                          Send WhatsApp
+                        </TCButton>
+                      </span>
+                    ) : null}
+                    {onOpenConvonite ? (
+                      <TCButton
+                        gradient="convonite"
+                        leftIcon={<ConvoniteIcon />}
+                        onClick={onOpenConvonite}
+                        title="Open in Convonite"
+                      >
+                        Convonite
+                      </TCButton>
+                    ) : null}
+                  </>
+                ) : null}
+                {hasOverflowMenu ? (
+                  <ProfileOverflowMenu
+                    onPurge={onPurge}
+                    onEnroll={onEnroll}
+                    onTransferMembership={onTransferMembership}
+                    onSyncPayment={onSyncPayment}
+                    onMarkPaidOffline={onMarkPaidOffline}
+                    onMarkRenewal={onMarkRenewal}
+                    onMarkReturnee={onMarkReturnee}
+                    onClearMemberKind={onClearMemberKind}
+                    onSetPassword={onSetPassword}
+                    onVerifyEmail={onVerifyEmail}
+                    onForceNutritionRecalc={onForceNutritionRecalc}
+                    onCorrectWeights={onCorrectWeights}
+                    onViewCheckIns={onViewCheckIns}
+                    onCorrectHeight={onCorrectHeight}
+                    onEditTimezone={onEditTimezone}
+                    onResetOnboardingPointA={onResetOnboardingPointA}
+                  />
+                ) : null}
               </div>
             </div>
-          )}
+          </div>
         </div>
-        <div className="relative z-10 flex shrink-0 flex-nowrap items-center justify-end gap-2">
-          {contact.phone && (
-            <Button
-              variant="light"
-              size="sm"
-              leftIcon={<Phone className="h-3.5 w-3.5" />}
-              onClick={() => {
-                window.location.href = `tel:${contact.phone}`;
-              }}
+
+        <div className="border-t border-white/12 bg-black/10 px-4 py-2.5 sm:px-5">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 xl:grid-cols-6 xl:gap-x-0">
+            <ProfileDetailField label="Email" copyValue={contact.email} className="xl:px-3 xl:first:pl-0">
+              {contact.email}
+            </ProfileDetailField>
+            <ProfileDetailField
+              label="Phone"
+              copyValue={contact.phone || undefined}
+              className="xl:border-l xl:border-white/10 xl:px-3"
             >
-              Call
-            </Button>
-          )}
-          {contact.stage !== 'lost' && (
-            <Button variant="light" size="sm" onClick={onLogCall}>
-              Log call
-            </Button>
-          )}
-          {onSendEmail ? (
-            <Button variant="light" size="sm" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={onSendEmail}>
-              Send email
-            </Button>
-          ) : null}
-          {sendWhatsApp ? (
-            <span title={sendWhatsApp.disabled ? sendWhatsApp.disabledReason : undefined} className="inline-flex">
-              <Button
-                variant="light"
-                size="sm"
-                leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
-                onClick={sendWhatsApp.onClick}
-                disabled={sendWhatsApp.disabled}
-              >
-                Send WhatsApp
-              </Button>
-            </span>
-          ) : null}
-          {onOpenConvonite ? (
-            <Button
-              variant="light"
-              size="sm"
-              leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
-              onClick={onOpenConvonite}
-            >
-              Open in Convonite
-            </Button>
-          ) : null}
-          {onPurge ||
-          onEnroll ||
-          onTransferMembership ||
-          onSyncPayment ||
-          onMarkPaidOffline ||
-          onMarkRenewal ||
-          onMarkReturnee ||
-          onClearMemberKind ||
-          onSetPassword ||
-          onVerifyEmail ||
-          onForceNutritionRecalc ||
-          onCorrectWeights ||
-          onViewCheckIns ||
-          onCorrectHeight ||
-          onEditTimezone ||
-          onResetOnboardingPointA ? (
-            <ProfileOverflowMenu
-              onPurge={onPurge}
-              onEnroll={onEnroll}
-              onTransferMembership={onTransferMembership}
-              onSyncPayment={onSyncPayment}
-              onMarkPaidOffline={onMarkPaidOffline}
-              onMarkRenewal={onMarkRenewal}
-              onMarkReturnee={onMarkReturnee}
-              onClearMemberKind={onClearMemberKind}
-              onSetPassword={onSetPassword}
-              onVerifyEmail={onVerifyEmail}
-              onForceNutritionRecalc={onForceNutritionRecalc}
-              onCorrectWeights={onCorrectWeights}
-              onViewCheckIns={onViewCheckIns}
-              onCorrectHeight={onCorrectHeight}
-              onEditTimezone={onEditTimezone}
-              onResetOnboardingPointA={onResetOnboardingPointA}
-            />
-          ) : null}
+              {contact.phone || '—'}
+            </ProfileDetailField>
+            <ProfileDetailField label="Location" className="xl:border-l xl:border-white/10 xl:px-3">
+              {contact.location && contact.location !== '—' ? contact.location : '—'}
+            </ProfileDetailField>
+            <ProfileDetailField label="Added" className="xl:border-l xl:border-white/10 xl:px-3">
+              {contact.joinedAt}
+            </ProfileDetailField>
+            <ProfileDetailField label="Source" className="xl:border-l xl:border-white/10 xl:px-3">
+              {contact.manualSourceLabel || '—'}
+            </ProfileDetailField>
+            <ProfileDetailField label="Coach" className="xl:border-l xl:border-white/10 xl:px-3 xl:last:pr-0">
+              {contact.coachName ?? '—'}
+            </ProfileDetailField>
+          </div>
         </div>
       </div>
     </div>

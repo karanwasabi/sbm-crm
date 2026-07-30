@@ -1,7 +1,8 @@
 'use client';
 
 import { Lock, Plus, X } from 'lucide-react';
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Skeleton } from '@/components/loading/skeleton';
 import { cn } from '@/lib/cn';
 import { filterAndRankBySearch } from '@/lib/search-match';
@@ -17,30 +18,47 @@ export function TagChip({
   locked,
   onRemove,
   disabled,
+  tone = 'default',
 }: {
   label: string;
   locked?: boolean;
   onRemove?: () => void;
   disabled?: boolean;
+  tone?: 'default' | 'profile';
 }) {
   if (locked) {
     return (
       <span
-        className="inline-flex items-center gap-1 rounded-full bg-slate-100/80 px-2.5 py-1 text-xs font-medium text-slate-600"
+        className={cn(
+          'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium',
+          tone === 'profile' ? 'border border-brand/25 bg-brand/12 text-brand-press' : 'bg-slate-100/80 text-slate-600'
+        )}
         title="System tag"
       >
-        <Lock className="h-3 w-3 text-slate-400" aria-hidden />
+        <Lock className={cn('h-3 w-3', tone === 'profile' ? 'text-brand/60' : 'text-slate-400')} aria-hidden />
         {label}
       </span>
     );
   }
 
   return (
-    <span className="group inline-flex items-center rounded-full border border-slate-200/90 bg-white pl-2.5 text-xs font-medium text-slate-700">
+    <span
+      className={cn(
+        'group inline-flex items-center rounded-full pl-2.5 text-xs font-medium',
+        tone === 'profile'
+          ? 'border border-brand-press/80 bg-brand text-white'
+          : 'border border-slate-200/90 bg-white text-slate-700'
+      )}
+    >
       {label}
       <button
         type="button"
-        className="ml-0.5 rounded-full p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 disabled:opacity-40"
+        className={cn(
+          'ml-0.5 rounded-full p-1 transition-colors disabled:opacity-40',
+          tone === 'profile'
+            ? 'text-white/70 hover:bg-white/15 hover:text-white'
+            : 'text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+        )}
         onClick={onRemove}
         disabled={disabled}
         aria-label={`Remove ${label}`}
@@ -61,6 +79,7 @@ type LeadTagEditorProps = {
   onError?: (message: string | null) => void;
   skeletonSlugs?: string[];
   saving?: boolean;
+  tone?: 'default' | 'profile';
 };
 
 export function LeadTagEditor({
@@ -73,12 +92,16 @@ export function LeadTagEditor({
   onError,
   skeletonSlugs = [],
   saving = false,
+  tone = 'default',
 }: LeadTagEditorProps) {
   const listboxId = useId();
   const [draft, setDraft] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [mounted, setMounted] = useState(false);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number; width: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const suggestionLabels = useMemo(
     () => new Map(suggestions.map((item) => [item.slug, tagSlugToLabel(item.slug)])),
@@ -100,13 +123,45 @@ export function LeadTagEditor({
   const showMenu = open && !disabled && filteredSuggestions.length > 0;
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updateMenuPosition = useCallback(() => {
+    const anchor = rootRef.current;
+    if (!anchor) return;
+    const rect = anchor.getBoundingClientRect();
+    setMenuPosition({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  useEffect(() => {
     setActiveIndex(0);
   }, [draft, open]);
 
   useEffect(() => {
+    if (!showMenu) {
+      setMenuPosition(null);
+      return;
+    }
+
+    updateMenuPosition();
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [showMenu, updateMenuPosition]);
+
+  useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (rootRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     document.addEventListener('pointerdown', onPointerDown);
     return () => document.removeEventListener('pointerdown', onPointerDown);
@@ -146,7 +201,7 @@ export function LeadTagEditor({
       )}
     >
       {systemTags.map((slug) => (
-        <TagChip key={`system-${slug}`} label={suggestionLabels.get(slug) ?? tagSlugToLabel(slug)} locked />
+        <TagChip key={`system-${slug}`} label={suggestionLabels.get(slug) ?? tagSlugToLabel(slug)} locked tone={tone} />
       ))}
 
       {manualTags.map((slug) =>
@@ -158,6 +213,7 @@ export function LeadTagEditor({
             label={suggestionLabels.get(slug) ?? tagSlugToLabel(slug)}
             onRemove={() => removeTag(slug)}
             disabled={disabled}
+            tone={tone}
           />
         )
       )}
@@ -168,9 +224,11 @@ export function LeadTagEditor({
         ) : (
           <div
             className={cn(
-              'flex items-center gap-1.5 rounded-full border border-dashed border-slate-200 px-2.5 py-1 transition-colors',
-              'focus-within:border-brand/35 focus-within:bg-brand/3',
-              showMenu && 'border-brand/35 bg-brand/3',
+              'flex items-center gap-1.5 rounded-full border border-dashed px-2.5 py-1 transition-colors',
+              tone === 'profile'
+                ? 'border-brand/35 bg-brand/5 focus-within:border-brand/50 focus-within:bg-brand/8'
+                : 'border-slate-200 focus-within:border-brand/35 focus-within:bg-brand/3',
+              showMenu && (tone === 'profile' ? 'border-brand/50 bg-brand/8' : 'border-brand/35 bg-brand/3'),
               disabled && 'opacity-50'
             )}
           >
@@ -224,31 +282,42 @@ export function LeadTagEditor({
           </div>
         )}
 
-        {showMenu ? (
-          <div
-            id={listboxId}
-            role="listbox"
-            className="absolute top-[calc(100%+0.25rem)] left-0 z-80 w-28 overflow-hidden rounded-lg border border-slate-200 bg-white py-0.5 shadow-md sm:w-32"
-          >
-            {filteredSuggestions.map((item, index) => (
-              <button
-                key={item.slug}
-                type="button"
-                role="option"
-                aria-selected={index === activeIndex}
-                className={cn(
-                  'block w-full truncate px-2.5 py-1.5 text-left text-xs whitespace-nowrap transition-colors',
-                  index === activeIndex ? 'bg-brand/8 font-medium text-brand' : 'text-slate-700 hover:bg-slate-50'
-                )}
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => addTagBySlug(item.slug)}
-                onMouseEnter={() => setActiveIndex(index)}
+        {showMenu && menuPosition && mounted
+          ? createPortal(
+              <div
+                ref={menuRef}
+                id={listboxId}
+                role="listbox"
+                style={{
+                  position: 'fixed',
+                  top: menuPosition.top,
+                  left: menuPosition.left,
+                  width: menuPosition.width,
+                  zIndex: 200,
+                }}
+                className="overflow-hidden rounded-lg border border-slate-200 bg-white py-0.5 shadow-md"
               >
-                {tagSlugToLabel(item.slug)}
-              </button>
-            ))}
-          </div>
-        ) : null}
+                {filteredSuggestions.map((item, index) => (
+                  <button
+                    key={item.slug}
+                    type="button"
+                    role="option"
+                    aria-selected={index === activeIndex}
+                    className={cn(
+                      'block w-full truncate px-2.5 py-1.5 text-left text-xs whitespace-nowrap transition-colors',
+                      index === activeIndex ? 'bg-brand/8 font-medium text-brand' : 'text-slate-700 hover:bg-slate-50'
+                    )}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => addTagBySlug(item.slug)}
+                    onMouseEnter={() => setActiveIndex(index)}
+                  >
+                    {tagSlugToLabel(item.slug)}
+                  </button>
+                ))}
+              </div>,
+              document.body
+            )
+          : null}
       </div>
     </div>
   );
