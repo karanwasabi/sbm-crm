@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import { Send } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import {
   activateWhatsAppTemplateAction,
   deactivateWhatsAppTemplateAction,
@@ -257,7 +257,7 @@ export function WhatsAppTemplateEditor({ template = null, managementEnabled = tr
             </Field>
             <Button
               variant="primary"
-              leftIcon={<Send className="h-3.5 w-3.5" />}
+              leftIcon={<WhatsAppIcon />}
               loading={isPending}
               loadingLabel="Sending…"
               disabled={!testPhone.trim()}

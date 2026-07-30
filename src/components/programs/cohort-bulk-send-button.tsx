@@ -1,10 +1,11 @@
 'use client';
 
-import { Bell, Mail, MessageCircle } from 'lucide-react';
+import { Bell, Mail } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { BulkSendEmailDialog } from '@/components/comms/bulk-send-email-dialog';
 import { BulkSendWhatsAppDialog } from '@/components/comms/bulk-send-whatsapp-dialog';
 import { CohortPushSendDialog } from '@/components/programs/cohort-push-send-dialog';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import type { CohortMember } from '@/types/crm';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
@@ -132,7 +133,7 @@ export function CohortBulkSendButton({
           type="button"
           variant="light"
           size="sm"
-          leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+          leftIcon={<WhatsAppIcon />}
           disabled={isDisabled || activeWhatsappTemplates.length === 0}
           onClick={() => handleClick('whatsapp')}
         >

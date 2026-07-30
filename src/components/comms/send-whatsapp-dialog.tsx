@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Send } from 'lucide-react';
 import { sendLeadWhatsAppAction } from '@/app/(crm)/customers/actions';
+import { WhatsAppTemplateSelect } from '@/components/comms/whatsapp-template-select';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import type { WhatsAppTemplate } from '@/utils/api';
 
@@ -31,18 +32,13 @@ export function SendWhatsAppDialog({ open, onClose, leadId, templates, onSent }:
 
         <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
           Template
-          <select
-            className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800"
+          <WhatsAppTemplateSelect
+            templates={activeTemplates}
             value={templateId}
-            onChange={(e) => setTemplateId(e.target.value)}
-          >
-            {activeTemplates.length === 0 ? <option value="">No active templates</option> : null}
-            {activeTemplates.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name} ({template.category})
-              </option>
-            ))}
-          </select>
+            onChange={setTemplateId}
+            disabled={isPending}
+            emptyMessage="No active templates"
+          />
         </label>
 
         {error ? <p className="mt-3 text-sm font-medium text-danger-press">{error}</p> : null}
@@ -53,7 +49,7 @@ export function SendWhatsAppDialog({ open, onClose, leadId, templates, onSent }:
           </Button>
           <Button
             variant="primary"
-            leftIcon={<Send className="h-3.5 w-3.5" />}
+            leftIcon={<WhatsAppIcon />}
             loading={isPending}
             loadingLabel="Sending…"
             disabled={isPending || !templateId}

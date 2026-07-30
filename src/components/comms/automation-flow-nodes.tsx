@@ -1,7 +1,8 @@
 'use client';
 
 import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
-import { Clock, GitBranch, Mail, MessageCircle, Play, Square } from 'lucide-react';
+import { Clock, GitBranch, Mail, Play, Square } from 'lucide-react';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import type { AutomationConditionGroupData, AutomationNodeType, AutomationWaitData } from '@/lib/automation-types';
 import { useAutomationNodeValidation } from '@/components/comms/automation-validation-context';
 
@@ -116,7 +117,7 @@ function SendWhatsAppNode({ id, data, selected }: NodeProps<Node<BuilderNodeData
     >
       <Handle type="target" position={Position.Top} className="!bg-slate-400" />
       <div className="flex items-center gap-2 text-xs font-bold tracking-wide text-emerald-700 uppercase">
-        <MessageCircle className="h-3.5 w-3.5" />
+        <WhatsAppIcon />
         Send WhatsApp
       </div>
       <p className="mt-1 truncate text-sm font-semibold text-slate-800">{data.label}</p>

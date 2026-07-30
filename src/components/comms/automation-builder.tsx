@@ -53,6 +53,8 @@ import {
 } from '@/app/(crm)/communications/actions';
 import { AutomationConfirmDialog, type AutomationConfirmAction } from '@/components/comms/automation-confirm-dialog';
 import { AutomationBuilderSelect } from '@/components/comms/automation-builder-select';
+import { WhatsAppTemplateSelect } from '@/components/comms/whatsapp-template-select';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { automationFlowNodeTypes, type BuilderNodeData } from '@/components/comms/automation-flow-nodes';
 import type { AutomationValidationIssue } from '@/utils/api';
 import { AutomationValidationErrorsContext } from '@/components/comms/automation-validation-context';
@@ -225,6 +227,10 @@ export function AutomationBuilder({
       whatsappTemplates
         .filter((template) => template.status === 'active')
         .map((template) => ({ id: template.id, name: template.name })),
+    [whatsappTemplates]
+  );
+  const whatsappTemplatesForSelect = useMemo(
+    () => whatsappTemplates.filter((template) => template.status === 'active'),
     [whatsappTemplates]
   );
   const initialGraph = automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created');
@@ -791,7 +797,13 @@ export function AutomationBuilder({
               <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_email')}>
                 + Send email
               </Button>
-              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_whatsapp')}>
+              <Button
+                variant="light"
+                size="sm"
+                disabled={isGraphLocked}
+                leftIcon={<WhatsAppIcon />}
+                onClick={() => addNode('send_whatsapp')}
+              >
                 + Send WhatsApp
               </Button>
               <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('end')}>
@@ -844,7 +856,7 @@ export function AutomationBuilder({
               <NodeConfigPanel
                 node={selectedNode}
                 emailTemplates={emailActiveTemplates}
-                whatsappTemplates={whatsappActiveTemplates}
+                whatsappTemplatesForSelect={whatsappTemplatesForSelect}
                 tagSuggestions={tagSuggestions}
                 readOnly={isGraphLocked}
                 onChange={updateSelectedConfig}
@@ -896,14 +908,14 @@ export function AutomationBuilder({
 function NodeConfigPanel({
   node,
   emailTemplates,
-  whatsappTemplates,
+  whatsappTemplatesForSelect,
   tagSuggestions,
   readOnly = false,
   onChange,
 }: {
   node: Node<BuilderNodeData>;
   emailTemplates: BuilderTemplate[];
-  whatsappTemplates: BuilderTemplate[];
+  whatsappTemplatesForSelect: WhatsAppTemplate[];
   tagSuggestions: TagSuggestion[];
   readOnly?: boolean;
   onChange: (config: Record<string, unknown>, label?: string) => void;
@@ -913,10 +925,9 @@ function NodeConfigPanel({
     []
   );
 
-  const sendTemplates = node.data.nodeType === 'send_whatsapp' ? whatsappTemplates : emailTemplates;
   const templateOptions = useMemo(
-    () => sendTemplates.map((template) => ({ value: template.id, label: template.name })),
-    [sendTemplates]
+    () => emailTemplates.map((template) => ({ value: template.id, label: template.name })),
+    [emailTemplates]
   );
 
   useEffect(() => {
@@ -957,12 +968,28 @@ function NodeConfigPanel({
 
     if (node.data.nodeType === 'send_email' || node.data.nodeType === 'send_whatsapp') {
       const send = node.data.config as AutomationSendEmailData | AutomationSendWhatsAppData;
+      if (node.data.nodeType === 'send_whatsapp') {
+        return (
+          <Field label="WhatsApp template">
+            <WhatsAppTemplateSelect
+              templates={whatsappTemplatesForSelect}
+              value={send.template_id}
+              onChange={(value) => {
+                const template = whatsappTemplatesForSelect.find((item) => item.id === value);
+                onChange({ template_id: value }, template?.name ?? 'Select template');
+              }}
+              disabled={readOnly}
+              popoverClassName="w-[var(--anchor-width)]"
+            />
+          </Field>
+        );
+      }
       return (
-        <Field label={node.data.nodeType === 'send_whatsapp' ? 'WhatsApp template' : 'Email template'}>
+        <Field label="Email template">
           <AutomationBuilderSelect
             value={send.template_id}
             onChange={(value) => {
-              const template = sendTemplates.find((item) => item.id === value);
+              const template = emailTemplates.find((item) => item.id === value);
               onChange({ template_id: value }, template?.name ?? 'Select template');
             }}
             options={templateOptions}

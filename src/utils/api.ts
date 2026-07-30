@@ -3357,6 +3357,7 @@ export type WhatsAppTemplate = {
   purpose: import('@/lib/whatsapp-template-types').WhatsAppTemplatePurpose;
   runtimeParams: unknown;
   content: unknown;
+  liveContent?: unknown | null;
   rating?: string;
   lastSyncedAt?: string | null;
   createdAt: string;
@@ -3373,6 +3374,7 @@ function mapWhatsAppTemplate(row: {
   purpose: string;
   runtime_params: unknown;
   content: unknown;
+  live_content?: unknown;
   rating?: string;
   last_synced_at?: string | null;
   created_at: string;
@@ -3388,6 +3390,7 @@ function mapWhatsAppTemplate(row: {
     purpose: row.purpose as WhatsAppTemplate['purpose'],
     runtimeParams: row.runtime_params ?? [],
     content: row.content ?? {},
+    liveContent: row.live_content ?? null,
     rating: row.rating,
     lastSyncedAt: row.last_synced_at ?? null,
     createdAt: row.created_at,

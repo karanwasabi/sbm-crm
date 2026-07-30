@@ -1,11 +1,12 @@
 'use client';
 
-import { Mail, MessageCircle } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { useState } from 'react';
 import { BulkSendEmailDialog } from '@/components/comms/bulk-send-email-dialog';
 import { BulkSendWhatsAppDialog } from '@/components/comms/bulk-send-whatsapp-dialog';
 import { LeadExportPreparingDialog } from '@/components/crm/lead-export-preparing-dialog';
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import { cn } from '@/lib/cn';
@@ -88,7 +89,7 @@ export function LeadDatabaseBulkSendButton({ emailTemplates, whatsappTemplates }
         type="button"
         variant="light"
         size="sm"
-        leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+        leftIcon={<WhatsAppIcon />}
         aria-disabled={isDisabled || activeWhatsappTemplates.length === 0}
         className={cn(
           (isDisabled || activeWhatsappTemplates.length === 0) &&

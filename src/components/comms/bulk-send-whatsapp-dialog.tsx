@@ -2,13 +2,14 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { Send } from 'lucide-react';
 import {
   getBulkLeadWhatsAppSendJobAction,
   previewBulkLeadWhatsAppSendAction,
   startBulkLeadWhatsAppSendAction,
 } from '@/app/(crm)/database/actions';
 import { BulkSendPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
+import { WhatsAppTemplateSelect } from '@/components/comms/whatsapp-template-select';
+import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { bulkWhatsAppSkipTotal, formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
 import { commsBulkSendHref } from '@/lib/comms-channel';
 import { Button } from '@/components/ui/button';
@@ -128,19 +129,13 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
               <>
                 <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
                   Template
-                  <select
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-800"
+                  <WhatsAppTemplateSelect
+                    templates={templates}
                     value={templateId}
-                    onChange={(event) => setTemplateId(event.target.value)}
+                    onChange={setTemplateId}
                     disabled={previewLoading || isSending || sending}
-                  >
-                    {templates.length === 0 ? <option value="">No active templates</option> : null}
-                    {templates.map((template) => (
-                      <option key={template.id} value={template.id}>
-                        {template.name} ({template.category})
-                      </option>
-                    ))}
-                  </select>
+                    emptyMessage="No active templates"
+                  />
                 </label>
 
                 {previewLoading ? <BulkSendPreviewSkeleton /> : null}
@@ -233,6 +228,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
                 variant="light"
                 fullWidth
                 className="[&>span]:text-center [&>span]:whitespace-normal"
+                leftIcon={<WhatsAppIcon />}
                 loading={isSending}
                 loadingLabel="Starting…"
                 disabled={isSending || !preview || preview.will_send_if_skip_duplicates === 0}
@@ -244,6 +240,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
                 variant="primary"
                 fullWidth
                 className="[&>span]:text-center [&>span]:whitespace-normal"
+                leftIcon={<WhatsAppIcon />}
                 loading={isSending}
                 loadingLabel="Starting…"
                 disabled={isSending || !preview || preview.will_send === 0}
@@ -264,7 +261,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
           {!job && !confirmDuplicates ? (
             <Button
               variant="primary"
-              leftIcon={<Send className="h-3.5 w-3.5" />}
+              leftIcon={<WhatsAppIcon />}
               loading={isSending}
               loadingLabel="Starting…"
               disabled={previewLoading || isSending || !templateId || !preview || preview.will_send === 0}
