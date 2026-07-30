@@ -3393,6 +3393,23 @@ function mapWhatsAppTemplate(row: {
   };
 }
 
+export type WhatsAppFlags = {
+  templatesEnabled: boolean;
+  sendsEnabled: boolean;
+};
+
+export async function getWhatsAppFlags(): Promise<WhatsAppFlags> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/flags');
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp settings.', response.status);
+  }
+  const row = (await response.json()) as { templates_enabled: boolean; sends_enabled: boolean };
+  return {
+    templatesEnabled: row.templates_enabled,
+    sendsEnabled: row.sends_enabled,
+  };
+}
+
 export async function listWhatsAppTemplates(): Promise<WhatsAppTemplate[]> {
   const response = await requireApiFetch('/admin/comms/whatsapp/templates');
   if (!response.ok) {

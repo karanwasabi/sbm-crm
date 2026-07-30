@@ -1,5 +1,6 @@
 'use client';
 
+import type { LucideIcon } from 'lucide-react';
 import { Mail, MessageCircle, Plus, RefreshCw, Send, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -14,14 +15,17 @@ import { SectionHead } from '@/components/ui/section-head';
 import { Pill } from '@/components/ui/pill';
 import { Button } from '@/components/ui/button';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { cn } from '@/lib/cn';
 import {
+  COMMS_AUTOMATIONS_HREF,
+  COMMS_CHANNEL_TABS,
   COMMS_CHANNELS,
-  COMMS_TABS,
   commsAutomationHref,
   commsTabHref,
   commsTemplateHref,
   type CommsChannel,
-  type CommsTab,
+  type CommsChannelTab,
+  type CommsSection,
 } from '@/lib/comms-channel';
 import {
   whatsAppTemplateCategoryLabel,
@@ -36,11 +40,13 @@ import type {
   CommsAnalyticsSummary,
   EmailTemplate,
   MarketingContactsSummary,
+  WhatsAppFlags,
   WhatsAppTemplate,
 } from '@/utils/api';
 
 type CommunicationsViewProps = {
-  channel?: CommsChannel;
+  section: CommsSection;
+  tab?: CommsChannelTab;
   templates?: EmailTemplate[] | WhatsAppTemplate[];
   automations?: Automation[];
   bulkSendJobs?: BulkLeadEmailSendJob[] | BulkLeadWhatsAppSendJob[];
@@ -48,11 +54,84 @@ type CommunicationsViewProps = {
   marketingSummary: MarketingContactsSummary;
   analyticsSummary: CommsAnalyticsSummary | null;
   analytics?: CommsAnalytics | null;
-  tab: CommsTab;
+  whatsappFlags?: WhatsAppFlags;
 };
 
+type CommsNavTone = 'violet' | 'indigo' | 'green';
+
+const COMMS_NAV_ACTIVE_TAB: Record<CommsNavTone, string> = {
+  violet: 'bg-violet-600 text-white shadow-sm',
+  indigo: 'bg-indigo-600 text-white shadow-sm',
+  green: 'bg-emerald-600 text-white shadow-sm',
+};
+
+function commsNavTabClass(active: boolean, tone: CommsNavTone): string {
+  return cn(
+    'rounded-[14px] px-3 py-1.5 text-[12px] font-semibold transition-colors',
+    active ? COMMS_NAV_ACTIVE_TAB[tone] : 'text-slate-600 hover:bg-slate-100'
+  );
+}
+
+function CommsNavLabelRail({
+  label,
+  icon: Icon,
+  tone,
+  href,
+}: {
+  label: string;
+  icon: LucideIcon;
+  tone: CommsNavTone;
+  href: string;
+}) {
+  const toneClass: Record<CommsNavTone, string> = {
+    violet: 'text-violet-600',
+    indigo: 'text-indigo-600',
+    green: 'text-emerald-600',
+  };
+
+  const hoverClass: Record<CommsNavTone, string> = {
+    violet: 'hover:bg-violet-50',
+    indigo: 'hover:bg-indigo-50',
+    green: 'hover:bg-emerald-50',
+  };
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'flex shrink-0 items-center gap-1.5 self-stretch rounded-l-lg border-r border-slate-200 py-1 pr-3 pl-3 transition-colors',
+        hoverClass[tone]
+      )}
+    >
+      <Icon className={cn('h-3.5 w-3.5 shrink-0', toneClass[tone])} />
+      <span
+        className={cn(
+          'text-[10px] leading-none font-bold tracking-[0.12em] whitespace-nowrap uppercase',
+          toneClass[tone]
+        )}
+      >
+        {label}
+      </span>
+    </Link>
+  );
+}
+
+function CommsNavSectionPanel({ children, className }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'flex min-h-10 items-center rounded-xl border border-slate-100 bg-white p-1.5 shadow-sm',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function CommunicationsView({
-  channel = 'email',
+  section,
+  tab = 'templates',
   templates = [],
   automations = [],
   bulkSendJobs = [],
@@ -60,20 +139,19 @@ export function CommunicationsView({
   marketingSummary,
   analyticsSummary,
   analytics = null,
-  tab,
+  whatsappFlags,
 }: CommunicationsViewProps) {
   const router = useRouter();
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [isSyncing, startSync] = useTransition();
   const activeAutomationCount = analyticsSummary?.activeAutomations ?? 0;
+  const isAutomations = section === 'automations';
+  const channel = isAutomations ? 'email' : section;
   const isWhatsApp = channel === 'whatsapp';
+  const canManageWhatsAppTemplates = whatsappFlags?.templatesEnabled ?? false;
 
-  const selectChannel = (next: CommsChannel) => {
-    router.push(commsTabHref(next, tab));
-  };
-
-  const selectTab = (next: CommsTab) => {
-    router.push(commsTabHref(channel, next));
+  const selectChannelTab = (nextChannel: CommsChannel, nextTab: CommsChannelTab) => {
+    router.push(commsTabHref(nextChannel, nextTab));
   };
 
   const handleSyncTemplates = () => {
@@ -89,227 +167,267 @@ export function CommunicationsView({
     });
   };
 
+  const performanceHref = commsTabHref(isWhatsApp ? 'whatsapp' : 'email', 'performance');
+
+  const contentTitle = isAutomations
+    ? 'Automations'
+    : tab === 'templates'
+      ? 'Templates'
+      : tab === 'bulk-sends'
+        ? 'Bulk sends'
+        : 'Performance';
+
+  const contentSubtitle = isAutomations
+    ? 'Delay-based nurture workflows with email and WhatsApp sends'
+    : isWhatsApp
+      ? tab === 'templates'
+        ? 'WhatsApp message templates'
+        : tab === 'bulk-sends'
+          ? 'Campaign sends from Lead Database'
+          : 'WhatsApp delivery and engagement'
+      : tab === 'templates'
+        ? 'Email layouts and subjects'
+        : tab === 'bulk-sends'
+          ? 'Campaign sends from Lead Database'
+          : 'Delivery and engagement tracking';
+
   return (
     <CrmPageLayout className="gap-4">
       <CommsHeaderStats
         marketingSummary={marketingSummary}
         analytics={analyticsSummary}
         activeAutomationCount={activeAutomationCount}
-        onOpenPerformance={() => selectTab('performance')}
+        onOpenPerformance={() => router.push(performanceHref)}
       />
 
-      <div className="flex flex-wrap gap-2">
-        {COMMS_CHANNELS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => selectChannel(id)}
-            className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-              channel === id ? 'bg-brand text-white' : 'border border-slate-100 bg-white text-slate-600'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Card padding="none" className="overflow-hidden">
+        <div className="border-b border-slate-200/90 bg-linear-to-r from-violet-100 via-indigo-100/80 to-emerald-100 px-4 py-3.5">
+          <div className="relative flex flex-col gap-3 xl:flex-row xl:flex-wrap xl:items-stretch">
+            <div className="w-full xl:w-auto">
+              <CommsNavSectionPanel className="w-full xl:w-auto">
+                <div className="flex w-full items-center gap-3 xl:w-auto">
+                  <CommsNavLabelRail label="Automations" icon={Workflow} tone="violet" href={COMMS_AUTOMATIONS_HREF} />
+                  <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
+                    <Link href={COMMS_AUTOMATIONS_HREF} className={commsNavTabClass(isAutomations, 'violet')}>
+                      Workflows
+                    </Link>
+                  </div>
+                </div>
+              </CommsNavSectionPanel>
+            </div>
 
-      <div className="flex flex-wrap gap-2">
-        {COMMS_TABS.map(({ id, label }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => selectTab(id)}
-            className={`rounded-full px-3 py-1.5 text-xs font-bold ${
-              tab === id ? 'bg-brand text-white' : 'border border-slate-100 bg-white text-slate-600'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+            {COMMS_CHANNELS.map(({ id: channelId, label }) => {
+              const ChannelIcon = channelId === 'whatsapp' ? MessageCircle : Mail;
+              const tone: CommsNavTone = channelId === 'whatsapp' ? 'green' : 'indigo';
 
-      {tab === 'templates' ? (
-        <Card>
+              return (
+                <div key={channelId} className="w-full xl:w-auto">
+                  <CommsNavSectionPanel className="w-full xl:w-auto">
+                    <div className="flex w-full items-center gap-3 xl:w-auto">
+                      <CommsNavLabelRail
+                        label={label}
+                        icon={ChannelIcon}
+                        tone={tone}
+                        href={commsTabHref(channelId, COMMS_CHANNEL_TABS[0].id)}
+                      />
+                      <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
+                        {COMMS_CHANNEL_TABS.map(({ id: tabId, label: tabLabel }) => (
+                          <button
+                            key={tabId}
+                            type="button"
+                            onClick={() => selectChannelTab(channelId, tabId)}
+                            className={commsNavTabClass(section === channelId && tab === tabId, tone)}
+                          >
+                            {tabLabel}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </CommsNavSectionPanel>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="p-5 md:p-7">
           <SectionHead
-            title={isWhatsApp ? 'WhatsApp templates' : 'Email templates'}
+            className="mb-5"
+            title={contentTitle}
+            subtitle={contentSubtitle}
             right={
-              <div className="flex flex-wrap items-center gap-2">
-                {isWhatsApp ? (
-                  <Button
-                    variant="light"
-                    size="sm"
-                    leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-                    loading={isSyncing}
-                    loadingLabel="Syncing…"
-                    onClick={handleSyncTemplates}
-                  >
-                    Sync from Convonite
-                  </Button>
-                ) : null}
+              isAutomations ? (
                 <Link
-                  href={commsTemplateHref(channel, 'new')}
+                  href={commsAutomationHref('new')}
                   className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  New template
+                  New automation
                 </Link>
-              </div>
-            }
-          />
-          {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
-          <div className="flex flex-col gap-2">
-            {templates.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No templates yet. Create your first {isWhatsApp ? 'WhatsApp' : 'email'} template.
-              </p>
-            ) : isWhatsApp ? (
-              (templates as WhatsAppTemplate[]).map((template) => (
-                <Link
-                  key={template.id}
-                  href={commsTemplateHref(channel, template.id)}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                      <MessageCircle className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
-                      <p className="truncate text-xs font-medium text-slate-500">
-                        {template.language} · {whatsAppTemplateCategoryLabel(template.category)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Pill tone="neutral">{template.purpose === 'broadcast' ? 'Broadcast' : 'Individual'}</Pill>
-                    <Pill tone={whatsAppTemplateStatusTone(template.status)}>
-                      {whatsAppTemplateStatusLabel(template.status)}
-                    </Pill>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              (templates as EmailTemplate[]).map((template) => (
-                <Link
-                  key={template.id}
-                  href={commsTemplateHref(channel, template.id)}
-                  className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                      <Mail className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
-                      <p className="truncate text-xs font-medium text-slate-500">
-                        {template.subject || 'No subject yet'}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <Pill tone={template.classification === 'marketing' ? 'brand' : 'neutral'}>
-                      {template.classification === 'marketing' ? 'Marketing' : 'Transactional'}
-                    </Pill>
-                    <Pill
-                      tone={
-                        template.status === 'active' ? 'success' : template.status === 'archived' ? 'neutral' : 'warn'
-                      }
+              ) : tab === 'templates' ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {isWhatsApp && canManageWhatsAppTemplates ? (
+                    <Button
+                      variant="light"
+                      size="sm"
+                      leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
+                      loading={isSyncing}
+                      loadingLabel="Syncing…"
+                      onClick={handleSyncTemplates}
                     >
-                      {template.status === 'active'
-                        ? 'Active'
-                        : template.status === 'archived'
-                          ? 'Archived'
-                          : 'Unpublished'}
-                    </Pill>
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </Card>
-      ) : null}
-
-      {tab === 'automations' ? (
-        <Card>
-          <SectionHead
-            title="Automations"
-            subtitle={
-              isWhatsApp
-                ? 'Delay-based nurture workflows with WhatsApp sends'
-                : 'Delay-based nurture workflows with conditions'
-            }
-            right={
-              <Link
-                href={commsAutomationHref(channel, 'new')}
-                className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                New automation
-              </Link>
-            }
-          />
-          <div className="flex flex-col gap-2">
-            {automations.length === 0 ? (
-              <div className="flex flex-col items-center gap-3 py-10 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
-                  <Workflow className="h-5 w-5" />
+                      Sync from Convonite
+                    </Button>
+                  ) : null}
+                  {isWhatsApp && !canManageWhatsAppTemplates ? null : (
+                    <Link
+                      href={commsTemplateHref(channel, 'new')}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      New template
+                    </Link>
+                  )}
                 </div>
-                <p className="max-w-md text-sm font-medium text-slate-600">
-                  Build visual nurture flows — wait, check conditions, send{' '}
-                  {isWhatsApp ? 'WhatsApp messages' : 'emails'} — triggered when leads are created or start checkout.
-                </p>
-              </div>
-            ) : (
-              automations.map((automation) => (
-                <AutomationListRow key={automation.id} automation={automation} channel={channel} />
-              ))
-            )}
-          </div>
-        </Card>
-      ) : null}
-
-      {tab === 'bulk-sends' ? (
-        <Card>
-          <SectionHead
-            title="Bulk sends"
-            subtitle="Campaign sends from Lead Database"
-            right={
-              <Link
-                href="/database"
-                className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
-              >
-                <Send className="h-3.5 w-3.5" />
-                Send from Lead Database
-              </Link>
+              ) : tab === 'bulk-sends' ? (
+                <Link
+                  href="/database"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                  Send from Lead Database
+                </Link>
+              ) : null
             }
           />
-          <div className="flex flex-col gap-2">
-            {bulkSendJobsError ? (
-              <p className="text-sm font-medium text-danger-press">{bulkSendJobsError}</p>
-            ) : bulkSendJobs.length === 0 ? (
-              <p className="text-sm text-slate-500">
-                No bulk sends yet. Select leads in Lead Database and use Send {isWhatsApp ? 'WhatsApp' : 'email'} to
-                start a campaign.
-              </p>
-            ) : (
-              bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} channel={channel} />)
-            )}
-          </div>
-        </Card>
-      ) : null}
 
-      {tab === 'performance' ? (
-        analytics ? (
-          <CommsPerformancePanel analytics={analytics} />
-        ) : (
-          <Card>
-            <SectionHead title="Performance" subtitle="Delivery and engagement tracking" />
-            <p className="text-sm text-slate-500">
-              Analytics could not be loaded. Apply the latest backend migration and ensure the API is running.
-            </p>
-          </Card>
-        )
-      ) : null}
+          {isAutomations ? (
+            <div className="flex flex-col gap-2">
+              {automations.length === 0 ? (
+                <div className="flex flex-col items-center gap-3 py-10 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                    <Workflow className="h-5 w-5" />
+                  </div>
+                  <p className="max-w-md text-sm font-medium text-slate-600">
+                    Build visual nurture flows — wait, check conditions, send email or WhatsApp — triggered when leads
+                    are created or start checkout.
+                  </p>
+                </div>
+              ) : (
+                automations.map((automation) => <AutomationListRow key={automation.id} automation={automation} />)
+              )}
+            </div>
+          ) : null}
+
+          {!isAutomations && tab === 'templates' ? (
+            <>
+              {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
+              <div className="flex flex-col gap-2">
+                {templates.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No templates yet.
+                    {isWhatsApp && !canManageWhatsAppTemplates
+                      ? ' Templates synced from production will appear here when sends are enabled.'
+                      : ` Create your first ${isWhatsApp ? 'WhatsApp' : 'email'} template.`}
+                  </p>
+                ) : isWhatsApp ? (
+                  (templates as WhatsAppTemplate[]).map((template) => (
+                    <Link
+                      key={template.id}
+                      href={commsTemplateHref(channel, template.id)}
+                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+                          <MessageCircle className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
+                          <p className="truncate text-xs font-medium text-slate-500">
+                            {template.language} · {whatsAppTemplateCategoryLabel(template.category)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Pill tone="neutral">{template.purpose === 'broadcast' ? 'Broadcast' : 'Individual'}</Pill>
+                        <Pill tone={whatsAppTemplateStatusTone(template.status)}>
+                          {whatsAppTemplateStatusLabel(template.status)}
+                        </Pill>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  (templates as EmailTemplate[]).map((template) => (
+                    <Link
+                      key={template.id}
+                      href={commsTemplateHref(channel, template.id)}
+                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
+                          <Mail className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
+                          <p className="truncate text-xs font-medium text-slate-500">
+                            {template.subject || 'No subject yet'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-2">
+                        <Pill tone={template.classification === 'marketing' ? 'brand' : 'neutral'}>
+                          {template.classification === 'marketing' ? 'Marketing' : 'Transactional'}
+                        </Pill>
+                        <Pill
+                          tone={
+                            template.status === 'active'
+                              ? 'success'
+                              : template.status === 'archived'
+                                ? 'neutral'
+                                : 'warn'
+                          }
+                        >
+                          {template.status === 'active'
+                            ? 'Active'
+                            : template.status === 'archived'
+                              ? 'Archived'
+                              : 'Unpublished'}
+                        </Pill>
+                      </div>
+                    </Link>
+                  ))
+                )}
+              </div>
+            </>
+          ) : null}
+
+          {!isAutomations && tab === 'bulk-sends' ? (
+            <div className="flex flex-col gap-2">
+              {bulkSendJobsError ? (
+                <p className="text-sm font-medium text-danger-press">{bulkSendJobsError}</p>
+              ) : bulkSendJobs.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No bulk sends yet. Select leads in Lead Database and use Send {isWhatsApp ? 'WhatsApp' : 'email'} to
+                  start a campaign.
+                </p>
+              ) : (
+                bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} channel={channel} />)
+              )}
+            </div>
+          ) : null}
+
+          {!isAutomations && tab === 'performance' ? (
+            isWhatsApp ? (
+              <p className="text-sm text-slate-500">Coming soon.</p>
+            ) : analytics ? (
+              <CommsPerformancePanel analytics={analytics} />
+            ) : (
+              <p className="text-sm text-slate-500">
+                Analytics could not be loaded. Apply the latest backend migration and ensure the API is running.
+              </p>
+            )
+          ) : null}
+        </div>
+      </Card>
     </CrmPageLayout>
   );
 }

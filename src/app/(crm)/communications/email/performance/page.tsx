@@ -3,5 +3,5 @@ import { loadCommsPerformanceTab } from '@/app/(crm)/communications/_lib/comms-p
 
 export default async function EmailPerformancePage() {
   const data = await loadCommsPerformanceTab('email');
-  return <CommunicationsView {...data} tab="performance" />;
+  return <CommunicationsView {...data} />;
 }

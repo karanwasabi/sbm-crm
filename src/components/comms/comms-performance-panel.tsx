@@ -138,7 +138,7 @@ export function CommsPerformancePanel({ analytics }: CommsPerformancePanelProps)
                 <DataTableRow key={row.automationId}>
                   <DataTableCell>
                     <Link
-                      href={commsAutomationHref('email', row.automationId)}
+                      href={commsAutomationHref(row.automationId)}
                       className="text-sm font-semibold text-slate-800 hover:text-brand"
                     >
                       {row.name}

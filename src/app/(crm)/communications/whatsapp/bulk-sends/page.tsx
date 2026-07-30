@@ -3,5 +3,5 @@ import { loadCommsBulkSendsTab } from '@/app/(crm)/communications/_lib/comms-pag
 
 export default async function WhatsAppBulkSendsPage() {
   const data = await loadCommsBulkSendsTab('whatsapp');
-  return <CommunicationsView {...data} tab="bulk-sends" />;
+  return <CommunicationsView {...data} />;
 }

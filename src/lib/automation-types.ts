@@ -219,11 +219,7 @@ export function normalizeStageTriggerConfig(
   };
 }
 
-export function defaultAutomationGraph(
-  triggerType: AutomationTriggerType = 'lead_created',
-  channel: AutomationChannel = 'email'
-): AutomationGraph {
-  const sendNodeType = channel === 'whatsapp' ? 'send_whatsapp' : 'send_email';
+export function defaultAutomationGraph(triggerType: AutomationTriggerType = 'lead_created'): AutomationGraph {
   return {
     nodes: [
       {
@@ -249,7 +245,7 @@ export function defaultAutomationGraph(
       },
       {
         id: 'send-1',
-        type: sendNodeType,
+        type: 'send_email',
         position: { x: -40, y: 520 },
         data: { template_id: '' },
       },
@@ -267,6 +263,15 @@ export function defaultAutomationGraph(
       { id: 'e4', source: 'cond-1', target: 'end-1', sourceHandle: 'false' },
     ],
   };
+}
+
+export function deriveAutomationChannel(graph: AutomationGraph): AutomationChannel {
+  const hasEmail = graph.nodes.some((node) => node.type === 'send_email');
+  const hasWhatsApp = graph.nodes.some((node) => node.type === 'send_whatsapp');
+  if (hasWhatsApp && !hasEmail) {
+    return 'whatsapp';
+  }
+  return 'email';
 }
 
 export function automationStatusLabel(status: AutomationStatus): string {

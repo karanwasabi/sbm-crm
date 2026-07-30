@@ -3,6 +3,7 @@ import {
   getCommsAnalytics,
   getCommsAnalyticsSummary,
   getMarketingContactsSummary,
+  getWhatsAppFlags,
   listAutomations,
   listBulkLeadEmailSendJobs,
   listBulkLeadWhatsAppSendJobs,
@@ -10,6 +11,7 @@ import {
   listWhatsAppTemplates,
   type CommsAnalyticsSummary,
   type MarketingContactsSummary,
+  type WhatsAppFlags,
 } from '@/utils/api';
 import type { CommsChannel } from '@/lib/comms-channel';
 
@@ -31,6 +33,11 @@ const DEFAULT_MARKETING_SUMMARY: MarketingContactsSummary = {
   source: 'local',
 };
 
+const DEFAULT_WHATSAPP_FLAGS: WhatsAppFlags = {
+  templatesEnabled: false,
+  sendsEnabled: false,
+};
+
 type CommsHeaderData = {
   marketingSummary: MarketingContactsSummary;
   analyticsSummary: CommsAnalyticsSummary | null;
@@ -49,26 +56,31 @@ async function loadCommsHeaderData(): Promise<CommsHeaderData> {
 }
 
 export async function loadCommsTemplatesTab(channel: CommsChannel = 'email') {
-  const [header, templatesResult] = await Promise.all([
+  const [header, templatesResult, flagsResult] = await Promise.all([
     loadCommsHeaderData(),
     Promise.allSettled([channel === 'whatsapp' ? listWhatsAppTemplates() : listEmailTemplates()]).then(([r]) => r),
+    channel === 'whatsapp'
+      ? Promise.allSettled([getWhatsAppFlags()]).then(([r]) => r)
+      : Promise.resolve({ status: 'fulfilled' as const, value: DEFAULT_WHATSAPP_FLAGS }),
   ]);
 
   return {
-    channel,
+    section: channel as CommsChannel,
+    tab: 'templates' as const,
     ...header,
     templates: templatesResult.status === 'fulfilled' ? templatesResult.value : [],
+    whatsappFlags: flagsResult.status === 'fulfilled' ? flagsResult.value : DEFAULT_WHATSAPP_FLAGS,
   };
 }
 
-export async function loadCommsAutomationsTab(channel: CommsChannel = 'email') {
+export async function loadCommsAutomationsTab() {
   const [header, automationsResult] = await Promise.all([
     loadCommsHeaderData(),
-    Promise.allSettled([listAutomations(channel)]).then(([r]) => r),
+    Promise.allSettled([listAutomations()]).then(([r]) => r),
   ]);
 
   return {
-    channel,
+    section: 'automations' as const,
     ...header,
     automations: automationsResult.status === 'fulfilled' ? automationsResult.value : [],
   };
@@ -83,7 +95,8 @@ export async function loadCommsBulkSendsTab(channel: CommsChannel = 'email') {
   ]);
 
   return {
-    channel,
+    section: channel as CommsChannel,
+    tab: 'bulk-sends' as const,
     ...header,
     bulkSendJobs: bulkSendsResult.status === 'fulfilled' ? bulkSendsResult.value : [],
     bulkSendJobsError:
@@ -94,13 +107,22 @@ export async function loadCommsBulkSendsTab(channel: CommsChannel = 'email') {
 }
 
 export async function loadCommsPerformanceTab(channel: CommsChannel = 'email') {
-  const [header, analyticsResult] = await Promise.all([
-    loadCommsHeaderData(),
-    Promise.allSettled([getCommsAnalytics()]).then(([r]) => r),
-  ]);
+  const header = await loadCommsHeaderData();
+
+  if (channel === 'whatsapp') {
+    return {
+      section: 'whatsapp' as const,
+      tab: 'performance' as const,
+      ...header,
+      analytics: null,
+    };
+  }
+
+  const analyticsResult = await Promise.allSettled([getCommsAnalytics()]).then(([r]) => r);
 
   return {
-    channel,
+    section: 'email' as const,
+    tab: 'performance' as const,
     ...header,
     analytics: analyticsResult.status === 'fulfilled' ? analyticsResult.value : null,
   };

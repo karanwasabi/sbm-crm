@@ -3,5 +3,5 @@ import { loadCommsTemplatesTab } from '@/app/(crm)/communications/_lib/comms-pag
 
 export default async function WhatsAppTemplatesPage() {
   const data = await loadCommsTemplatesTab('whatsapp');
-  return <CommunicationsView {...data} tab="templates" />;
+  return <CommunicationsView {...data} />;
 }

@@ -3,5 +3,5 @@ import { loadCommsTemplatesTab } from '@/app/(crm)/communications/_lib/comms-pag
 
 export default async function EmailTemplatesPage() {
   const data = await loadCommsTemplatesTab('email');
-  return <CommunicationsView {...data} tab="templates" />;
+  return <CommunicationsView {...data} />;
 }

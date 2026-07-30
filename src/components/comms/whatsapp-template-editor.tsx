@@ -32,6 +32,7 @@ import type { WhatsAppTemplate } from '@/utils/api';
 
 type WhatsAppTemplateEditorProps = {
   template?: WhatsAppTemplate | null;
+  managementEnabled?: boolean;
 };
 
 function stringifyJson(value: unknown, fallback: string): string {
@@ -54,7 +55,7 @@ function parseJsonField(raw: string, fallback: unknown): { value: unknown; error
   }
 }
 
-export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEditorProps) {
+export function WhatsAppTemplateEditor({ template = null, managementEnabled = true }: WhatsAppTemplateEditorProps) {
   const router = useRouter();
   const [name, setName] = useState(template?.name ?? '');
   const [category, setCategory] = useState<WhatsAppTemplateCategory>(template?.category ?? 'marketing');
@@ -142,8 +143,16 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
     });
   };
 
+  const readOnly = !managementEnabled;
+
   return (
     <div className="flex flex-col gap-4">
+      {readOnly ? (
+        <p className="text-sm font-medium text-slate-600">
+          Template management is disabled in this environment. You can view templates and send tests, but cannot edit or
+          sync.
+        </p>
+      ) : null}
       <Card>
         <SectionHead
           title={template ? 'Edit WhatsApp template' : 'New WhatsApp template'}
@@ -152,13 +161,14 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
 
         <div className="grid gap-4 md:grid-cols-2">
           <Field label="Name">
-            <TextInput value={name} onChange={setName} placeholder="Template name" />
+            <TextInput value={name} onChange={setName} placeholder="Template name" disabled={readOnly} />
           </Field>
           <Field label="Language">
             <AutomationBuilderSelect
               value={language}
               onChange={setLanguage}
               options={WHATSAPP_TEMPLATE_LANGUAGE_OPTIONS}
+              disabled={readOnly}
             />
           </Field>
           <Field label="Category">
@@ -166,6 +176,7 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
               value={category}
               onChange={(value) => setCategory(value as WhatsAppTemplateCategory)}
               options={WHATSAPP_TEMPLATE_CATEGORY_OPTIONS}
+              disabled={readOnly}
             />
           </Field>
           <Field label="Purpose">
@@ -173,6 +184,7 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
               value={purpose}
               onChange={(value) => setPurpose(value as WhatsAppTemplatePurpose)}
               options={WHATSAPP_TEMPLATE_PURPOSE_OPTIONS}
+              disabled={readOnly}
             />
           </Field>
         </div>
@@ -185,6 +197,7 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
               rows={8}
               className="font-mono text-xs"
               placeholder="[]"
+              disabled={readOnly}
             />
           </Field>
           <Field label="Content (JSON)">
@@ -194,6 +207,7 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
               rows={12}
               className="font-mono text-xs"
               placeholder="{}"
+              disabled={readOnly}
             />
           </Field>
         </div>
@@ -202,25 +216,29 @@ export function WhatsAppTemplateEditor({ template = null }: WhatsAppTemplateEdit
         {message ? <p className="mt-3 text-sm font-medium text-emerald-700">{message}</p> : null}
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="primary" loading={isPending} loadingLabel="Saving…" onClick={save}>
-            Save draft
-          </Button>
-          {template?.id ? (
+          {managementEnabled ? (
             <>
-              {status === 'draft' || status === 'rejected' ? (
-                <Button variant="light" loading={isPending} onClick={() => runLifecycleAction('submit')}>
-                  Submit for review
-                </Button>
-              ) : null}
-              {status === 'submitted' || status === 'paused' ? (
-                <Button variant="light" loading={isPending} onClick={() => runLifecycleAction('activate')}>
-                  Activate
-                </Button>
-              ) : null}
-              {status === 'active' ? (
-                <Button variant="light" loading={isPending} onClick={() => runLifecycleAction('deactivate')}>
-                  Deactivate
-                </Button>
+              <Button variant="primary" loading={isPending} loadingLabel="Saving…" onClick={save}>
+                Save draft
+              </Button>
+              {template?.id ? (
+                <>
+                  {status === 'draft' || status === 'rejected' ? (
+                    <Button variant="light" loading={isPending} onClick={() => runLifecycleAction('submit')}>
+                      Submit for review
+                    </Button>
+                  ) : null}
+                  {status === 'submitted' || status === 'paused' ? (
+                    <Button variant="light" loading={isPending} onClick={() => runLifecycleAction('activate')}>
+                      Activate
+                    </Button>
+                  ) : null}
+                  {status === 'active' ? (
+                    <Button variant="light" loading={isPending} onClick={() => runLifecycleAction('deactivate')}>
+                      Deactivate
+                    </Button>
+                  ) : null}
+                </>
               ) : null}
             </>
           ) : null}

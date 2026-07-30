@@ -3,13 +3,14 @@ import { notFound } from 'next/navigation';
 import { WhatsAppTemplateEditor } from '@/components/comms/whatsapp-template-editor';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { commsTabHref } from '@/lib/comms-channel';
-import { getWhatsAppTemplate } from '@/utils/api';
+import { getWhatsAppFlags, getWhatsAppTemplate } from '@/utils/api';
 
 export default async function EditWhatsAppTemplatePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let template;
+  let flags;
   try {
-    template = await getWhatsAppTemplate(id);
+    [template, flags] = await Promise.all([getWhatsAppTemplate(id), getWhatsAppFlags()]);
   } catch {
     notFound();
   }
@@ -27,7 +28,7 @@ export default async function EditWhatsAppTemplatePage({ params }: { params: Pro
           Back
         </Link>
       </div>
-      <WhatsAppTemplateEditor template={template} />
+      <WhatsAppTemplateEditor template={template} managementEnabled={flags.templatesEnabled} />
     </CrmPageLayout>
   );
 }

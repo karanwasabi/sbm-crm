@@ -18,7 +18,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { useRouter } from 'next/navigation';
 import type { EmailTemplate, Automation, WhatsAppTemplate } from '@/utils/api';
 import type {
-  AutomationChannel,
   AutomationCondition,
   AutomationConditionGroupData,
   AutomationGraph,
@@ -38,6 +37,7 @@ import {
   TRIGGER_LABELS,
   WAIT_UNIT_OPTIONS,
   defaultAutomationGraph,
+  deriveAutomationChannel,
   normalizeStageTriggerConfig,
   normalizeTagTriggerConfig,
   nodeLabel,
@@ -68,7 +68,7 @@ import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagSuggestion } from '@/types/crm';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
-import { commsAutomationHref, commsTabHref } from '@/lib/comms-channel';
+import { commsAutomationHref, COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
 
 type BuilderTemplate = { id: string; name: string };
 
@@ -129,7 +129,6 @@ function flowToGraph(nodes: Node<BuilderNodeData>[], edges: Edge[]): AutomationG
 
 type AutomationBuilderProps = {
   automation: Automation | null;
-  channel: AutomationChannel;
   emailTemplates: EmailTemplate[];
   whatsappTemplates?: WhatsAppTemplate[];
   tagSuggestions?: TagSuggestion[];
@@ -202,20 +201,34 @@ function buildLeadSourceSelectOptions(value: string) {
 
 export function AutomationBuilder({
   automation,
-  channel,
   emailTemplates,
   whatsappTemplates = [],
   tagSuggestions = [],
 }: AutomationBuilderProps) {
   const router = useRouter();
-  const channelTemplates = channel === 'whatsapp' ? whatsappTemplates : emailTemplates;
-  const templates: BuilderTemplate[] = channelTemplates.map((template) => ({ id: template.id, name: template.name }));
-  const activeTemplates: BuilderTemplate[] = channelTemplates
-    .filter((template) => template.status === 'active')
-    .map((template) => ({ id: template.id, name: template.name }));
-  const initialGraph =
-    automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created', channel);
-  const initialFlow = useMemo(() => graphToFlow(initialGraph, templates), [initialGraph, templates]);
+  const allTemplates: BuilderTemplate[] = useMemo(
+    () => [
+      ...emailTemplates.map((template) => ({ id: template.id, name: template.name })),
+      ...whatsappTemplates.map((template) => ({ id: template.id, name: template.name })),
+    ],
+    [emailTemplates, whatsappTemplates]
+  );
+  const emailActiveTemplates: BuilderTemplate[] = useMemo(
+    () =>
+      emailTemplates
+        .filter((template) => template.status === 'active')
+        .map((template) => ({ id: template.id, name: template.name })),
+    [emailTemplates]
+  );
+  const whatsappActiveTemplates: BuilderTemplate[] = useMemo(
+    () =>
+      whatsappTemplates
+        .filter((template) => template.status === 'active')
+        .map((template) => ({ id: template.id, name: template.name })),
+    [whatsappTemplates]
+  );
+  const initialGraph = automation?.graphJson ?? defaultAutomationGraph(automation?.triggerType ?? 'lead_created');
+  const initialFlow = useMemo(() => graphToFlow(initialGraph, allTemplates), [initialGraph, allTemplates]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialFlow.nodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialFlow.edges);
@@ -360,9 +373,15 @@ export function AutomationBuilder({
     let label = nodeLabel(type);
     if (type === 'wait') config = { duration_value: 24, duration_unit: 'hours' };
     if (type === 'condition_group') config = { logic: 'and', conditions: [] };
-    if (type === 'send_email' || type === 'send_whatsapp') {
-      config = { template_id: templates[0]?.id ?? '' };
-      label = templates[0]?.name ?? 'Select template';
+    if (type === 'send_email') {
+      const first = emailActiveTemplates[0];
+      config = { template_id: first?.id ?? '' };
+      label = first?.name ?? 'Select template';
+    }
+    if (type === 'send_whatsapp') {
+      const first = whatsappActiveTemplates[0];
+      config = { template_id: first?.id ?? '' };
+      label = first?.name ?? 'Select template';
     }
     if (type === 'trigger') {
       config = { trigger_type: triggerType };
@@ -447,7 +466,7 @@ export function AutomationBuilder({
         const saved = await saveAutomationAction(automation?.id ?? null, {
           name,
           description,
-          channel,
+          channel: deriveAutomationChannel(graph),
           triggerType,
           triggerConfig: buildTriggerConfig(),
           graphJson: graph,
@@ -457,7 +476,7 @@ export function AutomationBuilder({
         setMessage('Draft saved.');
         invalidateValidation();
         if (!automation?.id) {
-          router.replace(commsAutomationHref(channel, saved.id));
+          router.replace(commsAutomationHref(saved.id));
         }
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Save failed.');
@@ -472,7 +491,7 @@ export function AutomationBuilder({
         const saved = await saveAutomationAction(automation?.id ?? null, {
           name,
           description,
-          channel,
+          channel: deriveAutomationChannel(graph),
           triggerType,
           triggerConfig: buildTriggerConfig(),
           graphJson: graph,
@@ -494,7 +513,7 @@ export function AutomationBuilder({
           setMessage(`Found ${result.errors.length} issue${result.errors.length === 1 ? '' : 's'}.`);
         }
         if (!automation?.id) {
-          router.replace(commsAutomationHref(channel, saved.id));
+          router.replace(commsAutomationHref(saved.id));
         }
       } catch (error) {
         setValidationPassed(false);
@@ -514,7 +533,7 @@ export function AutomationBuilder({
         const saved = await saveAutomationAction(automation?.id ?? null, {
           name,
           description,
-          channel,
+          channel: deriveAutomationChannel(graph),
           triggerType,
           triggerConfig: buildTriggerConfig(),
           graphJson: graph,
@@ -564,7 +583,7 @@ export function AutomationBuilder({
       try {
         await deleteAutomationAction(automation.id);
         setConfirmAction(null);
-        router.push(commsTabHref(channel, 'automations'));
+        router.push(COMMS_AUTOMATIONS_HREF);
         router.refresh();
       } catch (error) {
         setMessage(error instanceof Error ? error.message : 'Delete failed.');
@@ -769,15 +788,12 @@ export function AutomationBuilder({
               <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('condition_group')}>
                 + Rules
               </Button>
-              {channel === 'whatsapp' ? (
-                <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_whatsapp')}>
-                  + Send WhatsApp
-                </Button>
-              ) : (
-                <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_email')}>
-                  + Send email
-                </Button>
-              )}
+              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_email')}>
+                + Send email
+              </Button>
+              <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('send_whatsapp')}>
+                + Send WhatsApp
+              </Button>
               <Button variant="light" size="sm" disabled={isGraphLocked} onClick={() => addNode('end')}>
                 + End
               </Button>
@@ -827,8 +843,8 @@ export function AutomationBuilder({
               </div>
               <NodeConfigPanel
                 node={selectedNode}
-                channel={channel}
-                templates={activeTemplates}
+                emailTemplates={emailActiveTemplates}
+                whatsappTemplates={whatsappActiveTemplates}
                 tagSuggestions={tagSuggestions}
                 readOnly={isGraphLocked}
                 onChange={updateSelectedConfig}
@@ -879,15 +895,15 @@ export function AutomationBuilder({
 
 function NodeConfigPanel({
   node,
-  channel,
-  templates,
+  emailTemplates,
+  whatsappTemplates,
   tagSuggestions,
   readOnly = false,
   onChange,
 }: {
   node: Node<BuilderNodeData>;
-  channel: AutomationChannel;
-  templates: BuilderTemplate[];
+  emailTemplates: BuilderTemplate[];
+  whatsappTemplates: BuilderTemplate[];
   tagSuggestions: TagSuggestion[];
   readOnly?: boolean;
   onChange: (config: Record<string, unknown>, label?: string) => void;
@@ -897,9 +913,10 @@ function NodeConfigPanel({
     []
   );
 
+  const sendTemplates = node.data.nodeType === 'send_whatsapp' ? whatsappTemplates : emailTemplates;
   const templateOptions = useMemo(
-    () => templates.map((template) => ({ value: template.id, label: template.name })),
-    [templates]
+    () => sendTemplates.map((template) => ({ value: template.id, label: template.name })),
+    [sendTemplates]
   );
 
   useEffect(() => {
@@ -941,11 +958,11 @@ function NodeConfigPanel({
     if (node.data.nodeType === 'send_email' || node.data.nodeType === 'send_whatsapp') {
       const send = node.data.config as AutomationSendEmailData | AutomationSendWhatsAppData;
       return (
-        <Field label={channel === 'whatsapp' ? 'WhatsApp template' : 'Email template'}>
+        <Field label={node.data.nodeType === 'send_whatsapp' ? 'WhatsApp template' : 'Email template'}>
           <AutomationBuilderSelect
             value={send.template_id}
             onChange={(value) => {
-              const template = templates.find((item) => item.id === value);
+              const template = sendTemplates.find((item) => item.id === value);
               onChange({ template_id: value }, template?.name ?? 'Select template');
             }}
             options={templateOptions}
