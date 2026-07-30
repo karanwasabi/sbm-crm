@@ -14,9 +14,14 @@ import { cn } from '@/lib/cn';
 type LeadDatabaseBulkSendButtonProps = {
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  whatsappSendsEnabled?: boolean;
 };
 
-export function LeadDatabaseBulkSendButton({ emailTemplates, whatsappTemplates }: LeadDatabaseBulkSendButtonProps) {
+export function LeadDatabaseBulkSendButton({
+  emailTemplates,
+  whatsappTemplates,
+  whatsappSendsEnabled = false,
+}: LeadDatabaseBulkSendButtonProps) {
   const { selectedCount, getExportLeads, needsPrefetchForExport, waitForPrefetch, cancelPendingExport } =
     useLeadDatabaseSelection();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -26,6 +31,7 @@ export function LeadDatabaseBulkSendButton({ emailTemplates, whatsappTemplates }
 
   const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
   const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
+  const whatsappDisabled = !whatsappSendsEnabled || activeWhatsappTemplates.length === 0;
   const isDisabled = selectedCount === 0;
 
   const openWithLeads = (ids: string[], channel: 'email' | 'whatsapp') => {
@@ -90,9 +96,10 @@ export function LeadDatabaseBulkSendButton({ emailTemplates, whatsappTemplates }
         variant="light"
         size="sm"
         leftIcon={<WhatsAppIcon />}
-        aria-disabled={isDisabled || activeWhatsappTemplates.length === 0}
+        aria-disabled={isDisabled || whatsappDisabled}
+        title={!whatsappSendsEnabled ? 'WhatsApp sends are disabled on the backend.' : undefined}
         className={cn(
-          (isDisabled || activeWhatsappTemplates.length === 0) &&
+          (isDisabled || whatsappDisabled) &&
             'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none'
         )}
         onClick={() => handleClick('whatsapp')}

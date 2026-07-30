@@ -34,6 +34,7 @@ type FilterBarProps = {
   tagSuggestions: TagSuggestion[];
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  whatsappSendsEnabled?: boolean;
   unseenUpdatesCount: number;
 };
 
@@ -44,6 +45,7 @@ export function FilterBar({
   tagSuggestions,
   emailTemplates,
   whatsappTemplates,
+  whatsappSendsEnabled = false,
   unseenUpdatesCount,
 }: FilterBarProps) {
   return (
@@ -110,7 +112,11 @@ export function FilterBar({
           ))}
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <LeadDatabaseBulkSendButton emailTemplates={emailTemplates} whatsappTemplates={whatsappTemplates} />
+          <LeadDatabaseBulkSendButton
+            emailTemplates={emailTemplates}
+            whatsappTemplates={whatsappTemplates}
+            whatsappSendsEnabled={whatsappSendsEnabled}
+          />
           <LeadDatabaseExportButton />
         </div>
       </div>

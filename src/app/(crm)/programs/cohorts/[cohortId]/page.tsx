@@ -5,6 +5,7 @@ import {
   getCohortMembers,
   getMyAccess,
   getProgramCohorts,
+  getWhatsAppFlags,
   listEmailTemplates,
   listStaff,
   listWhatsAppTemplates,
@@ -19,24 +20,28 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
   let coaches: Awaited<ReturnType<typeof listStaff>>['active'] = [];
   let emailTemplates: Awaited<ReturnType<typeof listEmailTemplates>> = [];
   let whatsappTemplates: Awaited<ReturnType<typeof listWhatsAppTemplates>> = [];
+  let whatsappSendsEnabled = false;
   let canManagePointA = false;
   let canLockCohort = false;
   let isSuperadminUser = false;
 
   try {
-    const [cohortResult, membersResult, staff, templates, whatsappTemplatesResult, access] = await Promise.all([
-      getCohort(cohortId),
-      getCohortMembers(cohortId),
-      listStaff(),
-      listEmailTemplates().catch(() => []),
-      listWhatsAppTemplates().catch(() => []),
-      getMyAccess(),
-    ]);
+    const [cohortResult, membersResult, staff, templates, whatsappTemplatesResult, access, whatsappFlags] =
+      await Promise.all([
+        getCohort(cohortId),
+        getCohortMembers(cohortId),
+        listStaff(),
+        listEmailTemplates().catch(() => []),
+        listWhatsAppTemplates().catch(() => []),
+        getMyAccess(),
+        getWhatsAppFlags().catch(() => ({ sendsEnabled: false, templatesEnabled: false })),
+      ]);
     cohort = cohortResult;
     members = membersResult;
     coaches = staff.active.filter((row) => row.roles.includes('coach'));
     emailTemplates = templates;
     whatsappTemplates = whatsappTemplatesResult;
+    whatsappSendsEnabled = whatsappFlags.sendsEnabled;
     const superadmin = isSuperadmin(access.roles);
     canManagePointA = superadmin;
     canLockCohort = superadmin;
@@ -60,6 +65,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     coaches = [];
     emailTemplates = [];
     whatsappTemplates = [];
+    whatsappSendsEnabled = false;
     canManagePointA = false;
     canLockCohort = false;
     isSuperadminUser = false;
@@ -77,6 +83,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
       coaches={coaches}
       emailTemplates={emailTemplates}
       whatsappTemplates={whatsappTemplates}
+      whatsappSendsEnabled={whatsappSendsEnabled}
       canManagePointA={canManagePointA}
       canLockCohort={canLockCohort}
       isSuperadmin={isSuperadminUser}

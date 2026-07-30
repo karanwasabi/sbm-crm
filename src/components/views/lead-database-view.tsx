@@ -18,6 +18,7 @@ type LeadDatabaseViewProps = {
   tagSuggestions: TagSuggestion[];
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  whatsappSendsEnabled?: boolean;
   children: ReactNode;
 };
 
@@ -28,6 +29,7 @@ export function LeadDatabaseView({
   tagSuggestions,
   emailTemplates,
   whatsappTemplates,
+  whatsappSendsEnabled = false,
   children,
 }: LeadDatabaseViewProps) {
   const { setLeadTotal } = useCrmLeadSummary();
@@ -48,6 +50,7 @@ export function LeadDatabaseView({
           tagSuggestions={tagSuggestions}
           emailTemplates={emailTemplates}
           whatsappTemplates={whatsappTemplates}
+          whatsappSendsEnabled={whatsappSendsEnabled}
           unseenUpdatesCount={summary.withUnseenSuggestions}
         />
 

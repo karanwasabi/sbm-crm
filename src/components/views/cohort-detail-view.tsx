@@ -83,6 +83,7 @@ type CohortDetailViewProps = {
   coaches: StaffMember[];
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  whatsappSendsEnabled?: boolean;
   canManagePointA?: boolean;
   canLockCohort?: boolean;
   isSuperadmin?: boolean;
@@ -1018,6 +1019,7 @@ export function CohortDetailView({
   coaches,
   emailTemplates,
   whatsappTemplates,
+  whatsappSendsEnabled = false,
   canManagePointA = false,
   canLockCohort = false,
   isSuperadmin = false,
@@ -1829,6 +1831,7 @@ export function CohortDetailView({
               selectedEnrollmentIds={selectedList}
               emailTemplates={emailTemplates}
               whatsappTemplates={whatsappTemplates}
+              whatsappSendsEnabled={whatsappSendsEnabled}
               showPush={isSuperadmin}
             />
             <CohortExportButton

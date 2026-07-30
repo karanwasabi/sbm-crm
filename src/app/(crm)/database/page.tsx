@@ -5,6 +5,7 @@ import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-data
 import {
   getLeadFilterOptions,
   getLeadSummary,
+  getWhatsAppFlags,
   listEmailTemplates,
   listTagSuggestions,
   listWhatsAppTemplates,
@@ -50,6 +51,7 @@ export default async function DatabasePage({
   let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
   let emailTemplates: import('@/utils/api').EmailTemplate[] = [];
   let whatsappTemplates: import('@/utils/api').WhatsAppTemplate[] = [];
+  let whatsappSendsEnabled = false;
 
   try {
     [summary, filterOptions] = await Promise.all([getLeadSummary(), getLeadFilterOptions()]);
@@ -65,10 +67,21 @@ export default async function DatabasePage({
   }
 
   try {
-    [emailTemplates, whatsappTemplates] = await Promise.all([listEmailTemplates(), listWhatsAppTemplates()]);
+    emailTemplates = await listEmailTemplates();
   } catch {
     emailTemplates = [];
+  }
+
+  try {
+    const [flags, templates] = await Promise.all([
+      getWhatsAppFlags().catch(() => ({ sendsEnabled: false, templatesEnabled: false })),
+      listWhatsAppTemplates().catch(() => [] as import('@/utils/api').WhatsAppTemplate[]),
+    ]);
+    whatsappSendsEnabled = flags.sendsEnabled;
+    whatsappTemplates = templates;
+  } catch {
     whatsappTemplates = [];
+    whatsappSendsEnabled = false;
   }
 
   return (
@@ -79,6 +92,7 @@ export default async function DatabasePage({
       tagSuggestions={tagSuggestions}
       emailTemplates={emailTemplates}
       whatsappTemplates={whatsappTemplates}
+      whatsappSendsEnabled={whatsappSendsEnabled}
     >
       <Suspense key={suspenseKey} fallback={<LeadDatabaseTableFallback />}>
         <LeadDatabaseTableLoader filters={filters} summary={summary} />

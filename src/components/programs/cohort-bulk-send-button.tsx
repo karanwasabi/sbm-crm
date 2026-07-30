@@ -17,6 +17,7 @@ type CohortBulkSendButtonProps = {
   selectedEnrollmentIds: string[];
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  whatsappSendsEnabled?: boolean;
   showPush?: boolean;
 };
 
@@ -27,6 +28,7 @@ export function CohortBulkSendButton({
   selectedEnrollmentIds,
   emailTemplates,
   whatsappTemplates,
+  whatsappSendsEnabled = false,
   showPush = false,
 }: CohortBulkSendButtonProps) {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
@@ -38,6 +40,7 @@ export function CohortBulkSendButton({
 
   const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
   const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
+  const whatsappDisabled = !whatsappSendsEnabled || activeWhatsappTemplates.length === 0;
 
   const memberByEnrollment = useMemo(() => {
     const map = new Map<string, CohortMember>();
@@ -134,7 +137,8 @@ export function CohortBulkSendButton({
           variant="light"
           size="sm"
           leftIcon={<WhatsAppIcon />}
-          disabled={isDisabled || activeWhatsappTemplates.length === 0}
+          disabled={isDisabled || whatsappDisabled}
+          title={!whatsappSendsEnabled ? 'WhatsApp sends are disabled on the backend.' : undefined}
           onClick={() => handleClick('whatsapp')}
         >
           Send WhatsApp
