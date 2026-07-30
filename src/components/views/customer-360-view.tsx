@@ -41,7 +41,7 @@ import { leadDetailToContactProfile } from '@/lib/lead-display';
 import { useCrmNavigate } from '@/hooks/use-crm-navigate';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
-import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppFlags, WhatsAppTemplate } from '@/utils/api';
 import type { LeadDetail, ProgramHistoryItem, TagSuggestion } from '@/types/crm';
 
 const CallLogModal = dynamic(
@@ -54,15 +54,51 @@ type Customer360ViewProps = {
   programHistory: ProgramHistoryItem[];
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
+  whatsappFlags: WhatsAppFlags;
   tagSuggestions: TagSuggestion[];
   canSyncPayment?: boolean;
 };
+
+function getSendWhatsAppState({
+  whatsappFlags,
+  whatsappTemplates,
+  hasPhone,
+}: {
+  whatsappFlags: WhatsAppFlags;
+  whatsappTemplates: WhatsAppTemplate[];
+  hasPhone: boolean;
+}): { disabled: boolean; disabledReason?: string } {
+  if (!whatsappFlags.sendsEnabled) {
+    return {
+      disabled: true,
+      disabledReason: 'WhatsApp sends are disabled on the backend. Set WHATSAPP_SENDS_ENABLED=true.',
+    };
+  }
+
+  const hasActiveTemplate = whatsappTemplates.some((template) => template.status === 'active');
+  if (!hasActiveTemplate) {
+    return {
+      disabled: true,
+      disabledReason: 'No active WhatsApp templates. Activate one in Communications → WhatsApp.',
+    };
+  }
+
+  if (!hasPhone) {
+    return {
+      disabled: true,
+      disabledReason: 'This lead has no phone number on file.',
+    };
+  }
+
+  return { disabled: false };
+}
 
 export function Customer360View({
   lead: initialLead,
   programHistory,
   emailTemplates,
   whatsappTemplates,
+  whatsappFlags,
   tagSuggestions,
   canSyncPayment = false,
 }: Customer360ViewProps) {
@@ -225,6 +261,12 @@ export function Customer360View({
     });
   };
 
+  const sendWhatsAppState = getSendWhatsAppState({
+    whatsappFlags,
+    whatsappTemplates,
+    hasPhone: Boolean(contact.phone),
+  });
+
   if (isNavigating) {
     // Browser back (no pendingHref) → cohort skeleton for the common cohort↔C360 flow.
     if (!pendingHref || pendingHref.startsWith('/programs/cohorts/')) {
@@ -242,11 +284,11 @@ export function Customer360View({
         onSendEmail={
           emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
         }
-        onSendWhatsApp={
-          whatsappTemplates.some((template) => template.status === 'active')
-            ? () => setSendWhatsAppOpen(true)
-            : undefined
-        }
+        sendWhatsApp={{
+          onClick: () => setSendWhatsAppOpen(true),
+          disabled: sendWhatsAppState.disabled,
+          disabledReason: sendWhatsAppState.disabledReason,
+        }}
         onOpenConvonite={contact.phone ? handleOpenConvonite : undefined}
         onPurge={() => setPurgeOpen(true)}
         onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}

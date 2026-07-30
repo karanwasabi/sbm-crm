@@ -14,11 +14,17 @@ import { cn } from '@/lib/cn';
 import { leadHasTag } from '@/lib/lead-tags';
 import type { ContactProfile } from '@/types/crm';
 
+type ProfileSendWhatsAppAction = {
+  onClick: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
+};
+
 type ProfileHeaderProps = {
   contact: ContactProfile;
   onLogCall?: () => void;
   onSendEmail?: () => void;
-  onSendWhatsApp?: () => void;
+  sendWhatsApp?: ProfileSendWhatsAppAction;
   onOpenConvonite?: () => void;
   onPurge?: () => void;
   onEnroll?: () => void;
@@ -68,7 +74,7 @@ export function ProfileHeader({
   contact,
   onLogCall,
   onSendEmail,
-  onSendWhatsApp,
+  sendWhatsApp,
   onOpenConvonite,
   onPurge,
   onEnroll,
@@ -196,15 +202,18 @@ export function ProfileHeader({
               Send email
             </Button>
           ) : null}
-          {onSendWhatsApp ? (
-            <Button
-              variant="light"
-              size="sm"
-              leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
-              onClick={onSendWhatsApp}
-            >
-              Send WhatsApp
-            </Button>
+          {sendWhatsApp ? (
+            <span title={sendWhatsApp.disabled ? sendWhatsApp.disabledReason : undefined} className="inline-flex">
+              <Button
+                variant="light"
+                size="sm"
+                leftIcon={<MessageCircle className="h-3.5 w-3.5" />}
+                onClick={sendWhatsApp.onClick}
+                disabled={sendWhatsApp.disabled}
+              >
+                Send WhatsApp
+              </Button>
+            </span>
           ) : null}
           {onOpenConvonite ? (
             <Button

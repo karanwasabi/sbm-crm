@@ -6,10 +6,16 @@ import {
   getLead,
   getMemberEnrollments,
   getMyAccess,
+  getWhatsAppFlags,
   listEmailTemplates,
   listTagSuggestions,
   listWhatsAppTemplates,
 } from '@/utils/api';
+
+const DEFAULT_WHATSAPP_FLAGS = {
+  templatesEnabled: false,
+  sendsEnabled: false,
+} as const;
 
 type CustomerPageProps = {
   params: Promise<{ id: string }>;
@@ -20,10 +26,11 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
 
   try {
     const [lead, access] = await Promise.all([getLead(id), getMyAccess()]);
+    const whatsappFlags = await getWhatsAppFlags().catch(() => DEFAULT_WHATSAPP_FLAGS);
     const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions] = await Promise.all([
       lead.memberUserId != null ? getMemberEnrollments(lead.memberUserId).catch(() => []) : Promise.resolve([]),
       listEmailTemplates().catch(() => []),
-      listWhatsAppTemplates().catch(() => []),
+      whatsappFlags.sendsEnabled ? listWhatsAppTemplates().catch(() => []) : Promise.resolve([]),
       listTagSuggestions().catch(() => []),
     ]);
     return (
@@ -32,6 +39,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         programHistory={programHistory}
         emailTemplates={emailTemplates}
         whatsappTemplates={whatsappTemplates}
+        whatsappFlags={whatsappFlags}
         tagSuggestions={tagSuggestions}
         canSyncPayment={isSuperadmin(access.roles)}
       />
