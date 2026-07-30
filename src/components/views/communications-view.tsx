@@ -67,7 +67,7 @@ const COMMS_NAV_ACTIVE_TAB: Record<CommsNavTone, string> = {
 
 function commsNavTabClass(active: boolean, tone: CommsNavTone): string {
   return cn(
-    'rounded-[14px] px-3 py-1.5 text-[12px] font-semibold transition-colors',
+    'cursor-pointer rounded-[14px] px-3 py-1.5 text-[12px] font-semibold transition-colors',
     active ? COMMS_NAV_ACTIVE_TAB[tone] : 'text-slate-600 hover:bg-slate-100'
   );
 }
@@ -99,7 +99,7 @@ function CommsNavLabelRail({
     <Link
       href={href}
       className={cn(
-        'flex shrink-0 items-center gap-1.5 self-stretch rounded-l-lg border-r border-slate-200 py-1 pr-3 pl-3 transition-colors',
+        'flex shrink-0 cursor-pointer items-center gap-1.5 self-stretch rounded-l-lg border-r border-slate-200 py-1 pr-3 pl-3 transition-colors',
         hoverClass[tone]
       )}
     >
@@ -257,13 +257,14 @@ export function CommunicationsView({
             subtitle={contentSubtitle}
             right={
               isAutomations ? (
-                <Link
-                  href={commsAutomationHref('new')}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Plus className="h-3.5 w-3.5" />}
+                  onClick={() => router.push(commsAutomationHref('new'))}
                 >
-                  <Plus className="h-3.5 w-3.5" />
                   New automation
-                </Link>
+                </Button>
               ) : tab === 'templates' ? (
                 <div className="flex flex-wrap items-center gap-2">
                   {isWhatsApp && canManageWhatsAppTemplates ? (
@@ -279,23 +280,25 @@ export function CommunicationsView({
                     </Button>
                   ) : null}
                   {isWhatsApp && !canManageWhatsAppTemplates ? null : (
-                    <Link
-                      href={commsTemplateHref(channel, 'new')}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1.5 text-xs font-bold text-white"
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      leftIcon={<Plus className="h-3.5 w-3.5" />}
+                      onClick={() => router.push(commsTemplateHref(channel, 'new'))}
                     >
-                      <Plus className="h-3.5 w-3.5" />
                       New template
-                    </Link>
+                    </Button>
                   )}
                 </div>
               ) : tab === 'bulk-sends' ? (
-                <Link
-                  href="/database"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700"
+                <Button
+                  variant="primary"
+                  size="sm"
+                  leftIcon={<Send className="h-3.5 w-3.5" />}
+                  onClick={() => router.push('/database')}
                 >
-                  <Send className="h-3.5 w-3.5" />
                   Send from Lead Database
-                </Link>
+                </Button>
               ) : null
             }
           />
