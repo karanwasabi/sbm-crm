@@ -10,7 +10,7 @@ import {
 import { BulkSendPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
 import { WhatsAppTemplateSelect } from '@/components/comms/whatsapp-template-select';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
-import { bulkWhatsAppSkipTotal, formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
+import { formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
 import { commsBulkSendHref } from '@/lib/comms-channel';
 import { Button } from '@/components/ui/button';
 import type { BulkLeadWhatsAppPreview, BulkLeadWhatsAppSendJob, WhatsAppTemplate } from '@/utils/api';
@@ -110,7 +110,15 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
     return null;
   }
 
-  const skippedTotal = preview ? bulkWhatsAppSkipTotal(preview.skipped) : 0;
+  const skippedTotal = preview
+    ? preview.skipped.no_consent +
+      preview.skipped.no_phone +
+      preview.skipped.invalid_phone +
+      preview.skipped.opted_out +
+      preview.skipped.notify_whatsapp_disabled +
+      preview.skipped.template_not_active +
+      preview.skipped.whatsapp_not_configured
+    : 0;
   const skipLines = preview ? formatSkipSummary(preview) : [];
   const sending = Boolean(job && job.status !== 'completed' && job.status !== 'failed');
   const finished = job?.status === 'completed' || job?.status === 'failed';
