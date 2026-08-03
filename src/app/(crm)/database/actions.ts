@@ -66,7 +66,7 @@ export async function previewBulkLeadWhatsAppSendAction(
 export async function startBulkLeadWhatsAppSendAction(
   templateId: string,
   leadIds: string[],
-  options?: { skipAlreadySent?: boolean }
+  options?: { skipAlreadySent?: boolean; paramOverrides?: Record<string, string> }
 ): Promise<{ job: import('@/utils/api').BulkLeadWhatsAppSendJob | null; error: string | null }> {
   try {
     const { getBulkLeadWhatsAppSendJob, startBulkLeadWhatsAppSend } = await import('@/utils/api');

@@ -52,6 +52,9 @@ export function formatBulkWhatsAppSkipSummary(skipped: BulkLeadWhatsAppPreview['
   if (skipped.whatsapp_not_configured > 0) {
     lines.push(`${skipped.whatsapp_not_configured} WhatsApp not configured`);
   }
+  if ((skipped.missing_param ?? 0) > 0) {
+    lines.push(`${skipped.missing_param} missing param`);
+  }
   return lines;
 }
 
@@ -64,6 +67,7 @@ export function bulkWhatsAppSkipTotal(skipped: BulkLeadWhatsAppPreview['skipped'
     skipped.notify_whatsapp_disabled +
     skipped.already_sent +
     skipped.template_not_active +
-    skipped.whatsapp_not_configured
+    skipped.whatsapp_not_configured +
+    (skipped.missing_param ?? 0)
   );
 }

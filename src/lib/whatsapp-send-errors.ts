@@ -6,6 +6,7 @@ const SKIP_REASON_LABELS: Record<string, string> = {
   no_consent: 'This lead has not given marketing consent (DPDP).',
   template_not_active: 'The selected template is not active.',
   whatsapp_not_configured: 'WhatsApp is not configured on the backend (Convonite API key / channel ID).',
+  missing_param: 'A required template variable is missing for this recipient.',
 };
 
 export function formatWhatsAppSendError(message: string): string {

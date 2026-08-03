@@ -188,9 +188,13 @@ export async function sendLeadEmailAction(leadId: string, templateId: string): P
   await sendLeadEmail(leadId, templateId);
 }
 
-export async function sendLeadWhatsAppAction(leadId: string, templateId: string): Promise<{ error: string | null }> {
+export async function sendLeadWhatsAppAction(
+  leadId: string,
+  templateId: string,
+  params?: Record<string, string>
+): Promise<{ error: string | null }> {
   try {
-    await sendLeadWhatsApp(leadId, templateId);
+    await sendLeadWhatsApp(leadId, templateId, params);
     return { error: null };
   } catch (error) {
     const { formatWhatsAppSendError } = await import('@/lib/whatsapp-send-errors');

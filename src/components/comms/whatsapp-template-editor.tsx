@@ -362,7 +362,8 @@ export function WhatsAppTemplateEditor({ template = null, managementEnabled = tr
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
                 <p className="text-xs font-bold tracking-[0.12em] text-slate-500 uppercase">Variable samples</p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Required for Meta approval. Used in preview and test sends.
+                  For custom variables, the sample is the default send value. For lead fields it is used for Meta
+                  approval and preview.
                 </p>
                 <div className="mt-3 space-y-3">
                   {form.variables.length === 0 ? (
@@ -371,7 +372,7 @@ export function WhatsAppTemplateEditor({ template = null, managementEnabled = tr
                     form.variables.map((variable, index) => (
                       <div key={variable.name} className="space-y-2 rounded-lg border border-slate-200 bg-white p-3">
                         <p className="text-sm font-semibold text-slate-800">{`{{${variable.name}}}`}</p>
-                        <Field label="Sample value">
+                        <Field label="Sample / default value">
                           <TextInput
                             value={variable.example}
                             onChange={(value) => updateVariable(index, { example: value })}

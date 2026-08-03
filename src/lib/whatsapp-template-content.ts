@@ -2,7 +2,22 @@ export type WhatsAppHeaderFormat = 'none' | 'text';
 
 export type WhatsAppButtonType = 'url' | 'quick_reply' | 'phone';
 
-export type WhatsAppLeadField = '' | 'first_name' | 'last_name' | 'name' | 'email' | 'city' | 'program_interest';
+export type WhatsAppLeadField =
+  | ''
+  | 'first_name'
+  | 'last_name'
+  | 'name'
+  | 'email'
+  | 'city'
+  | 'country'
+  | 'program_interest'
+  | 'batch'
+  | 'program_name'
+  | 'cohort_name'
+  | 'cohort_starts_on'
+  | 'enrollment_status'
+  | 'portal'
+  | 'website';
 
 export type WhatsAppTemplateVariable = {
   name: string;
@@ -28,23 +43,53 @@ export type WhatsAppTemplateFormContent = {
   buttons: WhatsAppTemplateButton[];
 };
 
-export const WHATSAPP_LEAD_FIELD_OPTIONS: { value: WhatsAppLeadField; label: string }[] = [
-  { value: '', label: 'Custom (sample value only)' },
-  { value: 'first_name', label: 'Lead — first name' },
-  { value: 'last_name', label: 'Lead — last name' },
-  { value: 'name', label: 'Lead — full name' },
-  { value: 'email', label: 'Lead — email' },
-  { value: 'city', label: 'Lead — city' },
-  { value: 'program_interest', label: 'Lead — program interest' },
+/** Shared catalog aligned with backend whatsAppLeadField catalog. */
+export const WHATSAPP_VARIABLE_CATALOG: {
+  field: Exclude<WhatsAppLeadField, ''>;
+  token: string;
+  label: string;
+  insertLabel: string;
+}[] = [
+  { field: 'first_name', token: '{{first_name}}', label: 'Lead — first name', insertLabel: 'First name' },
+  { field: 'last_name', token: '{{last_name}}', label: 'Lead — last name', insertLabel: 'Last name' },
+  { field: 'name', token: '{{name}}', label: 'Lead — full name', insertLabel: 'Full name' },
+  { field: 'email', token: '{{email}}', label: 'Lead — email', insertLabel: 'Email' },
+  { field: 'city', token: '{{city}}', label: 'Lead — city', insertLabel: 'City' },
+  { field: 'country', token: '{{country}}', label: 'Lead — country', insertLabel: 'Country' },
+  {
+    field: 'program_interest',
+    token: '{{program_interest}}',
+    label: 'Lead — program interest',
+    insertLabel: 'Program interest',
+  },
+  { field: 'batch', token: '{{batch}}', label: 'Lead — batch', insertLabel: 'Batch' },
+  { field: 'program_name', token: '{{program_name}}', label: 'Member — program name', insertLabel: 'Program name' },
+  { field: 'cohort_name', token: '{{cohort_name}}', label: 'Member — cohort name', insertLabel: 'Cohort name' },
+  {
+    field: 'cohort_starts_on',
+    token: '{{cohort_starts_on}}',
+    label: 'Member — cohort start',
+    insertLabel: 'Cohort start',
+  },
+  {
+    field: 'enrollment_status',
+    token: '{{enrollment_status}}',
+    label: 'Member — enrollment status',
+    insertLabel: 'Enrollment status',
+  },
+  { field: 'portal', token: '{{portal}}', label: 'Link — portal', insertLabel: 'Portal link' },
+  { field: 'website', token: '{{website}}', label: 'Link — website', insertLabel: 'Website link' },
 ];
 
-export const WHATSAPP_INSERT_VARIABLE_OPTIONS = [
-  { token: '{{first_name}}', label: 'First name' },
-  { token: '{{last_name}}', label: 'Last name' },
-  { token: '{{name}}', label: 'Full name' },
-  { token: '{{email}}', label: 'Email' },
-  { token: '{{city}}', label: 'City' },
+export const WHATSAPP_LEAD_FIELD_OPTIONS: { value: WhatsAppLeadField; label: string }[] = [
+  { value: '', label: 'Custom (sample = default send value)' },
+  ...WHATSAPP_VARIABLE_CATALOG.map((item) => ({ value: item.field as WhatsAppLeadField, label: item.label })),
 ];
+
+export const WHATSAPP_INSERT_VARIABLE_OPTIONS = WHATSAPP_VARIABLE_CATALOG.map((item) => ({
+  token: item.token,
+  label: item.insertLabel,
+}));
 
 const VARIABLE_PATTERN = /\{\{([^}]+)\}\}/g;
 
@@ -60,12 +105,19 @@ export function extractVariableNames(text: string): string[] {
 
 export function guessLeadField(variableName: string): WhatsAppLeadField {
   const normalized = variableName.toLowerCase().replace(/[\s-]/g, '_');
-  if (normalized === 'first_name' || normalized === 'firstname' || normalized === 'fname') return 'first_name';
-  if (normalized === 'last_name' || normalized === 'lastname' || normalized === 'lname') return 'last_name';
-  if (normalized === 'name' || normalized === 'full_name' || normalized === 'fullname') return 'name';
-  if (normalized === 'email') return 'email';
-  if (normalized === 'city') return 'city';
-  if (normalized === 'program_interest' || normalized === 'program') return 'program_interest';
+  const catalogMatch = WHATSAPP_VARIABLE_CATALOG.find(
+    (item) => item.field === normalized || item.token === `{{${normalized}}}`
+  );
+  if (catalogMatch) return catalogMatch.field;
+  if (normalized === 'firstname' || normalized === 'fname') return 'first_name';
+  if (normalized === 'lastname' || normalized === 'lname') return 'last_name';
+  if (normalized === 'full_name' || normalized === 'fullname') return 'name';
+  if (normalized === 'program') return 'program_interest';
+  if (normalized === 'cohort') return 'cohort_name';
+  if (normalized === 'starts_on' || normalized === 'start_date') return 'cohort_starts_on';
+  if (normalized === 'status') return 'enrollment_status';
+  if (normalized === 'portal_url') return 'portal';
+  if (normalized === 'website_url') return 'website';
   return '';
 }
 
@@ -75,7 +127,13 @@ export function defaultVariableExample(variableName: string, leadField: WhatsApp
   if (leadField === 'name') return 'Alex Sharma';
   if (leadField === 'email') return 'alex@example.com';
   if (leadField === 'city') return 'Mumbai';
-  if (leadField === 'program_interest') return 'Take Control';
+  if (leadField === 'country') return 'India';
+  if (leadField === 'program_interest' || leadField === 'program_name') return 'Take Control';
+  if (leadField === 'batch' || leadField === 'cohort_name') return 'Cohort 12';
+  if (leadField === 'cohort_starts_on') return '3 July 2026';
+  if (leadField === 'enrollment_status') return 'Currently enrolled';
+  if (leadField === 'portal') return 'https://portal.slowburnmethod.in';
+  if (leadField === 'website') return 'https://slowburnmethod.in';
   if (variableName.toLowerCase().includes('link') || variableName.toLowerCase().includes('url')) {
     return 'https://slowburnmethod.in';
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import {
   getBulkLeadWhatsAppSendJobAction,
@@ -10,9 +10,12 @@ import {
 import { BulkSendPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
 import { WhatsAppTemplateSelect } from '@/components/comms/whatsapp-template-select';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
-import { formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
-import { commsBulkSendHref } from '@/lib/comms-channel';
 import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
+import { TextInput } from '@/components/ui/text-input';
+import { bulkWhatsAppSkipTotal, formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
+import { commsBulkSendHref } from '@/lib/comms-channel';
+import { parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
 import type { BulkLeadWhatsAppPreview, BulkLeadWhatsAppSendJob, WhatsAppTemplate } from '@/utils/api';
 
 type BulkSendWhatsAppDialogProps = {
@@ -26,14 +29,30 @@ function formatSkipSummary(preview: BulkLeadWhatsAppPreview): string[] {
   return formatBulkWhatsAppSkipSummary(preview.skipped);
 }
 
+function customParamDefaults(template: WhatsAppTemplate | undefined): Record<string, string> {
+  if (!template) return {};
+  const form = parseWhatsAppTemplateContent(template.content ?? template.liveContent, template.runtimeParams);
+  const out: Record<string, string> = {};
+  for (const variable of form.variables) {
+    if (variable.leadField) continue;
+    out[variable.name] = variable.example;
+  }
+  return out;
+}
+
 export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: BulkSendWhatsAppDialogProps) {
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
   const [preview, setPreview] = useState<BulkLeadWhatsAppPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmDuplicates, setConfirmDuplicates] = useState(false);
+  const [paramOverrides, setParamOverrides] = useState<Record<string, string>>({});
   const [job, setJob] = useState<BulkLeadWhatsAppSendJob | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSending, startSendTransition] = useTransition();
+
+  const selectedTemplate = templates.find((template) => template.id === templateId);
+  const customDefaults = useMemo(() => customParamDefaults(selectedTemplate), [selectedTemplate]);
+  const customNames = Object.keys(customDefaults);
 
   useEffect(() => {
     if (!open) {
@@ -43,6 +62,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
       setJob(null);
       setError(null);
       setTemplateId(templates[0]?.id ?? '');
+      setParamOverrides({});
       return;
     }
     if (!templateId) {
@@ -50,6 +70,8 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
       setPreviewLoading(false);
       return;
     }
+
+    setParamOverrides(customDefaults);
 
     let cancelled = false;
     setPreview(null);
@@ -73,7 +95,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
     return () => {
       cancelled = true;
     };
-  }, [open, templateId, leadIds, templates]);
+  }, [open, templateId, leadIds, templates, customDefaults]);
 
   useEffect(() => {
     if (!job || job.status === 'completed' || job.status === 'failed') {
@@ -96,7 +118,10 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
   const startSend = (skipAlreadySent: boolean) => {
     setError(null);
     startSendTransition(async () => {
-      const result = await startBulkLeadWhatsAppSendAction(templateId, leadIds, { skipAlreadySent });
+      const result = await startBulkLeadWhatsAppSendAction(templateId, leadIds, {
+        skipAlreadySent,
+        paramOverrides,
+      });
       if (result.error || !result.job) {
         setError(result.error ?? 'Failed to start bulk send.');
         return;
@@ -110,18 +135,11 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
     return null;
   }
 
-  const skippedTotal = preview
-    ? preview.skipped.no_consent +
-      preview.skipped.no_phone +
-      preview.skipped.invalid_phone +
-      preview.skipped.opted_out +
-      preview.skipped.notify_whatsapp_disabled +
-      preview.skipped.template_not_active +
-      preview.skipped.whatsapp_not_configured
-    : 0;
+  const skippedTotal = preview ? bulkWhatsAppSkipTotal(preview.skipped) : 0;
   const skipLines = preview ? formatSkipSummary(preview) : [];
   const sending = Boolean(job && job.status !== 'completed' && job.status !== 'failed');
   const finished = job?.status === 'completed' || job?.status === 'failed';
+  const customMissing = customNames.some((name) => !(paramOverrides[name] ?? '').trim());
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
@@ -145,6 +163,24 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
                     emptyMessage="No active templates"
                   />
                 </label>
+
+                {customNames.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    <p className="text-xs font-bold tracking-[0.12em] text-slate-500 uppercase">
+                      Custom variables (same for all recipients)
+                    </p>
+                    {customNames.map((name) => (
+                      <Field key={name} label={`{{${name}}}`}>
+                        <TextInput
+                          value={paramOverrides[name] ?? ''}
+                          onChange={(value) => setParamOverrides((current) => ({ ...current, [name]: value }))}
+                          placeholder="Required for this send"
+                          disabled={previewLoading || isSending}
+                        />
+                      </Field>
+                    ))}
+                  </div>
+                ) : null}
 
                 {previewLoading ? <BulkSendPreviewSkeleton /> : null}
 
@@ -239,7 +275,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
                 leftIcon={<WhatsAppIcon />}
                 loading={isSending}
                 loadingLabel="Starting…"
-                disabled={isSending || !preview || preview.will_send_if_skip_duplicates === 0}
+                disabled={isSending || !preview || preview.will_send_if_skip_duplicates === 0 || customMissing}
                 onClick={() => startSend(true)}
               >
                 Skip & send to {preview?.will_send_if_skip_duplicates.toLocaleString('en-IN')}
@@ -251,7 +287,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
                 leftIcon={<WhatsAppIcon />}
                 loading={isSending}
                 loadingLabel="Starting…"
-                disabled={isSending || !preview || preview.will_send === 0}
+                disabled={isSending || !preview || preview.will_send === 0 || customMissing}
                 onClick={() => startSend(false)}
               >
                 Send to all {preview?.will_send.toLocaleString('en-IN')}
@@ -272,7 +308,9 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
               leftIcon={<WhatsAppIcon />}
               loading={isSending}
               loadingLabel="Starting…"
-              disabled={previewLoading || isSending || !templateId || !preview || preview.will_send === 0}
+              disabled={
+                previewLoading || isSending || !templateId || !preview || preview.will_send === 0 || customMissing
+              }
               onClick={() => {
                 if (preview && preview.already_sent > 0) {
                   setConfirmDuplicates(true);

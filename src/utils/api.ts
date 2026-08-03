@@ -3535,15 +3535,52 @@ export async function sendWhatsAppTemplateTest(id: string, toPhone: string): Pro
   }
 }
 
-export async function sendLeadWhatsApp(leadId: string, templateId: string): Promise<void> {
+export async function sendLeadWhatsApp(
+  leadId: string,
+  templateId: string,
+  params?: Record<string, string>
+): Promise<void> {
   const response = await requireApiFetch(`/admin/comms/leads/${leadId}/whatsapp/send`, {
     method: 'POST',
-    body: JSON.stringify({ template_id: templateId }),
+    body: JSON.stringify({ template_id: templateId, params: params ?? undefined }),
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to send WhatsApp.', response.status);
   }
+}
+
+export type WhatsAppTemplateParamsPreview = {
+  params: Record<string, string>;
+  missing: string[];
+  previewText: string;
+};
+
+export async function previewWhatsAppTemplateParams(
+  templateId: string,
+  options?: { leadId?: string; params?: Record<string, string> }
+): Promise<WhatsAppTemplateParamsPreview> {
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates/${templateId}/preview-params`, {
+    method: 'POST',
+    body: JSON.stringify({
+      lead_id: options?.leadId,
+      params: options?.params,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to preview WhatsApp params.', response.status);
+  }
+  const row = (await response.json()) as {
+    params: Record<string, string>;
+    missing: string[];
+    preview_text: string;
+  };
+  return {
+    params: row.params ?? {},
+    missing: row.missing ?? [],
+    previewText: row.preview_text ?? '',
+  };
 }
 
 export type LeadWhatsAppChat = {
@@ -3641,6 +3678,7 @@ export type BulkLeadWhatsAppPreview = {
     already_sent: number;
     template_not_active: number;
     whatsapp_not_configured: number;
+    missing_param?: number;
   };
 };
 
@@ -3695,7 +3733,7 @@ export async function previewBulkLeadWhatsAppSend(
 export async function startBulkLeadWhatsAppSend(
   templateId: string,
   leadIds: string[],
-  options?: { skipAlreadySent?: boolean }
+  options?: { skipAlreadySent?: boolean; paramOverrides?: Record<string, string> }
 ): Promise<{ job_id: string }> {
   const response = await requireApiFetch('/admin/comms/leads/bulk-whatsapp', {
     method: 'POST',
@@ -3703,6 +3741,7 @@ export async function startBulkLeadWhatsAppSend(
       template_id: templateId,
       lead_ids: leadIds,
       skip_already_sent: options?.skipAlreadySent ?? false,
+      param_overrides: options?.paramOverrides ?? undefined,
     }),
   });
   if (!response.ok) {
