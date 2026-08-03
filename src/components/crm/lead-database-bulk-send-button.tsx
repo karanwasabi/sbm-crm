@@ -8,6 +8,7 @@ import { LeadExportPreparingDialog } from '@/components/crm/lead-export-preparin
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/components/ui/toast';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import { cn } from '@/lib/cn';
 
@@ -15,15 +16,18 @@ type LeadDatabaseBulkSendButtonProps = {
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
+  createdByMe: boolean;
 };
 
 export function LeadDatabaseBulkSendButton({
   emailTemplates,
   whatsappTemplates,
   whatsappSendsEnabled = false,
+  createdByMe,
 }: LeadDatabaseBulkSendButtonProps) {
   const { selectedCount, getExportLeads, needsPrefetchForExport, waitForPrefetch, cancelPendingExport } =
     useLeadDatabaseSelection();
+  const { toast } = useToast();
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [preparingOpen, setPreparingOpen] = useState(false);
@@ -32,7 +36,7 @@ export function LeadDatabaseBulkSendButton({
   const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
   const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
   const whatsappDisabled = !whatsappSendsEnabled || activeWhatsappTemplates.length === 0;
-  const isDisabled = selectedCount === 0;
+  const isDisabled = selectedCount === 0 || !createdByMe;
 
   const openWithLeads = (ids: string[], channel: 'email' | 'whatsapp') => {
     setLeadIds(ids);
@@ -44,6 +48,18 @@ export function LeadDatabaseBulkSendButton({
   };
 
   const handleClick = (channel: 'email' | 'whatsapp') => {
+    if (!createdByMe) {
+      toast({
+        message:
+          channel === 'email'
+            ? 'Turn on the Created by me filter to send email.'
+            : 'Turn on the Created by me filter to send WhatsApp.',
+        variant: 'warning',
+        durationMs: 5000,
+      });
+      return;
+    }
+
     if (selectedCount === 0) {
       return;
     }

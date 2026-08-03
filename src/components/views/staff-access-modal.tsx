@@ -30,11 +30,17 @@ type ModalView = 'edit' | 'revoke-confirm';
 const ROLE_OPTIONS: { role: StaffAccessRole; label: string; description: string }[] = [
   { role: 'admin', label: 'Admin', description: 'CRM and forum admin' },
   { role: 'coach', label: 'Coach', description: 'Coach dashboard and forum' },
+  {
+    role: 'marketing',
+    label: 'Marketing',
+    description: 'Lead intake, owned leads, and profile settings',
+  },
 ];
 
 export function StaffAccessModal({ member, currentUserId, inactive = false, onClose, onSaved }: StaffAccessModalProps) {
   const [admin, setAdmin] = useState(false);
   const [coach, setCoach] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ModalView>('edit');
   const [pending, startTransition] = useTransition();
@@ -46,28 +52,44 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
     if (!member) return;
     setAdmin(member.roles.includes('admin'));
     setCoach(member.roles.includes('coach'));
+    setMarketing(member.roles.includes('marketing'));
     setError(null);
     setView('edit');
   }, [member]);
 
   const displayName = member ? formatStaffName(member) : '';
   const initials = member ? staffInitials(member) : '';
-  const hasSelectedRole = admin || coach;
+  const hasSelectedRole = admin || coach || marketing;
 
   const roleEnabled = (role: StaffAccessRole) => {
     if (role === 'admin') return admin;
-    return coach;
+    if (role === 'coach') return coach;
+    return marketing;
   };
 
   const setRoleEnabled = (role: StaffAccessRole, enabled: boolean) => {
-    if (role === 'admin') setAdmin(enabled);
-    else setCoach(enabled);
+    if (role === 'marketing') {
+      setMarketing(enabled);
+      if (enabled) {
+        setAdmin(false);
+        setCoach(false);
+      }
+      return;
+    }
+    if (role === 'admin') {
+      setAdmin(enabled);
+      if (enabled) setMarketing(false);
+      return;
+    }
+    setCoach(enabled);
+    if (enabled) setMarketing(false);
   };
 
   const selectedRoles = (): StaffAccessRole[] => {
     const roles: StaffAccessRole[] = [];
     if (admin) roles.push('admin');
     if (coach) roles.push('coach');
+    if (marketing) roles.push('marketing');
     return roles;
   };
 
@@ -132,7 +154,7 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
             <div className="space-y-4 px-6 py-5">
               <p className="text-sm leading-relaxed text-slate-600">
                 Revoke all access for <span className="font-semibold text-slate-800">{displayName}</span>? They will
-                remain a staff account but lose admin and coach roles.
+                remain a staff account but lose admin, coach, and marketing roles.
               </p>
               {error ? <p className="text-sm font-semibold text-danger-press">{error}</p> : null}
             </div>
@@ -156,7 +178,7 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
                 <DialogDescription className="text-sm text-slate-500">
                   {inactive
                     ? 'Choose which roles this staff member should receive.'
-                    : 'Update admin and coach permissions for this staff member.'}
+                    : 'Update admin, coach, and marketing permissions for this staff member.'}
                 </DialogDescription>
               </div>
             </DialogHeader>

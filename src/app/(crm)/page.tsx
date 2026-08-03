@@ -1,9 +1,12 @@
+import { redirectMarketingToDatabase } from '@/lib/marketing-access';
 import { DashboardView } from '@/components/views/dashboard-view';
 import { emptyDashboardAnalytics } from '@/lib/dashboard-analytics';
 import { getDashboardAnalytics, getSourcePerformance } from '@/utils/api';
 import type { SourcePerformanceRow } from '@/types/crm';
 
 export default async function DashboardPage() {
+  await redirectMarketingToDatabase();
+
   let analytics = emptyDashboardAnalytics();
   let sourcePerformance: SourcePerformanceRow[] = [];
   let analyticsError: string | null = null;

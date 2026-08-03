@@ -1,9 +1,9 @@
 export const PRODUCT_MEMBER_PORTAL = 'member_portal';
 export const PRODUCT_CRM = 'crm';
 
-export type AppRole = 'member' | 'staff' | 'admin' | 'coach' | 'superadmin';
+export type AppRole = 'member' | 'staff' | 'admin' | 'coach' | 'marketing' | 'superadmin';
 
-export type StaffAccessRole = 'admin' | 'coach';
+export type StaffAccessRole = 'admin' | 'coach' | 'marketing';
 
 export type Product = 'member_portal' | 'app' | 'crm' | 'coach_dashboard' | 'forum' | 'forum_admin';
 
@@ -16,8 +16,16 @@ export function isSuperadmin(roles: AppRole[]): boolean {
   return roles.includes('superadmin');
 }
 
+export function isMarketing(roles: AppRole[]): boolean {
+  return roles.includes('marketing');
+}
+
+export function isMarketingOnly(roles: AppRole[]): boolean {
+  return isMarketing(roles) && !roles.includes('admin') && !roles.includes('superadmin');
+}
+
 export function visibleStaffRoles(roles: AppRole[]): StaffAccessRole[] {
-  return roles.filter((role): role is StaffAccessRole => role === 'admin' || role === 'coach');
+  return roles.filter((role): role is StaffAccessRole => role === 'admin' || role === 'coach' || role === 'marketing');
 }
 
 export function parseAccessTokenClaims(accessToken: string | undefined): AccessClaims {
@@ -54,7 +62,14 @@ export function hasProduct(products: Product[], required: Product): boolean {
 }
 
 function isAppRole(value: unknown): value is AppRole {
-  return value === 'member' || value === 'staff' || value === 'admin' || value === 'coach' || value === 'superadmin';
+  return (
+    value === 'member' ||
+    value === 'staff' ||
+    value === 'admin' ||
+    value === 'coach' ||
+    value === 'marketing' ||
+    value === 'superadmin'
+  );
 }
 
 function isProduct(value: unknown): value is Product {

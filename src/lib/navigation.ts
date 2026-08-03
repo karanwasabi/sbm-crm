@@ -19,6 +19,7 @@ export type CrmNavItem = {
   label: string;
   icon: LucideIcon;
   superadminOnly?: boolean;
+  marketingAllowed?: boolean;
 };
 
 export type CrmPageMeta = {
@@ -30,8 +31,8 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
   {
     items: [
       { id: 'dashboard', href: '/', label: 'Dashboard', icon: LayoutDashboard },
-      { id: 'leads', href: '/leads', label: 'Lead Intake', icon: UserPlus },
-      { id: 'database', href: '/database', label: 'Lead Database', icon: Database },
+      { id: 'leads', href: '/leads', label: 'Lead Intake', icon: UserPlus, marketingAllowed: true },
+      { id: 'database', href: '/database', label: 'Lead Database', icon: Database, marketingAllowed: true },
       { id: 'programs', href: '/programs', label: 'Program Management', icon: Calendar },
       { id: 'communications', href: '/communications', label: 'Communications', icon: MessageSquare },
       { id: 'renewals', href: '/renewals', label: 'Renewals', icon: RefreshCw },
@@ -56,7 +57,7 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
         icon: Bell,
         superadminOnly: true,
       },
-      { id: 'settings', href: '/settings', label: 'Settings', icon: Settings },
+      { id: 'settings', href: '/settings', label: 'Settings', icon: Settings, marketingAllowed: true },
     ],
   },
 ];

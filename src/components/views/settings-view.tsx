@@ -34,6 +34,7 @@ type SettingsViewProps = {
   initialTab?: string;
   purgeAuditItems: PurgeAuditListItem[];
   purgeAuditTotal: number;
+  isMarketingOnly?: boolean;
 };
 
 export function SettingsView({
@@ -45,15 +46,19 @@ export function SettingsView({
   initialTab,
   purgeAuditItems,
   purgeAuditTotal,
+  isMarketingOnly = false,
 }: SettingsViewProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>(() => resolveSettingsTab(initialTab));
+  const settingsTabs = isMarketingOnly ? (['Profile'] as const) : SETTINGS_TABS;
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() =>
+    isMarketingOnly ? 'Profile' : resolveSettingsTab(initialTab)
+  );
 
   const metaCard = buildMetaIntegrationCard(integrationStatus);
   const razorpayCard = buildRazorpayIntegrationCard(razorpayStatus);
 
   return (
     <CrmPageLayout>
-      <TabBar tabs={[...SETTINGS_TABS]} active={activeTab} onChange={(tab) => setActiveTab(tab as SettingsTab)} />
+      <TabBar tabs={[...settingsTabs]} active={activeTab} onChange={(tab) => setActiveTab(tab as SettingsTab)} />
 
       {activeTab === 'Profile' && <ProfileView countries={countries} />}
 

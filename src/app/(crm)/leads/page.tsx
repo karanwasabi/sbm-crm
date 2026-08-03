@@ -1,13 +1,10 @@
 import { LeadIntakeView } from '@/components/views/lead-intake-view';
+import { isMarketingOnly } from '@/lib/access';
 import type { InboundLead, IntakeForm, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
 import type { Country } from '@/types/reference';
-import {
-  fetchCountries,
-  getMetaInboundLeads,
-  getMetaIntegrationStatus,
-  listIntakeForms,
-  listTagSuggestions,
-} from '@/utils/api';
+import { getMyAccess, listIntakeForms, listTagSuggestions } from '@/utils/api';
+import { fetchCountries } from '@/utils/api';
+import { createClient } from '@/utils/supabase/server';
 
 const EMPTY_STATUS: MetaIntegrationStatus = {
   connected: false,
@@ -24,6 +21,19 @@ const EMPTY_STATUS: MetaIntegrationStatus = {
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ tab?: string; form?: string }> }) {
   const { tab, form } = await searchParams;
 
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let isMarketing = false;
+  try {
+    const access = await getMyAccess();
+    isMarketing = isMarketingOnly(access.roles);
+  } catch {
+    isMarketing = false;
+  }
+
   let countries: Country[] = [];
   let integrationStatus = EMPTY_STATUS;
   let inboundLeads: InboundLead[] = [];
@@ -36,11 +46,14 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     countries = [];
   }
 
-  try {
-    [integrationStatus, inboundLeads] = await Promise.all([getMetaIntegrationStatus(), getMetaInboundLeads(20)]);
-  } catch {
-    integrationStatus = EMPTY_STATUS;
-    inboundLeads = [];
+  if (!isMarketing) {
+    try {
+      const { getMetaIntegrationStatus, getMetaInboundLeads } = await import('@/utils/api');
+      [integrationStatus, inboundLeads] = await Promise.all([getMetaIntegrationStatus(), getMetaInboundLeads(20)]);
+    } catch {
+      integrationStatus = EMPTY_STATUS;
+      inboundLeads = [];
+    }
   }
 
   try {
@@ -64,6 +77,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       intakeForms={intakeForms}
       initialTab={tab}
       initialFormId={form}
+      isMarketing={isMarketing}
+      currentUserId={user?.id ?? ''}
     />
   );
 }

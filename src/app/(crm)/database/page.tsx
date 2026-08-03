@@ -2,9 +2,11 @@ import { Suspense } from 'react';
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
+import { marketingDefaultCreatedByMe } from '@/lib/marketing-access';
 import {
   getLeadFilterOptions,
   getLeadSummary,
+  getMyAccess,
   getWhatsAppFlags,
   listEmailTemplates,
   listTagSuggestions,
@@ -43,7 +45,14 @@ export default async function DatabasePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const filters = parseLeadDatabaseFilters(params);
+  let defaultCreatedByMe = false;
+  try {
+    const access = await getMyAccess();
+    defaultCreatedByMe = marketingDefaultCreatedByMe(access.roles);
+  } catch {
+    defaultCreatedByMe = false;
+  }
+  const filters = parseLeadDatabaseFilters(params, { defaultCreatedByMe });
   const suspenseKey = buildLeadDatabaseHref(filters);
 
   let summary = EMPTY_SUMMARY;
@@ -54,7 +63,7 @@ export default async function DatabasePage({
   let whatsappSendsEnabled = false;
 
   try {
-    [summary, filterOptions] = await Promise.all([getLeadSummary(), getLeadFilterOptions()]);
+    [summary, filterOptions] = await Promise.all([getLeadSummary(filters.createdByMe), getLeadFilterOptions()]);
   } catch {
     summary = EMPTY_SUMMARY;
     filterOptions = EMPTY_FILTER_OPTIONS;

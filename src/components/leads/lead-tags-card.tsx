@@ -12,9 +12,10 @@ type LeadTagsCardProps = {
   lead: LeadDetail;
   suggestions: TagSuggestion[];
   embedded?: boolean;
+  readOnly?: boolean;
 };
 
-export function LeadTagsCard({ lead, suggestions, embedded = false }: LeadTagsCardProps) {
+export function LeadTagsCard({ lead, suggestions, embedded = false, readOnly = false }: LeadTagsCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
@@ -60,7 +61,7 @@ export function LeadTagsCard({ lead, suggestions, embedded = false }: LeadTagsCa
             systemTags={systemTags}
             manualTags={displayManualTags}
             suggestions={suggestions}
-            disabled={pending}
+            disabled={readOnly || pending}
             saving={pending && pendingAddSlugs.length > 0}
             skeletonSlugs={pendingAddSlugs}
             tone={embedded ? 'profile' : 'default'}

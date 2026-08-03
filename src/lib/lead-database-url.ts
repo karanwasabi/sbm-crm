@@ -25,6 +25,7 @@ export type LeadDatabaseFilters = {
   order: LeadDatabaseSortOrder;
   hasUnseenSuggestions: boolean;
   phoneDuplicates: boolean;
+  createdByMe: boolean;
   page: number;
   pageSize: number;
 };
@@ -49,6 +50,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   order: 'desc',
   hasUnseenSuggestions: false,
   phoneDuplicates: false,
+  createdByMe: false,
   page: 1,
   pageSize: 50,
 };
@@ -106,11 +108,22 @@ export function toggleStageFilter(filters: LeadDatabaseFilters, stageId: string)
   return { stages: [...filters.stages, stageId] };
 }
 
-export function parseLeadDatabaseFilters(params: Record<string, string | string[] | undefined>): LeadDatabaseFilters {
+export function parseLeadDatabaseFilters(
+  params: Record<string, string | string[] | undefined>,
+  options?: { defaultCreatedByMe?: boolean }
+): LeadDatabaseFilters {
   const get = (key: string) => {
     const value = params[key];
     return Array.isArray(value) ? value[0] : value;
   };
+
+  const createdByMeRaw = get('created_by_me');
+  let createdByMe = options?.defaultCreatedByMe ?? false;
+  if (createdByMeRaw === '1' || createdByMeRaw === 'true') {
+    createdByMe = true;
+  } else if (createdByMeRaw === '0' || createdByMeRaw === 'false') {
+    createdByMe = false;
+  }
 
   return {
     stages: parseStageList(get('stage')),
@@ -132,6 +145,7 @@ export function parseLeadDatabaseFilters(params: Record<string, string | string[
     order: parseOrder(get('order')),
     hasUnseenSuggestions: get('has_unseen_suggestions') === 'true',
     phoneDuplicates: get('phone_duplicates') === 'true',
+    createdByMe,
     page: parsePositiveInt(get('page'), 1),
     pageSize: parsePositiveInt(get('page_size'), 50),
   };
@@ -180,6 +194,8 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.order !== 'desc') params.set('order', merged.order);
   if (merged.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (merged.phoneDuplicates) params.set('phone_duplicates', 'true');
+  if (merged.createdByMe) params.set('created_by_me', '1');
+  else params.set('created_by_me', '0');
   if (merged.page > 1) params.set('page', String(merged.page));
   if (merged.pageSize !== 50) params.set('page_size', String(merged.pageSize));
 

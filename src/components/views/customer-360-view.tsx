@@ -266,6 +266,18 @@ export function Customer360View({
     whatsappTemplates,
     hasPhone: Boolean(contact.phone),
   });
+  const canMutate = lead.canMutate;
+  const sendWhatsAppForHeader = canMutate
+    ? {
+        onClick: () => setSendWhatsAppOpen(true),
+        disabled: sendWhatsAppState.disabled,
+        disabledReason: sendWhatsAppState.disabledReason,
+      }
+    : {
+        onClick: () => {},
+        disabled: true,
+        disabledReason: 'This lead is read-only for your account.',
+      };
 
   if (isNavigating) {
     // Browser back (no pendingHref) → cohort skeleton for the common cohort↔C360 flow.
@@ -282,17 +294,15 @@ export function Customer360View({
           className="rounded-b-none shadow-none"
           contact={contact}
           memberKind={lead.memberKind}
-          onLogCall={() => setCallModalOpen(true)}
+          onLogCall={canMutate ? () => setCallModalOpen(true) : undefined}
           onSendEmail={
-            emailTemplates.some((template) => template.status === 'active') ? () => setSendEmailOpen(true) : undefined
+            canMutate && emailTemplates.some((template) => template.status === 'active')
+              ? () => setSendEmailOpen(true)
+              : undefined
           }
-          sendWhatsApp={{
-            onClick: () => setSendWhatsAppOpen(true),
-            disabled: sendWhatsAppState.disabled,
-            disabledReason: sendWhatsAppState.disabledReason,
-          }}
-          onOpenConvonite={contact.phone ? handleOpenConvonite : undefined}
-          onPurge={() => setPurgeOpen(true)}
+          sendWhatsApp={sendWhatsAppForHeader}
+          onOpenConvonite={canMutate && contact.phone ? handleOpenConvonite : undefined}
+          onPurge={canMutate && lead.canPurge ? () => setPurgeOpen(true) : undefined}
           onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
           onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
           onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
@@ -315,16 +325,16 @@ export function Customer360View({
             canSyncPayment && lead.memberUserId != null ? () => setResetOnboardingPointAOpen(true) : undefined
           }
         />
-        <LeadTagsCard lead={lead} suggestions={tagSuggestions} embedded />
+        <LeadTagsCard lead={lead} suggestions={tagSuggestions} embedded readOnly={!canMutate} />
       </div>
       {lead.paymentPending ? (
         <PaymentPendingBanner
           paymentPending={lead.paymentPending}
-          onMarkPaidOffline={canSyncPayment ? handleMarkPaidOffline : undefined}
+          onMarkPaidOffline={canSyncPayment && canMutate ? handleMarkPaidOffline : undefined}
           markingPaidOffline={markingPaidOffline}
         />
       ) : null}
-      <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} />
+      {canMutate ? <DuplicateContactCard lead={lead} duplicates={lead.contactDuplicates} onUpdated={refresh} /> : null}
       <div
         className={cn(
           'grid grid-cols-1 items-start gap-4 xl:grid-cols-[1fr_1fr]',
@@ -333,20 +343,24 @@ export function Customer360View({
       >
         <ActivityTimeline events={lead.timeline} />
         <div className="flex w-full flex-col items-start gap-4">
-          <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />
-          <ManualIntakeRecordsCard
-            leadId={lead.id}
-            profile={{
-              name: lead.name,
-              phone: lead.phone,
-              city: lead.city,
-              countryCode: lead.countryCode,
-              stage: lead.stage,
-            }}
-            records={lead.manualIntakeRecords}
-            suggestions={lead.fieldSuggestions}
-            onUpdated={refresh}
-          />
+          {canMutate ? (
+            <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />
+          ) : null}
+          {canMutate ? (
+            <ManualIntakeRecordsCard
+              leadId={lead.id}
+              profile={{
+                name: lead.name,
+                phone: lead.phone,
+                city: lead.city,
+                countryCode: lead.countryCode,
+                stage: lead.stage,
+              }}
+              records={lead.manualIntakeRecords}
+              suggestions={lead.fieldSuggestions}
+              onUpdated={refresh}
+            />
+          ) : null}
           {canSyncPayment && lead.memberUserId != null ? (
             <div className="grid w-full grid-cols-1 items-start gap-4 xl:grid-cols-2">
               <MemberAppProfileCard

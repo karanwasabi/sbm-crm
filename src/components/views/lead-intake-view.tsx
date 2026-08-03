@@ -43,6 +43,8 @@ type LeadIntakeViewProps = {
   intakeForms: IntakeForm[];
   initialTab?: string;
   initialFormId?: string;
+  isMarketing?: boolean;
+  currentUserId?: string;
 };
 
 export function LeadIntakeView({
@@ -53,12 +55,21 @@ export function LeadIntakeView({
   intakeForms,
   initialTab,
   initialFormId,
+  isMarketing = false,
+  currentUserId = '',
 }: LeadIntakeViewProps) {
-  const [activeTab, setActiveTab] = useState<LeadIntakeTab>(() => resolveLeadIntakeTab(initialTab));
+  const intakeTabs = isMarketing
+    ? (['Manual Lead', 'Intake Forms'] as const)
+    : (['Manual Lead', 'Intake Forms', 'Integrations'] as const);
+  const [activeTab, setActiveTab] = useState<LeadIntakeTab>(() => {
+    const resolved = resolveLeadIntakeTab(isMarketing && initialTab === 'integrations' ? 'manual' : initialTab);
+    return isMarketing && resolved === 'Integrations' ? 'Manual Lead' : resolved;
+  });
 
   useEffect(() => {
-    setActiveTab(resolveLeadIntakeTab(initialTab));
-  }, [initialTab]);
+    const resolved = resolveLeadIntakeTab(isMarketing && initialTab === 'integrations' ? 'manual' : initialTab);
+    setActiveTab(isMarketing && resolved === 'Integrations' ? 'Manual Lead' : resolved);
+  }, [initialTab, isMarketing]);
 
   const handleTabChange = (tab: string) => {
     const next = tab as LeadIntakeTab;
@@ -68,11 +79,17 @@ export function LeadIntakeView({
 
   return (
     <CrmPageLayout>
-      <TabBar tabs={[...LEAD_INTAKE_TABS]} active={activeTab} onChange={handleTabChange} />
+      <TabBar tabs={[...intakeTabs]} active={activeTab} onChange={handleTabChange} />
       <div className="mt-4">
         {activeTab === 'Manual Lead' ? <ManualLeadTab countries={countries} tagSuggestions={tagSuggestions} /> : null}
         {activeTab === 'Intake Forms' ? (
-          <IntakeFormsTab forms={intakeForms} tagSuggestions={tagSuggestions} initialFormId={initialFormId} />
+          <IntakeFormsTab
+            forms={intakeForms}
+            tagSuggestions={tagSuggestions}
+            initialFormId={initialFormId}
+            currentUserId={currentUserId}
+            isMarketing={isMarketing}
+          />
         ) : null}
         {activeTab === 'Integrations' ? (
           <MetaIntakeTab integrationStatus={integrationStatus} inboundLeads={inboundLeads} />

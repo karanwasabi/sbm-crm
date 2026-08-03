@@ -239,6 +239,8 @@ type ApiLeadResponse = {
   notes?: string | null;
   member_user_id?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;
+  created_by?: string | null;
+  can_mutate?: boolean;
   can_mark_lost?: boolean;
   can_purge?: boolean;
   can_offline_enroll?: boolean;
@@ -354,6 +356,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
     unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
     memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
+    createdBy: row.created_by ?? null,
   };
 }
 
@@ -388,6 +391,7 @@ type ApiIntakeFormResponse = {
   created_at: string;
   updated_at: string;
   archived_at?: string | null;
+  created_by?: string | null;
 };
 
 function mapIntakeForm(row: ApiIntakeFormResponse): import('@/types/crm').IntakeForm {
@@ -407,6 +411,7 @@ function mapIntakeForm(row: ApiIntakeFormResponse): import('@/types/crm').Intake
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     archivedAt: row.archived_at ?? undefined,
+    createdBy: row.created_by ?? null,
   };
 }
 
@@ -724,8 +729,9 @@ export async function updateLeadTags(leadId: string, manualTags: string[]): Prom
   return mapLeadDetail((await response.json()) as ApiLeadResponse);
 }
 
-export const getLeadSummary = cache(async (): Promise<import('@/types/crm').LeadSummary> => {
-  const response = await requireApiFetch('/admin/leads/summary');
+export async function getLeadSummary(createdByMe = false): Promise<import('@/types/crm').LeadSummary> {
+  const query = createdByMe ? '?created_by_me=1' : '';
+  const response = await requireApiFetch(`/admin/leads/summary${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load lead summary.', response.status);
   }
@@ -739,7 +745,7 @@ export const getLeadSummary = cache(async (): Promise<import('@/types/crm').Lead
     byStage: payload.by_stage,
     withUnseenSuggestions: payload.with_unseen_suggestions ?? 0,
   };
-});
+}
 
 function mapFieldSuggestions(
   rows: NonNullable<ApiLeadResponse['field_suggestions']>
@@ -821,6 +827,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     notes: row.notes ?? '',
     memberUserId: row.member_user_id ?? null,
     memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
+    canMutate: row.can_mutate ?? true,
     canMarkLost: row.can_mark_lost ?? false,
     canPurge: row.can_purge ?? false,
     canOfflineEnroll: row.can_offline_enroll ?? false,

@@ -62,6 +62,7 @@ export type Lead = {
   marketingUnsubscribedAt?: string | null;
   unseenSuggestionCount: number;
   memberKind?: 'renewal' | 'returnee' | null;
+  createdBy?: string | null;
 };
 
 export type LeadSummary = {
@@ -200,6 +201,7 @@ export type IntakeForm = {
   createdAt: string;
   updatedAt: string;
   archivedAt?: string;
+  createdBy?: string | null;
 };
 
 export type UpsertIntakeFormInput = {
@@ -243,6 +245,7 @@ export type LeadDetail = Lead & {
   notes: string;
   memberUserId: string | null;
   memberKind: 'renewal' | 'returnee' | null;
+  canMutate: boolean;
   canMarkLost: boolean;
   canPurge: boolean;
   canOfflineEnroll: boolean;

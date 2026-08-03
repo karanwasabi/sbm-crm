@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
-import { hasProduct, PRODUCT_CRM, visibleStaffRoles, isSuperadmin } from '@/lib/access';
+import { hasProduct, PRODUCT_CRM, visibleStaffRoles, isSuperadmin, isMarketingOnly } from '@/lib/access';
 import { getLatestProfile, getMyAccess, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import { getInitials, type Profile } from '@/types/profile';
@@ -26,12 +26,14 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   let accessLabel = 'Staff';
   let superadmin = false;
+  let marketing = false;
   try {
     const access = await getMyAccess();
     if (!hasProduct(access.products, PRODUCT_CRM)) {
       redirect('/unauthorized');
     }
     superadmin = isSuperadmin(access.roles);
+    marketing = isMarketingOnly(access.roles);
     const visible = visibleStaffRoles(access.roles);
     if (superadmin) {
       accessLabel = 'Superadmin';
@@ -58,7 +60,13 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <CrmShell staffUser={staffUser} profile={profile} profileError={profileError} isSuperadmin={superadmin}>
+    <CrmShell
+      staffUser={staffUser}
+      profile={profile}
+      profileError={profileError}
+      isSuperadmin={superadmin}
+      isMarketing={marketing}
+    >
       {children}
     </CrmShell>
   );

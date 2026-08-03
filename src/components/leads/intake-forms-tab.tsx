@@ -19,6 +19,8 @@ type IntakeFormsTabProps = {
   forms: IntakeForm[];
   tagSuggestions: TagSuggestion[];
   initialFormId?: string;
+  currentUserId?: string;
+  isMarketing?: boolean;
 };
 
 type ViewMode = 'list' | 'create' | 'edit' | 'detail';
@@ -39,7 +41,13 @@ function formatDate(iso: string) {
   return date.toLocaleString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeFormsTabProps) {
+export function IntakeFormsTab({
+  forms,
+  tagSuggestions,
+  initialFormId,
+  currentUserId = '',
+  isMarketing = false,
+}: IntakeFormsTabProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
@@ -56,6 +64,9 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
   }, [forms, statusFilter]);
 
   const selectedForm = useMemo(() => forms.find((form) => form.id === selectedId) ?? null, [forms, selectedId]);
+
+  const canManageForm = (form: IntakeForm) =>
+    !isMarketing || (form.createdBy != null && form.createdBy === currentUserId);
 
   const previewFormTag = useMemo(() => {
     const trimmedName = draft.name.trim();
@@ -77,6 +88,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
   };
 
   const openEdit = (form: IntakeForm) => {
+    if (!canManageForm(form)) return;
     setDraft({
       name: form.name,
       title: form.title,
@@ -137,7 +149,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
   };
 
   const handleArchive = () => {
-    if (!selectedForm) return;
+    if (!selectedForm || !canManageForm(selectedForm)) return;
     startTransition(async () => {
       const result = await archiveIntakeFormAction(selectedForm.id);
       if (result.error) {
@@ -290,7 +302,7 @@ export function IntakeFormsTab({ forms, tagSuggestions, initialFormId }: IntakeF
             <Button type="button" variant="primary" onClick={copyPublicUrl}>
               Copy public link
             </Button>
-            {selectedForm.status === 'active' ? (
+            {selectedForm.status === 'active' && canManageForm(selectedForm) ? (
               <>
                 <Button type="button" variant="ghost" onClick={() => openEdit(selectedForm)} disabled={pending}>
                   Edit

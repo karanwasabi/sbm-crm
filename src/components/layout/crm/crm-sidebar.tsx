@@ -14,9 +14,10 @@ function isNavActive(pathname: string, href: string) {
 
 type CrmSidebarProps = {
   isSuperadmin?: boolean;
+  isMarketing?: boolean;
 };
 
-export function CrmSidebar({ isSuperadmin = false }: CrmSidebarProps) {
+export function CrmSidebar({ isSuperadmin = false, isMarketing = false }: CrmSidebarProps) {
   const pathname = usePathname();
 
   return (
@@ -36,7 +37,11 @@ export function CrmSidebar({ isSuperadmin = false }: CrmSidebarProps) {
             {groupIndex === 0 && <div className="h-2" />}
             <nav className="flex flex-col gap-1">
               {group.items
-                .filter((item) => !item.superadminOnly || isSuperadmin)
+                .filter((item) => {
+                  if (item.superadminOnly && !isSuperadmin) return false;
+                  if (isMarketing && !item.marketingAllowed) return false;
+                  return true;
+                })
                 .map(({ id, href, label, icon: Icon }) => {
                   const active = isNavActive(pathname, href);
 
