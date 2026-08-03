@@ -203,6 +203,23 @@ export async function sendLeadWhatsAppAction(
   }
 }
 
+export async function previewWhatsAppTemplateParamsAction(
+  templateId: string,
+  options?: { leadId?: string; params?: Record<string, string> }
+): Promise<{
+  preview: import('@/utils/api').WhatsAppTemplateParamsPreview | null;
+  error: string | null;
+}> {
+  try {
+    const { previewWhatsAppTemplateParams } = await import('@/utils/api');
+    const preview = await previewWhatsAppTemplateParams(templateId, options);
+    return { preview, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to preview WhatsApp params.';
+    return { preview: null, error: message };
+  }
+}
+
 export async function getLeadWhatsAppChatAction(
   leadId: string
 ): Promise<{ chat: import('@/utils/api').LeadWhatsAppChat | null; error: string | null }> {

@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
-import { sendLeadWhatsAppAction } from '@/app/(crm)/customers/actions';
+import { previewWhatsAppTemplateParamsAction, sendLeadWhatsAppAction } from '@/app/(crm)/customers/actions';
 import { WhatsAppTemplateSelect } from '@/components/comms/whatsapp-template-select';
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
-import { previewWhatsAppTemplateParams, type WhatsAppTemplate, type WhatsAppTemplateParamsPreview } from '@/utils/api';
+import type { WhatsAppTemplate, WhatsAppTemplateParamsPreview } from '@/utils/api';
 
 type SendWhatsAppDialogProps = {
   open: boolean;
@@ -51,19 +51,16 @@ export function SendWhatsAppDialog({ open, onClose, leadId, templates, onSent }:
       return;
     }
     let cancelled = false;
-    void previewWhatsAppTemplateParams(templateId, { leadId, params: overrides })
-      .then((result) => {
-        if (!cancelled) {
-          setPreview(result);
-          setError(null);
-        }
-      })
-      .catch((err) => {
-        if (!cancelled) {
-          setPreview(null);
-          setError(err instanceof Error ? err.message : 'Failed to preview message.');
-        }
-      });
+    void previewWhatsAppTemplateParamsAction(templateId, { leadId, params: overrides }).then((result) => {
+      if (cancelled) return;
+      if (result.error || !result.preview) {
+        setPreview(null);
+        setError(result.error ?? 'Failed to preview message.');
+        return;
+      }
+      setPreview(result.preview);
+      setError(null);
+    });
     return () => {
       cancelled = true;
     };
