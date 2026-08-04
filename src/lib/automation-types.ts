@@ -1,7 +1,12 @@
 import type { LifecycleStage } from '@/types/crm';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 
-export type AutomationTriggerType = 'lead_created' | 'tag_added' | 'stage_changed' | 'checkout_started';
+export type AutomationTriggerType =
+  | 'lead_created'
+  | 'tag_added'
+  | 'stage_changed'
+  | 'checkout_started'
+  | 'renewal_payment_received';
 
 export type AutomationChannel = 'email' | 'whatsapp';
 
@@ -153,6 +158,7 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   tag_added: 'Tag added',
   stage_changed: 'Stage changes',
   checkout_started: 'Checkout started',
+  renewal_payment_received: 'Renewal payment received',
 };
 
 export type AutomationTagTriggerConfig = {
