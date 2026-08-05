@@ -1,4 +1,5 @@
 import type { RenewalAction, RenewalRetentionBucket, RenewalRow, RenewalSummary } from '@/types/crm';
+import { formatInclusiveAccessEndDate, daysUntilInclusiveAccessEnd } from '@/lib/access-until-display';
 import { formatCompactInrFromPaise, formatInrFromPaise } from '@/lib/money';
 
 export type RenewalBucketFilter = 'at_risk' | RenewalRetentionBucket | 'all';
@@ -35,8 +36,8 @@ export function formatRenewalDate(iso?: string | null): string {
 
 export function formatChargeLabel(row: RenewalRow): string {
   if (row.retentionBucket === 'cancelling' && row.accessUntil) {
-    const date = formatRenewalDate(row.accessUntil);
-    const days = daysUntilIso(row.accessUntil);
+    const date = formatInclusiveAccessEndDate(row.accessUntil);
+    const days = daysUntilInclusiveAccessEnd(row.accessUntil);
     if (days != null && days >= 0) {
       return `Access ends ${date} · in ${days}d`;
     }

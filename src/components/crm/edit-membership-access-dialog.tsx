@@ -16,6 +16,13 @@ import {
 import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
+import {
+  addMonthsUTC,
+  cohortStartDateOnly,
+  exclusiveBoundaryDateOnly,
+  inclusiveAccessEndDateOnly,
+  shiftUtcDateOnly,
+} from '@/lib/access-until-display';
 import type { ProgramHistoryItem } from '@/types/crm';
 
 type EditMembershipAccessDialogProps = {
@@ -25,46 +32,32 @@ type EditMembershipAccessDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
-function toDateInputValue(isoOrDate: string | null | undefined): string {
-  if (!isoOrDate?.trim()) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(isoOrDate)) return isoOrDate;
-  const date = new Date(isoOrDate);
-  if (Number.isNaN(date.getTime())) return '';
-  // Use UTC calendar day so midnight-UTC access_until does not shift in local TZ.
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const d = String(date.getUTCDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function addMonthsUTC(startYYYYMMDD: string, months: number): string {
-  const [y, m, d] = startYYYYMMDD.split('-').map(Number);
-  // Mirror Go AddDate / TrialAccessUntil (day overflow rolls into the next month).
-  const date = new Date(Date.UTC(y, m - 1 + months, d));
-  const yy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  return `${yy}-${mm}-${dd}`;
-}
-
 export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }: EditMembershipAccessDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [accessUntil, setAccessUntil] = useState('');
 
-  const cohortStart = useMemo(() => toDateInputValue(item?.startsOn ?? null), [item?.startsOn]);
-  const threeMonthsFromStart = useMemo(() => (cohortStart ? addMonthsUTC(cohortStart, 3) : ''), [cohortStart]);
+  const cohortStart = useMemo(() => cohortStartDateOnly(item?.startsOn ?? null), [item?.startsOn]);
+  const inclusiveThreeMonthsFromStart = useMemo(
+    () => (cohortStart ? shiftUtcDateOnly(addMonthsUTC(cohortStart, 3), -1) : ''),
+    [cohortStart]
+  );
 
   useEffect(() => {
     if (!open || !item) return;
-    setAccessUntil(toDateInputValue(item.accessUntil) || threeMonthsFromStart || '');
-  }, [open, item, threeMonthsFromStart]);
+    setAccessUntil(inclusiveAccessEndDateOnly(item.accessUntil) || inclusiveThreeMonthsFromStart || '');
+  }, [open, item, inclusiveThreeMonthsFromStart]);
 
   const submit = () => {
     if (!item || !accessUntil) return;
+    const apiDate = exclusiveBoundaryDateOnly(accessUntil);
+    if (!apiDate) {
+      toast({ message: 'Enter a valid access end date.', variant: 'error' });
+      return;
+    }
     startTransition(async () => {
-      const { result, error } = await setLeadMembershipAccessUntilAction(leadId, item.id, accessUntil);
+      const { result, error } = await setLeadMembershipAccessUntilAction(leadId, item.id, apiDate);
       if (error || !result) {
         toast({ message: error ?? 'Failed to update membership access.', variant: 'error' });
         return;
@@ -85,7 +78,7 @@ export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }:
           <DialogTitle>Edit membership access</DialogTitle>
           <DialogDescription>
             {item
-              ? `Update Active until for ${item.program} · ${item.batch}. Grace until is set to access + 7 days.`
+              ? `Update Active until for ${item.program} · ${item.batch}. Last day of access (UTC). Grace until is access + 7 days.`
               : 'Update Active until for this enrollment.'}
           </DialogDescription>
         </DialogHeader>
@@ -96,19 +89,19 @@ export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }:
               Cohort start: <span className="font-semibold text-slate-700">{cohortStart}</span>
             </p>
           ) : null}
-          <Field label="Active until">
+          <Field label="Active until" hint="Last day of access (UTC calendar day)">
             <TextInput type="date" value={accessUntil} onChange={setAccessUntil} disabled={pending} />
           </Field>
-          {threeMonthsFromStart ? (
+          {inclusiveThreeMonthsFromStart ? (
             <Button
               type="button"
               variant="light"
               size="sm"
               leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
               disabled={pending}
-              onClick={() => setAccessUntil(threeMonthsFromStart)}
+              onClick={() => setAccessUntil(inclusiveThreeMonthsFromStart)}
             >
-              Set to 3 months from start ({threeMonthsFromStart})
+              Set to 3 months from start ({inclusiveThreeMonthsFromStart})
             </Button>
           ) : null}
         </div>

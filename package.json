@@ -12,6 +12,7 @@
     "sync-flags": "node scripts/sync-country-flags.mjs",
     "sync-font-awesome": "node scripts/sync-font-awesome.mjs",
     "commitlint": "commitlint",
+    "test": "vitest run",
     "prepare": "husky && node scripts/sync-font-awesome.mjs"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^3.2.7"
   }
 }

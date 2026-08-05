@@ -12,6 +12,7 @@ import { SectionHead } from '@/components/ui/section-head';
 import { useToast } from '@/components/ui/toast';
 import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { attributionFormLabel, attributionSourceLabel } from '@/lib/lead-attribution';
+import { formatInclusiveAccessEndDate } from '@/lib/access-until-display';
 import { resolveDisplayTimezone } from '@/lib/datetime-display';
 import type { LeadAttribution, ProgramHistoryItem } from '@/types/crm';
 
@@ -131,7 +132,9 @@ function EnrollmentRow({
   const renew = autoRenewInfo(item);
   const statusLabel = displayEnrollmentStatus(item, leadStage);
   const activeFrom = formatMembershipDate(item.startsOn ?? item.date, timezone);
-  const activeUntil = formatMembershipDate(item.accessUntil, timezone);
+  const activeUntil = item.accessUntil
+    ? formatInclusiveAccessEndDate(item.accessUntil)
+    : formatMembershipDate(item.accessUntil, timezone);
   const showGrace = isGraceOpen(item.graceUntil);
   const hasMembershipWindow = Boolean(item.startsOn || item.accessUntil);
   const showPromote = Boolean(canPromoteToMember && onPromoteToMember && item.phase === 'initial');
@@ -168,7 +171,7 @@ function EnrollmentRow({
               </p>
               {showGrace ? (
                 <p className="mt-1 text-xs font-semibold text-amber-800">
-                  Grace until {formatMembershipDate(item.graceUntil, timezone)}
+                  Grace until {formatInclusiveAccessEndDate(item.graceUntil)}
                 </p>
               ) : null}
             </div>

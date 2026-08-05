@@ -16,6 +16,7 @@ import {
 import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
+import { formatInclusiveAccessEndDate } from '@/lib/access-until-display';
 import type {
   MembershipTransferOverwriteField,
   MembershipTransferOverwriteFlags,
@@ -248,7 +249,9 @@ export function MembershipTransferDialog({
                 {preview.donor.cohortName ? (
                   <p className="mt-2 text-xs text-slate-500">
                     Cohort · {preview.donor.cohortName}
-                    {preview.donor.accessUntil ? ` · access until ${preview.donor.accessUntil}` : ''}
+                    {preview.donor.accessUntil
+                      ? ` · access until ${formatInclusiveAccessEndDate(preview.donor.accessUntil)}`
+                      : ''}
                   </p>
                 ) : null}
               </div>

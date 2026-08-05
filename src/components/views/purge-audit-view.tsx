@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { PurgeAuditDetailSkeleton } from '@/components/loading/comms-page-skeletons';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
+import { formatInclusiveAccessEndDate } from '@/lib/access-until-display';
 import { formatDateTimeIST } from '@/lib/ist-datetime';
 import { formatInrFromPaise } from '@/lib/money';
 import type { PurgeAuditDetail, PurgeAuditListItem } from '@/utils/api';
@@ -120,7 +121,9 @@ function PurgeAuditDetailDialog({
                         <p className="mt-1 text-xs text-slate-500">
                           Upfront {formatPaise(checkout.upfront_total_paise)}
                           {checkout.paid_at ? ` · Paid ${formatDateTimeIST(checkout.paid_at)}` : ''}
-                          {checkout.access_until ? ` · Access until ${formatDateTimeIST(checkout.access_until)}` : ''}
+                          {checkout.access_until
+                            ? ` · Access until ${formatInclusiveAccessEndDate(checkout.access_until)}`
+                            : ''}
                         </p>
                         {checkout.razorpay_subscription_id ? (
                           <p className="mt-1 text-xs break-all text-slate-500">
