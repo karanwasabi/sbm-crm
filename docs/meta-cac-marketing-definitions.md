@@ -20,7 +20,7 @@ One-page guide for marketing. Full audit: [`meta-cac-audit-report.md`](./meta-ca
 
 ## Meta row (source performance)
 
-Single row for paid social. Counts paying members who enrolled in the window and have a Meta influence signal (lead ads, campaign id, Meta UTMs on the lead or portal signup).
+Single row for paid social. Counts paying members who enrolled in the window and have a Meta influence signal (lead ads, campaign id, Meta UTMs on the lead or portal signup, or a stored **Meta click id** `fbclid`).
 
 Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrations, not duplicated on this dashboard.
 

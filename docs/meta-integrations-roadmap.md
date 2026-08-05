@@ -62,6 +62,7 @@ Production-only when `META_CAPI_PIXEL_ID` and `META_CAPI_ACCESS_TOKEN` are set. 
 **Attribution on CAPI payloads**
 
 - UTM + `gclid` / `fbclid` stored on `lead_attribution` and `checkout_sessions`.
+- CRM dashboard **Meta** row treats non-empty `fbclid` (on the lead or portal signup metadata) as Meta-influenced.
 - Portal/forms pass Meta browser cookies `_fbp` and `_fbc` on checkout and lead API calls; checkout stores `meta_fbp` / `meta_fbc` on the session for fulfillment-time CAPI.
 - `fbc` prefers the browser `_fbc` cookie; falls back to `fb.1.{timestamp}.{fbclid}` from stored `fbclid`.
 - CRM customer 360 → Program history shows **Google click ID** and **Meta click ID** when present.
