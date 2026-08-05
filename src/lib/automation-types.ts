@@ -7,7 +7,8 @@ export type AutomationTriggerType =
   | 'stage_changed'
   | 'checkout_started'
   | 'renewal_payment_received'
-  | 'referral_submitted';
+  | 'referral_submitted'
+  | 'referrer_referral_submitted';
 
 export type AutomationChannel = 'email' | 'whatsapp';
 
@@ -161,6 +162,7 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   checkout_started: 'Checkout started',
   renewal_payment_received: 'Renewal payment received',
   referral_submitted: 'Referral submitted',
+  referrer_referral_submitted: 'Referrer referral submitted',
 };
 
 export type AutomationRenewalTriggerConfig = {
