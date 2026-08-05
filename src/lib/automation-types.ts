@@ -6,7 +6,8 @@ export type AutomationTriggerType =
   | 'tag_added'
   | 'stage_changed'
   | 'checkout_started'
-  | 'renewal_payment_received';
+  | 'renewal_payment_received'
+  | 'referral_submitted';
 
 export type AutomationChannel = 'email' | 'whatsapp';
 
@@ -159,6 +160,7 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   stage_changed: 'Stage changes',
   checkout_started: 'Checkout started',
   renewal_payment_received: 'Renewal payment received',
+  referral_submitted: 'Referral submitted',
 };
 
 export type AutomationTagTriggerConfig = {
