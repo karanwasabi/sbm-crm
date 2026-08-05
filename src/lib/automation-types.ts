@@ -163,6 +163,43 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   referral_submitted: 'Referral submitted',
 };
 
+export type AutomationRenewalTriggerConfig = {
+  renewal_category?: string;
+};
+
+/** Six payable renew categories for trigger filtering. */
+export const RENEW_PAYABLE_CATEGORIES = [
+  'new_user',
+  'new_lead_no_sub',
+  'returnee_no_sub',
+  'trial_extend',
+  'newbie_manual_renew',
+  'member_manual_renew',
+] as const;
+
+export const RENEW_CATEGORY_LABELS: Record<string, string> = {
+  new_user: 'New user (trial)',
+  new_lead_no_sub: 'Lead without subscription (trial)',
+  returnee_no_sub: 'Returnee',
+  trial_extend: 'Trial extension',
+  newbie_manual_renew: 'Newbie manual renewal',
+  member_manual_renew: 'Member manual renewal',
+};
+
+export function normalizeRenewalTriggerConfig(
+  raw?: Record<string, unknown> | AutomationRenewalTriggerConfig | null
+): Record<string, string> {
+  const category = raw?.renewal_category;
+  return {
+    renewal_category: category != null && String(category).trim() !== '' ? String(category).trim() : '',
+  };
+}
+
+export const RENEW_CATEGORY_SELECT_OPTIONS = RENEW_PAYABLE_CATEGORIES.map((value) => ({
+  value,
+  label: RENEW_CATEGORY_LABELS[value] ?? value,
+}));
+
 export type AutomationTagTriggerConfig = {
   tag?: string;
 };

@@ -40,6 +40,8 @@ import {
   deriveAutomationChannel,
   normalizeStageTriggerConfig,
   normalizeTagTriggerConfig,
+  normalizeRenewalTriggerConfig,
+  RENEW_CATEGORY_SELECT_OPTIONS,
   nodeLabel,
   validationIssueDisplay,
 } from '@/lib/automation-types';
@@ -245,6 +247,9 @@ export function AutomationBuilder({
   const [triggerConfig, setTriggerConfig] = useState<Record<string, string>>(() => {
     if (automation?.triggerType === 'stage_changed') {
       return normalizeStageTriggerConfig(automation.triggerConfig);
+    }
+    if (automation?.triggerType === 'renewal_payment_received') {
+      return normalizeRenewalTriggerConfig(automation.triggerConfig);
     }
     if (!automation) {
       return normalizeStageTriggerConfig(undefined, { applyDefaults: true });
@@ -452,6 +457,9 @@ export function AutomationBuilder({
     if (triggerType === 'tag_added') {
       return { tag: (triggerConfig.tag ?? '').trim() };
     }
+    if (triggerType === 'renewal_payment_received') {
+      return normalizeRenewalTriggerConfig(triggerConfig);
+    }
     return {};
   }, [triggerConfig, triggerType]);
 
@@ -461,6 +469,8 @@ export function AutomationBuilder({
       setTriggerConfig(normalizeStageTriggerConfig(saved.triggerConfig));
     } else if (saved.triggerType === 'tag_added') {
       setTriggerConfig(normalizeTagTriggerConfig(saved.triggerConfig));
+    } else if (saved.triggerType === 'renewal_payment_received') {
+      setTriggerConfig(normalizeRenewalTriggerConfig(saved.triggerConfig));
     }
   }, []);
 
@@ -747,6 +757,14 @@ export function AutomationBuilder({
                       return normalizeStageTriggerConfig(undefined, { applyDefaults: true });
                     });
                   }
+                  if (value === 'renewal_payment_received') {
+                    setTriggerConfig((current) => {
+                      if ('renewal_category' in current) {
+                        return current;
+                      }
+                      return normalizeRenewalTriggerConfig(undefined);
+                    });
+                  }
                 }}
                 options={triggerSelectOptions}
                 disabled={isGraphLocked}
@@ -771,6 +789,16 @@ export function AutomationBuilder({
                   />
                 </Field>
               </>
+            ) : null}
+            {triggerType === 'renewal_payment_received' ? (
+              <Field label="Renew category" className="min-w-[220px]">
+                <AutomationBuilderSelect
+                  value={triggerConfig.renewal_category ?? ''}
+                  onChange={(value) => setTriggerConfig((current) => ({ ...current, renewal_category: value }))}
+                  options={[{ value: '', label: 'Any renew category' }, ...RENEW_CATEGORY_SELECT_OPTIONS]}
+                  disabled={isGraphLocked}
+                />
+              </Field>
             ) : null}
             {triggerType === 'tag_added' ? (
               <Field label="Tag added" className="min-w-[200px]">
