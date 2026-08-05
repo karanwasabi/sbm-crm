@@ -407,6 +407,18 @@ export function ProgramHistory({
                     <dd className="font-semibold wrap-break-word text-slate-800">{attribution.utmTerm}</dd>
                   </div>
                 ) : null}
+                {attribution.gclid ? (
+                  <div>
+                    <dt className="text-slate-500">Google click ID</dt>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.gclid}</dd>
+                  </div>
+                ) : null}
+                {attribution.fbclid ? (
+                  <div>
+                    <dt className="text-slate-500">Meta click ID</dt>
+                    <dd className="font-semibold wrap-break-word text-slate-800">{attribution.fbclid}</dd>
+                  </div>
+                ) : null}
               </>
             ) : null}
           </dl>

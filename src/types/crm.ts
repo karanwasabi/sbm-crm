@@ -468,6 +468,8 @@ export type LeadAttribution = {
   intakeFormName: string | null;
   platform: string | null;
   externalId: string | null;
+  gclid: string | null;
+  fbclid: string | null;
 };
 
 export type RevenueWeek = {

@@ -10,7 +10,7 @@ backend verifies the signature, fetches the lead from the Graph API, and ingests
 - CRM view: Lead Intake → Integrations (status card + Recent inbound)
 - Backend env (production only): `META_APP_ID`, `META_APP_SECRET`, `META_WEBHOOK_VERIFY_TOKEN`, `META_PAGE_ACCESS_TOKEN`
 - Actor/attribution: `LEAD_INTEGRATION_ACTOR_ID`, `PUBLIC_API_URL`
-- Optional: `META_CAPI_PIXEL_ID` + `META_CAPI_ACCESS_TOKEN` (production only) for server-side `Lead` conversion events
+- Optional: `META_CAPI_PIXEL_ID` + `META_CAPI_ACCESS_TOKEN` (production only) for server-side conversion events (`Lead`, `Purchase`, `CompleteRegistration`, recurring `Purchase` on `subscription.charged`)
 
 **Generic webhook (secondary):** `POST {PUBLIC_API_URL}/webhooks/leads` remains available for
 Zapier/Make/manual sources (API-key auth via `LEAD_INGESTION_API_KEY`, default `integration: "webhook"`).
@@ -46,6 +46,28 @@ reconfigure those paths.
 - `POST /webhooks/meta/leadgen` — HMAC verify `X-Hub-Signature-256`, parse `entry[].changes[]` where `field == "leadgen"`, fetch each `leadgen_id` via Graph, ingest
 - Graph fetch: `GET /{leadgen_id}?fields=created_time,id,ad_id,form_id,field_data,campaign_id,platform`; then `GET /{ad_id}?fields=name,campaign{id,name},adset{id,name}` and `GET /{form_id}?fields=name` for human-readable ad / campaign / ad-set / form names (cached per id per run; non-fatal on failure)
 - Ingest: `integration: "native_meta"`, `source: "meta"`, `external_id = leadgen_id` (idempotent), `native-meta` system tag, CAPI `Lead` on first create
+- CRM integration card shows **CAPI configured / not configured** from `capi_configured` on `GET /admin/integrations/meta/status`
+
+### Server-side CAPI (Conversions API)
+
+Production-only when `META_CAPI_PIXEL_ID` and `META_CAPI_ACCESS_TOKEN` are set. CRM shows `capi_configured` on the Meta integration card.
+
+| Event                  | When                                                  | `event_id` dedup key               | Browser pixel                                                 |
+| ---------------------- | ----------------------------------------------------- | ---------------------------------- | ------------------------------------------------------------- |
+| `Lead`                 | New lead from intake, refer, native Meta ingest       | `lead:{lead_id}`                   | Forms/refer fire pixel only when API returns `capi_lead_sent` |
+| `Purchase`             | Checkout paid (Razorpay webhook, offline admin, mock) | `purchase:{checkout_session_id}`   | Portal payment return / welcome                               |
+| `CompleteRegistration` | First enrollment checkout only (not renewals)         | `registration:{user_id}`           | Welcome page after fulfillment                                |
+| `Purchase`             | Each `subscription.charged` recurring payment         | `subscription_charge:{payment_id}` | —                                                             |
+
+**Attribution on CAPI payloads**
+
+- UTM + `gclid` / `fbclid` stored on `lead_attribution` and `checkout_sessions`.
+- Portal/forms pass Meta browser cookies `_fbp` and `_fbc` on checkout and lead API calls; checkout stores `meta_fbp` / `meta_fbc` on the session for fulfillment-time CAPI.
+- `fbc` prefers the browser `_fbc` cookie; falls back to `fb.1.{timestamp}.{fbclid}` from stored `fbclid`.
+- CRM customer 360 → Program history shows **Google click ID** and **Meta click ID** when present.
+
+**Dedup rule:** browser pixel and server CAPI must share the same `event_id` for a given event name. Meta counts one conversion, not two.
+
 - Attribution mapping (names preferred, numeric ids kept in `meta_*` columns):
   - `utm_campaign` = campaign name (falls back to campaign id) — shown as "Campaign" / "UTM campaign"
   - `utm_content` = ad name (falls back to ad id)
@@ -76,7 +98,7 @@ curl -X POST "https://graph.facebook.com/v25.0/{PAGE_ID}/subscribed_apps?subscri
 - [x] CRM → Lead Intake → Integrations → Recent inbound shows the lead (`meta · paid`)
 - [x] `integration_sync_events` has `native_meta` `ok` rows
 - [ ] Confirm a real (live) ad lead populates campaign/ad attribution
-- [ ] Meta Events Manager → Test events shows **Lead** (if CAPI configured)
+- [x] Meta Events Manager → Test events shows **Lead** / **Purchase** (when CAPI configured)
   - Fire a controlled test event with `cmd/meta-capi-test` (reads `META_CAPI_PIXEL_ID` / `META_CAPI_ACCESS_TOKEN`):
 
 ```bash
@@ -85,7 +107,7 @@ go run ./cmd/meta-capi-test --test-event-code TEST12345
 # optional match-quality identifiers: --email a@b.com --phone +919999999999
 ```
 
-- The server-side `Lead` event now sends hashed `em`, `ph`, `fn`, `ln`, `ct`, `country`, plus `external_id` for match quality.
+- The server-side events send hashed `em`, `ph`, `fn`, `ln`, `ct`, `country`, plus `external_id`, `fbc`, and `fbp` when available for match quality.
 
 ### Cutover from Zoho
 

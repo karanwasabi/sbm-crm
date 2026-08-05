@@ -283,6 +283,8 @@ type ApiLeadResponse = {
     intake_form_name: string | null;
     platform: string | null;
     external_id: string | null;
+    gclid: string | null;
+    fbclid: string | null;
   } | null;
   field_suggestions?: {
     id: number;
@@ -862,6 +864,8 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
           intakeFormName: row.attribution.intake_form_name,
           platform: row.attribution.platform,
           externalId: row.attribution.external_id,
+          gclid: row.attribution.gclid,
+          fbclid: row.attribution.fbclid,
         }
       : null,
     fieldSuggestions: row.field_suggestions ? mapFieldSuggestions(row.field_suggestions) : [],
