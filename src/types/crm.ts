@@ -444,6 +444,7 @@ export type MetaIntegrationStatus = {
   lastSyncAt: string | null;
   metaLeadsTotal: number;
   metaLeads7d: number;
+  capiConfigured: boolean;
 };
 
 export type RazorpayIntegrationStatus = {

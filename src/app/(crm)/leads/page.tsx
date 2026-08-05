@@ -16,6 +16,7 @@ const EMPTY_STATUS: MetaIntegrationStatus = {
   lastSyncAt: null,
   metaLeadsTotal: 0,
   metaLeads7d: 0,
+  capiConfigured: false,
 };
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ tab?: string; form?: string }> }) {

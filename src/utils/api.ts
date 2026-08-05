@@ -2886,6 +2886,7 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
     last_sync_at: string | null;
     meta_leads_total: number;
     meta_leads_7d: number;
+    capi_configured: boolean;
   };
   return {
     connected: payload.connected,
@@ -2897,6 +2898,7 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
     lastSyncAt: payload.last_sync_at,
     metaLeadsTotal: payload.meta_leads_total,
     metaLeads7d: payload.meta_leads_7d,
+    capiConfigured: payload.capi_configured,
   };
 }
 

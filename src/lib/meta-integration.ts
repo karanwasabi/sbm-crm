@@ -25,10 +25,12 @@ export function buildMetaIntegrationCard(status: MetaIntegrationStatus): Integra
       ? 'warning'
       : 'error';
 
+  const capiNote = status.capiConfigured ? 'CAPI configured' : 'CAPI not configured';
+
   return {
     id: 'meta',
     name: 'Meta Lead Ads (native)',
-    subtitle: `${leadSummary}${recent} · ${automationNote}`,
+    subtitle: `${leadSummary}${recent} · ${automationNote} · ${capiNote}`,
     status: cardStatus,
     color: '#5C65CF',
   };

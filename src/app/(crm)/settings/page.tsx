@@ -17,6 +17,7 @@ const EMPTY_META_STATUS: MetaIntegrationStatus = {
   lastSyncAt: null,
   metaLeadsTotal: 0,
   metaLeads7d: 0,
+  capiConfigured: false,
 };
 
 const EMPTY_STAFF: StaffList = { active: [], inactive: [] };
