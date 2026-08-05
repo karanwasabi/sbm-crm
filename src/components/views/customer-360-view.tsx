@@ -273,11 +273,7 @@ export function Customer360View({
         disabled: sendWhatsAppState.disabled,
         disabledReason: sendWhatsAppState.disabledReason,
       }
-    : {
-        onClick: () => {},
-        disabled: true,
-        disabledReason: 'This lead is read-only for your account.',
-      };
+    : undefined;
 
   if (isNavigating) {
     // Browser back (no pendingHref) → cohort skeleton for the common cohort↔C360 flow.

@@ -44,6 +44,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
   const [email, setEmail] = useState('');
   const [admin, setAdmin] = useState(true);
   const [coach, setCoach] = useState(true);
+  const [marketing, setMarketing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
   const [editingInactive, setEditingInactive] = useState(false);
@@ -52,7 +53,26 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
     const roles: StaffAccessRole[] = [];
     if (admin) roles.push('admin');
     if (coach) roles.push('coach');
+    if (marketing) roles.push('marketing');
     return roles;
+  };
+
+  const setAdminRole = (enabled: boolean) => {
+    setAdmin(enabled);
+    if (enabled) setMarketing(false);
+  };
+
+  const setCoachRole = (enabled: boolean) => {
+    setCoach(enabled);
+    if (enabled) setMarketing(false);
+  };
+
+  const setMarketingRole = (enabled: boolean) => {
+    setMarketing(enabled);
+    if (enabled) {
+      setAdmin(false);
+      setCoach(false);
+    }
   };
 
   const handleCreate = () => {
@@ -91,6 +111,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         setEmail('');
         setAdmin(true);
         setCoach(true);
+        setMarketing(false);
         toast({
           message: result.member.promoted
             ? `${normalizedEmail} promoted to staff`
@@ -118,7 +139,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         <Card>
           <SectionHead
             title="Add staff member"
-            subtitle="Staff automatically get member portal access. Assign Admin and/or Coach for CRM access."
+            subtitle="Staff get member portal access. Assign Admin, Coach, or Marketing for CRM access."
           />
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)_auto]">
             <Field label="First name">
@@ -148,8 +169,9 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
             </Field>
             <Field label="Roles">
               <div className="flex min-h-[42px] flex-wrap items-center gap-x-4 gap-y-2 pt-0.5">
-                <Checkbox checked={admin} onChange={setAdmin} disabled={pending} label="Admin" />
-                <Checkbox checked={coach} onChange={setCoach} disabled={pending} label="Coach" />
+                <Checkbox checked={admin} onChange={setAdminRole} disabled={pending} label="Admin" />
+                <Checkbox checked={coach} onChange={setCoachRole} disabled={pending} label="Coach" />
+                <Checkbox checked={marketing} onChange={setMarketingRole} disabled={pending} label="Marketing" />
               </div>
             </Field>
             <div className="flex flex-col gap-1.5 sm:col-span-2 xl:col-span-1">
@@ -169,7 +191,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         </Card>
 
         <Card>
-          <SectionHead title="Active staff" subtitle="Users with admin or coach access" />
+          <SectionHead title="Active staff" subtitle="Users with admin, coach, or marketing access" />
           {staff.active.length === 0 ? (
             <p className="text-sm text-slate-500">No active staff yet.</p>
           ) : (
@@ -188,7 +210,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         </Card>
 
         <Card>
-          <SectionHead title="Inactive staff" subtitle="Invited staff without admin or coach access" />
+          <SectionHead title="Inactive staff" subtitle="Invited staff without CRM access roles" />
           {staff.inactive.length === 0 ? (
             <p className="text-sm text-slate-500">No inactive staff.</p>
           ) : (
@@ -235,7 +257,7 @@ function StaffTable({ children }: { children: ReactNode }) {
   );
 }
 
-function RolePill({ label, active, tone }: { label: string; active: boolean; tone: 'deep' | 'success' }) {
+function RolePill({ label, active, tone }: { label: string; active: boolean; tone: 'deep' | 'success' | 'brand' }) {
   return (
     <Pill
       tone={active ? tone : 'neutral'}
@@ -263,6 +285,7 @@ function StaffRow({
   const name = formatStaffName(member);
   const hasAdmin = member.roles.includes('admin');
   const hasCoach = member.roles.includes('coach');
+  const hasMarketing = member.roles.includes('marketing');
   const hasSuperadmin = member.roles.includes('superadmin');
 
   return (
@@ -280,6 +303,7 @@ function StaffRow({
         <div className="flex flex-wrap items-center gap-1.5">
           <RolePill label="Admin" active={hasAdmin} tone="deep" />
           <RolePill label="Coach" active={hasCoach} tone="success" />
+          <RolePill label="Marketing" active={hasMarketing} tone="brand" />
           {hasSuperadmin ? <RolePill label="Superadmin" active tone="deep" /> : null}
         </div>
       </DataTableCell>
