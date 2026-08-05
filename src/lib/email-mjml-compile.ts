@@ -1,13 +1,20 @@
 import type { Component, Editor } from 'grapesjs';
+import { ensureEmailLinksOpenInNewTab } from '@/lib/email-mjml-starters';
 
 /** MJML text blocks that grapesjs-mjml serializes via `content` + child nodes. */
 const MJML_TEXT_TYPES = new Set(['mj-text', 'mj-button', 'text']);
 
 const SILENT_CONTENT_OPTS = { fromDisable: true, silent: true } as const;
+const RTE_SYNC_OPTS = { fromDisable: true } as const;
 
 type ContentBlankSnapshot = {
   component: Component;
   content: unknown;
+};
+
+type ReconcileMjmlTextOptions = {
+  fallbackHtml?: string;
+  forceHtml?: string;
 };
 
 let compileDepth = 0;
@@ -16,7 +23,7 @@ export function isCompilingEditorHtml(): boolean {
   return compileDepth > 0;
 }
 
-function isMjmlTextComponent(component: Component): boolean {
+export function isMjmlTextComponent(component: Component): boolean {
   const type = component.get('type') as string;
   return MJML_TEXT_TYPES.has(type) || component.is('text');
 }
@@ -24,6 +31,121 @@ function isMjmlTextComponent(component: Component): boolean {
 function isRteActive(component: Component): boolean {
   const view = component.view as { rteEnabled?: boolean } | undefined;
   return !!view?.rteEnabled;
+}
+
+function readStoredContent(component: Component): string {
+  const content = component.get('content');
+  return typeof content === 'string' ? content.trim() : '';
+}
+
+function readChildTextNodes(component: Component): string {
+  return component
+    .components()
+    .models.map((child: Component) => {
+      if (child.get('type') === 'textnode') {
+        return String(child.get('content') ?? '');
+      }
+      return '';
+    })
+    .join('')
+    .trim();
+}
+
+/** Best-effort HTML for an MJML text block (DOM/children/content/fallback). */
+export function readMjmlTextHtml(component: Component, fallbackHtml?: string): string {
+  try {
+    const inner = component.getInnerHTML();
+    if (typeof inner === 'string' && inner.trim()) {
+      return inner.trim();
+    }
+  } catch {
+    // Fall through.
+  }
+
+  const view = component.view as { getChildrenContainer?: () => HTMLElement; el?: HTMLElement } | undefined;
+  const el = view?.getChildrenContainer?.() ?? view?.el?.querySelector('td > div, td div, a, p');
+  if (el) {
+    const html = el.innerHTML.trim();
+    if (html) {
+      return html;
+    }
+    const text = el.textContent?.trim() ?? '';
+    if (text) {
+      return text;
+    }
+  }
+
+  const stored = readStoredContent(component);
+  if (stored) {
+    return stored;
+  }
+
+  const childText = readChildTextNodes(component);
+  if (childText) {
+    return childText;
+  }
+
+  return fallbackHtml?.trim() ?? '';
+}
+
+export function isMjmlTextComponentVisuallyBlank(component: Component): boolean {
+  const html = readMjmlTextHtml(component);
+  if (!html) {
+    return true;
+  }
+
+  const text = html
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .trim();
+  return text.length === 0 && !/<(img|br)\b/i.test(html);
+}
+
+/**
+ * Rebuild MJML text children from a single HTML source so canvas + compile stay in sync.
+ * Used after RTE link edits and inline link trait changes.
+ */
+export function reconcileMjmlTextComponent(component: Component, options: ReconcileMjmlTextOptions = {}): boolean {
+  if (!isMjmlTextComponent(component) || isRteActive(component)) {
+    return false;
+  }
+
+  const raw =
+    options.forceHtml?.trim() ||
+    readMjmlTextHtml(component, options.fallbackHtml) ||
+    options.fallbackHtml?.trim() ||
+    '';
+  if (!raw) {
+    return false;
+  }
+
+  const normalized = ensureEmailLinksOpenInNewTab(raw);
+  const needsReconcile =
+    isMjmlTextComponentVisuallyBlank(component) ||
+    componentHasDualTextExport(component) ||
+    (readStoredContent(component).length > 0 && readStoredContent(component) !== normalized);
+
+  if (!needsReconcile && options.forceHtml === undefined) {
+    return false;
+  }
+
+  component.set('content', '', SILENT_CONTENT_OPTS);
+  component.components().resetFromString(normalized, RTE_SYNC_OPTS as never);
+  component.view?.render?.();
+  return true;
+}
+
+export function reconcileAllMjmlTextComponents(editor: Editor) {
+  const wrapper = editor.getWrapper();
+  if (!wrapper) {
+    return;
+  }
+
+  for (const type of ['mj-text', 'mj-button', 'text'] as const) {
+    for (const component of wrapper.findType(type)) {
+      reconcileMjmlTextComponent(component);
+    }
+  }
 }
 
 /**

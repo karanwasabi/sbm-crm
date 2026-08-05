@@ -1,6 +1,6 @@
 import type { Component, Editor } from 'grapesjs';
 import { EMAIL_LOGO_URL } from '@/lib/email-branding';
-import { compileEditorHtmlWithDedupe } from '@/lib/email-mjml-compile';
+import { compileEditorHtmlWithDedupe, isMjmlTextComponent, reconcileMjmlTextComponent } from '@/lib/email-mjml-compile';
 import { getSbmLogoBlockContent, ensureEmailLinksOpenInNewTab } from '@/lib/email-mjml-starters';
 
 export async function uploadEmailAsset(file: File): Promise<{ src: string; name: string }> {
@@ -549,7 +549,23 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
     if (state.toolbarGuard) {
       return {};
     }
-    return originalDisable(view, rte, opts);
+
+    const component = view?.model as Component | undefined;
+    let capturedHtml = '';
+    if (component && isMjmlTextComponent(component)) {
+      const editableView = view as TextComponentView | undefined;
+      const el = editableView?.getChildrenContainer?.();
+      capturedHtml = el?.innerHTML?.trim() ?? readMergeTargetContent(component);
+    }
+
+    const result = await originalDisable(view, rte, opts);
+
+    if (component && isMjmlTextComponent(component)) {
+      reconcileMjmlTextComponent(component, { fallbackHtml: capturedHtml });
+      rememberMergeTargetContent(editor, component);
+    }
+
+    return result;
   };
 
   return () => {
@@ -700,7 +716,7 @@ function ensureTextComponentLinkTargets(component: Component) {
 
   const next = ensureEmailLinksOpenInNewTab(html);
   if (next !== html) {
-    component.set('content', next, CONTENT_UPDATE_OPTS);
+    reconcileMjmlTextComponent(component, { forceHtml: next });
   }
 }
 
@@ -810,7 +826,7 @@ export function installEmailLinkEditingSupport(editor: Editor) {
         const current = readComponentHtml(component);
         const next = replaceFirstAnchorHref(current, input.value.trim());
         if (next !== current) {
-          component.set('content', next, CONTENT_UPDATE_OPTS);
+          reconcileMjmlTextComponent(component, { forceHtml: next });
           editor.trigger('component:update', component);
         }
       });
