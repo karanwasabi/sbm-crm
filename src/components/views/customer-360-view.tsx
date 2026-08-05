@@ -93,6 +93,9 @@ function getSendWhatsAppState({
   return { disabled: false };
 }
 
+const CONVONITE_NO_CHAT_MESSAGE =
+  'No Convonite chat yet — send a WhatsApp template first, then wait for delivery status.';
+
 export function Customer360View({
   lead: initialLead,
   programHistory,
@@ -121,6 +124,8 @@ export function Customer360View({
   const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
   const [memberProfileKey, setMemberProfileKey] = useState(0);
   const [convoniteUnreadCount, setConvoniteUnreadCount] = useState(0);
+  const [convoniteChatReady, setConvoniteChatReady] = useState<boolean | null>(null);
+  const [convoniteUnavailableReason, setConvoniteUnavailableReason] = useState(CONVONITE_NO_CHAT_MESSAGE);
   const [isRefreshing, startTransition] = useTransition();
   const [syncingPayment, startSyncPayment] = useTransition();
   const [markingPaidOffline, startMarkPaidOffline] = useTransition();
@@ -141,16 +146,23 @@ export function Customer360View({
   useEffect(() => {
     if (!whatsappFlags.sendsEnabled || !contact.phone || !lead.canMutate) {
       setConvoniteUnreadCount(0);
+      setConvoniteChatReady(null);
       return;
     }
 
     let cancelled = false;
+    setConvoniteChatReady(null);
 
     void getLeadWhatsAppChatAction(lead.id).then(({ chat, error }) => {
-      if (cancelled || error) {
+      if (cancelled) return;
+      if (error || !chat?.deepLink) {
+        setConvoniteChatReady(false);
+        setConvoniteUnavailableReason(error ?? CONVONITE_NO_CHAT_MESSAGE);
+        setConvoniteUnreadCount(0);
         return;
       }
-      setConvoniteUnreadCount(chat?.unreadCount ?? 0);
+      setConvoniteChatReady(true);
+      setConvoniteUnreadCount(chat.unreadCount ?? 0);
     });
 
     return () => {
@@ -272,12 +284,23 @@ export function Customer360View({
   };
 
   const handleOpenConvonite = () => {
+    if (convoniteChatReady === null) {
+      return;
+    }
+    if (convoniteChatReady !== true) {
+      toast({ message: convoniteUnavailableReason, variant: 'error' });
+      return;
+    }
+
     startTransition(async () => {
       const { chat, error } = await getLeadWhatsAppChatAction(lead.id, { clearUnread: true });
       if (error || !chat?.deepLink) {
+        setConvoniteChatReady(false);
+        setConvoniteUnavailableReason(error ?? CONVONITE_NO_CHAT_MESSAGE);
         toast({ message: error ?? 'Could not open Convonite chat.', variant: 'error' });
         return;
       }
+      setConvoniteChatReady(true);
       setConvoniteUnreadCount(0);
       window.open(chat.deepLink, '_blank', 'noopener,noreferrer');
     });
@@ -290,6 +313,15 @@ export function Customer360View({
   });
   const canMutate = lead.canMutate;
   const canOpenConvonite = canMutate && Boolean(contact.phone) && whatsappFlags.sendsEnabled;
+  const openConvoniteForHeader = canOpenConvonite
+    ? {
+        onClick: handleOpenConvonite,
+        disabled: convoniteChatReady !== true,
+        disabledReason: convoniteUnavailableReason,
+        loading: convoniteChatReady === null,
+        unreadCount: convoniteUnreadCount,
+      }
+    : undefined;
   const sendWhatsAppForHeader = canMutate
     ? {
         onClick: () => setSendWhatsAppOpen(true),
@@ -320,8 +352,7 @@ export function Customer360View({
               : undefined
           }
           sendWhatsApp={sendWhatsAppForHeader}
-          onOpenConvonite={canOpenConvonite ? handleOpenConvonite : undefined}
-          convoniteUnreadCount={convoniteUnreadCount}
+          openConvonite={openConvoniteForHeader}
           onPurge={canMutate && lead.canPurge ? () => setPurgeOpen(true) : undefined}
           onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
           onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}

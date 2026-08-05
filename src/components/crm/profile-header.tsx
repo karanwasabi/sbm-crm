@@ -25,13 +25,20 @@ type ProfileSendWhatsAppAction = {
   disabledReason?: string;
 };
 
+type ProfileOpenConvoniteAction = {
+  onClick: () => void;
+  disabled?: boolean;
+  disabledReason?: string;
+  loading?: boolean;
+  unreadCount?: number;
+};
+
 type ProfileHeaderProps = {
   contact: ContactProfile;
   onLogCall?: () => void;
   onSendEmail?: () => void;
   sendWhatsApp?: ProfileSendWhatsAppAction;
-  onOpenConvonite?: () => void;
-  convoniteUnreadCount?: number;
+  openConvonite?: ProfileOpenConvoniteAction;
   onPurge?: () => void;
   onEnroll?: () => void;
   onTransferMembership?: () => void;
@@ -142,8 +149,7 @@ export function ProfileHeader({
   onLogCall,
   onSendEmail,
   sendWhatsApp,
-  onOpenConvonite,
-  convoniteUnreadCount = 0,
+  openConvonite,
   onPurge,
   onEnroll,
   onTransferMembership,
@@ -164,7 +170,7 @@ export function ProfileHeader({
   className,
 }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
-  const showCommunicate = (contact.stage !== 'lost' && onLogCall) || onSendEmail || sendWhatsApp || onOpenConvonite;
+  const showCommunicate = (contact.stage !== 'lost' && onLogCall) || onSendEmail || sendWhatsApp || openConvonite;
   const hasOverflowMenu = Boolean(
     onPurge ||
     onEnroll ||
@@ -255,19 +261,27 @@ export function ProfileHeader({
                         </TCButton>
                       </span>
                     ) : null}
-                    {onOpenConvonite ? (
-                      <span className="relative inline-flex">
+                    {openConvonite ? (
+                      <span
+                        title={openConvonite.disabled ? openConvonite.disabledReason : 'Open in Convonite'}
+                        className="relative inline-flex"
+                        onClick={() => openConvonite.onClick()}
+                      >
                         <TCButton
                           gradient="convonite"
                           leftIcon={<ConvoniteIcon />}
-                          onClick={onOpenConvonite}
-                          title="Open in Convonite"
+                          loading={openConvonite.loading}
+                          loadingLabel="Checking…"
+                          disabled={openConvonite.disabled || openConvonite.loading}
+                          className={
+                            openConvonite.disabled || openConvonite.loading ? 'pointer-events-none' : undefined
+                          }
                         >
                           Convonite
                         </TCButton>
-                        {convoniteUnreadCount > 0 ? (
-                          <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-extrabold text-white tabular-nums ring-2 ring-[#6A71E6]">
-                            {convoniteUnreadCount > 99 ? '99+' : convoniteUnreadCount}
+                        {!openConvonite.loading && (openConvonite.unreadCount ?? 0) > 0 ? (
+                          <span className="pointer-events-none absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-extrabold text-white tabular-nums ring-2 ring-[#6A71E6]">
+                            {(openConvonite.unreadCount ?? 0) > 99 ? '99+' : openConvonite.unreadCount}
                           </span>
                         ) : null}
                       </span>
