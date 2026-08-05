@@ -56,6 +56,7 @@ type ProfileHeaderProps = {
   onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
   memberKind?: 'renewal' | 'returnee' | null;
+  referredBy?: import('@/types/crm').LeadReferredBy | null;
   className?: string;
 };
 
@@ -167,6 +168,7 @@ export function ProfileHeader({
   onEditTimezone,
   onResetOnboardingPointA,
   memberKind = null,
+  referredBy = null,
   className,
 }: ProfileHeaderProps) {
   const displayTimezone = useDisplayTimezone();
@@ -222,6 +224,18 @@ export function ProfileHeader({
                     title={contact.cohortId ? 'Open cohort program management' : undefined}
                   >
                     Cohort: {contact.stage === 'transferred' ? `${contact.batch} · Transferred` : contact.batch}
+                  </HeaderMetaPill>
+                ) : null}
+                {referredBy ? (
+                  <HeaderMetaPill
+                    href={referredBy.referrerLeadId ? `/customers/${referredBy.referrerLeadId}` : undefined}
+                    title={
+                      referredBy.referrerLeadId
+                        ? `Open ${referredBy.referrerName} (${referredBy.referrerEmail})`
+                        : referredBy.referrerEmail
+                    }
+                  >
+                    Referred by {referredBy.referrerName}
                   </HeaderMetaPill>
                 ) : null}
                 {leadHasTag(contact.tags, 'vip') ? (

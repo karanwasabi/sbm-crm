@@ -247,6 +247,11 @@ type ApiLeadResponse = {
   can_transfer_membership?: boolean;
   coach_name?: string | null;
   cohort_id?: string | null;
+  referred_by?: {
+    referrer_lead_id?: string | null;
+    referrer_email: string;
+    referrer_name: string;
+  } | null;
   payment_pending?: {
     checkout_session_id: string;
     program_name: string;
@@ -865,6 +870,13 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     timeline: row.timeline ? mapTimelineEvents(row.timeline) : [],
     coachName: row.coach_name?.trim() || null,
     cohortId: row.cohort_id?.trim() || null,
+    referredBy: row.referred_by
+      ? {
+          referrerLeadId: row.referred_by.referrer_lead_id?.trim() || null,
+          referrerEmail: row.referred_by.referrer_email,
+          referrerName: row.referred_by.referrer_name,
+        }
+      : null,
   };
 }
 

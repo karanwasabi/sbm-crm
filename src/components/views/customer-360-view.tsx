@@ -345,6 +345,7 @@ export function Customer360View({
           className="rounded-b-none shadow-none"
           contact={contact}
           memberKind={lead.memberKind}
+          referredBy={lead.referredBy}
           onLogCall={canMutate ? () => setCallModalOpen(true) : undefined}
           onSendEmail={
             canMutate && emailTemplates.some((template) => template.status === 'active')

@@ -240,6 +240,12 @@ export function contactOutcomeMarksLost(outcome: ContactOutcome): boolean {
   return outcome === 'not_interested' || outcome === 'wrong_number';
 }
 
+export type LeadReferredBy = {
+  referrerLeadId: string | null;
+  referrerEmail: string;
+  referrerName: string;
+};
+
 export type LeadDetail = Lead & {
   manualSource: ManualLeadSource;
   notes: string;
@@ -258,6 +264,7 @@ export type LeadDetail = Lead & {
   timeline: TimelineEvent[];
   coachName?: string | null;
   cohortId?: string | null;
+  referredBy?: LeadReferredBy | null;
 };
 
 export type MembershipTransferMatch = 'none' | 'lead_only' | 'user_only' | 'lead_and_user';
