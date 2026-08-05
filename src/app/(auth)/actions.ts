@@ -5,6 +5,7 @@ import { createClient } from '@/utils/supabase/server';
 
 export async function signOut() {
   const supabase = await createClient();
-  await supabase.auth.signOut();
+  // Local scope only — do not revoke refresh tokens for the mobile app / other products.
+  await supabase.auth.signOut({ scope: 'local' });
   redirect('/login');
 }

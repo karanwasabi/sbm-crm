@@ -36,7 +36,7 @@ async function getForwardedHeaders(): Promise<HeadersInit> {
 }
 
 async function rejectLoginWithoutCrmAccess(supabase: SupabaseClient, focusField: LoginFocusField): Promise<LoginState> {
-  await supabase.auth.signOut();
+  await supabase.auth.signOut({ scope: 'local' });
   const errorFields: LoginFocusField[] = focusField === 'otp' ? ['email', 'otp'] : ['email', 'password'];
   return {
     error: CRM_LOGIN_DENIED_MESSAGE,
