@@ -3,14 +3,17 @@ import {
   getCommsAnalytics,
   getCommsAnalyticsSummary,
   getMarketingContactsSummary,
+  getWhatsAppCommsAnalytics,
   getWhatsAppFlags,
   listAutomations,
   listBulkLeadEmailSendJobs,
   listBulkLeadWhatsAppSendJobs,
   listEmailTemplates,
+  listWhatsAppSends,
   listWhatsAppTemplates,
   type CommsAnalyticsSummary,
   type MarketingContactsSummary,
+  type WhatsAppCommsAnalytics,
   type WhatsAppFlags,
 } from '@/utils/api';
 import type { CommsChannel } from '@/lib/comms-channel';
@@ -110,11 +113,13 @@ export async function loadCommsPerformanceTab(channel: CommsChannel = 'email') {
   const header = await loadCommsHeaderData();
 
   if (channel === 'whatsapp') {
+    const analyticsResult = await Promise.allSettled([getWhatsAppCommsAnalytics()]).then(([r]) => r);
     return {
       section: 'whatsapp' as const,
       tab: 'performance' as const,
       ...header,
-      analytics: null,
+      whatsAppAnalytics:
+        analyticsResult.status === 'fulfilled' ? analyticsResult.value : (null as WhatsAppCommsAnalytics | null),
     };
   }
 
@@ -125,5 +130,22 @@ export async function loadCommsPerformanceTab(channel: CommsChannel = 'email') {
     tab: 'performance' as const,
     ...header,
     analytics: analyticsResult.status === 'fulfilled' ? analyticsResult.value : null,
+    whatsAppAnalytics: null as WhatsAppCommsAnalytics | null,
+  };
+}
+
+export async function loadCommsSendsTab() {
+  const header = await loadCommsHeaderData();
+  const sendsResult = await Promise.allSettled([listWhatsAppSends({ limit: 50, offset: 0 })]).then(([r]) => r);
+
+  return {
+    section: 'whatsapp' as const,
+    tab: 'sends' as const,
+    ...header,
+    whatsAppSends: sendsResult.status === 'fulfilled' ? sendsResult.value : [],
+    whatsAppSendsError:
+      sendsResult.status === 'rejected'
+        ? rejectedErrorMessage(sendsResult.reason, 'Failed to load WhatsApp sends.')
+        : null,
   };
 }

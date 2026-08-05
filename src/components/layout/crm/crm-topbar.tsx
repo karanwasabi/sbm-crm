@@ -7,12 +7,14 @@ import { CRM_HEADER_ROW_CLASS } from '@/components/layout/crm/crm-header-row';
 import { useCrmLeadSummary } from '@/components/layout/crm/crm-lead-summary-context';
 import { useCrmRenewalSummary } from '@/components/layout/crm/crm-renewal-summary-context';
 import { CrmUserMenu } from '@/components/layout/crm/crm-user-menu';
+import { CrmWhatsAppUnreadBadge } from '@/components/layout/crm/crm-whatsapp-unread-badge';
 import { leadDatabaseSubtitle } from '@/lib/lead-display';
 import { getPageMeta } from '@/lib/navigation';
 import { cn } from '@/lib/cn';
 
 type CrmTopbarProps = {
   staffUser: CrmStaffUser;
+  whatsappSendsEnabled?: boolean;
 };
 
 function resolveSubtitle(
@@ -34,7 +36,7 @@ function resolveSubtitle(
   return fallback;
 }
 
-export function CrmTopbar({ staffUser }: CrmTopbarProps) {
+export function CrmTopbar({ staffUser, whatsappSendsEnabled = false }: CrmTopbarProps) {
   const pathname = usePathname();
   const { contactName } = useCrmContactName();
   const { leadTotal } = useCrmLeadSummary();
@@ -51,6 +53,7 @@ export function CrmTopbar({ staffUser }: CrmTopbarProps) {
 
       <div className="flex-1" />
 
+      <CrmWhatsAppUnreadBadge sendsEnabled={whatsappSendsEnabled} />
       <CrmUserMenu staffUser={staffUser} />
     </header>
   );

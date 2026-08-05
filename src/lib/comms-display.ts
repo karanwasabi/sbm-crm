@@ -64,3 +64,43 @@ export function bulkJobStatusTone(status: string): BulkJobStatusTone {
       return 'neutral';
   }
 }
+
+export function whatsAppSendStatusLabel(status: string): string {
+  switch (status) {
+    case 'sent':
+      return 'Sent';
+    case 'delivered':
+      return 'Delivered';
+    case 'read':
+      return 'Read';
+    case 'failed':
+    case 'error':
+      return 'Failed';
+    case 'rejected':
+      return 'Rejected';
+    case 'skipped':
+      return 'Skipped';
+    case 'queued':
+      return 'Queued';
+    default:
+      return status;
+  }
+}
+
+export function whatsAppSendStatusTone(status: string): SendStatusTone {
+  switch (status) {
+    case 'delivered':
+    case 'read':
+      return 'success';
+    case 'sent':
+      return 'brand';
+    case 'failed':
+    case 'error':
+    case 'rejected':
+      return 'danger';
+    case 'skipped':
+      return 'warn';
+    default:
+      return 'neutral';
+  }
+}

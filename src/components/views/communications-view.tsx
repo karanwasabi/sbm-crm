@@ -9,6 +9,8 @@ import { syncWhatsAppTemplatesAction } from '@/app/(crm)/communications/actions'
 import { BulkSendListRow } from '@/components/comms/bulk-send-list-row';
 import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
+import { WhatsAppCommsPerformancePanel } from '@/components/comms/whatsapp-comms-performance-panel';
+import { WhatsAppSendsPanel } from '@/components/comms/whatsapp-sends-panel';
 import { AutomationListRow } from '@/components/comms/automation-list-row';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
@@ -20,6 +22,7 @@ import {
   COMMS_AUTOMATIONS_HREF,
   COMMS_CHANNEL_TABS,
   COMMS_CHANNELS,
+  COMMS_WHATSAPP_CHANNEL_TABS,
   commsAutomationHref,
   commsTabHref,
   commsTemplateHref,
@@ -42,6 +45,8 @@ import type {
   MarketingContactsSummary,
   WhatsAppFlags,
   WhatsAppTemplate,
+  WhatsAppCommsAnalytics,
+  WhatsAppSend,
 } from '@/utils/api';
 
 type CommunicationsViewProps = {
@@ -54,6 +59,9 @@ type CommunicationsViewProps = {
   marketingSummary: MarketingContactsSummary;
   analyticsSummary: CommsAnalyticsSummary | null;
   analytics?: CommsAnalytics | null;
+  whatsAppAnalytics?: WhatsAppCommsAnalytics | null;
+  whatsAppSends?: WhatsAppSend[];
+  whatsAppSendsError?: string | null;
   whatsappFlags?: WhatsAppFlags;
 };
 
@@ -139,6 +147,9 @@ export function CommunicationsView({
   marketingSummary,
   analyticsSummary,
   analytics = null,
+  whatsAppAnalytics = null,
+  whatsAppSends = [],
+  whatsAppSendsError,
   whatsappFlags,
 }: CommunicationsViewProps) {
   const router = useRouter();
@@ -176,7 +187,9 @@ export function CommunicationsView({
       ? 'Templates'
       : tab === 'bulk-sends'
         ? 'Bulk sends'
-        : 'Performance';
+        : tab === 'sends'
+          ? 'Sends'
+          : 'Performance';
 
   const contentSubtitle = isAutomations
     ? 'Delay-based nurture workflows with email and WhatsApp sends'
@@ -185,7 +198,9 @@ export function CommunicationsView({
         ? 'WhatsApp message templates'
         : tab === 'bulk-sends'
           ? 'Campaign sends from Lead Database'
-          : 'WhatsApp delivery and engagement'
+          : tab === 'sends'
+            ? 'Global send log for all WhatsApp messages'
+            : 'WhatsApp delivery and engagement'
       : tab === 'templates'
         ? 'Email layouts and subjects'
         : tab === 'bulk-sends'
@@ -232,16 +247,18 @@ export function CommunicationsView({
                         href={commsTabHref(channelId, COMMS_CHANNEL_TABS[0].id)}
                       />
                       <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
-                        {COMMS_CHANNEL_TABS.map(({ id: tabId, label: tabLabel }) => (
-                          <button
-                            key={tabId}
-                            type="button"
-                            onClick={() => selectChannelTab(channelId, tabId)}
-                            className={commsNavTabClass(section === channelId && tab === tabId, tone)}
-                          >
-                            {tabLabel}
-                          </button>
-                        ))}
+                        {(channelId === 'whatsapp' ? COMMS_WHATSAPP_CHANNEL_TABS : COMMS_CHANNEL_TABS).map(
+                          ({ id: tabId, label: tabLabel }) => (
+                            <button
+                              key={tabId}
+                              type="button"
+                              onClick={() => selectChannelTab(channelId, tabId)}
+                              className={commsNavTabClass(section === channelId && tab === tabId, tone)}
+                            >
+                              {tabLabel}
+                            </button>
+                          )
+                        )}
                       </div>
                     </div>
                   </CommsNavSectionPanel>
@@ -423,13 +440,27 @@ export function CommunicationsView({
 
           {!isAutomations && tab === 'performance' ? (
             isWhatsApp ? (
-              <p className="text-sm text-slate-500">Coming soon.</p>
+              whatsAppAnalytics ? (
+                <WhatsAppCommsPerformancePanel analytics={whatsAppAnalytics} />
+              ) : (
+                <p className="text-sm text-slate-500">
+                  Analytics could not be loaded. Ensure WhatsApp sends are enabled and the API is running.
+                </p>
+              )
             ) : analytics ? (
               <CommsPerformancePanel analytics={analytics} />
             ) : (
               <p className="text-sm text-slate-500">
                 Analytics could not be loaded. Apply the latest backend migration and ensure the API is running.
               </p>
+            )
+          ) : null}
+
+          {!isAutomations && isWhatsApp && tab === 'sends' ? (
+            whatsAppSendsError ? (
+              <p className="text-sm font-medium text-danger-press">{whatsAppSendsError}</p>
+            ) : (
+              <WhatsAppSendsPanel initialSends={whatsAppSends} />
             )
           ) : null}
         </div>

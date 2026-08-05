@@ -120,6 +120,7 @@ export function Customer360View({
   const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
   const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
   const [memberProfileKey, setMemberProfileKey] = useState(0);
+  const [convoniteUnreadCount, setConvoniteUnreadCount] = useState(0);
   const [isRefreshing, startTransition] = useTransition();
   const [syncingPayment, startSyncPayment] = useTransition();
   const [markingPaidOffline, startMarkPaidOffline] = useTransition();
@@ -136,6 +137,26 @@ export function Customer360View({
     setContactName(contact.name);
     return () => setContactName(null);
   }, [contact.name, setContactName]);
+
+  useEffect(() => {
+    if (!whatsappFlags.sendsEnabled || !contact.phone || !lead.canMutate) {
+      setConvoniteUnreadCount(0);
+      return;
+    }
+
+    let cancelled = false;
+
+    void getLeadWhatsAppChatAction(lead.id).then(({ chat, error }) => {
+      if (cancelled || error) {
+        return;
+      }
+      setConvoniteUnreadCount(chat?.unreadCount ?? 0);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lead.id, lead.canMutate, contact.phone, whatsappFlags.sendsEnabled]);
 
   const refresh = () => {
     startTransition(() => {
@@ -252,11 +273,12 @@ export function Customer360View({
 
   const handleOpenConvonite = () => {
     startTransition(async () => {
-      const { chat, error } = await getLeadWhatsAppChatAction(lead.id);
+      const { chat, error } = await getLeadWhatsAppChatAction(lead.id, { clearUnread: true });
       if (error || !chat?.deepLink) {
         toast({ message: error ?? 'Could not open Convonite chat.', variant: 'error' });
         return;
       }
+      setConvoniteUnreadCount(0);
       window.open(chat.deepLink, '_blank', 'noopener,noreferrer');
     });
   };
@@ -267,6 +289,7 @@ export function Customer360View({
     hasPhone: Boolean(contact.phone),
   });
   const canMutate = lead.canMutate;
+  const canOpenConvonite = canMutate && Boolean(contact.phone) && whatsappFlags.sendsEnabled;
   const sendWhatsAppForHeader = canMutate
     ? {
         onClick: () => setSendWhatsAppOpen(true),
@@ -297,7 +320,8 @@ export function Customer360View({
               : undefined
           }
           sendWhatsApp={sendWhatsAppForHeader}
-          onOpenConvonite={canMutate && contact.phone ? handleOpenConvonite : undefined}
+          onOpenConvonite={canOpenConvonite ? handleOpenConvonite : undefined}
+          convoniteUnreadCount={convoniteUnreadCount}
           onPurge={canMutate && lead.canPurge ? () => setPurgeOpen(true) : undefined}
           onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
           onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}

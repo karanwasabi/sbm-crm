@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
 import { hasProduct, PRODUCT_CRM, visibleStaffRoles, isSuperadmin, isMarketingOnly } from '@/lib/access';
-import { getLatestProfile, getMyAccess, ApiError } from '@/utils/api';
+import { getLatestProfile, getMyAccess, getWhatsAppFlags, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import { getInitials, type Profile } from '@/types/profile';
 
@@ -46,11 +46,19 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
 
   let profile: Profile | null = null;
   let profileError: string | null = null;
+  let whatsappSendsEnabled = false;
 
   try {
     profile = await getLatestProfile();
   } catch (error) {
     profileError = error instanceof ApiError ? error.message : 'Failed to load profile.';
+  }
+
+  try {
+    const flags = await getWhatsAppFlags();
+    whatsappSendsEnabled = flags.sendsEnabled;
+  } catch {
+    whatsappSendsEnabled = false;
   }
 
   const staffUser = {
@@ -66,6 +74,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       profileError={profileError}
       isSuperadmin={superadmin}
       isMarketing={marketing}
+      whatsappSendsEnabled={whatsappSendsEnabled}
     >
       {children}
     </CrmShell>

@@ -3597,8 +3597,12 @@ export type LeadWhatsAppChat = {
   chatId?: string;
 };
 
-export async function getLeadWhatsAppChat(leadId: string): Promise<LeadWhatsAppChat> {
-  const response = await requireApiFetch(`/admin/comms/leads/${leadId}/whatsapp/chat`);
+export async function getLeadWhatsAppChat(
+  leadId: string,
+  options?: { clearUnread?: boolean }
+): Promise<LeadWhatsAppChat> {
+  const qs = options?.clearUnread ? '?clear_unread=true' : '';
+  const response = await requireApiFetch(`/admin/comms/leads/${leadId}/whatsapp/chat${qs}`);
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to load WhatsApp chat.', response.status);
@@ -3667,6 +3671,164 @@ export async function listWhatsAppSends(options?: { limit?: number; offset?: num
     createdAt: row.created_at,
     sentAt: row.sent_at,
   }));
+}
+
+export type WhatsAppAnalyticsTotals = {
+  queued: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  rejected: number;
+  skipped: number;
+};
+
+export type WhatsAppTemplatePerformance = {
+  templateId: string;
+  templateName: string;
+  category: string;
+  sendCount: number;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  failedCount: number;
+  rejectedCount: number;
+  skippedCount: number;
+  queuedCount: number;
+};
+
+export type WhatsAppSendRow = {
+  id: string;
+  templateId?: string;
+  templateName: string;
+  leadId?: string;
+  recipientPhone: string;
+  status: string;
+  skipReason?: string;
+  createdAt: string;
+  sentAt?: string | null;
+};
+
+export type WhatsAppCommsAnalytics = {
+  totals: WhatsAppAnalyticsTotals;
+  templates: WhatsAppTemplatePerformance[];
+  recentSends: WhatsAppSendRow[];
+  recentIssues: WhatsAppSendRow[];
+  webhookUrl: string;
+  webhookEnabled: boolean;
+};
+
+export type WhatsAppUnreadSummary = {
+  count: number;
+  channelId?: string;
+  inboxUrl: string;
+};
+
+export async function getWhatsAppCommsAnalytics(): Promise<WhatsAppCommsAnalytics> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/analytics');
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp analytics.', response.status);
+  }
+  const payload = (await response.json()) as {
+    totals: {
+      queued: number;
+      sent: number;
+      delivered: number;
+      read: number;
+      failed: number;
+      rejected: number;
+      skipped: number;
+    };
+    templates: Array<{
+      template_id: string;
+      template_name: string;
+      category: string;
+      send_count: number;
+      sent_count: number;
+      delivered_count: number;
+      read_count: number;
+      failed_count: number;
+      rejected_count: number;
+      skipped_count: number;
+      queued_count: number;
+    }>;
+    recent_sends: Array<{
+      id: string;
+      template_id?: string;
+      template_name: string;
+      lead_id?: string;
+      recipient_phone: string;
+      status: string;
+      skip_reason?: string;
+      created_at: string;
+      sent_at?: string | null;
+    }>;
+    recent_issues: Array<{
+      id: string;
+      template_id?: string;
+      template_name: string;
+      lead_id?: string;
+      recipient_phone: string;
+      status: string;
+      skip_reason?: string;
+      created_at: string;
+      sent_at?: string | null;
+    }>;
+    webhook_url: string;
+    webhook_enabled: boolean;
+  };
+  const mapRow = (row: (typeof payload.recent_sends)[number]): WhatsAppSendRow => ({
+    id: row.id,
+    templateId: row.template_id,
+    templateName: row.template_name,
+    leadId: row.lead_id,
+    recipientPhone: row.recipient_phone,
+    status: row.status,
+    skipReason: row.skip_reason,
+    createdAt: row.created_at,
+    sentAt: row.sent_at,
+  });
+  return {
+    totals: {
+      queued: payload.totals.queued,
+      sent: payload.totals.sent,
+      delivered: payload.totals.delivered,
+      read: payload.totals.read,
+      failed: payload.totals.failed,
+      rejected: payload.totals.rejected,
+      skipped: payload.totals.skipped,
+    },
+    templates: payload.templates.map((row) => ({
+      templateId: row.template_id,
+      templateName: row.template_name,
+      category: row.category,
+      sendCount: row.send_count,
+      sentCount: row.sent_count,
+      deliveredCount: row.delivered_count,
+      readCount: row.read_count,
+      failedCount: row.failed_count,
+      rejectedCount: row.rejected_count,
+      skippedCount: row.skipped_count,
+      queuedCount: row.queued_count,
+    })),
+    recentSends: payload.recent_sends.map(mapRow),
+    recentIssues: payload.recent_issues.map(mapRow),
+    webhookUrl: payload.webhook_url,
+    webhookEnabled: payload.webhook_enabled,
+  };
+}
+
+export async function getWhatsAppUnreadSummary(): Promise<WhatsAppUnreadSummary> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/unread');
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp unread count.', response.status);
+  }
+  const row = (await response.json()) as { count: number; channel_id?: string; inbox_url: string };
+  return {
+    count: row.count ?? 0,
+    channelId: row.channel_id,
+    inboxUrl: row.inbox_url ?? 'https://on.convonite.com',
+  };
 }
 
 export type BulkLeadWhatsAppPreview = {

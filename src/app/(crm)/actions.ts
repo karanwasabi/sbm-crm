@@ -35,3 +35,16 @@ export async function fetchAdPerformance(
     return { ok: false, error: 'Failed to load ad performance.' };
   }
 }
+
+export async function getWhatsAppUnreadSummaryAction(): Promise<{
+  summary: import('@/utils/api').WhatsAppUnreadSummary | null;
+  error: string | null;
+}> {
+  try {
+    const { getWhatsAppUnreadSummary } = await import('@/utils/api');
+    const summary = await getWhatsAppUnreadSummary();
+    return { summary, error: null };
+  } catch {
+    return { summary: null, error: null };
+  }
+}

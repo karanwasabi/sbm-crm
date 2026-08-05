@@ -24,6 +24,7 @@ type CrmShellProps = {
   profileError: string | null;
   isSuperadmin?: boolean;
   isMarketing?: boolean;
+  whatsappSendsEnabled?: boolean;
 };
 
 export function CrmShell({
@@ -33,6 +34,7 @@ export function CrmShell({
   profileError,
   isSuperadmin = false,
   isMarketing = false,
+  whatsappSendsEnabled = false,
 }: CrmShellProps) {
   return (
     <ToastProvider>
@@ -44,7 +46,7 @@ export function CrmShell({
                 <div className="flex h-dvh min-w-0 bg-white">
                   <CrmSidebar isSuperadmin={isSuperadmin} isMarketing={isMarketing} />
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <CrmTopbar staffUser={staffUser} />
+                    <CrmTopbar staffUser={staffUser} whatsappSendsEnabled={whatsappSendsEnabled} />
                     <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
                       {children}
                     </div>

@@ -31,6 +31,7 @@ type ProfileHeaderProps = {
   onSendEmail?: () => void;
   sendWhatsApp?: ProfileSendWhatsAppAction;
   onOpenConvonite?: () => void;
+  convoniteUnreadCount?: number;
   onPurge?: () => void;
   onEnroll?: () => void;
   onTransferMembership?: () => void;
@@ -142,6 +143,7 @@ export function ProfileHeader({
   onSendEmail,
   sendWhatsApp,
   onOpenConvonite,
+  convoniteUnreadCount = 0,
   onPurge,
   onEnroll,
   onTransferMembership,
@@ -254,14 +256,21 @@ export function ProfileHeader({
                       </span>
                     ) : null}
                     {onOpenConvonite ? (
-                      <TCButton
-                        gradient="convonite"
-                        leftIcon={<ConvoniteIcon />}
-                        onClick={onOpenConvonite}
-                        title="Open in Convonite"
-                      >
-                        Convonite
-                      </TCButton>
+                      <span className="relative inline-flex">
+                        <TCButton
+                          gradient="convonite"
+                          leftIcon={<ConvoniteIcon />}
+                          onClick={onOpenConvonite}
+                          title="Open in Convonite"
+                        >
+                          Convonite
+                        </TCButton>
+                        {convoniteUnreadCount > 0 ? (
+                          <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-emerald-500 px-1 text-[10px] font-extrabold text-white tabular-nums ring-2 ring-[#6A71E6]">
+                            {convoniteUnreadCount > 99 ? '99+' : convoniteUnreadCount}
+                          </span>
+                        ) : null}
+                      </span>
                     ) : null}
                   </>
                 ) : null}

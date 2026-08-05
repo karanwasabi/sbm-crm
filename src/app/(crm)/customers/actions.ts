@@ -221,11 +221,12 @@ export async function previewWhatsAppTemplateParamsAction(
 }
 
 export async function getLeadWhatsAppChatAction(
-  leadId: string
+  leadId: string,
+  options?: { clearUnread?: boolean }
 ): Promise<{ chat: import('@/utils/api').LeadWhatsAppChat | null; error: string | null }> {
   try {
     const { getLeadWhatsAppChat } = await import('@/utils/api');
-    const chat = await getLeadWhatsAppChat(leadId);
+    const chat = await getLeadWhatsAppChat(leadId, options);
     return { chat, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to open WhatsApp chat.';

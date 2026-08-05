@@ -1,6 +1,6 @@
 export type CommsChannel = 'email' | 'whatsapp';
 
-export type CommsChannelTab = 'templates' | 'bulk-sends' | 'performance';
+export type CommsChannelTab = 'templates' | 'bulk-sends' | 'performance' | 'sends';
 
 export type CommsSection = 'automations' | CommsChannel;
 
@@ -13,6 +13,11 @@ export const COMMS_CHANNEL_TABS: { id: CommsChannelTab; label: string }[] = [
   { id: 'templates', label: 'Templates' },
   { id: 'bulk-sends', label: 'Bulk sends' },
   { id: 'performance', label: 'Performance' },
+];
+
+export const COMMS_WHATSAPP_CHANNEL_TABS: { id: CommsChannelTab; label: string }[] = [
+  ...COMMS_CHANNEL_TABS,
+  { id: 'sends', label: 'Sends' },
 ];
 
 export const COMMS_AUTOMATIONS_HREF = '/communications/automations';

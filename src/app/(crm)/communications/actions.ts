@@ -25,6 +25,7 @@ import {
   getBulkLeadWhatsAppSendJob,
   listBulkLeadWhatsAppSendJobs,
   listBulkLeadWhatsAppSendJobSends,
+  listWhatsAppSends,
   ApiError,
   type EmailTemplate,
   type WhatsAppTemplate,
@@ -33,6 +34,7 @@ import {
   type BulkLeadEmailSendList,
   type BulkLeadWhatsAppSendJob,
   type BulkLeadWhatsAppSendList,
+  type WhatsAppSend,
 } from '@/utils/api';
 import type {
   AutomationGraph,
@@ -230,5 +232,18 @@ export async function listBulkLeadWhatsAppSendJobSendsAction(
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load bulk WhatsApp send recipients.';
     return { data: null, error: message };
+  }
+}
+
+export async function listWhatsAppSendsAction(options?: {
+  limit?: number;
+  offset?: number;
+}): Promise<{ sends: WhatsAppSend[]; error: string | null }> {
+  try {
+    const sends = await listWhatsAppSends(options);
+    return { sends, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load WhatsApp sends.';
+    return { sends: [], error: message };
   }
 }
