@@ -96,7 +96,7 @@ export function FilterBar({
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
           <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
-          <LeadDatabaseCreatedByMeFilter filters={filters} />
+          {restrictToCreatedByMe ? <LeadDatabaseCreatedByMeFilter filters={filters} /> : null}
           <LeadDatabasePhoneDuplicatesFilter filters={filters} />
         </div>
       </div>
