@@ -566,6 +566,8 @@ export type ProgramHistoryItem = {
   cancelAtPeriodEnd?: boolean | null;
   subscriptionStatus?: string | null;
   recurringStartAt?: string | null;
+  /** True when a Razorpay subscription mandate is active (not prepaid one-time renewals). */
+  autoRenewEnabled?: boolean;
   /** True for the enrollment that drives lead lifecycle stage (latest paid checkout). */
   drivesLifecycle?: boolean;
 };

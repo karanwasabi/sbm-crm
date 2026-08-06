@@ -15,6 +15,7 @@ import { attributionFormLabel, attributionSourceLabel } from '@/lib/lead-attribu
 import { formatInclusiveAccessEndDate } from '@/lib/access-until-display';
 import { resolveDisplayTimezone } from '@/lib/datetime-display';
 import type { LeadAttribution, ProgramHistoryItem } from '@/types/crm';
+import { autoRenewInfo } from '@/lib/program-history-auto-renew';
 
 type ProgramHistoryProps = {
   items: ProgramHistoryItem[];
@@ -72,29 +73,6 @@ function displayEnrollmentStatus(item: ProgramHistoryItem, leadStage?: string): 
     return 'Transferred';
   }
   return item.status;
-}
-
-type AutoRenewInfo = {
-  label: string;
-  tone: 'success' | 'warn' | 'danger' | 'neutral';
-};
-
-function autoRenewInfo(item: ProgramHistoryItem): AutoRenewInfo | null {
-  const status = item.status.trim().toLowerCase();
-  if (status === 'payment pending' || status === 'cancelled') return null;
-  if (item.cancelAtPeriodEnd == null && !item.subscriptionStatus && !item.accessUntil) return null;
-
-  if (item.cancelAtPeriodEnd === true) {
-    return { label: 'Cancelling', tone: 'warn' };
-  }
-  const sub = (item.subscriptionStatus ?? '').trim().toLowerCase();
-  if (sub === 'cancelled' || sub === 'halted') {
-    return { label: 'Off', tone: 'danger' };
-  }
-  if (item.accessUntil || item.cancelAtPeriodEnd === false || sub) {
-    return { label: 'On', tone: 'success' };
-  }
-  return null;
 }
 
 function isGraceOpen(graceUntil: string | null | undefined): boolean {

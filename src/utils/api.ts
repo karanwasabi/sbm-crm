@@ -2382,6 +2382,7 @@ type ApiEnrollmentResponse = {
   cancel_at_period_end?: boolean | null;
   subscription_status?: string | null;
   recurring_start_at?: string | null;
+  auto_renew_enabled?: boolean;
   drives_lifecycle?: boolean;
 };
 
@@ -2624,6 +2625,7 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     cancelAtPeriodEnd: row.cancel_at_period_end ?? null,
     subscriptionStatus: row.subscription_status ?? null,
     recurringStartAt: row.recurring_start_at ?? null,
+    autoRenewEnabled: Boolean(row.auto_renew_enabled),
     drivesLifecycle: Boolean(row.drives_lifecycle),
   }));
 }
