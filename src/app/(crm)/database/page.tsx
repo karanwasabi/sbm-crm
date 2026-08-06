@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
-import { marketingDefaultCreatedByMe } from '@/lib/marketing-access';
+import { isMarketingOnly } from '@/lib/access';
 import {
   getLeadFilterOptions,
   getLeadSummary,
@@ -45,16 +45,14 @@ export default async function DatabasePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  let defaultCreatedByMe = false;
   let restrictToCreatedByMe = false;
   try {
     const access = await getMyAccess();
-    restrictToCreatedByMe = marketingDefaultCreatedByMe(access.roles);
-    defaultCreatedByMe = restrictToCreatedByMe;
+    restrictToCreatedByMe = isMarketingOnly(access.roles);
   } catch {
-    defaultCreatedByMe = false;
     restrictToCreatedByMe = false;
   }
+  const defaultCreatedByMe = false;
   const filters = parseLeadDatabaseFilters(params, { defaultCreatedByMe });
   const suspenseKey = buildLeadDatabaseHref(filters);
 
