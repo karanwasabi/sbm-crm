@@ -10,21 +10,12 @@ import { downloadLeadsXlsx } from '@/lib/export-leads-xlsx';
 import type { Lead } from '@/types/crm';
 import { cn } from '@/lib/cn';
 
-type LeadDatabaseExportButtonProps = {
-  createdByMe: boolean;
-  restrictToCreatedByMe?: boolean;
-};
-
-export function LeadDatabaseExportButton({
-  createdByMe,
-  restrictToCreatedByMe = false,
-}: LeadDatabaseExportButtonProps) {
+export function LeadDatabaseExportButton() {
   const { selectedCount, getExportLeads, needsPrefetchForExport, waitForPrefetch, cancelPendingExport } =
     useLeadDatabaseSelection();
   const { toast } = useToast();
   const [preparingOpen, setPreparingOpen] = useState(false);
-  const createdByMeBlocked = restrictToCreatedByMe && !createdByMe;
-  const isDisabled = selectedCount === 0 || createdByMeBlocked;
+  const isDisabled = selectedCount === 0;
 
   const runExport = (leads: Lead[]) => {
     if (leads.length === 0) {
@@ -54,15 +45,6 @@ export function LeadDatabaseExportButton({
   };
 
   const handleClick = () => {
-    if (createdByMeBlocked) {
-      toast({
-        message: 'Turn on the Created by me filter to export leads.',
-        variant: 'warning',
-        durationMs: 5000,
-      });
-      return;
-    }
-
     if (selectedCount === 0) {
       toast({
         message: 'Select at least one lead to export.',

@@ -123,7 +123,7 @@ export function FilterBar({
             createdByMe={filters.createdByMe}
             restrictToCreatedByMe={restrictToCreatedByMe}
           />
-          <LeadDatabaseExportButton createdByMe={filters.createdByMe} restrictToCreatedByMe={restrictToCreatedByMe} />
+          <LeadDatabaseExportButton />
         </div>
       </div>
     </Card>
