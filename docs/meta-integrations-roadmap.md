@@ -105,6 +105,8 @@ curl -X POST "https://graph.facebook.com/v25.0/{PAGE_ID}/subscribed_apps?subscri
 ```bash
 # Copy the test_event_code from Events Manager → Test events, then:
 go run ./cmd/meta-capi-test --test-event-code TEST12345
+# all three conversion events in one run:
+go run ./cmd/meta-capi-test --test-event-code TEST12345 --all-events
 # optional match-quality identifiers: --email a@b.com --phone +919999999999
 ```
 
