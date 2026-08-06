@@ -17,6 +17,7 @@ type LeadDatabaseBulkSendButtonProps = {
   whatsappTemplates: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
   createdByMe: boolean;
+  restrictToCreatedByMe?: boolean;
 };
 
 export function LeadDatabaseBulkSendButton({
@@ -24,6 +25,7 @@ export function LeadDatabaseBulkSendButton({
   whatsappTemplates,
   whatsappSendsEnabled = false,
   createdByMe,
+  restrictToCreatedByMe = false,
 }: LeadDatabaseBulkSendButtonProps) {
   const { selectedCount, getExportLeads, needsPrefetchForExport, waitForPrefetch, cancelPendingExport } =
     useLeadDatabaseSelection();
@@ -36,7 +38,8 @@ export function LeadDatabaseBulkSendButton({
   const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
   const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
   const whatsappDisabled = !whatsappSendsEnabled || activeWhatsappTemplates.length === 0;
-  const isDisabled = selectedCount === 0 || !createdByMe;
+  const createdByMeBlocked = restrictToCreatedByMe && !createdByMe;
+  const isDisabled = selectedCount === 0 || createdByMeBlocked;
 
   const openWithLeads = (ids: string[], channel: 'email' | 'whatsapp') => {
     setLeadIds(ids);
@@ -48,7 +51,7 @@ export function LeadDatabaseBulkSendButton({
   };
 
   const handleClick = (channel: 'email' | 'whatsapp') => {
-    if (!createdByMe) {
+    if (createdByMeBlocked) {
       toast({
         message:
           channel === 'email'

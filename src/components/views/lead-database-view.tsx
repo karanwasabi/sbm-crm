@@ -19,6 +19,7 @@ type LeadDatabaseViewProps = {
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
+  restrictToCreatedByMe?: boolean;
   children: ReactNode;
 };
 
@@ -30,6 +31,7 @@ export function LeadDatabaseView({
   emailTemplates,
   whatsappTemplates,
   whatsappSendsEnabled = false,
+  restrictToCreatedByMe = false,
   children,
 }: LeadDatabaseViewProps) {
   const { setLeadTotal } = useCrmLeadSummary();
@@ -52,6 +54,7 @@ export function LeadDatabaseView({
           whatsappTemplates={whatsappTemplates}
           whatsappSendsEnabled={whatsappSendsEnabled}
           unseenUpdatesCount={summary.withUnseenSuggestions}
+          restrictToCreatedByMe={restrictToCreatedByMe}
         />
 
         <LeadDatabaseActiveFilters filters={filters} filterOptions={filterOptions} />

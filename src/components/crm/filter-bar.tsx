@@ -37,6 +37,7 @@ type FilterBarProps = {
   whatsappTemplates: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
   unseenUpdatesCount: number;
+  restrictToCreatedByMe?: boolean;
 };
 
 export function FilterBar({
@@ -48,6 +49,7 @@ export function FilterBar({
   whatsappTemplates,
   whatsappSendsEnabled = false,
   unseenUpdatesCount,
+  restrictToCreatedByMe = false,
 }: FilterBarProps) {
   return (
     <Card padding="none" className="overflow-hidden">
@@ -119,8 +121,9 @@ export function FilterBar({
             whatsappTemplates={whatsappTemplates}
             whatsappSendsEnabled={whatsappSendsEnabled}
             createdByMe={filters.createdByMe}
+            restrictToCreatedByMe={restrictToCreatedByMe}
           />
-          <LeadDatabaseExportButton createdByMe={filters.createdByMe} />
+          <LeadDatabaseExportButton createdByMe={filters.createdByMe} restrictToCreatedByMe={restrictToCreatedByMe} />
         </div>
       </div>
     </Card>

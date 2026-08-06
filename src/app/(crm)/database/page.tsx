@@ -46,11 +46,14 @@ export default async function DatabasePage({
 }) {
   const params = await searchParams;
   let defaultCreatedByMe = false;
+  let restrictToCreatedByMe = false;
   try {
     const access = await getMyAccess();
-    defaultCreatedByMe = marketingDefaultCreatedByMe(access.roles);
+    restrictToCreatedByMe = marketingDefaultCreatedByMe(access.roles);
+    defaultCreatedByMe = restrictToCreatedByMe;
   } catch {
     defaultCreatedByMe = false;
+    restrictToCreatedByMe = false;
   }
   const filters = parseLeadDatabaseFilters(params, { defaultCreatedByMe });
   const suspenseKey = buildLeadDatabaseHref(filters);
@@ -102,6 +105,7 @@ export default async function DatabasePage({
       emailTemplates={emailTemplates}
       whatsappTemplates={whatsappTemplates}
       whatsappSendsEnabled={whatsappSendsEnabled}
+      restrictToCreatedByMe={restrictToCreatedByMe}
     >
       <Suspense key={suspenseKey} fallback={<LeadDatabaseTableFallback />}>
         <LeadDatabaseTableLoader filters={filters} summary={summary} />

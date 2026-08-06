@@ -12,14 +12,19 @@ import { cn } from '@/lib/cn';
 
 type LeadDatabaseExportButtonProps = {
   createdByMe: boolean;
+  restrictToCreatedByMe?: boolean;
 };
 
-export function LeadDatabaseExportButton({ createdByMe }: LeadDatabaseExportButtonProps) {
+export function LeadDatabaseExportButton({
+  createdByMe,
+  restrictToCreatedByMe = false,
+}: LeadDatabaseExportButtonProps) {
   const { selectedCount, getExportLeads, needsPrefetchForExport, waitForPrefetch, cancelPendingExport } =
     useLeadDatabaseSelection();
   const { toast } = useToast();
   const [preparingOpen, setPreparingOpen] = useState(false);
-  const isDisabled = selectedCount === 0 || !createdByMe;
+  const createdByMeBlocked = restrictToCreatedByMe && !createdByMe;
+  const isDisabled = selectedCount === 0 || createdByMeBlocked;
 
   const runExport = (leads: Lead[]) => {
     if (leads.length === 0) {
@@ -49,7 +54,7 @@ export function LeadDatabaseExportButton({ createdByMe }: LeadDatabaseExportButt
   };
 
   const handleClick = () => {
-    if (!createdByMe) {
+    if (createdByMeBlocked) {
       toast({
         message: 'Turn on the Created by me filter to export leads.',
         variant: 'warning',
