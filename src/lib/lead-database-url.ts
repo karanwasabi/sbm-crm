@@ -195,7 +195,6 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (merged.phoneDuplicates) params.set('phone_duplicates', 'true');
   if (merged.createdByMe) params.set('created_by_me', '1');
-  else params.set('created_by_me', '0');
   if (merged.page > 1) params.set('page', String(merged.page));
   if (merged.pageSize !== 50) params.set('page_size', String(merged.pageSize));
 
