@@ -17,6 +17,7 @@ export type LeadDatabaseFilters = {
   geography: string[];
   sources: string[];
   coaches: string[];
+  referrerCoaches: string[];
   addedFrom: string;
   addedTo: string;
   updatedFrom: string;
@@ -42,6 +43,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   geography: [],
   sources: [],
   coaches: [],
+  referrerCoaches: [],
   addedFrom: '',
   addedTo: '',
   updatedFrom: '',
@@ -137,6 +139,7 @@ export function parseLeadDatabaseFilters(
     geography: parseCommaList(get('geography')),
     sources: parseCommaList(get('sources')),
     coaches: parseCommaList(get('coaches')),
+    referrerCoaches: parseCommaList(get('referrer_coaches')),
     addedFrom: get('added_from')?.trim() || '',
     addedTo: get('added_to')?.trim() || '',
     updatedFrom: get('updated_from')?.trim() || '',
@@ -186,6 +189,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.geography.length > 0) params.set('geography', merged.geography.join(','));
   if (merged.sources.length > 0) params.set('sources', merged.sources.join(','));
   if (merged.coaches.length > 0) params.set('coaches', merged.coaches.join(','));
+  if (merged.referrerCoaches.length > 0) params.set('referrer_coaches', merged.referrerCoaches.join(','));
   if (merged.addedFrom) params.set('added_from', merged.addedFrom);
   if (merged.addedTo) params.set('added_to', merged.addedTo);
   if (merged.updatedFrom) params.set('updated_from', merged.updatedFrom);

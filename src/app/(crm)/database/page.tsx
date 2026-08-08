@@ -37,6 +37,7 @@ const EMPTY_FILTER_OPTIONS: LeadFilterOptions = {
   geography: [],
   sources: [],
   coaches: [],
+  referrerCoaches: [],
 };
 
 export default async function DatabasePage({

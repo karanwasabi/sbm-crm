@@ -33,21 +33,41 @@ type LeadDatabaseTableSectionProps = {
   loadError?: string | null;
 };
 
-function LeadDatabaseTableColGroup() {
+function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: boolean }) {
+  if (!showReferrerCoach) {
+    return (
+      <colgroup>
+        <col style={{ width: '2%' }} />
+        <col style={{ width: '13%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '7%' }} />
+        <col style={{ width: '10%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '7%' }} />
+        <col style={{ width: '9%' }} />
+        <col style={{ width: '24%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '6%' }} />
+      </colgroup>
+    );
+  }
+
   return (
     <colgroup>
       <col style={{ width: '2%' }} />
-      <col style={{ width: '13%' }} />
-      <col style={{ width: '6%' }} />
-      <col style={{ width: '7%' }} />
-      <col style={{ width: '10%' }} />
+      <col style={{ width: '12%' }} />
       <col style={{ width: '6%' }} />
       <col style={{ width: '7%' }} />
       <col style={{ width: '9%' }} />
-      <col style={{ width: '24%' }} />
-      <col style={{ width: '5%' }} />
-      <col style={{ width: '5%' }} />
       <col style={{ width: '6%' }} />
+      <col style={{ width: '7%' }} />
+      <col style={{ width: '8%' }} />
+      <col style={{ width: '8%' }} />
+      <col style={{ width: '20%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '5%' }} />
     </colgroup>
   );
 }
@@ -64,6 +84,8 @@ export function LeadDatabaseTableSection({
   const { items: leads, total, page, pageSize, totalPages } = listResult;
   const { togglePage, pageSelectionState } = useLeadDatabaseSelection();
   const pageState = pageSelectionState(leads);
+  const showReferrerCoach = filters.referrerCoaches.length > 0;
+  const columnCount = showReferrerCoach ? 13 : 12;
 
   return (
     <>
@@ -88,7 +110,7 @@ export function LeadDatabaseTableSection({
 
       <Card padding="none">
         <DataTable className="overflow-x-hidden" tableClassName="w-full table-fixed">
-          <LeadDatabaseTableColGroup />
+          <LeadDatabaseTableColGroup showReferrerCoach={showReferrerCoach} />
           <DataTableHead>
             <DataTableHeaderCell className={`${leadDbHeaderCell} pl-3`}>
               <PageSelectCheckbox
@@ -107,6 +129,9 @@ export function LeadDatabaseTableSection({
             <DataTableHeaderCell className={leadDbHeaderCell}>Batch</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Geography</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Source</DataTableHeaderCell>
+            {showReferrerCoach ? (
+              <DataTableHeaderCell className={leadDbHeaderCell}>Referrer&apos;s coach</DataTableHeaderCell>
+            ) : null}
             <DataTableHeaderCell className={leadDbHeaderCell}>Tags</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>
               <SortableHeader label="Added" sortKey="created_at" filters={filters} />
@@ -119,12 +144,12 @@ export function LeadDatabaseTableSection({
           <DataTableBody>
             {leads.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={12} className="py-10 text-center text-sm text-slate-500">
+                <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
                   No leads match these filters.
                 </DataTableCell>
               </DataTableRow>
             ) : (
-              leads.map((lead) => <LeadRow key={lead.id} lead={lead} />)
+              leads.map((lead) => <LeadRow key={lead.id} lead={lead} showReferrerCoach={showReferrerCoach} />)
             )}
           </DataTableBody>
         </DataTable>
@@ -167,8 +192,9 @@ function PageSelectCheckbox({
   );
 }
 
-function LeadRow({ lead }: { lead: Lead }) {
+function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: boolean }) {
   const { isSelected, toggleLead } = useLeadDatabaseSelection();
+  const referrerCoachLabel = lead.referrerCoachName?.trim() || 'Unassigned';
 
   return (
     <DataTableRow>
@@ -223,6 +249,14 @@ function LeadRow({ lead }: { lead: Lead }) {
           className={lead.sourceLabel ? undefined : 'text-slate-400'}
         />
       </DataTableCell>
+      {showReferrerCoach ? (
+        <DataTableCell className={leadDbCell}>
+          <TruncatedWithTooltip
+            text={referrerCoachLabel}
+            className={lead.referrerCoachName ? 'font-semibold text-slate-700' : 'text-slate-400'}
+          />
+        </DataTableCell>
+      ) : null}
       <DataTableCell className={`${leadDbCell} align-top`}>
         <TruncatedContainerTooltip className="flex flex-wrap gap-1" tooltip={lead.tags.map(tagSlugToLabel).join(' · ')}>
           {lead.tags.length === 0 ? (

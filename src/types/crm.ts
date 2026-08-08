@@ -63,6 +63,7 @@ export type Lead = {
   unseenSuggestionCount: number;
   memberKind?: 'renewal' | 'returnee' | null;
   createdBy?: string | null;
+  referrerCoachName?: string | null;
 };
 
 export type LeadSummary = {
@@ -83,6 +84,7 @@ export type LeadFilterOptions = {
   geography: LeadFilterOption[];
   sources: LeadFilterOption[];
   coaches: LeadFilterOption[];
+  referrerCoaches: LeadFilterOption[];
 };
 
 export type LeadListResult = {

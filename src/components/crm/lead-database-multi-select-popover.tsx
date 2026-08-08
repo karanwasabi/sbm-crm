@@ -9,7 +9,7 @@ import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigg
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { leadSourceLabel } from '@/lib/lead-sources';
 
-type MultiSelectField = 'programs' | 'batches' | 'geography' | 'sources' | 'coaches';
+type MultiSelectField = 'programs' | 'batches' | 'geography' | 'sources' | 'coaches' | 'referrerCoaches';
 
 type LeadDatabaseMultiSelectPopoverProps = {
   label: string;
@@ -23,6 +23,7 @@ function optionLabel(field: MultiSelectField, option: { value: string; label?: s
   if (option.label) return option.label;
   if (field === 'sources') return leadSourceLabel(option.value) || option.value;
   if (field === 'coaches' && option.value === 'unassigned') return 'Unassigned';
+  if (field === 'referrerCoaches' && option.value === 'unassigned') return 'Unassigned';
   return option.value;
 }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, CalendarPlus, Globe, GraduationCap, Layers, Megaphone, UserRound } from 'lucide-react';
+import { CalendarClock, CalendarPlus, Globe, GraduationCap, Layers, Megaphone, UserRound, Users } from 'lucide-react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
 import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-date-range-popover';
@@ -91,6 +91,13 @@ export function FilterBar({
             field="coaches"
             filters={filters}
             options={filterOptions.coaches}
+          />
+          <LeadDatabaseMultiSelectPopover
+            label="Referrer's coach"
+            icon={Users}
+            field="referrerCoaches"
+            filters={filters}
+            options={filterOptions.referrerCoaches}
           />
           <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />

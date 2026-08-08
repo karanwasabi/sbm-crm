@@ -19,6 +19,12 @@ function coachChipLabel(value: string, filterOptions?: LeadFilterOptions): strin
   return match?.label || value;
 }
 
+function referrerCoachChipLabel(value: string, filterOptions?: LeadFilterOptions): string {
+  if (value === 'unassigned') return 'Unassigned';
+  const match = filterOptions?.referrerCoaches.find((option) => option.value === value);
+  return match?.label || value;
+}
+
 export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDatabaseActiveFiltersProps) {
   const chips: Array<{ key: string; label: string; value: string; href: string }> = [];
 
@@ -122,6 +128,16 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       href: buildLeadDatabaseHref(filters, { coaches: filters.coaches.filter((item) => item !== coach) }),
     });
   });
+  filters.referrerCoaches.forEach((coach) => {
+    chips.push({
+      key: `referrer-coach-${coach}`,
+      label: "Referrer's coach",
+      value: referrerCoachChipLabel(coach, filterOptions),
+      href: buildLeadDatabaseHref(filters, {
+        referrerCoaches: filters.referrerCoaches.filter((item) => item !== coach),
+      }),
+    });
+  });
   if (filters.addedFrom || filters.addedTo) {
     chips.push({
       key: 'added',
@@ -161,6 +177,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
           geography: [],
           sources: [],
           coaches: [],
+          referrerCoaches: [],
           addedFrom: '',
           addedTo: '',
           updatedFrom: '',

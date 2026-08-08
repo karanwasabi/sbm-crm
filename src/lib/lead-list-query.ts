@@ -27,6 +27,7 @@ export function buildLeadListSearchParams(
   if (filters.geography.length > 0) params.set('geography', filters.geography.join(','));
   if (filters.sources.length > 0) params.set('sources', filters.sources.join(','));
   if (filters.coaches.length > 0) params.set('coaches', filters.coaches.join(','));
+  if (filters.referrerCoaches.length > 0) params.set('referrer_coaches', filters.referrerCoaches.join(','));
   if (filters.addedFrom) params.set('added_from', filters.addedFrom);
   if (filters.addedTo) params.set('added_to', filters.addedTo);
   if (filters.updatedFrom) params.set('updated_from', filters.updatedFrom);

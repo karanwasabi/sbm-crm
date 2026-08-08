@@ -240,6 +240,7 @@ type ApiLeadResponse = {
   member_user_id?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;
   created_by?: string | null;
+  referrer_coach_name?: string | null;
   can_mutate?: boolean;
   can_mark_lost?: boolean;
   can_purge?: boolean;
@@ -364,6 +365,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
     memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
     createdBy: row.created_by ?? null,
+    referrerCoachName: row.referrer_coach_name ?? null,
   };
 }
 
@@ -698,6 +700,7 @@ export async function getLeadFilterOptions(): Promise<import('@/types/crm').Lead
     geography: { value: string; count: number }[];
     sources: { value: string; count: number }[];
     coaches?: { value: string; label?: string; count: number }[];
+    referrer_coaches?: { value: string; label?: string; count: number }[];
   };
   return {
     programs: payload.programs ?? [],
@@ -705,6 +708,11 @@ export async function getLeadFilterOptions(): Promise<import('@/types/crm').Lead
     geography: payload.geography ?? [],
     sources: payload.sources ?? [],
     coaches: (payload.coaches ?? []).map((row) => ({
+      value: row.value,
+      label: row.label,
+      count: row.count,
+    })),
+    referrerCoaches: (payload.referrer_coaches ?? []).map((row) => ({
       value: row.value,
       label: row.label,
       count: row.count,
