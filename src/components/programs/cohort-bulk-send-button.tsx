@@ -19,6 +19,7 @@ type CohortBulkSendButtonProps = {
   whatsappTemplates: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
   showPush?: boolean;
+  onPushScheduled?: () => void;
 };
 
 export function CohortBulkSendButton({
@@ -30,6 +31,7 @@ export function CohortBulkSendButton({
   whatsappTemplates,
   whatsappSendsEnabled = false,
   showPush = false,
+  onPushScheduled,
 }: CohortBulkSendButtonProps) {
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
@@ -180,6 +182,7 @@ export function CohortBulkSendButton({
           userIds={userIds}
           open={pushDialogOpen}
           onClose={() => setPushDialogOpen(false)}
+          onScheduled={onPushScheduled}
         />
       ) : null}
     </div>

@@ -111,3 +111,18 @@ export function validatePromoScheduleDates(
 
   return null;
 }
+
+export function validateScheduledPushTime(startDate: string, startTime: string): string | null {
+  if (!startDate.trim()) {
+    return 'Send date is required.';
+  }
+
+  const earliestMs = earliestAllowedScheduleMs();
+  const startMs = istInputToMs(startDate, startTime);
+
+  if (startMs < earliestMs) {
+    return 'Send time cannot be more than 5 minutes in the past.';
+  }
+
+  return null;
+}

@@ -8,9 +8,10 @@ import { Button } from '@/components/ui/button';
 type CohortPushBroadcastButtonProps = {
   cohortId: string;
   cohortName: string;
+  onScheduled?: () => void;
 };
 
-export function CohortPushBroadcastButton({ cohortId, cohortName }: CohortPushBroadcastButtonProps) {
+export function CohortPushBroadcastButton({ cohortId, cohortName, onScheduled }: CohortPushBroadcastButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,7 +25,13 @@ export function CohortPushBroadcastButton({ cohortId, cohortName }: CohortPushBr
       >
         Send push
       </Button>
-      <CohortPushSendDialog cohortId={cohortId} cohortName={cohortName} open={open} onClose={() => setOpen(false)} />
+      <CohortPushSendDialog
+        cohortId={cohortId}
+        cohortName={cohortName}
+        open={open}
+        onClose={() => setOpen(false)}
+        onScheduled={onScheduled}
+      />
     </>
   );
 }

@@ -10,6 +10,9 @@ import {
   patchCohortIsDemo,
   patchCohortPointAEnabled,
   sendCohortPushBroadcast,
+  scheduleCohortPushBroadcast,
+  listCohortPushBroadcastJobs,
+  cancelCohortPushBroadcastJob,
   getCohortPushBroadcastPreview,
   transferEnrollment,
   type PatchCohortInput,
@@ -124,5 +127,43 @@ export async function sendCohortPushBroadcastAction(
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to send push broadcast.';
     return { result: null, error: message };
+  }
+}
+
+export async function scheduleCohortPushBroadcastAction(
+  cohortId: string,
+  input: { title: string; body: string; userIds?: string[]; scheduledAt: string }
+): Promise<{ result: import('@/utils/api').CohortPushBroadcastScheduleResult | null; error: string | null }> {
+  try {
+    const result = await scheduleCohortPushBroadcast(cohortId, input);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to schedule push broadcast.';
+    return { result: null, error: message };
+  }
+}
+
+export async function listCohortPushBroadcastJobsAction(
+  cohortId: string
+): Promise<{ jobs: import('@/utils/api').CohortPushBroadcastJob[]; error: string | null }> {
+  try {
+    const jobs = await listCohortPushBroadcastJobs(cohortId);
+    return { jobs, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load scheduled pushes.';
+    return { jobs: [], error: message };
+  }
+}
+
+export async function cancelCohortPushBroadcastJobAction(
+  cohortId: string,
+  jobId: string
+): Promise<{ job: import('@/utils/api').CohortPushBroadcastJob | null; error: string | null }> {
+  try {
+    const job = await cancelCohortPushBroadcastJob(cohortId, jobId);
+    return { job, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to cancel scheduled push.';
+    return { job: null, error: message };
   }
 }

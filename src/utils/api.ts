@@ -2594,6 +2594,117 @@ export async function sendCohortPushBroadcast(
   };
 }
 
+export type CohortPushBroadcastJob = {
+  id: string;
+  cohortId: string;
+  title: string;
+  body: string;
+  status: 'scheduled' | 'running' | 'completed' | 'failed' | 'cancelled';
+  scheduledAt: string;
+  createdAt: string;
+  completedAt?: string | null;
+  selectedCount: number;
+  membersReached: number;
+  devicesSent: number;
+  staleRemoved: number;
+  skippedOptOut: number;
+  skippedNoToken: number;
+  errorMessage?: string | null;
+};
+
+export type CohortPushBroadcastScheduleResult = {
+  jobId: string;
+  scheduledAt: string;
+};
+
+function mapCohortPushBroadcastJob(row: {
+  id: string;
+  cohort_id: string;
+  title: string;
+  body: string;
+  status: string;
+  scheduled_at: string;
+  created_at: string;
+  completed_at?: string | null;
+  selected_count: number;
+  members_reached: number;
+  devices_sent: number;
+  stale_removed: number;
+  skipped_opt_out: number;
+  skipped_no_token: number;
+  error_message?: string | null;
+}): CohortPushBroadcastJob {
+  return {
+    id: row.id,
+    cohortId: row.cohort_id,
+    title: row.title,
+    body: row.body,
+    status: row.status as CohortPushBroadcastJob['status'],
+    scheduledAt: row.scheduled_at,
+    createdAt: row.created_at,
+    completedAt: row.completed_at ?? null,
+    selectedCount: row.selected_count,
+    membersReached: row.members_reached,
+    devicesSent: row.devices_sent,
+    staleRemoved: row.stale_removed,
+    skippedOptOut: row.skipped_opt_out,
+    skippedNoToken: row.skipped_no_token,
+    errorMessage: row.error_message ?? null,
+  };
+}
+
+export async function scheduleCohortPushBroadcast(
+  cohortId: string,
+  input: { title: string; body: string; userIds?: string[]; scheduledAt: string }
+): Promise<CohortPushBroadcastScheduleResult> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcast`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: input.title,
+      body: input.body,
+      scheduled_at: input.scheduledAt,
+      ...(input.userIds && input.userIds.length > 0 ? { user_ids: input.userIds } : {}),
+    }),
+  });
+  const payload = (await response.json().catch(() => null)) as {
+    error?: string;
+    job_id?: string;
+    scheduled_at?: string;
+  } | null;
+  if (!response.ok) {
+    throw new ApiError(payload?.error ?? 'Failed to schedule push broadcast.', response.status);
+  }
+  return {
+    jobId: payload?.job_id ?? '',
+    scheduledAt: payload?.scheduled_at ?? input.scheduledAt,
+  };
+}
+
+export async function listCohortPushBroadcastJobs(cohortId: string): Promise<CohortPushBroadcastJob[]> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcasts`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load scheduled pushes.', response.status);
+  }
+  const rows = (await response.json()) as Array<Parameters<typeof mapCohortPushBroadcastJob>[0]>;
+  return rows.map(mapCohortPushBroadcastJob);
+}
+
+export async function cancelCohortPushBroadcastJob(cohortId: string, jobId: string): Promise<CohortPushBroadcastJob> {
+  const response = await requireApiFetch(
+    `/admin/cohorts/${encodeURIComponent(cohortId)}/push-broadcasts/${encodeURIComponent(jobId)}/cancel`,
+    { method: 'POST' }
+  );
+  const payload = (await response.json().catch(() => null)) as
+    | ({ error?: string } & Parameters<typeof mapCohortPushBroadcastJob>[0])
+    | null;
+  if (!response.ok) {
+    throw new ApiError(payload?.error ?? 'Failed to cancel scheduled push.', response.status);
+  }
+  return mapCohortPushBroadcastJob(payload as Parameters<typeof mapCohortPushBroadcastJob>[0]);
+}
+
 export async function transferEnrollment(enrollmentId: string, targetCohortId: string): Promise<void> {
   const response = await requireApiFetch(`/admin/enrollments/${encodeURIComponent(enrollmentId)}/transfer`, {
     method: 'POST',

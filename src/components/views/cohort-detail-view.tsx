@@ -45,6 +45,7 @@ import { CohortBulkSendButton } from '@/components/programs/cohort-bulk-send-but
 import { CohortEditDialog } from '@/components/programs/cohort-edit-dialog';
 import { CohortExportButton } from '@/components/programs/cohort-export-button';
 import { CohortPushBroadcastButton } from '@/components/programs/cohort-push-broadcast-button';
+import { CohortScheduledPushList } from '@/components/programs/cohort-scheduled-push-list';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
@@ -1042,6 +1043,7 @@ export function CohortDetailView({
   const [countryFilters, setCountryFilters] = useState<string[]>([]);
   const [timezoneFilters, setTimezoneFilters] = useState<string[]>([]);
   const [showBodyMetrics, setShowBodyMetrics] = useState(false);
+  const [scheduledPushRefreshKey, setScheduledPushRefreshKey] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
@@ -1651,7 +1653,13 @@ export function CohortDetailView({
               {lockPending ? 'Locking…' : 'Lock cohort'}
             </Button>
           ) : null}
-          {isSuperadmin ? <CohortPushBroadcastButton cohortId={cohort.id} cohortName={cohort.name} /> : null}
+          {isSuperadmin ? (
+            <CohortPushBroadcastButton
+              cohortId={cohort.id}
+              cohortName={cohort.name}
+              onScheduled={() => setScheduledPushRefreshKey((key) => key + 1)}
+            />
+          ) : null}
           <Button
             variant="light"
             size="sm"
@@ -1687,6 +1695,8 @@ export function CohortDetailView({
         isDemoSaving={isDemoSaving}
         onRequestToggleIsDemo={(enabled) => setPendingIsDemo(enabled)}
       />
+
+      {isSuperadmin ? <CohortScheduledPushList cohortId={cohort.id} refreshKey={scheduledPushRefreshKey} /> : null}
 
       <CohortSettingConfirmDialog
         open={pendingPointAEnabled !== null}
@@ -1833,6 +1843,7 @@ export function CohortDetailView({
               whatsappTemplates={whatsappTemplates}
               whatsappSendsEnabled={whatsappSendsEnabled}
               showPush={isSuperadmin}
+              onPushScheduled={() => setScheduledPushRefreshKey((key) => key + 1)}
             />
             <CohortExportButton
               members={members}
