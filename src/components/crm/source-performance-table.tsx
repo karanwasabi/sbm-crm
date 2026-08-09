@@ -1,10 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
-import { SectionHead } from '@/components/ui/section-head';
 import {
   DataTable,
   DataTableBody,
@@ -13,6 +12,9 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { PerformanceSectionHeader } from '@/components/crm/performance-section-header';
+import { PerformanceSortableHeader } from '@/components/crm/performance-sortable-header';
+import type { PerformanceSortDirection } from '@/hooks/use-performance-table-state';
 import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
 import type { OfflineMetaEnrollmentsSummary, PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
 
@@ -26,12 +28,8 @@ type SourcePerformanceTableProps = {
 
 type SourceSortKey = 'source' | 'leads' | 'paid' | 'cvr';
 
-const SOURCE_SORT_OPTIONS: Array<{ key: SourceSortKey; label: string }> = [
-  { key: 'leads', label: 'Leads' },
-  { key: 'paid', label: 'Purchases' },
-  { key: 'cvr', label: 'CVR' },
-  { key: 'source', label: 'Source' },
-];
+const perfCell = 'px-3 py-2 text-[12px]';
+const perfHeader = 'px-3 py-2';
 
 const mediumTone: Record<SourcePerformanceRow['medium'], 'paid' | 'organic' | 'offline'> = {
   paid: 'paid',
@@ -70,65 +68,106 @@ export function SourcePerformanceTable({
   headerRight,
 }: SourcePerformanceTableProps) {
   const [sortKey, setSortKey] = useState<SourceSortKey>('leads');
+  const [sortDirection, setSortDirection] = useState<PerformanceSortDirection>('desc');
+
+  const toggleSort = useCallback(
+    (key: SourceSortKey) => {
+      if (sortKey === key) {
+        setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+        return;
+      }
+      setSortKey(key);
+      setSortDirection('desc');
+    },
+    [sortKey]
+  );
 
   const sortedRows = useMemo(() => {
     const next = [...rows];
     next.sort((a, b) => {
+      let comparison = 0;
       switch (sortKey) {
         case 'source':
-          return a.source.localeCompare(b.source);
+          comparison = a.source.localeCompare(b.source, undefined, { sensitivity: 'base' });
+          break;
         case 'paid':
-          return b.paid - a.paid;
+          comparison = a.paid - b.paid;
+          break;
         case 'cvr':
-          return b.cvr - a.cvr;
+          comparison = a.cvr - b.cvr;
+          break;
         case 'leads':
         default:
-          return b.leads - a.leads;
+          comparison = a.leads - b.leads;
+          break;
       }
+      return sortDirection === 'asc' ? comparison : -comparison;
     });
     return next;
-  }, [rows, sortKey]);
+  }, [rows, sortKey, sortDirection]);
 
   return (
     <Card padding="none">
-      <div className="p-5">
-        <SectionHead title="Source performance" subtitle={subtitle} right={headerRight} />
-      </div>
-      <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
-        <label className="text-xs font-semibold text-slate-500">Sort by</label>
-        <select
-          value={sortKey}
-          onChange={(event) => setSortKey(event.target.value as SourceSortKey)}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 ring-brand/20 outline-none focus:ring-2"
-        >
-          {SOURCE_SORT_OPTIONS.map((option) => (
-            <option key={option.key} value={option.key}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
+      <PerformanceSectionHeader title="Source performance" subtitle={subtitle} controls={headerRight} />
       <DataTable>
         <DataTableHead>
-          {['Source', 'Medium', 'Leads', 'Purchases', 'CVR', 'CPL', 'CAC'].map((h) => (
-            <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
-          ))}
+          <DataTableRow>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Source"
+                sortKey="source"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>Medium</DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Leads"
+                sortKey="leads"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Purchases"
+                sortKey="paid"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="CVR"
+                sortKey="cvr"
+                activeSortKey={sortKey}
+                sortDirection={sortDirection}
+                onSort={toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>CPL</DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>CAC</DataTableHeaderCell>
+          </DataTableRow>
         </DataTableHead>
         <DataTableBody>
           {sortedRows.length === 0 ? (
             <DataTableRow>
-              <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
+              <DataTableCell colSpan={7} className={`${perfCell} py-6 text-center text-slate-500`}>
                 No attributed leads in this window.
               </DataTableCell>
             </DataTableRow>
           ) : (
             sortedRows.map((row) => (
               <DataTableRow key={row.sourceKey}>
-                <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
-                <DataTableCell>
+                <DataTableCell className={`${perfCell} font-semibold text-slate-800`}>{row.source}</DataTableCell>
+                <DataTableCell className={perfCell}>
                   <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>
                 </DataTableCell>
-                <DataTableCell>
+                <DataTableCell className={perfCell}>
                   <DrilldownCell
                     href={buildPerformanceDrilldownHref({
                       mode: 'leads',
@@ -139,7 +178,7 @@ export function SourcePerformanceTable({
                     value={row.leads}
                   />
                 </DataTableCell>
-                <DataTableCell>
+                <DataTableCell className={perfCell}>
                   <DrilldownCell
                     href={buildPerformanceDrilldownHref({
                       mode: 'purchases',
@@ -151,23 +190,27 @@ export function SourcePerformanceTable({
                     bold
                   />
                 </DataTableCell>
-                <DataTableCell>
-                  <div className="flex items-center gap-2">
-                    <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
+                <DataTableCell className={perfCell}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative h-1 w-12 overflow-hidden rounded-full bg-slate-100">
                       <div
                         className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
                         style={{ width: `${Math.min(row.cvr * 200, 100)}%` }}
                       />
                     </div>
-                    <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
+                    <span className="text-[11px] font-bold text-slate-800 tabular-nums">
+                      {Math.round(row.cvr * 100)}%
+                    </span>
                   </div>
                 </DataTableCell>
-                <DataTableCell className="font-semibold tabular-nums">{formatRupees(row.cpl)}</DataTableCell>
+                <DataTableCell className={`${perfCell} font-semibold tabular-nums`}>
+                  {formatRupees(row.cpl)}
+                </DataTableCell>
                 <DataTableCell
                   className={
                     row.cac != null && row.cac > 500
-                      ? 'font-semibold text-danger-press tabular-nums'
-                      : 'font-semibold tabular-nums'
+                      ? `${perfCell} font-semibold text-danger-press tabular-nums`
+                      : `${perfCell} font-semibold tabular-nums`
                   }
                 >
                   {formatRupees(row.cac)}
@@ -177,15 +220,15 @@ export function SourcePerformanceTable({
           )}
           {offlineMetaEnrollments && offlineMetaEnrollments.count > 0 ? (
             <DataTableRow className="border-t-2 border-slate-200 bg-slate-50/80">
-              <DataTableCell className="font-semibold text-slate-700">
+              <DataTableCell className={`${perfCell} font-semibold text-slate-700`}>
                 <span className="block">Offline Meta enrollments</span>
-                <span className="mt-0.5 block text-xs font-normal text-slate-500">CRM offline enrolls</span>
+                <span className="mt-0.5 block text-[11px] font-normal text-slate-500">CRM offline enrolls</span>
               </DataTableCell>
-              <DataTableCell>
+              <DataTableCell className={perfCell}>
                 <Pill tone="offline">offline</Pill>
               </DataTableCell>
-              <DataTableCell className="text-slate-400">—</DataTableCell>
-              <DataTableCell>
+              <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
+              <DataTableCell className={perfCell}>
                 <DrilldownCell
                   href={buildPerformanceDrilldownHref({
                     mode: 'purchases',
@@ -198,9 +241,9 @@ export function SourcePerformanceTable({
                   bold
                 />
               </DataTableCell>
-              <DataTableCell className="text-slate-400">—</DataTableCell>
-              <DataTableCell className="text-slate-400">—</DataTableCell>
-              <DataTableCell className="text-slate-400">—</DataTableCell>
+              <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
+              <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
+              <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
             </DataTableRow>
           ) : null}
         </DataTableBody>

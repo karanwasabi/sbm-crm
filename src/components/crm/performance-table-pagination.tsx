@@ -24,8 +24,8 @@ export function PerformanceTablePagination({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3">
-      <p className="text-sm text-slate-500">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-2">
+      <p className="text-xs text-slate-500">
         {totalRows <= 1
           ? `${totalRows.toLocaleString('en-IN')} row`
           : `Showing ${pageStart.toLocaleString('en-IN')}–${pageEnd.toLocaleString('en-IN')} of ${totalRows.toLocaleString('en-IN')}`}
@@ -36,7 +36,7 @@ export function PerformanceTablePagination({
             type="button"
             disabled={page <= 1}
             onClick={() => onPageChange(page - 1)}
-            className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-brand shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-brand shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
           >
             <ChevronLeft className="h-4 w-4" />
             Previous
@@ -48,7 +48,7 @@ export function PerformanceTablePagination({
             type="button"
             disabled={page >= totalPages}
             onClick={() => onPageChange(page + 1)}
-            className="inline-flex items-center gap-1 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-brand shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
+            className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-brand shadow-sm hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-100 disabled:text-slate-300"
           >
             Next
             <ChevronRight className="h-4 w-4" />

@@ -12,11 +12,12 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { MarketingLabelCell } from '@/components/crm/marketing-label-cell';
+import { PerformanceSectionHeader } from '@/components/crm/performance-section-header';
+import { PerformanceSortableHeader } from '@/components/crm/performance-sortable-header';
 import { PerformanceTablePagination } from '@/components/crm/performance-table-pagination';
-import { PerformanceTableToolbar } from '@/components/crm/performance-table-toolbar';
+import { PerformanceTableSearch } from '@/components/crm/performance-table-search';
 import { PerformanceWindowSelector } from '@/components/crm/performance-window-selector';
 import { Card } from '@/components/ui/card';
-import { SectionHead } from '@/components/ui/section-head';
 import { usePerformanceTableState } from '@/hooks/use-performance-table-state';
 import { humanizeMarketingLabel } from '@/lib/marketing-labels';
 import { formatPerformanceDateRange, type PerformanceWindowPreset } from '@/lib/performance-display';
@@ -27,15 +28,8 @@ const UNATTRIBUTED_CAMPAIGN_ID = '__unattributed__';
 
 type CampaignSortKey = 'campaign' | 'leads' | 'paid' | 'cvr' | 'spend' | 'cpl' | 'cac';
 
-const CAMPAIGN_SORT_OPTIONS: Array<{ key: CampaignSortKey; label: string }> = [
-  { key: 'leads', label: 'Leads' },
-  { key: 'paid', label: 'Purchases' },
-  { key: 'cvr', label: 'CVR' },
-  { key: 'spend', label: 'Spend' },
-  { key: 'cpl', label: 'CPL' },
-  { key: 'cac', label: 'CAC' },
-  { key: 'campaign', label: 'Campaign' },
-];
+const perfCell = 'px-3 py-2 text-[12px]';
+const perfHeader = 'px-3 py-2';
 
 const rupeeFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 });
 
@@ -117,22 +111,13 @@ export function MetaCampaignPerformanceTable() {
   return (
     <div className="flex flex-col gap-2">
       <Card padding="none">
-        <div className="p-5">
-          <SectionHead
-            title="Campaign performance"
-            subtitle={subtitle}
-            right={<PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />}
-          />
-        </div>
-        <PerformanceTableToolbar
-          search={table.search}
-          onSearchChange={table.setSearch}
-          searchPlaceholder="Search campaigns…"
-          sortKey={table.sortKey}
-          sortDirection={table.sortDirection}
-          sortOptions={CAMPAIGN_SORT_OPTIONS}
-          onSortKeyChange={table.setSortKey}
-          onSortDirectionChange={table.setSortDirection}
+        <PerformanceSectionHeader
+          title="Campaign performance"
+          subtitle={subtitle}
+          search={
+            <PerformanceTableSearch value={table.search} onChange={table.setSearch} placeholder="Search campaigns…" />
+          }
+          controls={<PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />}
         />
         <DataTable tableClassName="table-fixed min-w-[920px]">
           <colgroup>
@@ -145,14 +130,76 @@ export function MetaCampaignPerformanceTable() {
             <col className="w-[11%]" />
           </colgroup>
           <DataTableHead>
-            {['Campaign', 'Leads', 'Purchases', 'CVR', 'Spend', 'CPL', 'CAC'].map((h) => (
-              <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
-            ))}
+            <DataTableRow>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="Campaign"
+                  sortKey="campaign"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="Leads"
+                  sortKey="leads"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="Purchases"
+                  sortKey="paid"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="CVR"
+                  sortKey="cvr"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="Spend"
+                  sortKey="spend"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="CPL"
+                  sortKey="cpl"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+              <DataTableHeaderCell className={perfHeader}>
+                <PerformanceSortableHeader
+                  label="CAC"
+                  sortKey="cac"
+                  activeSortKey={table.sortKey}
+                  sortDirection={table.sortDirection}
+                  onSort={table.toggleSort}
+                />
+              </DataTableHeaderCell>
+            </DataTableRow>
           </DataTableHead>
           <DataTableBody>
             {table.pageRows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
+                <DataTableCell colSpan={7} className={`${perfCell} py-6 text-center text-slate-500`}>
                   {!loaded
                     ? 'Loading…'
                     : table.search
@@ -163,10 +210,10 @@ export function MetaCampaignPerformanceTable() {
             ) : (
               table.pageRows.map((row) => (
                 <DataTableRow key={row.campaignId}>
-                  <DataTableCell className="align-top font-semibold text-slate-800">
+                  <DataTableCell className={`${perfCell} align-top font-semibold text-slate-800`}>
                     <MarketingLabelCell value={row.campaignName} secondary={row.campaignId} />
                   </DataTableCell>
-                  <DataTableCell className="align-top whitespace-nowrap tabular-nums">
+                  <DataTableCell className={`${perfCell} align-top whitespace-nowrap tabular-nums`}>
                     {row.leads > 0 ? (
                       <Link
                         href={buildPerformanceDrilldownHref({
@@ -185,7 +232,7 @@ export function MetaCampaignPerformanceTable() {
                       '0'
                     )}
                   </DataTableCell>
-                  <DataTableCell className="align-top font-bold whitespace-nowrap tabular-nums">
+                  <DataTableCell className={`${perfCell} align-top font-bold whitespace-nowrap tabular-nums`}>
                     {row.paid > 0 ? (
                       <Link
                         href={buildPerformanceDrilldownHref({
@@ -204,30 +251,30 @@ export function MetaCampaignPerformanceTable() {
                       '0'
                     )}
                   </DataTableCell>
-                  <DataTableCell className="align-top whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
+                  <DataTableCell className={`${perfCell} align-top whitespace-nowrap`}>
+                    <div className="flex items-center gap-1.5">
+                      <div className="relative h-1 w-12 overflow-hidden rounded-full bg-slate-100">
                         <div
                           className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
                           style={{ width: `${Math.min(row.cvr * 200, 100)}%` }}
                         />
                       </div>
-                      <span className="text-xs font-bold text-slate-800 tabular-nums">
+                      <span className="text-[11px] font-bold text-slate-800 tabular-nums">
                         {Math.round(row.cvr * 100)}%
                       </span>
                     </div>
                   </DataTableCell>
-                  <DataTableCell className="align-top whitespace-nowrap tabular-nums">
+                  <DataTableCell className={`${perfCell} align-top whitespace-nowrap tabular-nums`}>
                     {formatRupees(row.spend)}
                   </DataTableCell>
-                  <DataTableCell className="align-top whitespace-nowrap tabular-nums">
+                  <DataTableCell className={`${perfCell} align-top whitespace-nowrap tabular-nums`}>
                     {formatRupees(row.cpl)}
                   </DataTableCell>
                   <DataTableCell
                     className={
                       row.cac != null && row.cac > 500
-                        ? 'align-top font-semibold whitespace-nowrap text-danger-press tabular-nums'
-                        : 'align-top font-semibold whitespace-nowrap tabular-nums'
+                        ? `${perfCell} align-top font-semibold whitespace-nowrap text-danger-press tabular-nums`
+                        : `${perfCell} align-top font-semibold whitespace-nowrap tabular-nums`
                     }
                   >
                     {formatRupees(row.cac)}

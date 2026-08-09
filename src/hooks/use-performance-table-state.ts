@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type PerformanceSortDirection = 'asc' | 'desc';
 
@@ -58,6 +58,18 @@ export function usePerformanceTableState<TRow, TSortKey extends string>({
   const pageEnd = Math.min(currentPage * pageSize, sortedRows.length);
   const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  const toggleSort = useCallback(
+    (key: TSortKey) => {
+      if (sortKey === key) {
+        setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+        return;
+      }
+      setSortKey(key);
+      setSortDirection('desc');
+    },
+    [sortKey]
+  );
+
   return {
     search,
     setSearch,
@@ -65,6 +77,7 @@ export function usePerformanceTableState<TRow, TSortKey extends string>({
     setSortKey,
     sortDirection,
     setSortDirection,
+    toggleSort,
     page: currentPage,
     setPage,
     pageSize,
