@@ -12,6 +12,7 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { MarketingLabelCell } from '@/components/crm/marketing-label-cell';
+import { MarketingHealthPill, MarketingKindPill } from '@/components/crm/marketing-status-pills';
 import { PerformanceSectionHeader } from '@/components/crm/performance-section-header';
 import { PerformanceSortableHeader } from '@/components/crm/performance-sortable-header';
 import { PerformanceTablePagination } from '@/components/crm/performance-table-pagination';
@@ -19,6 +20,13 @@ import { PerformanceTableSearch } from '@/components/crm/performance-table-searc
 import { PerformanceWindowSelector } from '@/components/crm/performance-window-selector';
 import { Card } from '@/components/ui/card';
 import { usePerformanceTableState } from '@/hooks/use-performance-table-state';
+import {
+  formatCompactCount,
+  formatCpc,
+  formatCtr,
+  marketingCampaignKindLabel,
+  marketingHealthLabel,
+} from '@/lib/marketing-campaign-taxonomy';
 import { humanizeMarketingLabel } from '@/lib/marketing-labels';
 import {
   formatMarketingActivityDate,
@@ -30,7 +38,7 @@ import type { MetaCampaignPerformanceRow, PerformanceReportMeta } from '@/types/
 
 const UNATTRIBUTED_CAMPAIGN_ID = '__unattributed__';
 
-type CampaignSortKey = 'campaign' | 'leads' | 'paid' | 'cvr' | 'spend' | 'cpl' | 'cac' | 'lastActivity';
+type CampaignSortKey = 'campaign' | 'clicks' | 'leads' | 'paid' | 'cvr' | 'spend' | 'cpl' | 'cac' | 'lastActivity';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -42,13 +50,55 @@ function formatRupees(value: number | null): string {
   return `₹${rupeeFormatter.format(value)}`;
 }
 
-function campaignActivityLabel(at?: string | null): string | undefined {
-  const formatted = formatMarketingActivityDate(at);
-  return formatted ? `Last lead · ${formatted}` : undefined;
+function campaignSearchHaystack(row: MetaCampaignPerformanceRow): string {
+  return [
+    row.campaignName,
+    row.campaignId,
+    row.campaignKind,
+    row.health,
+    marketingCampaignKindLabel(row.campaignKind),
+    marketingHealthLabel(row.health),
+    humanizeMarketingLabel(row.campaignName),
+  ]
+    .join(' ')
+    .toLowerCase();
 }
 
-function campaignSearchHaystack(row: MetaCampaignPerformanceRow): string {
-  return [row.campaignName, row.campaignId, humanizeMarketingLabel(row.campaignName)].join(' ').toLowerCase();
+function CampaignNameCell({ row }: { row: MetaCampaignPerformanceRow }) {
+  const lastLead = formatMarketingActivityDate(row.lastActivityAt);
+  const secondary = lastLead ? `Last lead · ${lastLead}` : undefined;
+
+  return (
+    <div className="flex flex-col gap-1">
+      <MarketingLabelCell
+        value={row.campaignName}
+        secondary={secondary}
+        title={
+          row.campaignId === UNATTRIBUTED_CAMPAIGN_ID
+            ? row.campaignName
+            : `${row.campaignName}\nMeta campaign ID: ${row.campaignId}`
+        }
+      />
+      <div className="flex flex-wrap gap-1">
+        <MarketingKindPill kind={row.campaignKind} />
+        <MarketingHealthPill health={row.health} />
+      </div>
+    </div>
+  );
+}
+
+function TrafficCell({ row }: { row: MetaCampaignPerformanceRow }) {
+  if (row.clicks == null || row.clicks <= 0) {
+    return <span className="text-slate-400">—</span>;
+  }
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="font-semibold text-slate-800 tabular-nums">{formatCompactCount(row.clicks)}</span>
+      <span className="text-[11px] text-slate-500">
+        {formatCtr(row.ctr)} CTR · {formatCpc(row.cpc)} CPC
+      </span>
+    </div>
+  );
 }
 
 export function MetaCampaignPerformanceTable() {
@@ -67,6 +117,8 @@ export function MetaCampaignPerformanceTable() {
     switch (key) {
       case 'campaign':
         return humanizeMarketingLabel(row.campaignName) || row.campaignId;
+      case 'clicks':
+        return row.clicks ?? -1;
       case 'leads':
         return row.leads;
       case 'paid':
@@ -124,19 +176,20 @@ export function MetaCampaignPerformanceTable() {
       <Card padding="none">
         <PerformanceSectionHeader
           title="Campaign performance"
-          subtitle={subtitle}
+          subtitle={`${subtitle} · Lead Ad rows expect CRM leads; web traffic rows show clicks`}
           search={
             <PerformanceTableSearch value={table.search} onChange={table.setSearch} placeholder="Search campaigns…" />
           }
           controls={<PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />}
         />
-        <DataTable tableClassName="table-fixed min-w-[920px]">
+        <DataTable tableClassName="table-fixed min-w-[1040px]">
           <colgroup>
-            <col className="w-[34%]" />
-            <col className="w-[10%]" />
-            <col className="w-[12%]" />
-            <col className="w-[10%]" />
-            <col className="w-[12%]" />
+            <col className="w-[30%]" />
+            <col className="w-[11%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[8%]" />
+            <col className="w-[11%]" />
             <col className="w-[11%]" />
             <col className="w-[11%]" />
           </colgroup>
@@ -145,6 +198,15 @@ export function MetaCampaignPerformanceTable() {
               <PerformanceSortableHeader
                 label="Campaign"
                 sortKey="campaign"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Clicks"
+                sortKey="clicks"
                 activeSortKey={table.sortKey}
                 sortDirection={table.sortDirection}
                 onSort={table.toggleSort}
@@ -208,7 +270,7 @@ export function MetaCampaignPerformanceTable() {
           <DataTableBody>
             {table.pageRows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={7} className={`${perfCell} py-6 text-center text-slate-500`}>
+                <DataTableCell colSpan={8} className={`${perfCell} py-6 text-center text-slate-500`}>
                   {!loaded
                     ? 'Loading…'
                     : table.search
@@ -220,15 +282,10 @@ export function MetaCampaignPerformanceTable() {
               table.pageRows.map((row) => (
                 <DataTableRow key={row.campaignId}>
                   <DataTableCell className={`${perfCell} align-top font-semibold text-slate-800`}>
-                    <MarketingLabelCell
-                      value={row.campaignName}
-                      secondary={campaignActivityLabel(row.lastActivityAt)}
-                      title={
-                        row.campaignId === UNATTRIBUTED_CAMPAIGN_ID
-                          ? row.campaignName
-                          : `${row.campaignName}\nMeta campaign ID: ${row.campaignId}`
-                      }
-                    />
+                    <CampaignNameCell row={row} />
+                  </DataTableCell>
+                  <DataTableCell className={`${perfCell} align-top`}>
+                    <TrafficCell row={row} />
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top whitespace-nowrap tabular-nums`}>
                     {row.leads > 0 ? (
@@ -246,7 +303,11 @@ export function MetaCampaignPerformanceTable() {
                         {row.leads.toLocaleString()}
                       </Link>
                     ) : (
-                      '0'
+                      <span
+                        className={row.health === 'no_crm_leads' ? 'font-semibold text-danger-press' : 'text-slate-400'}
+                      >
+                        0
+                      </span>
                     )}
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top font-bold whitespace-nowrap tabular-nums`}>

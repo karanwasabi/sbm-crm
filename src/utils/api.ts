@@ -3167,9 +3167,15 @@ export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset)
     rows: Array<{
       campaign_id: string;
       campaign_name: string;
+      campaign_kind: string;
+      health: string;
       leads: number;
       paid: number;
       spend: number | null;
+      impressions: number | null;
+      clicks: number | null;
+      ctr: number | null;
+      cpc: number | null;
       cvr: number;
       cpl: number | null;
       cac: number | null;
@@ -3183,9 +3189,15 @@ export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset)
     rows: payload.rows.map((row) => ({
       campaignId: row.campaign_id,
       campaignName: row.campaign_name,
+      campaignKind: row.campaign_kind,
+      health: row.health,
       leads: row.leads,
       paid: row.paid,
       spend: row.spend,
+      impressions: row.impressions,
+      clicks: row.clicks,
+      ctr: row.ctr,
+      cpc: row.cpc,
       cvr: row.cvr,
       cpl: row.cpl,
       cac: row.cac,
@@ -3214,6 +3226,8 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
       adset: string;
       program: string;
       campaign: string;
+      ad_kind: string;
+      health: string;
       leads: number;
       paid: number;
       cvr: number;
@@ -3229,6 +3243,8 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
       adset: row.adset,
       program: row.program,
       campaign: row.campaign,
+      adKind: row.ad_kind,
+      health: row.health,
       leads: row.leads,
       paid: row.paid,
       cvr: row.cvr,

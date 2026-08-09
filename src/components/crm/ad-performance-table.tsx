@@ -12,6 +12,7 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { MarketingLabelCell } from '@/components/crm/marketing-label-cell';
+import { MarketingHealthPill, MarketingKindPill } from '@/components/crm/marketing-status-pills';
 import { PerformanceSectionHeader } from '@/components/crm/performance-section-header';
 import { PerformanceSortableHeader } from '@/components/crm/performance-sortable-header';
 import { PerformanceTablePagination } from '@/components/crm/performance-table-pagination';
@@ -20,6 +21,7 @@ import { PerformanceWindowSelector } from '@/components/crm/performance-window-s
 import { Card } from '@/components/ui/card';
 import { usePerformanceTableState } from '@/hooks/use-performance-table-state';
 import { humanizeMarketingLabel } from '@/lib/marketing-labels';
+import { marketingCampaignKindLabel, marketingHealthLabel } from '@/lib/marketing-campaign-taxonomy';
 import {
   formatMarketingActivityDate,
   formatPerformanceDateRange,
@@ -57,8 +59,13 @@ function adActivityLabel(at?: string | null): string | undefined {
 }
 
 function adSearchHaystack(row: AdPerformanceRow): string {
-  return [row.adContent, row.adset, row.campaign, row.program]
-    .flatMap((value) => [value, humanizeMarketingLabel(value)])
+  return [row.adContent, row.adset, row.campaign, row.program, row.adKind, row.health]
+    .flatMap((value) => [
+      value,
+      humanizeMarketingLabel(value),
+      marketingCampaignKindLabel(value),
+      marketingHealthLabel(value),
+    ])
     .join(' ')
     .toLowerCase();
 }
@@ -136,7 +143,7 @@ export function AdPerformanceTable() {
       <Card padding="none">
         <PerformanceSectionHeader
           title="Ad performance"
-          subtitle={subtitle}
+          subtitle={`${subtitle} · Grouped by utm_content (ad creative)`}
           search={
             <PerformanceTableSearch
               value={table.search}
@@ -236,11 +243,17 @@ export function AdPerformanceTable() {
               table.pageRows.map((row) => (
                 <DataTableRow key={`${row.adContent}::${row.program}`}>
                   <DataTableCell className={`${perfCell} align-top font-semibold text-slate-800`}>
-                    <MarketingLabelCell
-                      value={row.adContent}
-                      secondary={adActivityLabel(row.lastActivityAt)}
-                      title={`UTM content: ${row.adContent}`}
-                    />
+                    <div className="flex flex-col gap-1">
+                      <MarketingLabelCell
+                        value={row.adContent}
+                        secondary={adActivityLabel(row.lastActivityAt)}
+                        title={`UTM content: ${row.adContent}`}
+                      />
+                      <div className="flex flex-wrap gap-1">
+                        <MarketingKindPill kind={row.adKind} />
+                        <MarketingHealthPill health={row.health} />
+                      </div>
+                    </div>
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top text-slate-600`}>
                     <MarketingLabelCell value={row.adset} />

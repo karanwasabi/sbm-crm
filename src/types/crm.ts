@@ -435,9 +435,15 @@ export type SourcePerformanceResult = {
 export type MetaCampaignPerformanceRow = {
   campaignId: string;
   campaignName: string;
+  campaignKind: string;
+  health: string;
   leads: number;
   paid: number;
   spend: number | null;
+  impressions: number | null;
+  clicks: number | null;
+  ctr: number | null;
+  cpc: number | null;
   cvr: number;
   cpl: number | null;
   cac: number | null;
@@ -449,6 +455,8 @@ export type AdPerformanceRow = {
   adset: string;
   program: string;
   campaign: string;
+  adKind: string;
+  health: string;
   leads: number;
   paid: number;
   cvr: number;
