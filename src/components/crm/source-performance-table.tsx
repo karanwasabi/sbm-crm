@@ -111,47 +111,45 @@ export function SourcePerformanceTable({
       <PerformanceSectionHeader title="Source performance" subtitle={subtitle} controls={headerRight} />
       <DataTable>
         <DataTableHead>
-          <DataTableRow>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Source"
-                sortKey="source"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>Medium</DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Leads"
-                sortKey="leads"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Purchases"
-                sortKey="paid"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="CVR"
-                sortKey="cvr"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>CPL</DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>CAC</DataTableHeaderCell>
-          </DataTableRow>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Source"
+              sortKey="source"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>Medium</DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Leads"
+              sortKey="leads"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Purchases"
+              sortKey="paid"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="CVR"
+              sortKey="cvr"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>CPL</DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>CAC</DataTableHeaderCell>
         </DataTableHead>
         <DataTableBody>
           {sortedRows.length === 0 ? (

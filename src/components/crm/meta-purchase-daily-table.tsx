@@ -109,53 +109,51 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
           <col className="w-[23%]" />
         </colgroup>
         <DataTableHead>
-          <DataTableRow>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Day (IST)"
-                sortKey="day"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Purchases"
-                sortKey="purchases"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="CAPI sent"
-                sortKey="capiSent"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Pending / failed"
-                sortKey="capiPendingOrFailed"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Not in outbox"
-                sortKey="capiNotRecorded"
-                activeSortKey={sortKey}
-                sortDirection={sortDirection}
-                onSort={toggleSort}
-              />
-            </DataTableHeaderCell>
-          </DataTableRow>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Day (IST)"
+              sortKey="day"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Purchases"
+              sortKey="purchases"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="CAPI sent"
+              sortKey="capiSent"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Pending / failed"
+              sortKey="capiPendingOrFailed"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Not in outbox"
+              sortKey="capiNotRecorded"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
         </DataTableHead>
         <DataTableBody>
           {sortedRows.length === 0 ? (

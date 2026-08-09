@@ -130,71 +130,69 @@ export function MetaCampaignPerformanceTable() {
             <col className="w-[11%]" />
           </colgroup>
           <DataTableHead>
-            <DataTableRow>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="Campaign"
-                  sortKey="campaign"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="Leads"
-                  sortKey="leads"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="Purchases"
-                  sortKey="paid"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="CVR"
-                  sortKey="cvr"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="Spend"
-                  sortKey="spend"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="CPL"
-                  sortKey="cpl"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-              <DataTableHeaderCell className={perfHeader}>
-                <PerformanceSortableHeader
-                  label="CAC"
-                  sortKey="cac"
-                  activeSortKey={table.sortKey}
-                  sortDirection={table.sortDirection}
-                  onSort={table.toggleSort}
-                />
-              </DataTableHeaderCell>
-            </DataTableRow>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Campaign"
+                sortKey="campaign"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Leads"
+                sortKey="leads"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Purchases"
+                sortKey="paid"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="CVR"
+                sortKey="cvr"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Spend"
+                sortKey="spend"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="CPL"
+                sortKey="cpl"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="CAC"
+                sortKey="cac"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
           </DataTableHead>
           <DataTableBody>
             {table.pageRows.length === 0 ? (
