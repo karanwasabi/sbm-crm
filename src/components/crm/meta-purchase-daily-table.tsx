@@ -97,7 +97,7 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
     <Card padding="none">
       <PerformanceSectionHeader
         title="Meta-influenced purchases"
-        subtitle={`${subtitle} · ${total.toLocaleString()} purchases · server Purchase events in CAPI outbox`}
+        subtitle={`${subtitle} · ${total.toLocaleString()} purchases · skipped/historical rows count as not sent`}
       />
       {error ? <p className="px-4 pt-2 text-xs font-medium text-danger-press">{error}</p> : null}
       <DataTable tableClassName="table-fixed min-w-[640px]">

@@ -104,6 +104,54 @@ Re-run dry-run until `leads needing meta tag repair: 0`. Going forward, `meta` i
 
 ---
 
+## Step 3e — Meta CAPI: do not backfill historical purchases
+
+**Do not** send historical Purchase events to Meta CAPI. Pixel + server deduplication only works within **48 hours** of the original browser event. Backfilling months later can **add** purchases to Events Manager instead of deduplicating with the pixel — worsening CRM vs Facebook gaps when Facebook already over-reports.
+
+**Live checkouts only:** CAPI fires at payment time with `event_id = purchase:{checkout_session_id}`, matching the portal pixel. That is the only safe dedup path.
+
+**Never run:**
+
+```bash
+# Wrong for historical data — can inflate Meta counts
+go run ./cmd/backfill-meta-capi --apply --send ...
+go run ./cmd/retry-meta-capi
+```
+
+`backfill-meta-capi` requires `--apply --send` together; use `--dry-run` only to preview missing rows.
+
+### Accidental staged rows (`pending`, never sent)
+
+If `backfill-meta-capi --apply` ran **without** `--send` before the guard was added, rows sit in `meta_capi_events` as `pending` with `attempt_count = 0`. They were **never sent to Meta** but show as “CAPI pending/failed” in CRM.
+
+**Dry run:**
+
+```bash
+cd code/sbm-backend
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/skip-staged-meta-capi --dry-run
+```
+
+**Apply (marks `skipped`, does not call Meta):**
+
+```bash
+DATABASE_URL='<prod-write-url>' \
+  go run ./cmd/skip-staged-meta-capi --apply --allow-production
+```
+
+Re-run until `remaining_staged=0`. Skipped rows count toward **Not in outbox** in the CRM purchases table (intentionally not sent).
+
+**Audit before/after:**
+
+```bash
+set -a && source ~/.config/sbm/audit.env && set +a
+psql "$SBM_AUDIT_DATABASE_URL" -c "
+SELECT status, COUNT(*) FROM meta_capi_events
+WHERE event_name = 'Purchase' GROUP BY status ORDER BY count DESC;"
+```
+
+---
+
 ## Pre-flight
 
 1. Confirm webhook healthy: CRM → Lead Intake → Integrations; `integration_sync_events` has recent `native_meta` `ok` rows.
