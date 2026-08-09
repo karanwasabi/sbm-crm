@@ -44,22 +44,12 @@ export function MetaIntakeTab({
           />
         </div>
       </Card>
-      <Card>
-        <div className="p-5">
-          <SectionHead
-            title="Meta-influenced purchases"
-            subtitle="Daily paid checkouts with Meta attribution signals (IST)"
-          />
-        </div>
-        <div className="px-5 pb-5">
-          <MetaPurchaseDailyTable
-            rows={purchaseDaily?.rows ?? []}
-            windowDays={purchaseDaily?.windowDays ?? 30}
-            total={purchaseDaily?.totalPurchases ?? 0}
-            error={purchaseDailyError}
-          />
-        </div>
-      </Card>
+      <MetaPurchaseDailyTable
+        rows={purchaseDaily?.rows ?? []}
+        windowDays={purchaseDaily?.windowDays ?? 30}
+        total={purchaseDaily?.totalPurchases ?? 0}
+        error={purchaseDailyError}
+      />
       <InboundLog leads={inboundLeads} />
     </div>
   );
