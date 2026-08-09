@@ -176,7 +176,7 @@ export function MetaCampaignPerformanceTable() {
       <Card padding="none">
         <PerformanceSectionHeader
           title="Campaign performance"
-          subtitle={`${subtitle} · Lead Ad rows expect CRM leads; web traffic rows show clicks`}
+          subtitle={`${subtitle} · Webinar rows convert via WhatsApp; Lead Ads expect direct CRM leads`}
           search={
             <PerformanceTableSearch value={table.search} onChange={table.setSearch} placeholder="Search campaigns…" />
           }

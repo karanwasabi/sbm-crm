@@ -1,5 +1,6 @@
 export type MarketingCampaignKind =
   | 'unattributed'
+  | 'webinar'
   | 'lead_ad'
   | 'web_traffic'
   | 'retargeting'
@@ -15,11 +16,13 @@ export type MarketingHealthStatus =
   | 'no_crm_leads'
   | 'no_direct_leads'
   | 'traffic_only'
+  | 'indirect_funnel'
   | 'no_spend'
   | 'no_activity';
 
 const CAMPAIGN_KIND_LABELS: Record<MarketingCampaignKind, string> = {
   unattributed: 'Unattributed',
+  webinar: 'Webinar',
   lead_ad: 'Lead Ad',
   web_traffic: 'Web traffic',
   retargeting: 'Retargeting',
@@ -36,6 +39,7 @@ const HEALTH_LABELS: Record<MarketingHealthStatus, string> = {
   no_crm_leads: 'No CRM leads',
   no_direct_leads: 'No direct leads',
   traffic_only: 'Traffic only',
+  indirect_funnel: 'Indirect funnel',
   no_spend: 'No spend synced',
   no_activity: 'No activity',
 };
@@ -46,6 +50,8 @@ const HEALTH_HINTS: Record<MarketingHealthStatus, string> = {
   no_crm_leads: 'Lead Ad spend with zero CRM leads — investigate attribution or pause spend.',
   no_direct_leads: 'Spend without direct CRM leads — may still assist via site traffic or other campaigns.',
   traffic_only: 'Website traffic campaign — CRM leads are not expected on this campaign id.',
+  indirect_funnel:
+    'Webinar funnel: sessions/livesessions → WhatsApp group → enroll link. Conversions are indirect; zero CRM leads here is expected.',
   no_spend: 'Leads exist but no synced ad spend for this campaign in the window.',
   no_activity: 'No spend or leads in the selected window.',
 };
@@ -77,6 +83,7 @@ export function marketingHealthTone(
     case 'no_spend':
       return 'warn';
     case 'traffic_only':
+    case 'indirect_funnel':
       return 'brand';
     default:
       return 'neutral';
