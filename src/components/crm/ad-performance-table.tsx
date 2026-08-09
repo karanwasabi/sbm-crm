@@ -53,7 +53,7 @@ function DrilldownCell({ href, value, bold }: { href: string; value: number; bol
 
 function adActivityLabel(at?: string | null): string | undefined {
   const formatted = formatMarketingActivityDate(at);
-  return formatted ? `Last active · ${formatted}` : undefined;
+  return formatted ? `Last lead · ${formatted}` : undefined;
 }
 
 function adSearchHaystack(row: AdPerformanceRow): string {

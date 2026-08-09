@@ -44,7 +44,7 @@ function formatRupees(value: number | null): string {
 
 function campaignActivityLabel(at?: string | null): string | undefined {
   const formatted = formatMarketingActivityDate(at);
-  return formatted ? `Last active · ${formatted}` : undefined;
+  return formatted ? `Last lead · ${formatted}` : undefined;
 }
 
 function campaignSearchHaystack(row: MetaCampaignPerformanceRow): string {
