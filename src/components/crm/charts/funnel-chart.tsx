@@ -60,7 +60,7 @@ function LifecycleStageLegend({ steps, total }: { steps: FunnelStep[]; total: nu
   const stepsByStage = new Map(steps.map((step) => [step.stage, step]));
 
   return (
-    <div className="grid grid-cols-2 gap-2.5">
+    <div className="grid grid-cols-2 gap-2">
       {LIFECYCLE_LEGEND_COLUMNS.map((columnStages, columnIndex) => (
         <div key={columnIndex} className="flex min-w-0 flex-col gap-1">
           {columnStages.map((stage) => {

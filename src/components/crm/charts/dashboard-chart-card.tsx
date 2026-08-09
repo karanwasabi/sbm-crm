@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/cn';
 
-export const DASHBOARD_CHART_MIN_HEIGHT = 'min-h-[272px]';
+export const DASHBOARD_CHART_MIN_HEIGHT = 'min-h-[220px]';
 
 type DashboardChartCardProps = {
   children: ReactNode;
@@ -34,5 +34,5 @@ type DashboardChartBodyProps = {
 };
 
 export function DashboardChartBody({ children, className }: DashboardChartBodyProps) {
-  return <div className={cn('flex min-h-[168px] flex-1 flex-col justify-center', className)}>{children}</div>;
+  return <div className={cn('flex min-h-[148px] flex-1 flex-col justify-center', className)}>{children}</div>;
 }

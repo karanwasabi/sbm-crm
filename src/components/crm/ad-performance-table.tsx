@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { fetchAdPerformance } from '@/app/(crm)/actions';
 import {
   DataTable,
@@ -11,24 +11,29 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { MarketingLabelCell } from '@/components/crm/marketing-label-cell';
+import { PerformanceTablePagination } from '@/components/crm/performance-table-pagination';
+import { PerformanceTableToolbar } from '@/components/crm/performance-table-toolbar';
+import { PerformanceWindowSelector } from '@/components/crm/performance-window-selector';
 import { Card } from '@/components/ui/card';
-import { FilterChip } from '@/components/ui/filter-chip';
 import { SectionHead } from '@/components/ui/section-head';
-import { buildPerformanceDrilldownHref, performanceWindowSubtitle } from '@/lib/performance-drilldown-url';
+import { usePerformanceTableState } from '@/hooks/use-performance-table-state';
+import { humanizeMarketingLabel } from '@/lib/marketing-labels';
+import { formatPerformanceDateRange, type PerformanceWindowPreset } from '@/lib/performance-display';
+import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
 import type { AdPerformanceRow, PerformanceReportMeta } from '@/types/crm';
 
-type WindowOption = { label: string; days: number | 'all' };
+type AdSortKey = 'ad' | 'adset' | 'campaign' | 'program' | 'leads' | 'paid' | 'cvr';
 
-const WINDOW_OPTIONS: WindowOption[] = [
-  { label: '30d', days: 30 },
-  { label: '90d', days: 90 },
-  { label: '1y', days: 365 },
-  { label: 'All', days: 'all' },
+const AD_SORT_OPTIONS: Array<{ key: AdSortKey; label: string }> = [
+  { key: 'leads', label: 'Leads' },
+  { key: 'paid', label: 'Paid' },
+  { key: 'cvr', label: 'CVR' },
+  { key: 'ad', label: 'Ad' },
+  { key: 'adset', label: 'Ad set' },
+  { key: 'campaign', label: 'Campaign' },
+  { key: 'program', label: 'Program' },
 ];
-
-function windowSubtitle(days: number | 'all', window: PerformanceReportMeta | null): string {
-  return `Leads by created_at · Purchases by paid_at · ${performanceWindowSubtitle(window, days)}`;
-}
 
 function DrilldownCell({ href, value, bold }: { href: string; value: number; bold?: boolean }) {
   if (value <= 0) {
@@ -48,15 +53,54 @@ function DrilldownCell({ href, value, bold }: { href: string; value: number; bol
   );
 }
 
+function adSearchHaystack(row: AdPerformanceRow): string {
+  return [row.adContent, row.adset, row.campaign, row.program]
+    .flatMap((value) => [value, humanizeMarketingLabel(value)])
+    .join(' ')
+    .toLowerCase();
+}
+
 export function AdPerformanceTable() {
   const [rows, setRows] = useState<AdPerformanceRow[]>([]);
   const [window, setWindow] = useState<PerformanceReportMeta | null>(null);
-  const [selected, setSelected] = useState<number | 'all'>(90);
+  const [selected, setSelected] = useState<PerformanceWindowPreset>(90);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback((days: number | 'all') => {
+  const filterRow = useCallback((row: AdPerformanceRow, search: string) => {
+    return adSearchHaystack(row).includes(search);
+  }, []);
+
+  const getSortValue = useCallback((row: AdPerformanceRow, key: AdSortKey) => {
+    switch (key) {
+      case 'ad':
+        return humanizeMarketingLabel(row.adContent);
+      case 'adset':
+        return humanizeMarketingLabel(row.adset);
+      case 'campaign':
+        return humanizeMarketingLabel(row.campaign);
+      case 'program':
+        return humanizeMarketingLabel(row.program);
+      case 'leads':
+        return row.leads;
+      case 'paid':
+        return row.paid;
+      case 'cvr':
+        return row.cvr;
+      default:
+        return 0;
+    }
+  }, []);
+
+  const table = usePerformanceTableState<AdPerformanceRow, AdSortKey>({
+    rows,
+    defaultSortKey: 'leads',
+    filterRow,
+    getSortValue,
+  });
+
+  const load = useCallback((days: PerformanceWindowPreset) => {
     startTransition(async () => {
       setError(null);
       const result = await fetchAdPerformance(days);
@@ -74,58 +118,76 @@ export function AdPerformanceTable() {
     load(90);
   }, [load]);
 
-  const changeWindow = (days: number | 'all') => {
+  const changeWindow = (days: PerformanceWindowPreset) => {
     if (days === selected) return;
     setSelected(days);
     load(days);
   };
 
-  const selector = (
-    <div className="flex items-center gap-1.5">
-      {WINDOW_OPTIONS.map((option) => (
-        <FilterChip
-          key={option.label}
-          active={option.days === selected}
-          pending={isPending && option.days === selected}
-          onClick={() => changeWindow(option.days)}
-        >
-          {option.label}
-        </FilterChip>
-      ))}
-    </div>
-  );
+  const subtitle = useMemo(() => formatPerformanceDateRange(window, selected), [window, selected]);
 
   return (
     <div className="flex flex-col gap-2">
       <Card padding="none">
         <div className="p-5">
-          <SectionHead title="Ad performance" subtitle={windowSubtitle(selected, window)} right={selector} />
+          <SectionHead
+            title="Ad performance"
+            subtitle={subtitle}
+            right={<PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />}
+          />
         </div>
-        <DataTable>
+        <PerformanceTableToolbar
+          search={table.search}
+          onSearchChange={table.setSearch}
+          searchPlaceholder="Search ads, ad sets, campaigns…"
+          sortKey={table.sortKey}
+          sortDirection={table.sortDirection}
+          sortOptions={AD_SORT_OPTIONS}
+          onSortKeyChange={table.setSortKey}
+          onSortDirectionChange={table.setSortDirection}
+        />
+        <DataTable tableClassName="table-fixed min-w-[1040px]">
+          <colgroup>
+            <col className="w-[28%]" />
+            <col className="w-[16%]" />
+            <col className="w-[18%]" />
+            <col className="w-[12%]" />
+            <col className="w-[9%]" />
+            <col className="w-[9%]" />
+            <col className="w-[8%]" />
+          </colgroup>
           <DataTableHead>
-            {['Ad', 'Ad set', 'Program', 'Campaign', 'Leads', 'Paid', 'CVR'].map((h) => (
+            {['Ad', 'Ad set', 'Campaign', 'Program', 'Leads', 'Paid', 'CVR'].map((h) => (
               <DataTableHeaderCell key={h}>{h}</DataTableHeaderCell>
             ))}
           </DataTableHead>
           <DataTableBody>
-            {rows.length === 0 ? (
+            {table.pageRows.length === 0 ? (
               <DataTableRow>
                 <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
-                  {!loaded ? 'Loading…' : 'No leads with utm_content in this window.'}
+                  {!loaded
+                    ? 'Loading…'
+                    : table.search
+                      ? 'No ads match your search.'
+                      : 'No leads with utm_content in this window.'}
                 </DataTableCell>
               </DataTableRow>
             ) : (
-              rows.map((row) => (
+              table.pageRows.map((row) => (
                 <DataTableRow key={`${row.adContent}::${row.program}`}>
-                  <DataTableCell className="font-semibold text-slate-800">
-                    <span className="block max-w-[220px] truncate" title={row.adContent}>
-                      {row.adContent}
-                    </span>
+                  <DataTableCell className="align-top font-semibold text-slate-800">
+                    <MarketingLabelCell value={row.adContent} />
                   </DataTableCell>
-                  <DataTableCell className="text-slate-600">{row.adset || '—'}</DataTableCell>
-                  <DataTableCell className="text-slate-600">{row.program || '—'}</DataTableCell>
-                  <DataTableCell className="text-slate-600">{row.campaign || '—'}</DataTableCell>
-                  <DataTableCell>
+                  <DataTableCell className="align-top text-slate-600">
+                    <MarketingLabelCell value={row.adset} />
+                  </DataTableCell>
+                  <DataTableCell className="align-top text-slate-600">
+                    <MarketingLabelCell value={row.campaign} />
+                  </DataTableCell>
+                  <DataTableCell className="align-top text-slate-600">
+                    <MarketingLabelCell value={row.program} />
+                  </DataTableCell>
+                  <DataTableCell className="align-top">
                     <DrilldownCell
                       href={buildPerformanceDrilldownHref({
                         mode: 'leads',
@@ -136,7 +198,7 @@ export function AdPerformanceTable() {
                       value={row.leads}
                     />
                   </DataTableCell>
-                  <DataTableCell>
+                  <DataTableCell className="align-top">
                     <DrilldownCell
                       href={buildPerformanceDrilldownHref({
                         mode: 'purchases',
@@ -148,7 +210,7 @@ export function AdPerformanceTable() {
                       bold
                     />
                   </DataTableCell>
-                  <DataTableCell>
+                  <DataTableCell className="align-top whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
                         <div
@@ -166,6 +228,14 @@ export function AdPerformanceTable() {
             )}
           </DataTableBody>
         </DataTable>
+        <PerformanceTablePagination
+          page={table.page}
+          totalPages={table.totalPages}
+          pageStart={table.pageStart}
+          pageEnd={table.pageEnd}
+          totalRows={table.totalRows}
+          onPageChange={table.setPage}
+        />
       </Card>
       {error ? <p className="px-1 text-xs font-medium text-danger-press">{error}</p> : null}
     </div>

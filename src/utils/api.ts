@@ -2,6 +2,7 @@ import { cache } from 'react';
 import type { StaffAccessRole } from '@/lib/access';
 import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import { buildLeadListSearchParams } from '@/lib/lead-list-query';
+import { performanceWindowQueryParam, type PerformanceWindowPreset } from '@/lib/performance-display';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
@@ -3102,10 +3103,17 @@ export async function getMetaInboundLeads(limit = 20): Promise<import('@/types/c
   }));
 }
 
+function performanceDaysQuery(days?: PerformanceWindowPreset): string {
+  if (days === undefined) {
+    return '';
+  }
+  return `?days=${performanceWindowQueryParam(days)}`;
+}
+
 export async function getSourcePerformance(
-  days?: number | 'all'
+  days?: PerformanceWindowPreset
 ): Promise<import('@/types/crm').SourcePerformanceResult> {
-  const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
+  const query = performanceDaysQuery(days);
   const response = await requireApiFetch(`/admin/analytics/source-performance${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load source performance.', response.status);
@@ -3146,11 +3154,11 @@ export async function getSourcePerformance(
   };
 }
 
-export async function getMetaCampaignPerformance(days?: number | 'all'): Promise<{
+export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset): Promise<{
   rows: import('@/types/crm').MetaCampaignPerformanceRow[];
   window: import('@/types/crm').PerformanceReportMeta;
 }> {
-  const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
+  const query = performanceDaysQuery(days);
   const response = await requireApiFetch(`/admin/integrations/meta/campaign-performance${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load campaign performance.', response.status);
@@ -3189,11 +3197,11 @@ export async function getMetaCampaignPerformance(days?: number | 'all'): Promise
   };
 }
 
-export async function getAdPerformance(days?: number | 'all'): Promise<{
+export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<{
   rows: import('@/types/crm').AdPerformanceRow[];
   window: import('@/types/crm').PerformanceReportMeta;
 }> {
-  const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
+  const query = performanceDaysQuery(days);
   const response = await requireApiFetch(`/admin/analytics/ad-performance${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load ad performance.', response.status);

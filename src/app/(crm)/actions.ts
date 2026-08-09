@@ -7,9 +7,10 @@ import type {
   PerformanceReportMeta,
   SourcePerformanceRow,
 } from '@/types/crm';
+import type { PerformanceWindowPreset } from '@/lib/performance-display';
 import { getAdPerformance, getMetaCampaignPerformance, getSourcePerformance } from '@/utils/api';
 
-export async function fetchSourcePerformance(days: number | 'all'): Promise<
+export async function fetchSourcePerformance(days: PerformanceWindowPreset): Promise<
   | {
       ok: true;
       rows: SourcePerformanceRow[];
@@ -32,7 +33,7 @@ export async function fetchSourcePerformance(days: number | 'all'): Promise<
 }
 
 export async function fetchMetaCampaignPerformance(
-  days: number | 'all'
+  days: PerformanceWindowPreset
 ): Promise<
   { ok: true; rows: MetaCampaignPerformanceRow[]; window: PerformanceReportMeta } | { ok: false; error: string }
 > {
@@ -45,7 +46,7 @@ export async function fetchMetaCampaignPerformance(
 }
 
 export async function fetchAdPerformance(
-  days: number | 'all'
+  days: PerformanceWindowPreset
 ): Promise<{ ok: true; rows: AdPerformanceRow[]; window: PerformanceReportMeta } | { ok: false; error: string }> {
   try {
     const result = await getAdPerformance(days);
@@ -64,6 +65,6 @@ export async function getWhatsAppUnreadSummaryAction(): Promise<{
     const summary = await getWhatsAppUnreadSummary();
     return { summary, error: null };
   } catch {
-    return { summary: null, error: null };
+    return { summary: null, error: 'Failed to load WhatsApp unread summary.' };
   }
 }

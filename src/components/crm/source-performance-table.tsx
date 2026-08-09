@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
@@ -12,7 +15,6 @@ import {
 } from '@/components/crm/data-table';
 import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
 import type { OfflineMetaEnrollmentsSummary, PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
-import type { ReactNode } from 'react';
 
 type SourcePerformanceTableProps = {
   rows: SourcePerformanceRow[];
@@ -22,14 +24,20 @@ type SourcePerformanceTableProps = {
   headerRight?: ReactNode;
 };
 
+type SourceSortKey = 'source' | 'leads' | 'paid' | 'cvr';
+
+const SOURCE_SORT_OPTIONS: Array<{ key: SourceSortKey; label: string }> = [
+  { key: 'leads', label: 'Leads' },
+  { key: 'paid', label: 'Purchases' },
+  { key: 'cvr', label: 'CVR' },
+  { key: 'source', label: 'Source' },
+];
+
 const mediumTone: Record<SourcePerformanceRow['medium'], 'paid' | 'organic' | 'offline'> = {
   paid: 'paid',
   organic: 'organic',
   offline: 'offline',
 };
-
-const DEFAULT_SUBTITLE =
-  'Leads by created_at · Purchases by paid_at (IST). Meta row includes checkouts + renewals. CVR = leads created in window who paid in window.';
 
 function formatRupees(value: number | null): string {
   if (value == null) return '—';
@@ -61,10 +69,44 @@ export function SourcePerformanceTable({
   subtitle,
   headerRight,
 }: SourcePerformanceTableProps) {
+  const [sortKey, setSortKey] = useState<SourceSortKey>('leads');
+
+  const sortedRows = useMemo(() => {
+    const next = [...rows];
+    next.sort((a, b) => {
+      switch (sortKey) {
+        case 'source':
+          return a.source.localeCompare(b.source);
+        case 'paid':
+          return b.paid - a.paid;
+        case 'cvr':
+          return b.cvr - a.cvr;
+        case 'leads':
+        default:
+          return b.leads - a.leads;
+      }
+    });
+    return next;
+  }, [rows, sortKey]);
+
   return (
     <Card padding="none">
       <div className="p-5">
-        <SectionHead title="Source performance" subtitle={subtitle ?? DEFAULT_SUBTITLE} right={headerRight} />
+        <SectionHead title="Source performance" subtitle={subtitle} right={headerRight} />
+      </div>
+      <div className="flex items-center justify-end gap-2 border-t border-slate-100 px-5 py-3">
+        <label className="text-xs font-semibold text-slate-500">Sort by</label>
+        <select
+          value={sortKey}
+          onChange={(event) => setSortKey(event.target.value as SourceSortKey)}
+          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 ring-brand/20 outline-none focus:ring-2"
+        >
+          {SOURCE_SORT_OPTIONS.map((option) => (
+            <option key={option.key} value={option.key}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
       <DataTable>
         <DataTableHead>
@@ -73,14 +115,14 @@ export function SourcePerformanceTable({
           ))}
         </DataTableHead>
         <DataTableBody>
-          {rows.length === 0 ? (
+          {sortedRows.length === 0 ? (
             <DataTableRow>
               <DataTableCell colSpan={7} className="py-8 text-center text-sm text-slate-500">
                 No attributed leads in this window.
               </DataTableCell>
             </DataTableRow>
           ) : (
-            rows.map((row) => (
+            sortedRows.map((row) => (
               <DataTableRow key={row.sourceKey}>
                 <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
                 <DataTableCell>
@@ -137,9 +179,7 @@ export function SourcePerformanceTable({
             <DataTableRow className="border-t-2 border-slate-200 bg-slate-50/80">
               <DataTableCell className="font-semibold text-slate-700">
                 <span className="block">Offline Meta enrollments</span>
-                <span className="mt-0.5 block text-xs font-normal text-slate-500">
-                  CRM offline enrolls · excluded from Purchases above
-                </span>
+                <span className="mt-0.5 block text-xs font-normal text-slate-500">CRM offline enrolls</span>
               </DataTableCell>
               <DataTableCell>
                 <Pill tone="offline">offline</Pill>

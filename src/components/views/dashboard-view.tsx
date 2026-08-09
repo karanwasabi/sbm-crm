@@ -3,6 +3,7 @@ import { BarChart } from '@/components/crm/charts/bar-chart';
 import { DonutChart } from '@/components/crm/charts/donut-chart';
 import { FunnelChart } from '@/components/crm/charts/funnel-chart';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
+import { DashboardOverviewSection } from '@/components/crm/dashboard-overview-section';
 import { AdPerformanceTable } from '@/components/crm/ad-performance-table';
 import { MetaCampaignPerformanceTable } from '@/components/crm/meta-campaign-performance-table';
 import { SourcePerformanceSection } from '@/components/crm/source-performance-section';
@@ -136,7 +137,7 @@ export function DashboardView({
 
       <KpiStrip items={kpiItems} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-stretch">
+      <DashboardOverviewSection>
         <FunnelChart className="min-w-0" steps={buildFunnelSteps(analytics)} title="Lifecycle funnel" />
         <BarChart className="min-w-0" data={revenueData} />
         <DonutChart
@@ -146,7 +147,7 @@ export function DashboardView({
           title="Geography"
           maxLegendItems={5}
         />
-      </div>
+      </DashboardOverviewSection>
 
       <SourcePerformanceSection
         initialRows={sourcePerformance}
