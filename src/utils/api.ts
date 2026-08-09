@@ -3010,6 +3010,9 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
     leads_today: number;
     last_sync_at: string | null;
     meta_leads_total: number;
+    meta_leads_native_total?: number;
+    meta_leads_imported_total?: number;
+    meta_leads_unknown_total?: number;
     meta_leads_7d: number;
     capi_configured: boolean;
   };
@@ -3022,6 +3025,9 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
     leadsToday: payload.leads_today,
     lastSyncAt: payload.last_sync_at,
     metaLeadsTotal: payload.meta_leads_total,
+    metaLeadsNativeTotal: payload.meta_leads_native_total ?? 0,
+    metaLeadsImportedTotal: payload.meta_leads_imported_total ?? 0,
+    metaLeadsUnknownTotal: payload.meta_leads_unknown_total ?? 0,
     metaLeads7d: payload.meta_leads_7d,
     capiConfigured: payload.capi_configured,
   };
@@ -3096,9 +3102,10 @@ export async function getMetaInboundLeads(limit = 20): Promise<import('@/types/c
   }));
 }
 
-export async function getSourcePerformance(
-  days?: number | 'all'
-): Promise<import('@/types/crm').SourcePerformanceRow[]> {
+export async function getSourcePerformance(days?: number | 'all'): Promise<{
+  rows: import('@/types/crm').SourcePerformanceRow[];
+  window: import('@/types/crm').PerformanceReportMeta;
+}> {
   const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
   const response = await requireApiFetch(`/admin/analytics/source-performance${query}`);
   if (!response.ok) {
@@ -3107,6 +3114,7 @@ export async function getSourcePerformance(
   const payload = (await response.json()) as {
     rows: Array<{
       source: string;
+      source_key: string;
       medium: import('@/types/crm').LeadMedium;
       leads: number;
       paid: number;
@@ -3114,21 +3122,33 @@ export async function getSourcePerformance(
       cpl: number | null;
       cac: number | null;
     }>;
+    timezone?: string;
+    since?: string;
+    until?: string;
   };
-  return payload.rows.map((row) => ({
-    source: row.source,
-    medium: row.medium,
-    leads: row.leads,
-    paid: row.paid,
-    cvr: row.cvr,
-    cpl: row.cpl,
-    cac: row.cac,
-  }));
+  return {
+    rows: payload.rows.map((row) => ({
+      source: row.source,
+      sourceKey: row.source_key,
+      medium: row.medium,
+      leads: row.leads,
+      paid: row.paid,
+      cvr: row.cvr,
+      cpl: row.cpl,
+      cac: row.cac,
+    })),
+    window: {
+      timezone: payload.timezone ?? 'Asia/Kolkata',
+      since: payload.since ?? null,
+      until: payload.until ?? null,
+    },
+  };
 }
 
-export async function getMetaCampaignPerformance(
-  days?: number | 'all'
-): Promise<import('@/types/crm').MetaCampaignPerformanceRow[]> {
+export async function getMetaCampaignPerformance(days?: number | 'all'): Promise<{
+  rows: import('@/types/crm').MetaCampaignPerformanceRow[];
+  window: import('@/types/crm').PerformanceReportMeta;
+}> {
   const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
   const response = await requireApiFetch(`/admin/integrations/meta/campaign-performance${query}`);
   if (!response.ok) {
@@ -3145,20 +3165,33 @@ export async function getMetaCampaignPerformance(
       cpl: number | null;
       cac: number | null;
     }>;
+    timezone?: string;
+    since?: string;
+    until?: string;
   };
-  return payload.rows.map((row) => ({
-    campaignId: row.campaign_id,
-    campaignName: row.campaign_name,
-    leads: row.leads,
-    paid: row.paid,
-    spend: row.spend,
-    cvr: row.cvr,
-    cpl: row.cpl,
-    cac: row.cac,
-  }));
+  return {
+    rows: payload.rows.map((row) => ({
+      campaignId: row.campaign_id,
+      campaignName: row.campaign_name,
+      leads: row.leads,
+      paid: row.paid,
+      spend: row.spend,
+      cvr: row.cvr,
+      cpl: row.cpl,
+      cac: row.cac,
+    })),
+    window: {
+      timezone: payload.timezone ?? 'Asia/Kolkata',
+      since: payload.since ?? null,
+      until: payload.until ?? null,
+    },
+  };
 }
 
-export async function getAdPerformance(days?: number | 'all'): Promise<import('@/types/crm').AdPerformanceRow[]> {
+export async function getAdPerformance(days?: number | 'all'): Promise<{
+  rows: import('@/types/crm').AdPerformanceRow[];
+  window: import('@/types/crm').PerformanceReportMeta;
+}> {
   const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
   const response = await requireApiFetch(`/admin/analytics/ad-performance${query}`);
   if (!response.ok) {
@@ -3174,16 +3207,26 @@ export async function getAdPerformance(days?: number | 'all'): Promise<import('@
       paid: number;
       cvr: number;
     }>;
+    timezone?: string;
+    since?: string;
+    until?: string;
   };
-  return payload.rows.map((row) => ({
-    adContent: row.ad_content,
-    adset: row.adset,
-    program: row.program,
-    campaign: row.campaign,
-    leads: row.leads,
-    paid: row.paid,
-    cvr: row.cvr,
-  }));
+  return {
+    rows: payload.rows.map((row) => ({
+      adContent: row.ad_content,
+      adset: row.adset,
+      program: row.program,
+      campaign: row.campaign,
+      leads: row.leads,
+      paid: row.paid,
+      cvr: row.cvr,
+    })),
+    window: {
+      timezone: payload.timezone ?? 'Asia/Kolkata',
+      since: payload.since ?? null,
+      until: payload.until ?? null,
+    },
+  };
 }
 
 export async function getDashboardAnalytics(): Promise<import('@/types/crm').DashboardAnalytics> {

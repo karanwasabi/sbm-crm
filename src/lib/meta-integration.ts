@@ -1,9 +1,14 @@
 import type { Integration, MetaIntegrationStatus } from '@/types/crm';
 
 export function buildMetaIntegrationCard(status: MetaIntegrationStatus): Integration {
+  const breakdown =
+    status.metaLeadsNativeTotal > 0 || status.metaLeadsImportedTotal > 0
+      ? ` (${status.metaLeadsNativeTotal} native, ${status.metaLeadsImportedTotal} imported${status.metaLeadsUnknownTotal > 0 ? `, ${status.metaLeadsUnknownTotal} other` : ''})`
+      : '';
+
   const leadSummary =
     status.metaLeadsTotal > 0
-      ? `${status.metaLeadsTotal} Meta-attributed lead${status.metaLeadsTotal === 1 ? '' : 's'} in CRM`
+      ? `${status.metaLeadsTotal} Meta-attributed lead${status.metaLeadsTotal === 1 ? '' : 's'} in CRM${breakdown}`
       : 'No Meta leads in CRM yet';
 
   const recent = status.metaLeads7d > 0 ? ` · ${status.metaLeads7d} in last 7 days` : '';

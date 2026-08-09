@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
-import { leadSourceLabel } from '@/lib/lead-sources';
+import { leadSourceLabel, perfSourceLabel } from '@/lib/lead-sources';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { LeadFilterOptions } from '@/types/crm';
 
@@ -146,6 +146,46 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       href: buildLeadDatabaseHref(filters, { addedFrom: '', addedTo: '' }),
     });
   }
+  if (filters.paidFrom || filters.paidTo) {
+    chips.push({
+      key: 'paid',
+      label: 'Paid',
+      value: [filters.paidFrom, filters.paidTo].filter(Boolean).join(' → '),
+      href: buildLeadDatabaseHref(filters, { paidFrom: '', paidTo: '' }),
+    });
+  }
+  if (filters.perfSource) {
+    chips.push({
+      key: 'perf-source',
+      label: 'Performance source',
+      value: perfSourceLabel(filters.perfSource),
+      href: buildLeadDatabaseHref(filters, { perfSource: '' }),
+    });
+  }
+  if (filters.metaCampaignId) {
+    chips.push({
+      key: 'meta-campaign',
+      label: 'Meta campaign',
+      value: filters.metaCampaignId,
+      href: buildLeadDatabaseHref(filters, { metaCampaignId: '' }),
+    });
+  }
+  if (filters.metaCampaignUnattributed) {
+    chips.push({
+      key: 'meta-campaign-unattributed',
+      label: 'Meta campaign',
+      value: 'Unattributed',
+      href: buildLeadDatabaseHref(filters, { metaCampaignUnattributed: false }),
+    });
+  }
+  if (filters.utmContent) {
+    chips.push({
+      key: 'utm-content',
+      label: 'Ad (utm_content)',
+      value: filters.utmContent,
+      href: buildLeadDatabaseHref(filters, { utmContent: '' }),
+    });
+  }
   if (filters.updatedFrom || filters.updatedTo) {
     chips.push({
       key: 'updated',
@@ -180,6 +220,12 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
           referrerCoaches: [],
           addedFrom: '',
           addedTo: '',
+          paidFrom: '',
+          paidTo: '',
+          perfSource: '',
+          metaCampaignId: '',
+          metaCampaignUnattributed: false,
+          utmContent: '',
           updatedFrom: '',
           updatedTo: '',
           hasUnseenSuggestions: false,

@@ -16,7 +16,14 @@ import {
 } from '@/lib/dashboard-display';
 import { normalizeDashboardFunnel } from '@/lib/dashboard-analytics';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
-import type { DashboardAnalytics, FunnelStep, GeoItem, LifecycleStage, SourcePerformanceRow } from '@/types/crm';
+import type {
+  DashboardAnalytics,
+  FunnelStep,
+  GeoItem,
+  LifecycleStage,
+  PerformanceReportMeta,
+  SourcePerformanceRow,
+} from '@/types/crm';
 
 const KPI_ICONS = [UserPlus, Trophy, Database, Sparkles, RefreshCw];
 
@@ -25,6 +32,7 @@ const GEO_COLORS = ['#5C65CF', '#8338EC', '#0EA5E9', '#10B981', '#FFB703', '#90A
 type DashboardViewProps = {
   analytics: DashboardAnalytics;
   sourcePerformance: SourcePerformanceRow[];
+  sourcePerformanceWindow?: PerformanceReportMeta | null;
   analyticsError?: string | null;
 };
 
@@ -65,7 +73,12 @@ function geoTotalLabel(analytics: DashboardAnalytics): string {
   return String(total);
 }
 
-export function DashboardView({ analytics, sourcePerformance, analyticsError }: DashboardViewProps) {
+export function DashboardView({
+  analytics,
+  sourcePerformance,
+  sourcePerformanceWindow = null,
+  analyticsError,
+}: DashboardViewProps) {
   const { kpis } = analytics;
 
   const kpiItems: KpiStripItem[] = [
@@ -132,7 +145,11 @@ export function DashboardView({ analytics, sourcePerformance, analyticsError }: 
         />
       </div>
 
-      <SourcePerformanceSection initialRows={sourcePerformance} initialDays={90} />
+      <SourcePerformanceSection
+        initialRows={sourcePerformance}
+        initialWindow={sourcePerformanceWindow}
+        initialDays={90}
+      />
 
       <MetaCampaignPerformanceTable />
 

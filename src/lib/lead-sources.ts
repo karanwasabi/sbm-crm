@@ -37,3 +37,13 @@ export function leadSourceLabel(source: string | null | undefined): string {
   }
   return LEGACY_SOURCE_LABELS[key] ?? key;
 }
+
+export function perfSourceLabel(sourceKey: string | null | undefined): string {
+  if (!sourceKey?.trim()) {
+    return '';
+  }
+  if (sourceKey === 'meta_influenced') {
+    return 'Meta Influenced';
+  }
+  return leadSourceLabel(sourceKey) || sourceKey;
+}

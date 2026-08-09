@@ -21,6 +21,9 @@ const EMPTY_STATUS: MetaIntegrationStatus = {
   leadsToday: 0,
   lastSyncAt: null,
   metaLeadsTotal: 0,
+  metaLeadsNativeTotal: 0,
+  metaLeadsImportedTotal: 0,
+  metaLeadsUnknownTotal: 0,
   metaLeads7d: 0,
   capiConfigured: false,
 };

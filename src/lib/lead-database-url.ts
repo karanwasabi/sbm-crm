@@ -22,6 +22,12 @@ export type LeadDatabaseFilters = {
   addedTo: string;
   updatedFrom: string;
   updatedTo: string;
+  perfSource: string;
+  metaCampaignId: string;
+  metaCampaignUnattributed: boolean;
+  utmContent: string;
+  paidFrom: string;
+  paidTo: string;
   sort: LeadDatabaseSort;
   order: LeadDatabaseSortOrder;
   hasUnseenSuggestions: boolean;
@@ -48,6 +54,12 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   addedTo: '',
   updatedFrom: '',
   updatedTo: '',
+  perfSource: '',
+  metaCampaignId: '',
+  metaCampaignUnattributed: false,
+  utmContent: '',
+  paidFrom: '',
+  paidTo: '',
   sort: 'created_at',
   order: 'desc',
   hasUnseenSuggestions: false,
@@ -149,6 +161,12 @@ export function parseLeadDatabaseFilters(
     hasUnseenSuggestions: get('has_unseen_suggestions') === 'true',
     phoneDuplicates: get('phone_duplicates') === 'true',
     createdByMe,
+    perfSource: get('perf_source')?.trim() || '',
+    metaCampaignId: get('meta_campaign_id')?.trim() || '',
+    metaCampaignUnattributed: get('meta_campaign_unattributed') === 'true',
+    utmContent: get('utm_content')?.trim() || '',
+    paidFrom: get('paid_from')?.trim() || '',
+    paidTo: get('paid_to')?.trim() || '',
     page: parsePositiveInt(get('page'), 1),
     pageSize: parsePositiveInt(get('page_size'), 50),
   };
@@ -199,6 +217,12 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (merged.phoneDuplicates) params.set('phone_duplicates', 'true');
   if (merged.createdByMe) params.set('created_by_me', '1');
+  if (merged.perfSource) params.set('perf_source', merged.perfSource);
+  if (merged.metaCampaignId) params.set('meta_campaign_id', merged.metaCampaignId);
+  if (merged.metaCampaignUnattributed) params.set('meta_campaign_unattributed', 'true');
+  if (merged.utmContent) params.set('utm_content', merged.utmContent);
+  if (merged.paidFrom) params.set('paid_from', merged.paidFrom);
+  if (merged.paidTo) params.set('paid_to', merged.paidTo);
   if (merged.page > 1) params.set('page', String(merged.page));
   if (merged.pageSize !== 50) params.set('page_size', String(merged.pageSize));
 

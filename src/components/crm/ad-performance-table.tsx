@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { fetchAdPerformance } from '@/app/(crm)/actions';
 import {
@@ -13,7 +14,8 @@ import {
 import { Card } from '@/components/ui/card';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { SectionHead } from '@/components/ui/section-head';
-import type { AdPerformanceRow } from '@/types/crm';
+import { buildPerformanceDrilldownHref, performanceWindowSubtitle } from '@/lib/performance-drilldown-url';
+import type { AdPerformanceRow, PerformanceReportMeta } from '@/types/crm';
 
 type WindowOption = { label: string; days: number | 'all' };
 
@@ -24,13 +26,31 @@ const WINDOW_OPTIONS: WindowOption[] = [
   { label: 'All', days: 'all' },
 ];
 
-function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'Leads with ad UTMs by content, all time';
-  return `Leads with ad UTMs by content, last ${days} days`;
+function windowSubtitle(days: number | 'all', window: PerformanceReportMeta | null): string {
+  return `Leads by created_at · Purchases by paid_at · ${performanceWindowSubtitle(window, days)}`;
+}
+
+function DrilldownCell({ href, value, bold }: { href: string; value: number; bold?: boolean }) {
+  if (value <= 0) {
+    return <span className={bold ? 'font-bold tabular-nums' : 'tabular-nums'}>{value}</span>;
+  }
+  return (
+    <Link
+      href={href}
+      className={
+        bold
+          ? 'font-bold text-brand tabular-nums underline-offset-2 hover:underline'
+          : 'text-brand tabular-nums underline-offset-2 hover:underline'
+      }
+    >
+      {value.toLocaleString()}
+    </Link>
+  );
 }
 
 export function AdPerformanceTable() {
   const [rows, setRows] = useState<AdPerformanceRow[]>([]);
+  const [window, setWindow] = useState<PerformanceReportMeta | null>(null);
   const [selected, setSelected] = useState<number | 'all'>(90);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -42,6 +62,7 @@ export function AdPerformanceTable() {
       const result = await fetchAdPerformance(days);
       if (result.ok) {
         setRows(result.rows);
+        setWindow(result.window);
       } else {
         setError(result.error);
       }
@@ -78,7 +99,7 @@ export function AdPerformanceTable() {
     <div className="flex flex-col gap-2">
       <Card padding="none">
         <div className="p-5">
-          <SectionHead title="Ad performance" subtitle={windowSubtitle(selected)} right={selector} />
+          <SectionHead title="Ad performance" subtitle={windowSubtitle(selected, window)} right={selector} />
         </div>
         <DataTable>
           <DataTableHead>
@@ -104,8 +125,29 @@ export function AdPerformanceTable() {
                   <DataTableCell className="text-slate-600">{row.adset || '—'}</DataTableCell>
                   <DataTableCell className="text-slate-600">{row.program || '—'}</DataTableCell>
                   <DataTableCell className="text-slate-600">{row.campaign || '—'}</DataTableCell>
-                  <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
-                  <DataTableCell className="font-bold tabular-nums">{row.paid}</DataTableCell>
+                  <DataTableCell>
+                    <DrilldownCell
+                      href={buildPerformanceDrilldownHref({
+                        mode: 'leads',
+                        utmContent: row.adContent,
+                        since: window?.since,
+                        until: window?.until,
+                      })}
+                      value={row.leads}
+                    />
+                  </DataTableCell>
+                  <DataTableCell>
+                    <DrilldownCell
+                      href={buildPerformanceDrilldownHref({
+                        mode: 'purchases',
+                        utmContent: row.adContent,
+                        since: window?.since,
+                        until: window?.until,
+                      })}
+                      value={row.paid}
+                      bold
+                    />
+                  </DataTableCell>
                   <DataTableCell>
                     <div className="flex items-center gap-2">
                       <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">

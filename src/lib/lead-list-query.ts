@@ -37,6 +37,12 @@ export function buildLeadListSearchParams(
   if (filters.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (filters.phoneDuplicates) params.set('phone_duplicates', 'true');
   if (filters.createdByMe) params.set('created_by_me', '1');
+  if (filters.perfSource) params.set('perf_source', filters.perfSource);
+  if (filters.metaCampaignId) params.set('meta_campaign_id', filters.metaCampaignId);
+  if (filters.metaCampaignUnattributed) params.set('meta_campaign_unattributed', 'true');
+  if (filters.utmContent) params.set('utm_content', filters.utmContent);
+  if (filters.paidFrom) params.set('paid_from', filters.paidFrom);
+  if (filters.paidTo) params.set('paid_to', filters.paidTo);
   if (page > 1) params.set('page', String(page));
   if (pageSize !== 50) params.set('page_size', String(pageSize));
 

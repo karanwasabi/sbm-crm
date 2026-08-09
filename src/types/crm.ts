@@ -407,12 +407,19 @@ export type FunnelStep = {
 
 export type SourcePerformanceRow = {
   source: string;
+  sourceKey: string;
   medium: LeadMedium;
   leads: number;
   paid: number;
   cvr: number;
   cpl: number | null;
   cac: number | null;
+};
+
+export type PerformanceReportMeta = {
+  timezone: string;
+  since: string | null;
+  until: string | null;
 };
 
 export type MetaCampaignPerformanceRow = {
@@ -445,6 +452,9 @@ export type MetaIntegrationStatus = {
   leadsToday: number;
   lastSyncAt: string | null;
   metaLeadsTotal: number;
+  metaLeadsNativeTotal: number;
+  metaLeadsImportedTotal: number;
+  metaLeadsUnknownTotal: number;
   metaLeads7d: number;
   capiConfigured: boolean;
 };

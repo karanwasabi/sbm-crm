@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import { fetchMetaCampaignPerformance } from '@/app/(crm)/actions';
 import {
@@ -13,7 +14,10 @@ import {
 import { Card } from '@/components/ui/card';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { SectionHead } from '@/components/ui/section-head';
-import type { MetaCampaignPerformanceRow } from '@/types/crm';
+import { buildPerformanceDrilldownHref, performanceWindowSubtitle } from '@/lib/performance-drilldown-url';
+import type { MetaCampaignPerformanceRow, PerformanceReportMeta } from '@/types/crm';
+
+const UNATTRIBUTED_CAMPAIGN_ID = '__unattributed__';
 
 type WindowOption = { label: string; days: number | 'all' };
 
@@ -31,13 +35,13 @@ function formatRupees(value: number | null): string {
   return `₹${rupeeFormatter.format(value)}`;
 }
 
-function windowSubtitle(days: number | 'all'): string {
-  if (days === 'all') return 'Spend, CPL, and CAC by campaign, all time';
-  return `Spend, CPL, and CAC by campaign, last ${days} days`;
+function windowSubtitle(days: number | 'all', window: PerformanceReportMeta | null): string {
+  return `Leads by created_at · Purchases by paid_at · ${performanceWindowSubtitle(window, days)}`;
 }
 
 export function MetaCampaignPerformanceTable() {
   const [rows, setRows] = useState<MetaCampaignPerformanceRow[]>([]);
+  const [window, setWindow] = useState<PerformanceReportMeta | null>(null);
   const [selected, setSelected] = useState<number | 'all'>(90);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -49,6 +53,7 @@ export function MetaCampaignPerformanceTable() {
       const result = await fetchMetaCampaignPerformance(days);
       if (result.ok) {
         setRows(result.rows);
+        setWindow(result.window);
       } else {
         setError(result.error);
       }
@@ -85,7 +90,7 @@ export function MetaCampaignPerformanceTable() {
     <div className="flex flex-col gap-2">
       <Card padding="none">
         <div className="p-5">
-          <SectionHead title="Campaign performance" subtitle={windowSubtitle(selected)} right={selector} />
+          <SectionHead title="Campaign performance" subtitle={windowSubtitle(selected, window)} right={selector} />
         </div>
         <DataTable>
           <DataTableHead>
@@ -110,8 +115,44 @@ export function MetaCampaignPerformanceTable() {
                       {row.campaignName}
                     </span>
                   </DataTableCell>
-                  <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
-                  <DataTableCell className="font-bold tabular-nums">{row.paid}</DataTableCell>
+                  <DataTableCell className="tabular-nums">
+                    {row.leads > 0 ? (
+                      <Link
+                        href={buildPerformanceDrilldownHref({
+                          mode: 'leads',
+                          sourceKey: 'meta_influenced',
+                          campaignId: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID ? undefined : row.campaignId,
+                          campaignUnattributed: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID,
+                          since: window?.since,
+                          until: window?.until,
+                        })}
+                        className="text-brand underline-offset-2 hover:underline"
+                      >
+                        {row.leads.toLocaleString()}
+                      </Link>
+                    ) : (
+                      '0'
+                    )}
+                  </DataTableCell>
+                  <DataTableCell className="font-bold tabular-nums">
+                    {row.paid > 0 ? (
+                      <Link
+                        href={buildPerformanceDrilldownHref({
+                          mode: 'purchases',
+                          sourceKey: 'meta_influenced',
+                          campaignId: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID ? undefined : row.campaignId,
+                          campaignUnattributed: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID,
+                          since: window?.since,
+                          until: window?.until,
+                        })}
+                        className="text-brand underline-offset-2 hover:underline"
+                      >
+                        {row.paid}
+                      </Link>
+                    ) : (
+                      '0'
+                    )}
+                  </DataTableCell>
                   <DataTableCell>
                     <div className="flex items-center gap-2">
                       <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">

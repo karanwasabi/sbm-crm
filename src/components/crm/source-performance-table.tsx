@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
@@ -9,30 +10,50 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
+import type { PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
 import type { ReactNode } from 'react';
-import type { LeadMedium, SourcePerformanceRow } from '@/types/crm';
 
 type SourcePerformanceTableProps = {
   rows: SourcePerformanceRow[];
+  window?: PerformanceReportMeta | null;
   subtitle?: string;
   headerRight?: ReactNode;
 };
 
-const mediumTone: Record<LeadMedium, 'paid' | 'organic' | 'offline'> = {
+const mediumTone: Record<SourcePerformanceRow['medium'], 'paid' | 'organic' | 'offline'> = {
   paid: 'paid',
   organic: 'organic',
   offline: 'offline',
 };
 
 const DEFAULT_SUBTITLE =
-  'Lead volume and purchases by source. Meta includes influenced conversions across channels; CPL and CAC use synced ad spend.';
+  'Leads by created_at · Purchases by paid_at (IST). Meta row includes checkouts + renewals. CVR = leads created in window who paid in window.';
 
 function formatRupees(value: number | null): string {
   if (value == null) return '—';
   return `₹${value.toLocaleString('en-IN')}`;
 }
 
-export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePerformanceTableProps) {
+function DrilldownCell({ href, value, bold }: { href: string; value: number; bold?: boolean }) {
+  if (value <= 0) {
+    return <span className={bold ? 'font-bold tabular-nums' : 'tabular-nums'}>{value}</span>;
+  }
+  return (
+    <Link
+      href={href}
+      className={
+        bold
+          ? 'font-bold text-brand tabular-nums underline-offset-2 hover:underline'
+          : 'text-brand tabular-nums underline-offset-2 hover:underline'
+      }
+    >
+      {value.toLocaleString()}
+    </Link>
+  );
+}
+
+export function SourcePerformanceTable({ rows, window, subtitle, headerRight }: SourcePerformanceTableProps) {
   return (
     <Card padding="none">
       <div className="p-5">
@@ -53,19 +74,40 @@ export function SourcePerformanceTable({ rows, subtitle, headerRight }: SourcePe
             </DataTableRow>
           ) : (
             rows.map((row) => (
-              <DataTableRow key={row.source}>
+              <DataTableRow key={row.sourceKey}>
                 <DataTableCell className="font-semibold text-slate-800">{row.source}</DataTableCell>
                 <DataTableCell>
                   <Pill tone={mediumTone[row.medium]}>{row.medium}</Pill>
                 </DataTableCell>
-                <DataTableCell className="tabular-nums">{row.leads.toLocaleString()}</DataTableCell>
-                <DataTableCell className="font-bold tabular-nums">{row.paid}</DataTableCell>
+                <DataTableCell>
+                  <DrilldownCell
+                    href={buildPerformanceDrilldownHref({
+                      mode: 'leads',
+                      sourceKey: row.sourceKey,
+                      since: window?.since,
+                      until: window?.until,
+                    })}
+                    value={row.leads}
+                  />
+                </DataTableCell>
+                <DataTableCell>
+                  <DrilldownCell
+                    href={buildPerformanceDrilldownHref({
+                      mode: 'purchases',
+                      sourceKey: row.sourceKey,
+                      since: window?.since,
+                      until: window?.until,
+                    })}
+                    value={row.paid}
+                    bold
+                  />
+                </DataTableCell>
                 <DataTableCell>
                   <div className="flex items-center gap-2">
                     <div className="relative h-1.5 w-[60px] overflow-hidden rounded-full bg-slate-100">
                       <div
                         className="absolute top-0 bottom-0 left-0 rounded-full bg-brand"
-                        style={{ width: `${row.cvr * 200}%` }}
+                        style={{ width: `${Math.min(row.cvr * 200, 100)}%` }}
                       />
                     </div>
                     <span className="text-xs font-bold text-slate-800 tabular-nums">{Math.round(row.cvr * 100)}%</span>
