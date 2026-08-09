@@ -449,6 +449,21 @@ export type MetaIntegrationStatus = {
   capiConfigured: boolean;
 };
 
+export type MetaPurchaseDailyRow = {
+  day: string;
+  purchases: number;
+  capiSent: number;
+  capiPendingOrFailed: number;
+  capiNotRecorded: number;
+};
+
+export type MetaPurchaseDailyReport = {
+  timezone: string;
+  windowDays: number;
+  rows: MetaPurchaseDailyRow[];
+  totalPurchases: number;
+};
+
 export type RazorpayIntegrationStatus = {
   configured: boolean;
   webhookConfigured: boolean;

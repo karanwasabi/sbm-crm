@@ -6,7 +6,13 @@ import { IntakeFormsTab } from '@/components/leads/intake-forms-tab';
 import { ManualLeadTab } from '@/components/leads/manual-lead-tab';
 import { MetaIntakeTab } from '@/components/leads/meta-intake-tab';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
-import type { InboundLead, IntakeForm, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
+import type {
+  InboundLead,
+  IntakeForm,
+  MetaIntegrationStatus,
+  MetaPurchaseDailyReport,
+  TagSuggestion,
+} from '@/types/crm';
 import type { Country } from '@/types/reference';
 
 const LEAD_INTAKE_TABS = ['Manual Lead', 'Intake Forms', 'Integrations'] as const;
@@ -39,6 +45,8 @@ type LeadIntakeViewProps = {
   countries: Country[];
   integrationStatus: MetaIntegrationStatus;
   inboundLeads: InboundLead[];
+  purchaseDaily: MetaPurchaseDailyReport | null;
+  purchaseDailyError?: string | null;
   tagSuggestions: TagSuggestion[];
   intakeForms: IntakeForm[];
   initialTab?: string;
@@ -51,6 +59,8 @@ export function LeadIntakeView({
   countries,
   integrationStatus,
   inboundLeads,
+  purchaseDaily,
+  purchaseDailyError,
   tagSuggestions,
   intakeForms,
   initialTab,
@@ -92,7 +102,12 @@ export function LeadIntakeView({
           />
         ) : null}
         {activeTab === 'Integrations' ? (
-          <MetaIntakeTab integrationStatus={integrationStatus} inboundLeads={inboundLeads} />
+          <MetaIntakeTab
+            integrationStatus={integrationStatus}
+            inboundLeads={inboundLeads}
+            purchaseDaily={purchaseDaily}
+            purchaseDailyError={purchaseDailyError}
+          />
         ) : null}
       </div>
     </CrmPageLayout>

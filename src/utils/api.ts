@@ -3027,6 +3027,37 @@ export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').
   };
 }
 
+export async function getMetaPurchaseDaily(days = 30): Promise<import('@/types/crm').MetaPurchaseDailyReport> {
+  const response = await requireApiFetch(`/admin/integrations/meta/purchase-daily?days=${days}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load meta purchase daily report.', response.status);
+  }
+  const payload = (await response.json()) as {
+    timezone: string;
+    window_days: number;
+    total_purchases: number;
+    rows: Array<{
+      day: string;
+      purchases: number;
+      capi_sent: number;
+      capi_pending_or_failed: number;
+      capi_not_recorded: number;
+    }>;
+  };
+  return {
+    timezone: payload.timezone,
+    windowDays: payload.window_days,
+    totalPurchases: payload.total_purchases,
+    rows: payload.rows.map((row) => ({
+      day: row.day,
+      purchases: row.purchases,
+      capiSent: row.capi_sent,
+      capiPendingOrFailed: row.capi_pending_or_failed,
+      capiNotRecorded: row.capi_not_recorded,
+    })),
+  };
+}
+
 export async function getRazorpayIntegrationStatus(): Promise<import('@/types/crm').RazorpayIntegrationStatus> {
   const response = await requireApiFetch('/admin/integrations/razorpay/status');
   if (!response.ok) {

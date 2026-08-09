@@ -1,6 +1,12 @@
 import { LeadIntakeView } from '@/components/views/lead-intake-view';
 import { isMarketingOnly } from '@/lib/access';
-import type { InboundLead, IntakeForm, MetaIntegrationStatus, TagSuggestion } from '@/types/crm';
+import type {
+  InboundLead,
+  IntakeForm,
+  MetaIntegrationStatus,
+  MetaPurchaseDailyReport,
+  TagSuggestion,
+} from '@/types/crm';
 import type { Country } from '@/types/reference';
 import { getMyAccess, listIntakeForms, listTagSuggestions } from '@/utils/api';
 import { fetchCountries } from '@/utils/api';
@@ -38,6 +44,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
   let countries: Country[] = [];
   let integrationStatus = EMPTY_STATUS;
   let inboundLeads: InboundLead[] = [];
+  let purchaseDaily: MetaPurchaseDailyReport | null = null;
+  let purchaseDailyError: string | null = null;
   let tagSuggestions: TagSuggestion[] = [];
   let intakeForms: IntakeForm[] = [];
 
@@ -49,11 +57,20 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
 
   if (!isMarketing) {
     try {
-      const { getMetaIntegrationStatus, getMetaInboundLeads } = await import('@/utils/api');
-      [integrationStatus, inboundLeads] = await Promise.all([getMetaIntegrationStatus(), getMetaInboundLeads(20)]);
-    } catch {
+      const { getMetaIntegrationStatus, getMetaInboundLeads, getMetaPurchaseDaily } = await import('@/utils/api');
+      const [status, leads, daily] = await Promise.all([
+        getMetaIntegrationStatus(),
+        getMetaInboundLeads(20),
+        getMetaPurchaseDaily(30),
+      ]);
+      integrationStatus = status;
+      inboundLeads = leads;
+      purchaseDaily = daily;
+    } catch (error) {
       integrationStatus = EMPTY_STATUS;
       inboundLeads = [];
+      purchaseDaily = null;
+      purchaseDailyError = error instanceof Error ? error.message : 'Failed to load meta purchase report.';
     }
   }
 
@@ -74,6 +91,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       countries={countries}
       integrationStatus={integrationStatus}
       inboundLeads={inboundLeads}
+      purchaseDaily={purchaseDaily}
+      purchaseDailyError={purchaseDailyError}
       tagSuggestions={tagSuggestions}
       intakeForms={intakeForms}
       initialTab={tab}
