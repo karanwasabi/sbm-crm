@@ -20,11 +20,15 @@ import { PerformanceWindowSelector } from '@/components/crm/performance-window-s
 import { Card } from '@/components/ui/card';
 import { usePerformanceTableState } from '@/hooks/use-performance-table-state';
 import { humanizeMarketingLabel } from '@/lib/marketing-labels';
-import { formatPerformanceDateRange, type PerformanceWindowPreset } from '@/lib/performance-display';
+import {
+  formatMarketingActivityDate,
+  formatPerformanceDateRange,
+  type PerformanceWindowPreset,
+} from '@/lib/performance-display';
 import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
 import type { AdPerformanceRow, PerformanceReportMeta } from '@/types/crm';
 
-type AdSortKey = 'ad' | 'adset' | 'campaign' | 'program' | 'leads' | 'paid' | 'cvr';
+type AdSortKey = 'ad' | 'adset' | 'campaign' | 'program' | 'leads' | 'paid' | 'cvr' | 'lastActivity';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -45,6 +49,11 @@ function DrilldownCell({ href, value, bold }: { href: string; value: number; bol
       {value.toLocaleString()}
     </Link>
   );
+}
+
+function adActivityLabel(at?: string | null): string | undefined {
+  const formatted = formatMarketingActivityDate(at);
+  return formatted ? `Last active · ${formatted}` : undefined;
 }
 
 function adSearchHaystack(row: AdPerformanceRow): string {
@@ -82,6 +91,8 @@ export function AdPerformanceTable() {
         return row.paid;
       case 'cvr':
         return row.cvr;
+      case 'lastActivity':
+        return row.lastActivityAt ? Date.parse(row.lastActivityAt) : 0;
       default:
         return 0;
     }
@@ -89,7 +100,7 @@ export function AdPerformanceTable() {
 
   const table = usePerformanceTableState<AdPerformanceRow, AdSortKey>({
     rows,
-    defaultSortKey: 'leads',
+    defaultSortKey: 'lastActivity',
     filterRow,
     getSortValue,
   });
@@ -225,7 +236,11 @@ export function AdPerformanceTable() {
               table.pageRows.map((row) => (
                 <DataTableRow key={`${row.adContent}::${row.program}`}>
                   <DataTableCell className={`${perfCell} align-top font-semibold text-slate-800`}>
-                    <MarketingLabelCell value={row.adContent} />
+                    <MarketingLabelCell
+                      value={row.adContent}
+                      secondary={adActivityLabel(row.lastActivityAt)}
+                      title={`UTM content: ${row.adContent}`}
+                    />
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top text-slate-600`}>
                     <MarketingLabelCell value={row.adset} />

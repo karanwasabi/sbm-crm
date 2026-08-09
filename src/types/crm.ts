@@ -441,6 +441,7 @@ export type MetaCampaignPerformanceRow = {
   cvr: number;
   cpl: number | null;
   cac: number | null;
+  lastActivityAt?: string | null;
 };
 
 export type AdPerformanceRow = {
@@ -451,6 +452,7 @@ export type AdPerformanceRow = {
   leads: number;
   paid: number;
   cvr: number;
+  lastActivityAt?: string | null;
 };
 
 export type MetaIntegrationStatus = {

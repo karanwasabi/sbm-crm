@@ -20,13 +20,17 @@ import { PerformanceWindowSelector } from '@/components/crm/performance-window-s
 import { Card } from '@/components/ui/card';
 import { usePerformanceTableState } from '@/hooks/use-performance-table-state';
 import { humanizeMarketingLabel } from '@/lib/marketing-labels';
-import { formatPerformanceDateRange, type PerformanceWindowPreset } from '@/lib/performance-display';
+import {
+  formatMarketingActivityDate,
+  formatPerformanceDateRange,
+  type PerformanceWindowPreset,
+} from '@/lib/performance-display';
 import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
 import type { MetaCampaignPerformanceRow, PerformanceReportMeta } from '@/types/crm';
 
 const UNATTRIBUTED_CAMPAIGN_ID = '__unattributed__';
 
-type CampaignSortKey = 'campaign' | 'leads' | 'paid' | 'cvr' | 'spend' | 'cpl' | 'cac';
+type CampaignSortKey = 'campaign' | 'leads' | 'paid' | 'cvr' | 'spend' | 'cpl' | 'cac' | 'lastActivity';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -36,6 +40,11 @@ const rupeeFormatter = new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0
 function formatRupees(value: number | null): string {
   if (value == null) return '—';
   return `₹${rupeeFormatter.format(value)}`;
+}
+
+function campaignActivityLabel(at?: string | null): string | undefined {
+  const formatted = formatMarketingActivityDate(at);
+  return formatted ? `Last active · ${formatted}` : undefined;
 }
 
 function campaignSearchHaystack(row: MetaCampaignPerformanceRow): string {
@@ -70,6 +79,8 @@ export function MetaCampaignPerformanceTable() {
         return row.cpl ?? -1;
       case 'cac':
         return row.cac ?? -1;
+      case 'lastActivity':
+        return row.lastActivityAt ? Date.parse(row.lastActivityAt) : 0;
       default:
         return 0;
     }
@@ -77,7 +88,7 @@ export function MetaCampaignPerformanceTable() {
 
   const table = usePerformanceTableState<MetaCampaignPerformanceRow, CampaignSortKey>({
     rows,
-    defaultSortKey: 'leads',
+    defaultSortKey: 'lastActivity',
     filterRow,
     getSortValue,
   });
@@ -209,7 +220,15 @@ export function MetaCampaignPerformanceTable() {
               table.pageRows.map((row) => (
                 <DataTableRow key={row.campaignId}>
                   <DataTableCell className={`${perfCell} align-top font-semibold text-slate-800`}>
-                    <MarketingLabelCell value={row.campaignName} secondary={row.campaignId} />
+                    <MarketingLabelCell
+                      value={row.campaignName}
+                      secondary={campaignActivityLabel(row.lastActivityAt)}
+                      title={
+                        row.campaignId === UNATTRIBUTED_CAMPAIGN_ID
+                          ? row.campaignName
+                          : `${row.campaignName}\nMeta campaign ID: ${row.campaignId}`
+                      }
+                    />
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top whitespace-nowrap tabular-nums`}>
                     {row.leads > 0 ? (

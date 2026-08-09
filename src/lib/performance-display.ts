@@ -17,19 +17,6 @@ export function performanceWindowQueryParam(days: PerformanceWindowPreset): stri
   return String(days);
 }
 
-function formatShortDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return iso.slice(0, 10);
-  }
-  return date.toLocaleDateString('en-IN', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Kolkata',
-  });
-}
-
 export function formatPerformanceDateRange(window: PerformanceWindow | null, preset: PerformanceWindowPreset): string {
   if (preset === 'today') {
     return 'Today';
@@ -47,4 +34,24 @@ export function formatPerformanceDateRange(window: PerformanceWindow | null, pre
     return 'Last year';
   }
   return `Last ${preset} days`;
+}
+
+export function formatMarketingActivityDate(iso: string | null | undefined): string | null {
+  if (!iso?.trim()) {
+    return null;
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso.slice(0, 10);
+  }
+  return date.toLocaleDateString('en-IN', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'Asia/Kolkata',
+  });
+}
+
+function formatShortDate(iso: string): string {
+  return formatMarketingActivityDate(iso) ?? iso.slice(0, 10);
 }

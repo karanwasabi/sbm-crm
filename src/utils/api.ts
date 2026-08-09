@@ -3173,6 +3173,7 @@ export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset)
       cvr: number;
       cpl: number | null;
       cac: number | null;
+      last_activity_at?: string | null;
     }>;
     timezone?: string;
     since?: string;
@@ -3188,6 +3189,7 @@ export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset)
       cvr: row.cvr,
       cpl: row.cpl,
       cac: row.cac,
+      lastActivityAt: row.last_activity_at ?? null,
     })),
     window: {
       timezone: payload.timezone ?? 'Asia/Kolkata',
@@ -3215,6 +3217,7 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
       leads: number;
       paid: number;
       cvr: number;
+      last_activity_at?: string | null;
     }>;
     timezone?: string;
     since?: string;
@@ -3229,6 +3232,7 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
       leads: row.leads,
       paid: row.paid,
       cvr: row.cvr,
+      lastActivityAt: row.last_activity_at ?? null,
     })),
     window: {
       timezone: payload.timezone ?? 'Asia/Kolkata',
