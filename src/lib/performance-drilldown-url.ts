@@ -10,6 +10,7 @@ export type PerformanceDrilldownParams = {
   campaignId?: string;
   campaignUnattributed?: boolean;
   utmContent?: string;
+  offlineCrmPaid?: boolean;
   since?: string | null;
   until?: string | null;
 };
@@ -28,6 +29,9 @@ export function buildPerformanceDrilldownHref(params: PerformanceDrilldownParams
   }
   if (params.utmContent) {
     search.set('utm_content', params.utmContent);
+  }
+  if (params.offlineCrmPaid) {
+    search.set('offline_crm_paid', 'true');
   }
 
   if (params.mode === 'leads') {

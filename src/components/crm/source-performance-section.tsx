@@ -5,7 +5,7 @@ import { fetchSourcePerformance } from '@/app/(crm)/actions';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { SourcePerformanceTable } from '@/components/crm/source-performance-table';
 import { performanceWindowSubtitle } from '@/lib/performance-drilldown-url';
-import type { PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
+import type { OfflineMetaEnrollmentsSummary, PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
 
 type WindowOption = { label: string; days: number | 'all' };
 
@@ -18,21 +18,24 @@ const WINDOW_OPTIONS: WindowOption[] = [
 
 function windowSubtitle(days: number | 'all', window: PerformanceReportMeta | null): string {
   const range = performanceWindowSubtitle(window, days);
-  return `Leads by created_at · Purchases by paid_at · CVR = in-window conversion · ${range}. Meta Purchases include checkouts + renewals. Rows are not summable.`;
+  return `Leads by created_at · Purchases by paid_at · CVR = in-window conversion · ${range}. Meta Purchases include checkouts + renewals. Offline Meta enrollments are shown separately below. Rows are not summable.`;
 }
 
 type SourcePerformanceSectionProps = {
   initialRows: SourcePerformanceRow[];
+  initialOfflineMetaEnrollments?: OfflineMetaEnrollmentsSummary | null;
   initialWindow?: PerformanceReportMeta | null;
   initialDays?: number | 'all';
 };
 
 export function SourcePerformanceSection({
   initialRows,
+  initialOfflineMetaEnrollments = null,
   initialWindow = null,
   initialDays = 90,
 }: SourcePerformanceSectionProps) {
   const [rows, setRows] = useState(initialRows);
+  const [offlineMetaEnrollments, setOfflineMetaEnrollments] = useState(initialOfflineMetaEnrollments);
   const [window, setWindow] = useState<PerformanceReportMeta | null>(initialWindow);
   const [selected, setSelected] = useState<number | 'all'>(initialDays);
   const [error, setError] = useState<string | null>(null);
@@ -47,6 +50,7 @@ export function SourcePerformanceSection({
       if (result.ok) {
         setRows(result.rows);
         setWindow(result.window);
+        setOfflineMetaEnrollments(result.offlineMetaEnrollments);
       } else {
         setError(result.error);
       }
@@ -73,6 +77,7 @@ export function SourcePerformanceSection({
       <SourcePerformanceTable
         rows={rows}
         window={window}
+        offlineMetaEnrollments={offlineMetaEnrollments}
         subtitle={windowSubtitle(selected, window)}
         headerRight={selector}
       />

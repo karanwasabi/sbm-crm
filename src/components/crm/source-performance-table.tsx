@@ -11,12 +11,13 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
-import type { PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
+import type { OfflineMetaEnrollmentsSummary, PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
 import type { ReactNode } from 'react';
 
 type SourcePerformanceTableProps = {
   rows: SourcePerformanceRow[];
   window?: PerformanceReportMeta | null;
+  offlineMetaEnrollments?: OfflineMetaEnrollmentsSummary | null;
   subtitle?: string;
   headerRight?: ReactNode;
 };
@@ -53,7 +54,13 @@ function DrilldownCell({ href, value, bold }: { href: string; value: number; bol
   );
 }
 
-export function SourcePerformanceTable({ rows, window, subtitle, headerRight }: SourcePerformanceTableProps) {
+export function SourcePerformanceTable({
+  rows,
+  window,
+  offlineMetaEnrollments,
+  subtitle,
+  headerRight,
+}: SourcePerformanceTableProps) {
   return (
     <Card padding="none">
       <div className="p-5">
@@ -126,6 +133,36 @@ export function SourcePerformanceTable({ rows, window, subtitle, headerRight }: 
               </DataTableRow>
             ))
           )}
+          {offlineMetaEnrollments && offlineMetaEnrollments.count > 0 ? (
+            <DataTableRow className="border-t-2 border-slate-200 bg-slate-50/80">
+              <DataTableCell className="font-semibold text-slate-700">
+                <span className="block">Offline Meta enrollments</span>
+                <span className="mt-0.5 block text-xs font-normal text-slate-500">
+                  CRM offline enrolls · excluded from Purchases above
+                </span>
+              </DataTableCell>
+              <DataTableCell>
+                <Pill tone="offline">offline</Pill>
+              </DataTableCell>
+              <DataTableCell className="text-slate-400">—</DataTableCell>
+              <DataTableCell>
+                <DrilldownCell
+                  href={buildPerformanceDrilldownHref({
+                    mode: 'purchases',
+                    sourceKey: 'meta_influenced',
+                    offlineCrmPaid: true,
+                    since: window?.since,
+                    until: window?.until,
+                  })}
+                  value={offlineMetaEnrollments.count}
+                  bold
+                />
+              </DataTableCell>
+              <DataTableCell className="text-slate-400">—</DataTableCell>
+              <DataTableCell className="text-slate-400">—</DataTableCell>
+              <DataTableCell className="text-slate-400">—</DataTableCell>
+            </DataTableRow>
+          ) : null}
         </DataTableBody>
       </DataTable>
     </Card>

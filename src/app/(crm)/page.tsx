@@ -2,13 +2,14 @@ import { redirectMarketingToDatabase } from '@/lib/marketing-access';
 import { DashboardView } from '@/components/views/dashboard-view';
 import { emptyDashboardAnalytics } from '@/lib/dashboard-analytics';
 import { getDashboardAnalytics, getSourcePerformance } from '@/utils/api';
-import type { PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
+import type { OfflineMetaEnrollmentsSummary, PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
 
 export default async function DashboardPage() {
   await redirectMarketingToDatabase();
 
   let analytics = emptyDashboardAnalytics();
   let sourcePerformance: SourcePerformanceRow[] = [];
+  let sourcePerformanceOfflineMeta: OfflineMetaEnrollmentsSummary | null = null;
   let sourcePerformanceWindow: PerformanceReportMeta | null = null;
   let analyticsError: string | null = null;
 
@@ -21,6 +22,7 @@ export default async function DashboardPage() {
   try {
     const perf = await getSourcePerformance();
     sourcePerformance = perf.rows;
+    sourcePerformanceOfflineMeta = perf.offlineMetaEnrollments;
     sourcePerformanceWindow = perf.window;
   } catch {
     if (!analyticsError) {
@@ -32,6 +34,7 @@ export default async function DashboardPage() {
     <DashboardView
       analytics={analytics}
       sourcePerformance={sourcePerformance}
+      sourcePerformanceOfflineMeta={sourcePerformanceOfflineMeta}
       sourcePerformanceWindow={sourcePerformanceWindow}
       analyticsError={analyticsError}
     />

@@ -43,6 +43,7 @@ export function buildLeadListSearchParams(
   if (filters.utmContent) params.set('utm_content', filters.utmContent);
   if (filters.paidFrom) params.set('paid_from', filters.paidFrom);
   if (filters.paidTo) params.set('paid_to', filters.paidTo);
+  if (filters.offlineCrmPaid) params.set('offline_crm_paid', 'true');
   if (page > 1) params.set('page', String(page));
   if (pageSize !== 50) params.set('page_size', String(pageSize));
 

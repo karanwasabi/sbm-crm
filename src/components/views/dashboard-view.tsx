@@ -21,6 +21,7 @@ import type {
   FunnelStep,
   GeoItem,
   LifecycleStage,
+  OfflineMetaEnrollmentsSummary,
   PerformanceReportMeta,
   SourcePerformanceRow,
 } from '@/types/crm';
@@ -32,6 +33,7 @@ const GEO_COLORS = ['#5C65CF', '#8338EC', '#0EA5E9', '#10B981', '#FFB703', '#90A
 type DashboardViewProps = {
   analytics: DashboardAnalytics;
   sourcePerformance: SourcePerformanceRow[];
+  sourcePerformanceOfflineMeta?: OfflineMetaEnrollmentsSummary | null;
   sourcePerformanceWindow?: PerformanceReportMeta | null;
   analyticsError?: string | null;
 };
@@ -76,6 +78,7 @@ function geoTotalLabel(analytics: DashboardAnalytics): string {
 export function DashboardView({
   analytics,
   sourcePerformance,
+  sourcePerformanceOfflineMeta = null,
   sourcePerformanceWindow = null,
   analyticsError,
 }: DashboardViewProps) {
@@ -147,6 +150,7 @@ export function DashboardView({
 
       <SourcePerformanceSection
         initialRows={sourcePerformance}
+        initialOfflineMetaEnrollments={sourcePerformanceOfflineMeta}
         initialWindow={sourcePerformanceWindow}
         initialDays={90}
       />

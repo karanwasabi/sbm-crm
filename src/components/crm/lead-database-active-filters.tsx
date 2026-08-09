@@ -186,6 +186,14 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       href: buildLeadDatabaseHref(filters, { utmContent: '' }),
     });
   }
+  if (filters.offlineCrmPaid) {
+    chips.push({
+      key: 'offline-crm-paid',
+      label: 'Enrollment type',
+      value: 'Offline CRM',
+      href: buildLeadDatabaseHref(filters, { offlineCrmPaid: false }),
+    });
+  }
   if (filters.updatedFrom || filters.updatedTo) {
     chips.push({
       key: 'updated',
@@ -222,6 +230,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
           addedTo: '',
           paidFrom: '',
           paidTo: '',
+          offlineCrmPaid: false,
           perfSource: '',
           metaCampaignId: '',
           metaCampaignUnattributed: false,

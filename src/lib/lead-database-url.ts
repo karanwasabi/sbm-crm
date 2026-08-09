@@ -28,6 +28,7 @@ export type LeadDatabaseFilters = {
   utmContent: string;
   paidFrom: string;
   paidTo: string;
+  offlineCrmPaid: boolean;
   sort: LeadDatabaseSort;
   order: LeadDatabaseSortOrder;
   hasUnseenSuggestions: boolean;
@@ -60,6 +61,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   utmContent: '',
   paidFrom: '',
   paidTo: '',
+  offlineCrmPaid: false,
   sort: 'created_at',
   order: 'desc',
   hasUnseenSuggestions: false,
@@ -167,6 +169,7 @@ export function parseLeadDatabaseFilters(
     utmContent: get('utm_content')?.trim() || '',
     paidFrom: get('paid_from')?.trim() || '',
     paidTo: get('paid_to')?.trim() || '',
+    offlineCrmPaid: get('offline_crm_paid') === 'true',
     page: parsePositiveInt(get('page'), 1),
     pageSize: parsePositiveInt(get('page_size'), 50),
   };
@@ -223,6 +226,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.utmContent) params.set('utm_content', merged.utmContent);
   if (merged.paidFrom) params.set('paid_from', merged.paidFrom);
   if (merged.paidTo) params.set('paid_to', merged.paidTo);
+  if (merged.offlineCrmPaid) params.set('offline_crm_paid', 'true');
   if (merged.page > 1) params.set('page', String(merged.page));
   if (merged.pageSize !== 50) params.set('page_size', String(merged.pageSize));
 

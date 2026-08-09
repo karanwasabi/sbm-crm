@@ -3,17 +3,29 @@
 import type {
   AdPerformanceRow,
   MetaCampaignPerformanceRow,
+  OfflineMetaEnrollmentsSummary,
   PerformanceReportMeta,
   SourcePerformanceRow,
 } from '@/types/crm';
 import { getAdPerformance, getMetaCampaignPerformance, getSourcePerformance } from '@/utils/api';
 
-export async function fetchSourcePerformance(
-  days: number | 'all'
-): Promise<{ ok: true; rows: SourcePerformanceRow[]; window: PerformanceReportMeta } | { ok: false; error: string }> {
+export async function fetchSourcePerformance(days: number | 'all'): Promise<
+  | {
+      ok: true;
+      rows: SourcePerformanceRow[];
+      window: PerformanceReportMeta;
+      offlineMetaEnrollments: OfflineMetaEnrollmentsSummary | null;
+    }
+  | { ok: false; error: string }
+> {
   try {
     const result = await getSourcePerformance(days);
-    return { ok: true, rows: result.rows, window: result.window };
+    return {
+      ok: true,
+      rows: result.rows,
+      window: result.window,
+      offlineMetaEnrollments: result.offlineMetaEnrollments,
+    };
   } catch {
     return { ok: false, error: 'Failed to load source performance.' };
   }

@@ -3102,10 +3102,9 @@ export async function getMetaInboundLeads(limit = 20): Promise<import('@/types/c
   }));
 }
 
-export async function getSourcePerformance(days?: number | 'all'): Promise<{
-  rows: import('@/types/crm').SourcePerformanceRow[];
-  window: import('@/types/crm').PerformanceReportMeta;
-}> {
+export async function getSourcePerformance(
+  days?: number | 'all'
+): Promise<import('@/types/crm').SourcePerformanceResult> {
   const query = days === undefined ? '' : `?days=${days === 'all' ? 'all' : Math.max(0, Math.trunc(days))}`;
   const response = await requireApiFetch(`/admin/analytics/source-performance${query}`);
   if (!response.ok) {
@@ -3122,6 +3121,7 @@ export async function getSourcePerformance(days?: number | 'all'): Promise<{
       cpl: number | null;
       cac: number | null;
     }>;
+    offline_meta_enrollments?: { count: number } | null;
     timezone?: string;
     since?: string;
     until?: string;
@@ -3142,6 +3142,7 @@ export async function getSourcePerformance(days?: number | 'all'): Promise<{
       since: payload.since ?? null,
       until: payload.until ?? null,
     },
+    offlineMetaEnrollments: payload.offline_meta_enrollments ? { count: payload.offline_meta_enrollments.count } : null,
   };
 }
 

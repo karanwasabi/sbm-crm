@@ -422,6 +422,16 @@ export type PerformanceReportMeta = {
   until: string | null;
 };
 
+export type OfflineMetaEnrollmentsSummary = {
+  count: number;
+};
+
+export type SourcePerformanceResult = {
+  rows: SourcePerformanceRow[];
+  window: PerformanceReportMeta;
+  offlineMetaEnrollments: OfflineMetaEnrollmentsSummary | null;
+};
+
 export type MetaCampaignPerformanceRow = {
   campaignId: string;
   campaignName: string;
