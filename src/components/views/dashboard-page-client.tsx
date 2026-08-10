@@ -23,9 +23,7 @@ import {
 } from '@/lib/dashboard-display';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import {
-  dashboardLeadKpiLabel,
   dashboardRevenueChartTitle,
-  dashboardRevenueKpiLabel,
   formatPerformanceDateRange,
   type PerformanceWindowPreset,
 } from '@/lib/performance-display';
@@ -74,21 +72,14 @@ function geoTotalLabel(analytics: DashboardAnalytics): string {
   return String(total);
 }
 
-function buildKpiItems(analytics: DashboardAnalytics, days: PerformanceWindowPreset): KpiStripItem[] {
+function buildKpiItems(analytics: DashboardAnalytics): KpiStripItem[] {
   const { kpis } = analytics;
-  const periodLabel = formatPerformanceDateRange(analytics.window ?? null, days);
-  const leadSub =
-    days === 'all'
-      ? `${formatLeadCount(kpis.totalLeads)} in CRM`
-      : days === 90
-        ? `${formatLeadCount(kpis.totalLeads)} in window`
-        : periodLabel;
 
   return [
     {
-      label: dashboardLeadKpiLabel(days),
+      label: 'New leads (7d)',
       value: formatLeadCount(kpis.newLeads7d),
-      sub: leadSub,
+      sub: `${formatLeadCount(kpis.totalLeads)} total in CRM`,
       trend: formatPeriodTrend(kpis.newLeads7d, kpis.newLeadsPrev7d),
       accent: '#5C65CF',
       icon: KPI_ICONS_BY_INDEX[0],
@@ -96,21 +87,21 @@ function buildKpiItems(analytics: DashboardAnalytics, days: PerformanceWindowPre
     {
       label: 'Inquiry → Paid',
       value: formatConversionRate(kpis.conversionRate),
-      sub: periodLabel,
+      sub: 'Registered and beyond',
       accent: '#10B981',
       icon: KPI_ICONS_BY_INDEX[1],
     },
     {
       label: 'Active members',
       value: formatLeadCount(kpis.activeMembers),
-      sub: `Across ${kpis.activeCohorts} cohort${kpis.activeCohorts === 1 ? '' : 's'} · current`,
+      sub: `Across ${kpis.activeCohorts} cohort${kpis.activeCohorts === 1 ? '' : 's'}`,
       accent: LIFECYCLE_STAGES.member.color,
       icon: KPI_ICONS_BY_INDEX[2],
     },
     {
-      label: dashboardRevenueKpiLabel(days),
+      label: 'Revenue MTD',
       value: formatThousandsFromPaise(kpis.revenueMtdPaise),
-      sub: periodLabel,
+      sub: 'This month',
       trend: formatPeriodTrend(kpis.revenueMtdPaise, kpis.revenuePrevMtdPaise),
       accent: '#FFB703',
       icon: KPI_ICONS_BY_INDEX[3],
@@ -118,7 +109,7 @@ function buildKpiItems(analytics: DashboardAnalytics, days: PerformanceWindowPre
     {
       label: 'Renewals at risk',
       value: formatLeadCount(kpis.renewalsAtRisk),
-      sub: 'Cancelling or payment issues · current',
+      sub: 'Cancelling or payment issues',
       accent: '#F43F5E',
       icon: KPI_ICONS_BY_INDEX[4],
     },
@@ -177,7 +168,7 @@ export function DashboardPageClient({ initialData, initialError = null }: Dashbo
         </p>
       ) : null}
 
-      <KpiStrip items={buildKpiItems(data.analytics, selected)} />
+      <KpiStrip items={buildKpiItems(data.analytics)} />
 
       <DashboardOverviewSection>
         <FunnelChart className="min-w-0" steps={buildFunnelSteps(data.analytics)} title="Lifecycle funnel" />
