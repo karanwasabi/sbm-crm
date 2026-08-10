@@ -1,42 +1,47 @@
 import { redirectMarketingToDatabase } from '@/lib/marketing-access';
-import { DashboardView } from '@/components/views/dashboard-view';
+import { DashboardPageClient } from '@/components/views/dashboard-page-client';
 import { emptyDashboardAnalytics } from '@/lib/dashboard-analytics';
-import { getDashboardAnalytics, getSourcePerformance } from '@/utils/api';
-import type { OfflineMetaEnrollmentsSummary, PerformanceReportMeta, SourcePerformanceRow } from '@/types/crm';
+import type { DashboardPageData } from '@/app/(crm)/actions';
+import { getAdPerformance, getDashboardAnalytics, getMetaCampaignPerformance, getSourcePerformance } from '@/utils/api';
+import type { PerformanceWindowPreset } from '@/lib/performance-display';
+
+const DEFAULT_WINDOW: PerformanceWindowPreset = 90;
 
 export default async function DashboardPage() {
   await redirectMarketingToDatabase();
 
-  let analytics = emptyDashboardAnalytics();
-  let sourcePerformance: SourcePerformanceRow[] = [];
-  let sourcePerformanceOfflineMeta: OfflineMetaEnrollmentsSummary | null = null;
-  let sourcePerformanceWindow: PerformanceReportMeta | null = null;
+  let initialData: DashboardPageData = {
+    analytics: emptyDashboardAnalytics(),
+    sourcePerformance: [],
+    sourcePerformanceOfflineMeta: null,
+    sourcePerformanceWindow: null,
+    campaignPerformance: [],
+    campaignPerformanceWindow: null,
+    adPerformance: [],
+    adPerformanceWindow: null,
+  };
   let analyticsError: string | null = null;
 
   try {
-    analytics = await getDashboardAnalytics();
+    const [analytics, source, campaigns, ads] = await Promise.all([
+      getDashboardAnalytics(DEFAULT_WINDOW),
+      getSourcePerformance(DEFAULT_WINDOW),
+      getMetaCampaignPerformance(DEFAULT_WINDOW),
+      getAdPerformance(DEFAULT_WINDOW),
+    ]);
+    initialData = {
+      analytics,
+      sourcePerformance: source.rows,
+      sourcePerformanceOfflineMeta: source.offlineMetaEnrollments,
+      sourcePerformanceWindow: source.window,
+      campaignPerformance: campaigns.rows,
+      campaignPerformanceWindow: campaigns.window,
+      adPerformance: ads.rows,
+      adPerformanceWindow: ads.window,
+    };
   } catch {
     analyticsError = 'Dashboard metrics could not be loaded. Check that the backend is running the latest version.';
   }
 
-  try {
-    const perf = await getSourcePerformance();
-    sourcePerformance = perf.rows;
-    sourcePerformanceOfflineMeta = perf.offlineMetaEnrollments;
-    sourcePerformanceWindow = perf.window;
-  } catch {
-    if (!analyticsError) {
-      analyticsError = 'Source performance could not be loaded.';
-    }
-  }
-
-  return (
-    <DashboardView
-      analytics={analytics}
-      sourcePerformance={sourcePerformance}
-      sourcePerformanceOfflineMeta={sourcePerformanceOfflineMeta}
-      sourcePerformanceWindow={sourcePerformanceWindow}
-      analyticsError={analyticsError}
-    />
-  );
+  return <DashboardPageClient initialData={initialData} initialError={analyticsError} />;
 }

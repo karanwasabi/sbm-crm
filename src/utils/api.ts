@@ -3258,8 +3258,11 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
   };
 }
 
-export async function getDashboardAnalytics(): Promise<import('@/types/crm').DashboardAnalytics> {
-  const response = await requireApiFetch('/admin/analytics/dashboard');
+export async function getDashboardAnalytics(
+  days?: PerformanceWindowPreset
+): Promise<import('@/types/crm').DashboardAnalytics> {
+  const query = performanceDaysQuery(days === undefined ? 90 : days);
+  const response = await requireApiFetch(`/admin/analytics/dashboard${query}`);
   if (!response.ok) {
     throw new ApiError('Failed to load dashboard analytics.', response.status);
   }
@@ -3279,6 +3282,9 @@ export async function getDashboardAnalytics(): Promise<import('@/types/crm').Das
     funnel: Array<{ stage: string; label: string; count: number }>;
     revenue_weekly: Array<{ week_label: string; revenue_lakhs: number }>;
     geo: Array<{ label: string; count: number; pct: number }>;
+    timezone?: string;
+    since?: string;
+    until?: string;
   };
   return {
     kpis: {
@@ -3299,6 +3305,11 @@ export async function getDashboardAnalytics(): Promise<import('@/types/crm').Das
       revenueLakhs: row.revenue_lakhs,
     })),
     geo: payload.geo,
+    window: {
+      timezone: payload.timezone ?? 'Asia/Kolkata',
+      since: payload.since ?? null,
+      until: payload.until ?? null,
+    },
   };
 }
 

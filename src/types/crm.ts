@@ -540,6 +540,7 @@ export type DashboardAnalytics = {
   funnel: Array<{ stage: string; label: string; count: number }>;
   revenueWeekly: Array<{ weekLabel: string; revenueLakhs: number }>;
   geo: Array<{ label: string; count: number; pct: number }>;
+  window?: PerformanceReportMeta;
 };
 
 export type GeoItem = {

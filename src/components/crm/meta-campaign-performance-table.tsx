@@ -101,12 +101,25 @@ function TrafficCell({ row }: { row: MetaCampaignPerformanceRow }) {
   );
 }
 
-export function MetaCampaignPerformanceTable() {
-  const [rows, setRows] = useState<MetaCampaignPerformanceRow[]>([]);
-  const [window, setWindow] = useState<PerformanceReportMeta | null>(null);
-  const [selected, setSelected] = useState<PerformanceWindowPreset>(90);
+export function MetaCampaignPerformanceTable({
+  days = 90,
+  rows: controlledRows,
+  window: controlledWindow,
+  hideWindowSelector = false,
+  pending: externalPending = false,
+}: {
+  days?: PerformanceWindowPreset;
+  rows?: MetaCampaignPerformanceRow[];
+  window?: PerformanceReportMeta | null;
+  hideWindowSelector?: boolean;
+  pending?: boolean;
+} = {}) {
+  const isControlled = controlledRows !== undefined;
+  const [rows, setRows] = useState<MetaCampaignPerformanceRow[]>(controlledRows ?? []);
+  const [window, setWindow] = useState<PerformanceReportMeta | null>(controlledWindow ?? null);
+  const [selected, setSelected] = useState<PerformanceWindowPreset>(days);
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(isControlled);
   const [isPending, startTransition] = useTransition();
 
   const filterRow = useCallback((row: MetaCampaignPerformanceRow, search: string) => {
@@ -160,16 +173,25 @@ export function MetaCampaignPerformanceTable() {
   }, []);
 
   useEffect(() => {
+    if (isControlled) {
+      setRows(controlledRows);
+      setWindow(controlledWindow ?? null);
+      setSelected(days);
+      setLoaded(true);
+      return;
+    }
     load(90);
-  }, [load]);
+  }, [isControlled, controlledRows, controlledWindow, days, load]);
 
-  const changeWindow = (days: PerformanceWindowPreset) => {
-    if (days === selected) return;
-    setSelected(days);
-    load(days);
+  const changeWindow = (nextDays: PerformanceWindowPreset) => {
+    if (hideWindowSelector || isControlled) return;
+    if (nextDays === selected) return;
+    setSelected(nextDays);
+    load(nextDays);
   };
 
   const subtitle = useMemo(() => formatPerformanceDateRange(window, selected), [window, selected]);
+  const tablePending = isControlled ? externalPending : isPending;
 
   return (
     <div className="flex flex-col gap-2">
@@ -180,7 +202,11 @@ export function MetaCampaignPerformanceTable() {
           search={
             <PerformanceTableSearch value={table.search} onChange={table.setSearch} placeholder="Search campaigns…" />
           }
-          controls={<PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />}
+          controls={
+            hideWindowSelector ? undefined : (
+              <PerformanceWindowSelector selected={selected} pending={tablePending} onChange={changeWindow} />
+            )
+          }
         />
         <DataTable tableClassName="table-fixed min-w-[1040px]">
           <colgroup>

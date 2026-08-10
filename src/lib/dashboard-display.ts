@@ -114,6 +114,17 @@ export function normalizeRevenueWeeks(
   rows: Array<{ weekLabel: string; revenueLakhs: number }>,
   slotCount = REVENUE_WEEK_SLOTS
 ): Array<{ week: string; revenue: number }> {
+  if (rows.length > 0) {
+    const mapped = rows.map((row) => ({
+      week: row.weekLabel,
+      revenue: lakhsToThousands(row.revenueLakhs),
+    }));
+    if (mapped.length <= slotCount) {
+      return mapped;
+    }
+    return mapped.slice(-slotCount);
+  }
+
   const trailing = rows.slice(-slotCount);
   const paddedCount = slotCount - trailing.length;
   const currentWeek = weekStartUTC(new Date());

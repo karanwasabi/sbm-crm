@@ -1,0 +1,219 @@
+'use client';
+
+import { Database, RefreshCw, Sparkles, Trophy, UserPlus } from 'lucide-react';
+import { useMemo, useState, useTransition } from 'react';
+import { fetchDashboardPageData, type DashboardPageData } from '@/app/(crm)/actions';
+import { BarChart } from '@/components/crm/charts/bar-chart';
+import { DonutChart } from '@/components/crm/charts/donut-chart';
+import { FunnelChart } from '@/components/crm/charts/funnel-chart';
+import { AdPerformanceTable } from '@/components/crm/ad-performance-table';
+import { DashboardOverviewSection } from '@/components/crm/dashboard-overview-section';
+import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
+import { MetaCampaignPerformanceTable } from '@/components/crm/meta-campaign-performance-table';
+import { PerformanceWindowSelector } from '@/components/crm/performance-window-selector';
+import { SourcePerformanceSection } from '@/components/crm/source-performance-section';
+import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { normalizeDashboardFunnel } from '@/lib/dashboard-analytics';
+import {
+  formatConversionRate,
+  formatLeadCount,
+  formatPeriodTrend,
+  formatThousandsFromPaise,
+  normalizeRevenueWeeks,
+} from '@/lib/dashboard-display';
+import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
+import {
+  dashboardLeadKpiLabel,
+  dashboardRevenueChartTitle,
+  dashboardRevenueKpiLabel,
+  formatPerformanceDateRange,
+  type PerformanceWindowPreset,
+} from '@/lib/performance-display';
+import type { DashboardAnalytics, FunnelStep, GeoItem, LifecycleStage } from '@/types/crm';
+
+const KPI_ICONS = [UserPlus, Trophy, Database, Sparkles, RefreshCw];
+const GEO_COLORS = ['#5C65CF', '#8338EC', '#0EA5E9', '#10B981', '#FFB703', '#90A1B9'];
+const DEFAULT_WINDOW: PerformanceWindowPreset = 90;
+
+const KPI_ICONS_BY_INDEX = KPI_ICONS;
+
+function funnelStageStyle(stage: string): { color: string; tint: string } {
+  if (stage in LIFECYCLE_STAGES) {
+    const config = LIFECYCLE_STAGES[stage as LifecycleStage];
+    return { color: config.color, tint: config.tint };
+  }
+  return { color: '#64748B', tint: '#F1F5F9' };
+}
+
+function buildFunnelSteps(analytics: DashboardAnalytics): FunnelStep[] {
+  return normalizeDashboardFunnel(analytics.funnel).map((step) => {
+    const { color, tint } = funnelStageStyle(step.stage);
+    return {
+      stage: step.stage,
+      label: step.label,
+      count: step.count,
+      color,
+      tint,
+    };
+  });
+}
+
+function buildGeoItems(analytics: DashboardAnalytics): GeoItem[] {
+  return analytics.geo.map((item, index) => ({
+    city: item.label,
+    pct: item.pct,
+    color: GEO_COLORS[index % GEO_COLORS.length],
+  }));
+}
+
+function geoTotalLabel(analytics: DashboardAnalytics): string {
+  const total = analytics.geo.reduce((sum, item) => sum + item.count, 0);
+  if (total >= 1000) {
+    return `${(total / 1000).toFixed(1)}k`;
+  }
+  return String(total);
+}
+
+function buildKpiItems(analytics: DashboardAnalytics, days: PerformanceWindowPreset): KpiStripItem[] {
+  const { kpis } = analytics;
+  const periodLabel = formatPerformanceDateRange(analytics.window ?? null, days);
+  const leadSub =
+    days === 'all'
+      ? `${formatLeadCount(kpis.totalLeads)} in CRM`
+      : days === 90
+        ? `${formatLeadCount(kpis.totalLeads)} in window`
+        : periodLabel;
+
+  return [
+    {
+      label: dashboardLeadKpiLabel(days),
+      value: formatLeadCount(kpis.newLeads7d),
+      sub: leadSub,
+      trend: formatPeriodTrend(kpis.newLeads7d, kpis.newLeadsPrev7d),
+      accent: '#5C65CF',
+      icon: KPI_ICONS_BY_INDEX[0],
+    },
+    {
+      label: 'Inquiry → Paid',
+      value: formatConversionRate(kpis.conversionRate),
+      sub: periodLabel,
+      accent: '#10B981',
+      icon: KPI_ICONS_BY_INDEX[1],
+    },
+    {
+      label: 'Active members',
+      value: formatLeadCount(kpis.activeMembers),
+      sub: `Across ${kpis.activeCohorts} cohort${kpis.activeCohorts === 1 ? '' : 's'} · current`,
+      accent: LIFECYCLE_STAGES.member.color,
+      icon: KPI_ICONS_BY_INDEX[2],
+    },
+    {
+      label: dashboardRevenueKpiLabel(days),
+      value: formatThousandsFromPaise(kpis.revenueMtdPaise),
+      sub: periodLabel,
+      trend: formatPeriodTrend(kpis.revenueMtdPaise, kpis.revenuePrevMtdPaise),
+      accent: '#FFB703',
+      icon: KPI_ICONS_BY_INDEX[3],
+    },
+    {
+      label: 'Renewals at risk',
+      value: formatLeadCount(kpis.renewalsAtRisk),
+      sub: 'Cancelling or payment issues · current',
+      accent: '#F43F5E',
+      icon: KPI_ICONS_BY_INDEX[4],
+    },
+  ];
+}
+
+type DashboardPageClientProps = {
+  initialData: DashboardPageData;
+  initialError?: string | null;
+};
+
+export function DashboardPageClient({ initialData, initialError = null }: DashboardPageClientProps) {
+  const [data, setData] = useState(initialData);
+  const [selected, setSelected] = useState<PerformanceWindowPreset>(DEFAULT_WINDOW);
+  const [error, setError] = useState<string | null>(initialError);
+  const [isPending, startTransition] = useTransition();
+
+  const changeWindow = (days: PerformanceWindowPreset) => {
+    if (days === selected) return;
+    setSelected(days);
+    setError(null);
+    startTransition(async () => {
+      const result = await fetchDashboardPageData(days);
+      if (result.ok) {
+        setData(result.data);
+      } else {
+        setError(result.error);
+      }
+    });
+  };
+
+  const periodSubtitle = useMemo(
+    () => formatPerformanceDateRange(data.analytics.window ?? null, selected),
+    [data.analytics.window, selected]
+  );
+
+  const revenueData = useMemo(
+    () => normalizeRevenueWeeks(data.analytics.revenueWeekly),
+    [data.analytics.revenueWeekly]
+  );
+  const revenueTitle = dashboardRevenueChartTitle(selected);
+
+  return (
+    <CrmPageLayout className="gap-4.5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-lg font-bold text-slate-900">Dashboard</h1>
+          <p className="text-xs font-medium text-slate-500">{periodSubtitle}</p>
+        </div>
+        <PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />
+      </div>
+
+      {error ? (
+        <p className="rounded-2xl border border-danger-press/20 bg-danger-press/5 px-4 py-3 text-sm font-medium text-danger-press">
+          {error}
+        </p>
+      ) : null}
+
+      <KpiStrip items={buildKpiItems(data.analytics, selected)} />
+
+      <DashboardOverviewSection>
+        <FunnelChart className="min-w-0" steps={buildFunnelSteps(data.analytics)} title="Lifecycle funnel" />
+        <BarChart className="min-w-0" data={revenueData} title={revenueTitle} />
+        <DonutChart
+          className="min-w-0"
+          items={buildGeoItems(data.analytics)}
+          totalLabel={geoTotalLabel(data.analytics)}
+          title="Geography"
+          maxLegendItems={5}
+        />
+      </DashboardOverviewSection>
+
+      <SourcePerformanceSection
+        rows={data.sourcePerformance}
+        offlineMetaEnrollments={data.sourcePerformanceOfflineMeta}
+        window={data.sourcePerformanceWindow}
+        subtitle={periodSubtitle}
+        hideWindowSelector
+      />
+
+      <MetaCampaignPerformanceTable
+        days={selected}
+        rows={data.campaignPerformance}
+        window={data.campaignPerformanceWindow}
+        hideWindowSelector
+        pending={isPending}
+      />
+
+      <AdPerformanceTable
+        days={selected}
+        rows={data.adPerformance}
+        window={data.adPerformanceWindow}
+        hideWindowSelector
+        pending={isPending}
+      />
+    </CrmPageLayout>
+  );
+}

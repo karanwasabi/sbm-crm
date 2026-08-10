@@ -70,12 +70,25 @@ function adSearchHaystack(row: AdPerformanceRow): string {
     .toLowerCase();
 }
 
-export function AdPerformanceTable() {
-  const [rows, setRows] = useState<AdPerformanceRow[]>([]);
-  const [window, setWindow] = useState<PerformanceReportMeta | null>(null);
-  const [selected, setSelected] = useState<PerformanceWindowPreset>(90);
+export function AdPerformanceTable({
+  days = 90,
+  rows: controlledRows,
+  window: controlledWindow,
+  hideWindowSelector = false,
+  pending: externalPending = false,
+}: {
+  days?: PerformanceWindowPreset;
+  rows?: AdPerformanceRow[];
+  window?: PerformanceReportMeta | null;
+  hideWindowSelector?: boolean;
+  pending?: boolean;
+} = {}) {
+  const isControlled = controlledRows !== undefined;
+  const [rows, setRows] = useState<AdPerformanceRow[]>(controlledRows ?? []);
+  const [window, setWindow] = useState<PerformanceReportMeta | null>(controlledWindow ?? null);
+  const [selected, setSelected] = useState<PerformanceWindowPreset>(days);
   const [error, setError] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(isControlled);
   const [isPending, startTransition] = useTransition();
 
   const filterRow = useCallback((row: AdPerformanceRow, search: string) => {
@@ -127,16 +140,25 @@ export function AdPerformanceTable() {
   }, []);
 
   useEffect(() => {
+    if (isControlled) {
+      setRows(controlledRows);
+      setWindow(controlledWindow ?? null);
+      setSelected(days);
+      setLoaded(true);
+      return;
+    }
     load(90);
-  }, [load]);
+  }, [isControlled, controlledRows, controlledWindow, days, load]);
 
-  const changeWindow = (days: PerformanceWindowPreset) => {
-    if (days === selected) return;
-    setSelected(days);
-    load(days);
+  const changeWindow = (nextDays: PerformanceWindowPreset) => {
+    if (hideWindowSelector || isControlled) return;
+    if (nextDays === selected) return;
+    setSelected(nextDays);
+    load(nextDays);
   };
 
   const subtitle = useMemo(() => formatPerformanceDateRange(window, selected), [window, selected]);
+  const tablePending = isControlled ? externalPending : isPending;
 
   return (
     <div className="flex flex-col gap-2">
@@ -151,7 +173,11 @@ export function AdPerformanceTable() {
               placeholder="Search ads, ad sets, campaigns…"
             />
           }
-          controls={<PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />}
+          controls={
+            hideWindowSelector ? undefined : (
+              <PerformanceWindowSelector selected={selected} pending={tablePending} onChange={changeWindow} />
+            )
+          }
         />
         <DataTable tableClassName="table-fixed min-w-[1040px]">
           <colgroup>
