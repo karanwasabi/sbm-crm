@@ -3,6 +3,9 @@ import { CardSkeleton } from '@/components/loading/card-skeleton';
 import { Skeleton } from '@/components/loading/skeleton';
 import { TableSkeleton } from '@/components/loading/table-skeleton';
 import { DASHBOARD_CHART_MIN_HEIGHT } from '@/components/crm/charts/dashboard-chart-card';
+import { cn } from '@/lib/cn';
+
+const CHART_BAR_HEIGHTS = ['h-10', 'h-14', 'h-[76px]', 'h-24'] as const;
 
 function KpiStripSkeleton() {
   return (
@@ -31,7 +34,10 @@ function ChartCardSkeleton() {
       <div className="flex min-h-[148px] flex-1 flex-col justify-end gap-3">
         <div className="flex h-[120px] items-end gap-2">
           {Array.from({ length: 8 }).map((_, index) => (
-            <Skeleton key={index} className="flex-1 rounded-t-md" style={{ height: `${40 + (index % 4) * 18}px` }} />
+            <Skeleton
+              key={index}
+              className={cn('flex-1 rounded-t-md', CHART_BAR_HEIGHTS[index % CHART_BAR_HEIGHTS.length])}
+            />
           ))}
         </div>
         <div className="grid grid-cols-8 gap-1 border-t border-slate-100 pt-2">
