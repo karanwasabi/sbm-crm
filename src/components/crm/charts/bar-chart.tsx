@@ -1,5 +1,12 @@
 import { cn } from '@/lib/cn';
-import { REVENUE_WEEK_SLOTS, chartNiceMax, chartYAxisTicks, formatChartThousands } from '@/lib/dashboard-display';
+import {
+  REVENUE_WEEK_SLOTS,
+  chartNiceMax,
+  chartYAxisTicks,
+  chooseChartRevenueUnit,
+  formatChartRevenueLabel,
+  formatChartRevenueValue,
+} from '@/lib/dashboard-display';
 import type { RevenueWeek } from '@/types/crm';
 import {
   DashboardChartBody,
@@ -30,16 +37,18 @@ export function BarChart({ data, title = 'Weekly revenue', className }: BarChart
   const yMax = chartNiceMax(maxValue);
   const yTicks = chartYAxisTicks(maxValue);
   const totalThousands = slots.reduce((sum, row) => sum + row.revenue, 0);
+  const unit = chooseChartRevenueUnit(maxValue);
 
   return (
     <DashboardChartCard className={className}>
-      <DashboardChartHeader title={title} metric={`₹${formatChartThousands(totalThousands)}k`} />
+      <DashboardChartHeader title={title} metric={formatChartRevenueLabel(totalThousands, unit)} />
       <DashboardChartBody>
         <div className="flex gap-2.5">
           <div className="flex shrink-0 flex-col justify-between text-right" style={{ height: CHART_HEIGHT }}>
             {[...yTicks].reverse().map((tick) => (
               <span key={tick} className="text-[10px] leading-none font-medium text-slate-400 tabular-nums">
-                {formatChartThousands(tick)}k
+                {formatChartRevenueValue(tick, unit)}
+                {unit}
               </span>
             ))}
           </div>
@@ -63,7 +72,7 @@ export function BarChart({ data, title = 'Weekly revenue', className }: BarChart
                     <div key={row.week} className="flex h-full flex-col items-center justify-end gap-1">
                       {row.revenue > 0 ? (
                         <span className="text-[10px] leading-none font-semibold text-slate-700 tabular-nums">
-                          ₹{formatChartThousands(row.revenue)}k
+                          {formatChartRevenueLabel(row.revenue, unit)}
                         </span>
                       ) : (
                         <span className="text-[10px] leading-none font-medium text-slate-300">—</span>
@@ -71,7 +80,7 @@ export function BarChart({ data, title = 'Weekly revenue', className }: BarChart
                       <div
                         className={cn('w-full max-w-10 rounded-t-md', row.revenue > 0 ? 'bg-brand' : 'bg-transparent')}
                         style={{ height: barHeight }}
-                        title={`Week of ${row.week}: ₹${formatChartThousands(row.revenue)}k`}
+                        title={`Week of ${row.week}: ${formatChartRevenueLabel(row.revenue, unit)}`}
                       />
                     </div>
                   );

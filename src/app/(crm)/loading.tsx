@@ -1,5 +1,5 @@
-import { GenericCrmPageSkeleton } from '@/components/loading/crm-page-skeleton';
+import { CrmRouteLoading } from '@/components/loading/crm-route-loading';
 
 export default function CrmLoading() {
-  return <GenericCrmPageSkeleton />;
+  return <CrmRouteLoading />;
 }

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { CrmContactProvider } from '@/components/layout/crm/crm-contact-context';
+import { CrmDashboardFilterProvider } from '@/components/layout/crm/crm-dashboard-filter-context';
 import { CrmLeadSummaryProvider } from '@/components/layout/crm/crm-lead-summary-context';
 import { CrmRenewalSummaryProvider } from '@/components/layout/crm/crm-renewal-summary-context';
 import { CrmSidebar } from '@/components/layout/crm/crm-sidebar';
@@ -42,17 +43,19 @@ export function CrmShell({
         <CrmContactProvider>
           <CrmLeadSummaryProvider>
             <CrmRenewalSummaryProvider>
-              <CrmProfileProvider profile={profile} profileError={profileError} roleLabel={staffUser.roleLabel}>
-                <div className="flex h-dvh min-w-0 bg-white">
-                  <CrmSidebar isSuperadmin={isSuperadmin} isMarketing={isMarketing} />
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <CrmTopbar staffUser={staffUser} whatsappSendsEnabled={whatsappSendsEnabled} />
-                    <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
-                      {children}
+              <CrmDashboardFilterProvider>
+                <CrmProfileProvider profile={profile} profileError={profileError} roleLabel={staffUser.roleLabel}>
+                  <div className="flex h-dvh min-w-0 bg-white">
+                    <CrmSidebar isSuperadmin={isSuperadmin} isMarketing={isMarketing} />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <CrmTopbar staffUser={staffUser} whatsappSendsEnabled={whatsappSendsEnabled} />
+                      <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
+                        {children}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </CrmProfileProvider>
+                </CrmProfileProvider>
+              </CrmDashboardFilterProvider>
             </CrmRenewalSummaryProvider>
           </CrmLeadSummaryProvider>
         </CrmContactProvider>

@@ -1,7 +1,7 @@
 'use client';
 
 import { Database, RefreshCw, Sparkles, Trophy, UserPlus } from 'lucide-react';
-import { useMemo, useState, useTransition } from 'react';
+import { useCallback, useMemo, useState, useTransition } from 'react';
 import { fetchDashboardPageData, type DashboardPageData } from '@/app/(crm)/actions';
 import { BarChart } from '@/components/crm/charts/bar-chart';
 import { DonutChart } from '@/components/crm/charts/donut-chart';
@@ -10,9 +10,10 @@ import { AdPerformanceTable } from '@/components/crm/ad-performance-table';
 import { DashboardOverviewSection } from '@/components/crm/dashboard-overview-section';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
 import { MetaCampaignPerformanceTable } from '@/components/crm/meta-campaign-performance-table';
-import { PerformanceWindowSelector } from '@/components/crm/performance-window-selector';
 import { SourcePerformanceSection } from '@/components/crm/source-performance-section';
+import { useRegisterDashboardFilter } from '@/components/layout/crm/crm-dashboard-filter-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { DashboardFilteredContentSkeleton } from '@/components/loading/dashboard-page-skeleton';
 import { normalizeDashboardFunnel } from '@/lib/dashboard-analytics';
 import {
   formatConversionRate,
@@ -127,24 +128,39 @@ export function DashboardPageClient({ initialData, initialError = null }: Dashbo
   const [error, setError] = useState<string | null>(initialError);
   const [isPending, startTransition] = useTransition();
 
-  const changeWindow = (days: PerformanceWindowPreset) => {
-    if (days === selected) return;
-    setSelected(days);
-    setError(null);
-    startTransition(async () => {
-      const result = await fetchDashboardPageData(days);
-      if (result.ok) {
-        setData(result.data);
-      } else {
-        setError(result.error);
-      }
-    });
-  };
+  const changeWindow = useCallback(
+    (days: PerformanceWindowPreset) => {
+      if (days === selected) return;
+      setSelected(days);
+      setError(null);
+      startTransition(async () => {
+        const result = await fetchDashboardPageData(days);
+        if (result.ok) {
+          setData(result.data);
+        } else {
+          setError(result.error);
+        }
+      });
+    },
+    [selected]
+  );
 
   const periodSubtitle = useMemo(
     () => formatPerformanceDateRange(data.analytics.window ?? null, selected),
     [data.analytics.window, selected]
   );
+
+  const dashboardFilter = useMemo(
+    () => ({
+      periodSubtitle,
+      selected,
+      pending: isPending,
+      onChange: changeWindow,
+    }),
+    [changeWindow, isPending, periodSubtitle, selected]
+  );
+
+  useRegisterDashboardFilter(dashboardFilter);
 
   const revenueData = useMemo(
     () => normalizeRevenueWeeks(data.analytics.revenueWeekly),
@@ -154,14 +170,6 @@ export function DashboardPageClient({ initialData, initialError = null }: Dashbo
 
   return (
     <CrmPageLayout className="gap-4.5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-lg font-bold text-slate-900">Dashboard</h1>
-          <p className="text-xs font-medium text-slate-500">{periodSubtitle}</p>
-        </div>
-        <PerformanceWindowSelector selected={selected} pending={isPending} onChange={changeWindow} />
-      </div>
-
       {error ? (
         <p className="rounded-2xl border border-danger-press/20 bg-danger-press/5 px-4 py-3 text-sm font-medium text-danger-press">
           {error}
@@ -170,41 +178,45 @@ export function DashboardPageClient({ initialData, initialError = null }: Dashbo
 
       <KpiStrip items={buildKpiItems(data.analytics)} />
 
-      <DashboardOverviewSection>
-        <FunnelChart className="min-w-0" steps={buildFunnelSteps(data.analytics)} title="Lifecycle funnel" />
-        <BarChart className="min-w-0" data={revenueData} title={revenueTitle} />
-        <DonutChart
-          className="min-w-0"
-          items={buildGeoItems(data.analytics)}
-          totalLabel={geoTotalLabel(data.analytics)}
-          title="Geography"
-          maxLegendItems={5}
-        />
-      </DashboardOverviewSection>
+      {isPending ? (
+        <DashboardFilteredContentSkeleton />
+      ) : (
+        <>
+          <DashboardOverviewSection>
+            <FunnelChart className="min-w-0" steps={buildFunnelSteps(data.analytics)} title="Lifecycle funnel" />
+            <BarChart className="min-w-0" data={revenueData} title={revenueTitle} />
+            <DonutChart
+              className="min-w-0"
+              items={buildGeoItems(data.analytics)}
+              totalLabel={geoTotalLabel(data.analytics)}
+              title="Geography"
+              maxLegendItems={5}
+            />
+          </DashboardOverviewSection>
 
-      <SourcePerformanceSection
-        rows={data.sourcePerformance}
-        offlineMetaEnrollments={data.sourcePerformanceOfflineMeta}
-        window={data.sourcePerformanceWindow}
-        subtitle={periodSubtitle}
-        hideWindowSelector
-      />
+          <SourcePerformanceSection
+            rows={data.sourcePerformance}
+            offlineMetaEnrollments={data.sourcePerformanceOfflineMeta}
+            window={data.sourcePerformanceWindow}
+            subtitle={periodSubtitle}
+            hideWindowSelector
+          />
 
-      <MetaCampaignPerformanceTable
-        days={selected}
-        rows={data.campaignPerformance}
-        window={data.campaignPerformanceWindow}
-        hideWindowSelector
-        pending={isPending}
-      />
+          <MetaCampaignPerformanceTable
+            days={selected}
+            rows={data.campaignPerformance}
+            window={data.campaignPerformanceWindow}
+            hideWindowSelector
+          />
 
-      <AdPerformanceTable
-        days={selected}
-        rows={data.adPerformance}
-        window={data.adPerformanceWindow}
-        hideWindowSelector
-        pending={isPending}
-      />
+          <AdPerformanceTable
+            days={selected}
+            rows={data.adPerformance}
+            window={data.adPerformanceWindow}
+            hideWindowSelector
+          />
+        </>
+      )}
     </CrmPageLayout>
   );
 }

@@ -44,6 +44,34 @@ export function formatChartThousands(value: number): string {
   return value.toFixed(1);
 }
 
+export type ChartRevenueUnit = 'k' | 'L';
+
+/** `valueThousands` is revenue in ₹ thousands (1 unit = ₹1,000). */
+export function chooseChartRevenueUnit(maxValueThousands: number): ChartRevenueUnit {
+  return maxValueThousands >= 100 ? 'L' : 'k';
+}
+
+export function formatChartRevenueValue(valueThousands: number, unit: ChartRevenueUnit): string {
+  if (valueThousands <= 0) {
+    return '0';
+  }
+  if (unit === 'L') {
+    const lakhs = valueThousands / 100;
+    if (lakhs >= 10) {
+      return lakhs.toFixed(1);
+    }
+    if (lakhs >= 1) {
+      return lakhs.toFixed(1);
+    }
+    return lakhs.toFixed(2);
+  }
+  return formatChartThousands(valueThousands);
+}
+
+export function formatChartRevenueLabel(valueThousands: number, unit: ChartRevenueUnit): string {
+  return `₹${formatChartRevenueValue(valueThousands, unit)}${unit}`;
+}
+
 export function chartNiceMax(value: number): number {
   if (value <= 0) {
     return 1;
