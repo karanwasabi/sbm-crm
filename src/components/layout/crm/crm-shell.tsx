@@ -8,6 +8,7 @@ import { CrmRenewalSummaryProvider } from '@/components/layout/crm/crm-renewal-s
 import { CrmSidebar } from '@/components/layout/crm/crm-sidebar';
 import { CrmProfileProvider } from '@/components/layout/crm/crm-profile-context';
 import { CrmTopbar } from '@/components/layout/crm/crm-topbar';
+import { CrmDashboardContextBar } from '@/components/layout/crm/crm-dashboard-context-bar';
 import { ToastProvider } from '@/components/ui/toast';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import type { Profile } from '@/types/profile';
@@ -49,6 +50,7 @@ export function CrmShell({
                     <CrmSidebar isSuperadmin={isSuperadmin} isMarketing={isMarketing} />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <CrmTopbar staffUser={staffUser} whatsappSendsEnabled={whatsappSendsEnabled} />
+                      <CrmDashboardContextBar />
                       <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
                         {children}
                       </div>

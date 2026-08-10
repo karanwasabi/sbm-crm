@@ -28,18 +28,30 @@ function FilterChipInner({ children, count, pending }: Pick<FilterChipProps, 'ch
   );
 }
 
-const chipClassName = (active?: boolean) =>
+const chipClassName = (active?: boolean, tone: 'light' | 'dark' = 'light') =>
   cn(
-    'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 py-1.75 text-xs font-semibold transition-colors',
-    active
-      ? 'border-b-[3px] border-b-brand-press bg-brand text-white'
-      : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+    'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-full px-3.5 py-1.75 text-xs font-semibold transition-all',
+    tone === 'dark'
+      ? active
+        ? 'bg-white text-brand-deep shadow-sm'
+        : 'border border-white/25 bg-white/10 text-white/80 hover:border-white/40 hover:bg-white/15 hover:text-white'
+      : active
+        ? 'border-b-[3px] border-b-brand-press bg-brand text-white'
+        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
   );
 
-export function FilterChip({ children, active, count, href, onClick, pending }: FilterChipProps) {
+export function FilterChip({
+  children,
+  active,
+  count,
+  href,
+  onClick,
+  pending,
+  tone = 'light',
+}: FilterChipProps & { tone?: 'light' | 'dark' }) {
   if (href) {
     return (
-      <Link href={href} className={chipClassName(active)}>
+      <Link href={href} className={chipClassName(active, tone)}>
         <FilterChipInner count={count} pending={pending}>
           {children}
         </FilterChipInner>
@@ -48,7 +60,7 @@ export function FilterChip({ children, active, count, href, onClick, pending }: 
   }
 
   return (
-    <button type="button" onClick={onClick} className={chipClassName(active)} aria-busy={pending || undefined}>
+    <button type="button" onClick={onClick} className={chipClassName(active, tone)} aria-busy={pending || undefined}>
       <FilterChipInner count={count} pending={pending}>
         {children}
       </FilterChipInner>
