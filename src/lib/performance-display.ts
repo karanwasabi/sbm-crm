@@ -19,29 +19,117 @@ export function performanceWindowQueryParam(days: PerformanceWindowPreset): stri
   return String(days);
 }
 
-export function formatPerformanceDateRange(window: PerformanceWindow | null, preset: PerformanceWindowPreset): string {
-  if (preset === 'today') {
-    return 'Today';
+export function performanceWindowLabel(preset: PerformanceWindowPreset): string {
+  switch (preset) {
+    case 'today':
+      return 'Today';
+    case 'yesterday':
+      return 'Yesterday';
+    case 'all':
+      return 'All time';
+    case 7:
+      return 'Last 7 days';
+    case 365:
+      return 'Last year';
+    default:
+      return `Last ${preset} days`;
   }
-  if (preset === 'yesterday') {
-    if (window?.since) {
-      return formatMarketingActivityDate(window.since) ?? 'Yesterday';
-    }
-    return 'Yesterday';
+}
+
+export function formatPerformanceWindowDates(
+  window: PerformanceWindow | null | undefined,
+  preset?: PerformanceWindowPreset
+): string | null {
+  if (!window?.since) {
+    return null;
   }
+
+  const since = formatShortDate(window.since);
+  if (!window.until) {
+    return preset === 'all' ? `Since ${since}` : since;
+  }
+
+  const until = formatShortDate(window.until);
   if (preset === 'all') {
-    return 'All time';
+    return `Since ${since}`;
   }
-  if (preset === 7) {
-    return 'Last 7 days';
+  if (since === until) {
+    return since;
   }
-  if (window?.since && window?.until) {
-    return `${formatShortDate(window.since)} – ${formatShortDate(window.until)}`;
+  return `${since} – ${until}`;
+}
+
+export function coercePerformanceWindow(
+  ...windows: Array<PerformanceWindow | null | undefined>
+): PerformanceWindow | null {
+  for (const window of windows) {
+    if (window?.since && window?.until) {
+      return window;
+    }
   }
-  if (preset === 365) {
-    return 'Last year';
+  for (const window of windows) {
+    if (window?.since) {
+      return window;
+    }
   }
-  return `Last ${preset} days`;
+  return windows.find(Boolean) ?? null;
+}
+
+function startOfTodayIST(now = new Date()): Date {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+  const year = parts.find((part) => part.type === 'year')?.value ?? '1970';
+  const month = parts.find((part) => part.type === 'month')?.value ?? '01';
+  const day = parts.find((part) => part.type === 'day')?.value ?? '01';
+  return new Date(`${year}-${month}-${day}T00:00:00+05:30`);
+}
+
+/** Mirrors backend IST performance windows when the API omits since/until. */
+export function inferPerformanceWindow(preset: PerformanceWindowPreset): PerformanceWindow | null {
+  const timezone = 'Asia/Kolkata';
+  const now = new Date();
+
+  if (preset === 'all') {
+    return null;
+  }
+
+  if (preset === 'today') {
+    const since = startOfTodayIST(now);
+    return { timezone, since: since.toISOString(), until: now.toISOString() };
+  }
+
+  if (preset === 'yesterday') {
+    const startToday = startOfTodayIST(now);
+    const since = new Date(startToday);
+    since.setDate(since.getDate() - 1);
+    return { timezone, since: since.toISOString(), until: startToday.toISOString() };
+  }
+
+  const startToday = startOfTodayIST(now);
+  const since = new Date(startToday);
+  since.setDate(since.getDate() - preset);
+  return { timezone, since: since.toISOString(), until: now.toISOString() };
+}
+
+export function resolvePerformanceWindow(
+  preset: PerformanceWindowPreset,
+  ...windows: Array<PerformanceWindow | null | undefined>
+): PerformanceWindow | null {
+  const fromApi = coercePerformanceWindow(...windows);
+  if (fromApi?.since) {
+    return fromApi;
+  }
+  return inferPerformanceWindow(preset);
+}
+
+export function formatPerformanceDateRange(window: PerformanceWindow | null, preset: PerformanceWindowPreset): string {
+  const label = performanceWindowLabel(preset);
+  const dates = formatPerformanceWindowDates(window, preset);
+  return dates ? `${label} · ${dates}` : label;
 }
 
 export function formatMarketingActivityDate(iso: string | null | undefined): string | null {

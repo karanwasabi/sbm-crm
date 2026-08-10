@@ -17,26 +17,39 @@ export function CrmDashboardContextBar() {
       className={cn(
         'relative z-30 shrink-0',
         DASHBOARD_CONTEXT_BAR_SURFACE_CLASS,
-        registration.pending && 'ring-1 ring-white/15 ring-inset'
+        registration.pending && 'ring-1 ring-white/10 ring-inset'
       )}
     >
-      <div className="flex flex-col gap-3 px-6 py-2.5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex min-w-0 flex-wrap items-center gap-2.5">
-          <span className="shrink-0 text-[11px] font-semibold tracking-wide text-white/60 uppercase">Period</span>
-          <PerformanceWindowSelector
-            selected={registration.selected}
-            pending={registration.pending}
-            tone="dark"
-            onChange={registration.onChange}
-          />
+      <div className="flex items-center gap-3 px-6 py-1.5">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
+          <span className="shrink-0 text-[10px] font-semibold tracking-[0.14em] text-white/50 uppercase">Timeline</span>
+          <div className="hidden h-3.5 w-px shrink-0 bg-white/15 sm:block" aria-hidden />
+          <div className="min-w-0 scrollbar-none overflow-x-auto [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <PerformanceWindowSelector
+              selected={registration.selected}
+              pending={registration.pending}
+              tone="dark"
+              variant="segmented"
+              onChange={registration.onChange}
+            />
+          </div>
         </div>
 
-        <p
-          className="truncate text-xs font-semibold text-white/85 sm:max-w-[min(40vw,22rem)] sm:text-right"
-          title={registration.periodSubtitle}
-        >
-          {registration.periodSubtitle}
-        </p>
+        <div className="flex shrink-0 items-center gap-2.5 pl-1">
+          <div className="h-3.5 w-px shrink-0 bg-white/15" aria-hidden />
+          <p
+            className="flex max-w-[min(52vw,32rem)] items-center justify-end gap-1.5 truncate text-[11px] font-semibold whitespace-nowrap"
+            title={registration.periodSubtitle}
+          >
+            <span className="text-white/65">{registration.periodLabel}</span>
+            {registration.periodDates ? (
+              <>
+                <span className="text-white/35">·</span>
+                <span className="text-white/90">{registration.periodDates}</span>
+              </>
+            ) : null}
+          </p>
+        </div>
       </div>
     </div>
   );

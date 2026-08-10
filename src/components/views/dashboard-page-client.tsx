@@ -26,6 +26,9 @@ import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import {
   dashboardRevenueChartTitle,
   formatPerformanceDateRange,
+  formatPerformanceWindowDates,
+  performanceWindowLabel,
+  resolvePerformanceWindow,
   type PerformanceWindowPreset,
 } from '@/lib/performance-display';
 import type { DashboardAnalytics, FunnelStep, GeoItem, LifecycleStage } from '@/types/crm';
@@ -145,19 +148,44 @@ export function DashboardPageClient({ initialData, initialError = null }: Dashbo
     [selected]
   );
 
+  const reportingWindow = useMemo(
+    () =>
+      resolvePerformanceWindow(
+        selected,
+        data.analytics.window,
+        data.sourcePerformanceWindow,
+        data.campaignPerformanceWindow,
+        data.adPerformanceWindow
+      ),
+    [
+      data.adPerformanceWindow,
+      data.analytics.window,
+      data.campaignPerformanceWindow,
+      data.sourcePerformanceWindow,
+      selected,
+    ]
+  );
+
+  const periodLabel = useMemo(() => performanceWindowLabel(selected), [selected]);
+  const periodDates = useMemo(
+    () => formatPerformanceWindowDates(reportingWindow, selected),
+    [reportingWindow, selected]
+  );
   const periodSubtitle = useMemo(
-    () => formatPerformanceDateRange(data.analytics.window ?? null, selected),
-    [data.analytics.window, selected]
+    () => formatPerformanceDateRange(reportingWindow, selected),
+    [reportingWindow, selected]
   );
 
   const dashboardFilter = useMemo(
     () => ({
       periodSubtitle,
+      periodLabel,
+      periodDates,
       selected,
       pending: isPending,
       onChange: changeWindow,
     }),
-    [changeWindow, isPending, periodSubtitle, selected]
+    [changeWindow, isPending, periodDates, periodLabel, periodSubtitle, selected]
   );
 
   useRegisterDashboardFilter(dashboardFilter);

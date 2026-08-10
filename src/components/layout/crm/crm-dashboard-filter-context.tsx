@@ -5,6 +5,8 @@ import type { PerformanceWindowPreset } from '@/lib/performance-display';
 
 export type CrmDashboardFilterRegistration = {
   periodSubtitle: string;
+  periodLabel: string;
+  periodDates: string | null;
   selected: PerformanceWindowPreset;
   pending: boolean;
   onChange: (days: PerformanceWindowPreset) => void;
