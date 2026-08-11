@@ -19,7 +19,7 @@
   position: relative;
   height: 720px;
   min-height: 720px;
-  overflow: visible;
+  overflow: hidden;
   --gjs-left-width: 15%;
   --sbm-grapes-sidebar-width: 15%;
   --gjs-canvas-top: 0px;
@@ -422,7 +422,7 @@
   display: flex;
   min-width: 0;
   flex: 1;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
 }
@@ -430,4 +430,11 @@
 .sbm-grapes-toolbar-sidebar {
   flex-shrink: 0;
   margin-left: auto;
+}
+
+/* Built-in RTE bold/italic/link bar — hide even if Grapes re-creates it */
+.gjs-rte-toolbar,
+.gjs-rte-actionbar {
+  display: none !important;
+  pointer-events: none !important;
 }

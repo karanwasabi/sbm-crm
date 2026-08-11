@@ -10,6 +10,7 @@ import grapesjsTuiImageEditor from 'grapesjs-tui-image-editor';
 import 'grapesjs/dist/css/grapes.min.css';
 import '@/components/comms/grapes-font-awesome.css';
 import '@/components/comms/grapes-editor.css';
+import { EmailVariablesPicker } from '@/components/comms/email-variables-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -240,7 +241,11 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       fromElement: false,
       storageManager: false,
       noticeOnUnload: false,
-      showOffsets: true,
+      showOffsets: false,
+      richTextEditor: {
+        // Built-in bold/italic/link bar stays on screen and blocks editing; Cmd/Ctrl+B/I still work.
+        custom: true,
+      },
       undoManager: {
         trackSelection: false,
       },
@@ -335,7 +340,13 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       enableEditorComponentOutlines(editor);
       refreshPreview(editor);
       refreshHistoryState(editor);
+      // Recalculate highlighter positions after layout settles.
+      window.requestAnimationFrame(() => editor.refresh());
     });
+    const onWindowResize = () => {
+      editor.refresh();
+    };
+    window.addEventListener('resize', onWindowResize);
 
     for (const panelId of ['open-blocks', 'open-sm', 'open-tm'] as const) {
       editor.on(`run:${panelId}`, () => setSidebarTab(panelId));
@@ -387,6 +398,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       editorReadyRef.current = false;
       applyLinkTargetsRef.current = null;
       setEditorReady(false);
+      window.removeEventListener('resize', onWindowResize);
       teardownMergeTokens();
       linkTargetSupport.teardown();
       teardownSelectionUx();
@@ -645,28 +657,16 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
             <div className="sbm-grapes-toolbar-divider" aria-hidden />
 
             <div className="sbm-grapes-toolbar-variables">
-              <span className="shrink-0 text-xs font-semibold text-slate-500">Variables</span>
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1">
-                {templateVariables.map((variable) => (
-                  <button
-                    key={variable.token}
-                    type="button"
-                    disabled={!editorReady}
-                    title={variable.token}
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      const editor = editorRef.current;
-                      if (!editor) return;
-                      insertMergeToken(editor, variable.token);
-                      refreshPreview(editor);
-                    }}
-                    className="shrink-0 rounded-md border border-slate-200/80 bg-white px-2 py-0.5 text-xs font-medium text-slate-600 transition-colors hover:border-brand/30 hover:text-brand disabled:opacity-50"
-                  >
-                    {variable.label}
-                  </button>
-                ))}
-              </div>
+              <EmailVariablesPicker
+                variables={templateVariables}
+                disabled={!editorReady}
+                onInsert={(token) => {
+                  const editor = editorRef.current;
+                  if (!editor) return;
+                  insertMergeToken(editor, token);
+                  refreshPreview(editor);
+                }}
+              />
             </div>
 
             <div className="sbm-grapes-toolbar-sidebar">

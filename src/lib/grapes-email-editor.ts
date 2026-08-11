@@ -258,26 +258,6 @@ export function cacheAllMergeTargetContent(editor: Editor) {
   }
 }
 
-function readPlainTextForMerge(editor: Editor, component: Component): string {
-  const el = getEditableElement(component);
-  const fromEl = el?.textContent ?? '';
-  if (fromEl.length > 0) {
-    return fromEl;
-  }
-
-  const cached = getMergeTokenState(editor).contentByComponentId.get(component.getId()) ?? '';
-  if (cached.length > 0) {
-    return cached.replace(/<[^>]+>/g, '');
-  }
-
-  const stored = component.get('content');
-  if (typeof stored === 'string' && stored.length > 0) {
-    return stored.replace(/<[^>]+>/g, '');
-  }
-
-  return readMergeTargetContent(component).replace(/<[^>]+>/g, '');
-}
-
 function formatMergeTokenInsertion(token: string): string {
   const trimmed = token.trim();
   return trimmed.endsWith(' ') ? trimmed : `${trimmed} `;
@@ -295,6 +275,11 @@ function getEditableElement(component: Component): HTMLElement | null {
   return null;
 }
 
+function isRteEnabledOnComponent(component: Component): boolean {
+  const view = component.view as TextComponentView | undefined;
+  return !!view?.rteEnabled;
+}
+
 function getTextOffset(root: Node, targetNode: Node, targetOffset: number): number {
   const walker = root.ownerDocument?.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   if (!walker) {
@@ -310,6 +295,38 @@ function getTextOffset(root: Node, targetNode: Node, targetOffset: number): numb
     offset += current.textContent?.length ?? 0;
   }
   return offset;
+}
+
+function placeCaretAtTextOffset(root: HTMLElement, targetOffset: number): boolean {
+  const doc = root.ownerDocument;
+  if (!doc) {
+    return false;
+  }
+
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let remaining = Math.max(0, targetOffset);
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const length = node.textContent?.length ?? 0;
+    if (remaining <= length) {
+      const range = doc.createRange();
+      range.setStart(node, remaining);
+      range.collapse(true);
+      const selection = doc.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      return true;
+    }
+    remaining -= length;
+  }
+
+  const range = doc.createRange();
+  range.selectNodeContents(root);
+  range.collapse(false);
+  const selection = doc.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  return true;
 }
 
 function saveCaretForTarget(editor: Editor, target: Component) {
@@ -333,84 +350,16 @@ function saveCaretForTarget(editor: Editor, target: Component) {
   getMergeTokenState(editor).caretOffsetByComponentId.set(target.getId(), offset);
 }
 
-function safeSyncMergeTarget(editor: Editor, component: Component) {
+/** Keep HTML structure (line breaks / paragraphs). Never flatten to textContent. */
+function softSyncMergeTargetHtml(editor: Editor, component: Component) {
   const el = getEditableElement(component);
-  const fromDom = el?.innerHTML?.trim() ?? '';
-  const fromRead = readMergeTargetContent(component);
-  const cached = getMergeTokenState(editor).contentByComponentId.get(component.getId()) ?? '';
-  const content = fromDom || fromRead || cached;
-
-  if (!content) {
+  const html = el?.innerHTML ?? '';
+  if (!html.trim()) {
     return;
   }
 
-  component.set('content', content, CONTENT_UPDATE_OPTS);
-  if (el && el.innerHTML !== content) {
-    el.innerHTML = content;
-  }
-  getMergeTokenState(editor).contentByComponentId.set(component.getId(), content);
-}
-
-type TextViewWithSync = TextComponentView & {
-  syncContent?: (opts?: Record<string, unknown>) => Promise<void>;
-};
-
-async function syncAfterRteInsert(
-  editor: Editor,
-  component: Component,
-  savedOffset: number | undefined,
-  insertion: string
-) {
-  const view = component.view as TextViewWithSync | undefined;
-  try {
-    if (view?.syncContent) {
-      await view.syncContent({ fromDisable: true, force: true });
-    }
-  } catch {
-    // Fall through to DOM read.
-  }
-
-  const el = getEditableElement(component);
-  const fromDom = el?.innerHTML?.trim() ?? '';
-  if (fromDom) {
-    writeMergeTargetContent(editor, component, fromDom);
-    return;
-  }
-
-  safeSyncMergeTarget(editor, component);
-
-  if (savedOffset !== undefined) {
-    const synced = readPlainTextForMerge(editor, component);
-    if (!synced.includes(insertion.trim())) {
-      insertAtSavedOffset(editor, component, insertion);
-    }
-  }
-}
-
-function insertAtSavedOffset(editor: Editor, component: Component, insertion: string): boolean {
-  const state = getMergeTokenState(editor);
-  const savedOffset = state.caretOffsetByComponentId.get(component.getId());
-  if (savedOffset === undefined) {
-    return false;
-  }
-
-  const currentText = readPlainTextForMerge(editor, component);
-  const offset = Math.max(0, Math.min(savedOffset, currentText.length));
-  const nextText = `${currentText.slice(0, offset)}${insertion}${currentText.slice(offset)}`;
-
-  writeMergeTargetContent(editor, component, nextText);
-  state.caretOffsetByComponentId.set(component.getId(), offset + insertion.length);
-  return true;
-}
-
-function insertAtEnd(editor: Editor, component: Component, token: string) {
-  const insertion = formatMergeTokenInsertion(token);
-  const currentText = readPlainTextForMerge(editor, component);
-  const spacer = currentText.length > 0 && !/\s$/.test(currentText) ? ' ' : '';
-  const nextText = `${currentText}${spacer}${insertion}`;
-
-  writeMergeTargetContent(editor, component, nextText);
-  getMergeTokenState(editor).caretOffsetByComponentId.set(component.getId(), nextText.length);
+  component.set('content', html, CONTENT_UPDATE_OPTS);
+  getMergeTokenState(editor).contentByComponentId.set(component.getId(), html);
 }
 
 function writeMergeTargetContent(editor: Editor, component: Component, content: string) {
@@ -422,12 +371,31 @@ function writeMergeTargetContent(editor: Editor, component: Component, content: 
   component.set('content', content, CONTENT_UPDATE_OPTS);
 
   const el = getEditableElement(component);
-  if (el) {
+  if (el && el.innerHTML !== content) {
     el.innerHTML = content;
   }
 
   getMergeTokenState(editor).contentByComponentId.set(component.getId(), content);
+
+  if (!isRteEnabledOnComponent(component) && isMjmlTextComponent(component)) {
+    reconcileMjmlTextComponent(component, { forceHtml: content });
+  }
+
   editor.trigger('component:update', component);
+}
+
+/** Insert before trailing closing tags so <br>/<div> structure survives. */
+function appendTokenPreservingHtml(html: string, insertion: string): string {
+  if (!html.trim()) {
+    return insertion;
+  }
+
+  const match = html.match(/((?:\s*<\/(?:div|p|h[1-6]|li|td|span|strong|em|b|i|a|font)>)+)\s*$/i);
+  if (match && match.index !== undefined) {
+    return `${html.slice(0, match.index)}${insertion}${html.slice(match.index)}`;
+  }
+
+  return `${html}${insertion}`;
 }
 
 function insertIntoActiveRte(editor: Editor, insertion: string): boolean {
@@ -450,27 +418,88 @@ function insertIntoActiveRte(editor: Editor, insertion: string): boolean {
   return true;
 }
 
+function insertViaDomTextOffset(editor: Editor, component: Component, insertion: string): boolean {
+  const el = getEditableElement(component);
+  if (!el) {
+    return false;
+  }
+
+  const savedOffset = getMergeTokenState(editor).caretOffsetByComponentId.get(component.getId());
+  if (savedOffset === undefined) {
+    return false;
+  }
+
+  const doc = el.ownerDocument;
+  if (!doc) {
+    return false;
+  }
+
+  const wasEditable = el.isContentEditable;
+  if (!wasEditable) {
+    el.contentEditable = 'true';
+  }
+
+  try {
+    if (!placeCaretAtTextOffset(el, savedOffset)) {
+      return false;
+    }
+
+    const selection = doc.getSelection();
+    if (!selection?.rangeCount) {
+      return false;
+    }
+
+    const range = selection.getRangeAt(0);
+    range.deleteContents();
+    const textNode = doc.createTextNode(insertion);
+    range.insertNode(textNode);
+    range.setStartAfter(textNode);
+    range.collapse(true);
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    softSyncMergeTargetHtml(editor, component);
+    getMergeTokenState(editor).caretOffsetByComponentId.set(component.getId(), savedOffset + insertion.length);
+    return true;
+  } finally {
+    if (!wasEditable) {
+      el.removeAttribute('contenteditable');
+    }
+  }
+}
+
+function insertTokenPreservingHtml(editor: Editor, component: Component, insertion: string) {
+  const html =
+    getEditableElement(component)?.innerHTML?.trim() ||
+    readMergeTargetContent(component) ||
+    getMergeTokenState(editor).contentByComponentId.get(component.getId()) ||
+    '';
+  const next = appendTokenPreservingHtml(html, insertion);
+  writeMergeTargetContent(editor, component, next);
+  getMergeTokenState(editor).caretOffsetByComponentId.set(
+    component.getId(),
+    getEditableElement(component)?.textContent?.length ?? next.replace(/<[^>]+>/g, '').length
+  );
+}
+
 function insertMergeTokenAtPosition(editor: Editor, component: Component, token: string) {
   const insertion = formatMergeTokenInsertion(token);
   const state = getMergeTokenState(editor);
   const savedOffset = state.caretOffsetByComponentId.get(component.getId());
-  const isDefaultEndCaret =
-    savedOffset !== undefined && savedOffset === readPlainTextForMerge(editor, component).length;
 
   if (insertIntoActiveRte(editor, insertion)) {
-    void syncAfterRteInsert(editor, component, savedOffset, insertion);
+    softSyncMergeTargetHtml(editor, component);
     if (savedOffset !== undefined) {
       state.caretOffsetByComponentId.set(component.getId(), savedOffset + insertion.length);
     }
     return;
   }
 
-  if (savedOffset !== undefined && !isDefaultEndCaret) {
-    insertAtSavedOffset(editor, component, insertion);
+  if (insertViaDomTextOffset(editor, component, insertion)) {
     return;
   }
 
-  insertAtEnd(editor, component, token);
+  insertTokenPreservingHtml(editor, component, insertion);
 }
 
 /**
@@ -537,11 +566,23 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
     state.toolbarGuard = true;
     window.setTimeout(() => {
       state.toolbarGuard = false;
-    }, 300);
+    }, 750);
   };
 
   document.addEventListener('mousedown', guardToolbarInteraction, true);
   document.addEventListener('pointerdown', guardToolbarInteraction, true);
+
+  const hideBuiltinRteToolbar = () => {
+    const toolbar = document.querySelector('.gjs-rte-toolbar') as HTMLElement | null;
+    if (toolbar) {
+      toolbar.style.display = 'none';
+    }
+  };
+
+  const onRteEnable = () => {
+    // Keep built-in bold/italic/link chrome hidden — it sticks around and blocks editing.
+    hideBuiltinRteToolbar();
+  };
 
   const rteModule = editor.RichTextEditor;
   const originalDisable = rteModule.disable.bind(rteModule);
@@ -565,13 +606,20 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
       rememberMergeTargetContent(editor, component);
     }
 
+    hideBuiltinRteToolbar();
     return result;
   };
+
+  editor.on('rte:enable', onRteEnable);
+  editor.on('rte:disable', hideBuiltinRteToolbar);
+  hideBuiltinRteToolbar();
 
   return () => {
     editor.off('component:selected', onComponentSelected);
     editor.off('component:update', onComponentUpdate);
     editor.off('load', trackCaretInFrame);
+    editor.off('rte:enable', onRteEnable);
+    editor.off('rte:disable', hideBuiltinRteToolbar);
     state.teardownCaretTracking?.();
     document.removeEventListener('mousedown', guardToolbarInteraction, true);
     document.removeEventListener('pointerdown', guardToolbarInteraction, true);
