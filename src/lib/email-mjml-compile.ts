@@ -132,6 +132,13 @@ export function reconcileMjmlTextComponent(component: Component, options: Reconc
   component.set('content', '', SILENT_CONTENT_OPTS);
   component.components().resetFromString(normalized, RTE_SYNC_OPTS as never);
   component.view?.render?.();
+
+  // Safety: if a forced rewrite somehow left the block blank, fall back to content HTML.
+  if (options.forceHtml !== undefined && isMjmlTextComponentVisuallyBlank(component)) {
+    component.set('content', normalized, SILENT_CONTENT_OPTS);
+    component.view?.render?.();
+  }
+
   return true;
 }
 
