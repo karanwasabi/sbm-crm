@@ -25,6 +25,7 @@ import {
   createAssetUploadHandler,
   enableEditorComponentOutlines,
   fetchEmailAssets,
+  flushActiveTextEditing,
   getEditorHistoryState,
   initializeEditorSidebar,
   insertMergeToken,
@@ -221,11 +222,35 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   }
 
   function refreshPreview(editor: Editor) {
-    try {
-      setPreviewHtml(substitutePreviewVariables(compileEditorHtml(editor)));
-    } catch {
-      // Editor may not be ready yet.
+    void (async () => {
+      try {
+        await flushActiveTextEditing(editor);
+        setPreviewHtml(substitutePreviewVariables(compileEditorHtml(editor)));
+      } catch {
+        // Editor may not be ready yet.
+      }
+    })();
+  }
+
+  async function buildSavePayload(status: 'active' | 'archived' = 'active') {
+    const editor = editorRef.current;
+    if (!editor) {
+      throw new Error('Editor is not ready yet.');
     }
+
+    await flushActiveTextEditing(editor);
+    const htmlCompiled = compileEditorHtml(editor);
+    return {
+      name: name.trim(),
+      classification,
+      subject: subject.trim(),
+      fromName: fromName.trim() || null,
+      fromLocalPart: fromLocalPart.trim() || null,
+      contentJson: editor.getProjectData() as Record<string, unknown>,
+      htmlCompiled,
+      textCompiled: stripHtmlToText(htmlCompiled),
+      status,
+    };
   }
 
   useEffect(() => {
@@ -422,26 +447,6 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     refreshPreview(editor);
   }
 
-  function buildSavePayload(status: 'active' | 'archived' = 'active') {
-    const editor = editorRef.current;
-    if (!editor) {
-      throw new Error('Editor is not ready yet.');
-    }
-
-    const htmlCompiled = compileEditorHtml(editor);
-    return {
-      name: name.trim(),
-      classification,
-      subject: subject.trim(),
-      fromName: fromName.trim() || null,
-      fromLocalPart: fromLocalPart.trim() || null,
-      contentJson: editor.getProjectData() as Record<string, unknown>,
-      htmlCompiled,
-      textCompiled: stripHtmlToText(htmlCompiled),
-      status,
-    };
-  }
-
   function openSidebarTab(tab: SidebarPanelId) {
     const editor = editorRef.current;
     if (!editor) return;
@@ -484,7 +489,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     startTransition(async () => {
       try {
         const wasArchived = templateStatus === 'archived';
-        const payload = buildSavePayload('active');
+        const payload = await buildSavePayload('active');
         const saved = await saveEmailTemplateAction(template?.id ?? null, payload);
         setTemplateStatus('active');
         setMessage(wasArchived ? 'Template activated.' : 'Template saved.');
@@ -514,7 +519,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
 
     startTransition(async () => {
       try {
-        const payload = buildSavePayload('archived');
+        const payload = await buildSavePayload('archived');
         await saveEmailTemplateAction(template.id, payload);
         setTemplateStatus('archived');
         setMessage('Template archived.');
@@ -678,8 +683,9 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
                 onInsert={(token) => {
                   const editor = editorRef.current;
                   if (!editor) return;
-                  insertMergeToken(editor, token);
-                  refreshPreview(editor);
+                  void insertMergeToken(editor, token).then(() => {
+                    refreshPreview(editor);
+                  });
                 }}
               />
             </div>

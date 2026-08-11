@@ -131,12 +131,15 @@ type TextComponentView = {
   getChildrenContainer?: () => HTMLElement;
   model?: Component;
   rteEnabled?: boolean;
-  insertComponent?: (content: unknown, opts?: Record<string, unknown>) => Component | undefined;
+  onActive?: (event?: Event) => void;
+  syncContent?: (opts?: Record<string, unknown>) => Promise<void>;
 };
 
 type MergeTokenEditorState = {
   contentByComponentId: Map<string, string>;
   caretOffsetByComponentId: Map<string, number>;
+  /** Last text block the user was editing — used when picker steals focus. */
+  lastEditableComponentId: string | null;
   toolbarGuard: boolean;
   teardownCaretTracking?: () => void;
 };
@@ -144,8 +147,6 @@ type MergeTokenEditorState = {
 const MERGE_TOKEN_TEXT_TYPES = new Set(['mj-text', 'text', 'mj-button', 'link']);
 
 /** GrapesJS wipes content on set() unless fromDisable is set — disableEditing syncs empty RTE output. */
-const CONTENT_UPDATE_OPTS: Record<string, unknown> = { fromDisable: true };
-
 const mergeTokenStateByEditor = new WeakMap<Editor, MergeTokenEditorState>();
 
 function getMergeTokenState(editor: Editor): MergeTokenEditorState {
@@ -154,6 +155,7 @@ function getMergeTokenState(editor: Editor): MergeTokenEditorState {
     state = {
       contentByComponentId: new Map(),
       caretOffsetByComponentId: new Map(),
+      lastEditableComponentId: null,
       toolbarGuard: false,
     };
     mergeTokenStateByEditor.set(editor, state);
@@ -178,6 +180,18 @@ function findMergeTokenTarget(component: Component | null | undefined): Componen
   return null;
 }
 
+function findComponentById(editor: Editor, id: string | null | undefined): Component | null {
+  if (!id) {
+    return null;
+  }
+  try {
+    const component = editor.Components.getById(id);
+    return component || null;
+  } catch {
+    return null;
+  }
+}
+
 function readMergeTargetContent(component: Component): string {
   try {
     const inner = component.getInnerHTML();
@@ -185,7 +199,7 @@ function readMergeTargetContent(component: Component): string {
       return inner.trim();
     }
   } catch {
-    // Fall through to other strategies.
+    // Fall through.
   }
 
   const view = component.view as (TextComponentView & { el?: HTMLElement }) | undefined;
@@ -220,7 +234,7 @@ function readMergeTargetContent(component: Component): string {
     return stored.trim();
   }
 
-  const childText = component
+  return component
     .components()
     .models.map((child: Component) => {
       if (child.get('type') === 'textnode') {
@@ -230,26 +244,19 @@ function readMergeTargetContent(component: Component): string {
     })
     .join('')
     .trim();
-
-  return childText;
 }
 
 function rememberMergeTargetContent(editor: Editor, component: Component | null | undefined) {
   const target = findMergeTokenTarget(component ?? undefined);
-  if (!target) {
+  if (!target || !isMergeTokenTextComponent(target)) {
     return;
   }
-  const content = readMergeTargetContent(target);
-  if (!content.trim()) {
+  const el = getEditableElement(target);
+  const content = (el?.innerHTML ?? readMergeTargetContent(target)).trim();
+  if (!content) {
     return;
   }
-  const state = getMergeTokenState(editor);
-  const existing = state.contentByComponentId.get(target.getId()) ?? '';
-  // Never replace a rich snapshot with a transient blank/partial sync.
-  if (existing && htmlPlainLength(content) < htmlPlainLength(existing) / 2) {
-    return;
-  }
-  state.contentByComponentId.set(target.getId(), content);
+  getMergeTokenState(editor).contentByComponentId.set(target.getId(), content);
 }
 
 export function cacheAllMergeTargetContent(editor: Editor) {
@@ -257,7 +264,6 @@ export function cacheAllMergeTargetContent(editor: Editor) {
   if (!wrapper) {
     return;
   }
-
   for (const type of ['mj-text', 'mj-button', 'text'] as const) {
     for (const component of wrapper.findType(type)) {
       rememberMergeTargetContent(editor, component);
@@ -292,7 +298,6 @@ function getTextOffset(root: Node, targetNode: Node, targetOffset: number): numb
   if (!walker) {
     return 0;
   }
-
   let offset = 0;
   let current: Node | null;
   while ((current = walker.nextNode())) {
@@ -304,166 +309,198 @@ function getTextOffset(root: Node, targetNode: Node, targetOffset: number): numb
   return offset;
 }
 
+function placeCaretAtTextOffset(root: HTMLElement, targetOffset: number): boolean {
+  const doc = root.ownerDocument;
+  if (!doc) {
+    return false;
+  }
+
+  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let remaining = Math.max(0, targetOffset);
+  let node: Node | null;
+  while ((node = walker.nextNode())) {
+    const length = node.textContent?.length ?? 0;
+    if (remaining <= length) {
+      const range = doc.createRange();
+      range.setStart(node, remaining);
+      range.collapse(true);
+      const selection = doc.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      return true;
+    }
+    remaining -= length;
+  }
+
+  const range = doc.createRange();
+  range.selectNodeContents(root);
+  range.collapse(false);
+  const selection = doc.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  return true;
+}
+
 function saveCaretForTarget(editor: Editor, target: Component) {
   const el = getEditableElement(target);
   if (!el) {
     return;
   }
-
   const doc = el.ownerDocument;
   const sel = doc?.getSelection();
   if (!sel?.rangeCount) {
     return;
   }
-
   const range = sel.getRangeAt(0);
   if (!el.contains(range.commonAncestorContainer)) {
     return;
   }
-
-  const offset = getTextOffset(el, range.startContainer, range.startOffset);
-  getMergeTokenState(editor).caretOffsetByComponentId.set(target.getId(), offset);
-}
-
-function appendTokenPreservingHtml(html: string, insertion: string): string {
-  if (!html.trim()) {
-    return insertion;
-  }
-
-  const match = html.match(/((?:\s*<\/(?:div|p|h[1-6]|li|td|span|strong|em|b|i|a|font)>)+)\s*$/i);
-  if (match && match.index !== undefined) {
-    return `${html.slice(0, match.index)}${insertion}${html.slice(match.index)}`;
-  }
-
-  return `${html}${insertion}`;
-}
-
-function htmlPlainLength(html: string): number {
-  return html
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .trim().length;
-}
-
-/** Best non-empty HTML snapshot for a text block (DOM → model → cache). */
-function resolveMergeTargetHtml(editor: Editor, component: Component): string {
   const state = getMergeTokenState(editor);
-  const cached = state.contentByComponentId.get(component.getId()) ?? '';
-  const fromDom = getEditableElement(component)?.innerHTML?.trim() ?? '';
-  const fromModel = readMergeTargetContent(component);
-
-  const candidates = [fromDom, fromModel, cached].filter((value) => value.trim().length > 0);
-  if (candidates.length === 0) {
-    return '';
-  }
-
-  // Prefer the richest snapshot — empty/partial DOM after focus loss must not win.
-  return candidates.reduce((best, current) => (htmlPlainLength(current) > htmlPlainLength(best) ? current : best));
+  state.caretOffsetByComponentId.set(target.getId(), getTextOffset(el, range.startContainer, range.startOffset));
+  state.lastEditableComponentId = target.getId();
 }
 
-function commitMergeTargetHtml(editor: Editor, component: Component, html: string) {
-  const trimmed = html.trim();
-  if (!trimmed) {
-    return;
+async function ensureTextEditing(editor: Editor, component: Component): Promise<HTMLElement | null> {
+  if (editor.getSelected() !== component) {
+    editor.select(component);
   }
 
-  const state = getMergeTokenState(editor);
-  state.contentByComponentId.set(component.getId(), trimmed);
+  const view = component.view as TextComponentView | undefined;
+  if (!view) {
+    return getEditableElement(component);
+  }
 
-  // Never mutate model content while RTE owns the DOM — it races and can blank the block.
-  if (isRteEnabledOnComponent(component)) {
-    const el = getEditableElement(component);
-    if (el) {
-      el.innerHTML = trimmed;
+  if (!view.rteEnabled) {
+    try {
+      view.onActive?.();
+    } catch {
+      // Ignore — some views do not implement onActive.
     }
-    return;
-  }
-
-  if (isMjmlTextComponent(component)) {
-    reconcileMjmlTextComponent(component, { forceHtml: trimmed });
-  } else {
-    component.set('content', trimmed, CONTENT_UPDATE_OPTS);
-    const el = getEditableElement(component);
-    if (el && el.innerHTML !== trimmed) {
-      el.innerHTML = trimmed;
+    try {
+      await editor.RichTextEditor.enable(view as never, undefined as never, {} as never);
+    } catch {
+      // Fall through — contentEditable insert may still work.
     }
   }
 
-  editor.trigger('component:update', component);
-}
-
-function insertIntoActiveRte(editor: Editor, insertion: string): boolean {
-  const currentView = editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
-  if (!currentView?.rteEnabled) {
-    return false;
+  const el = getEditableElement(component);
+  if (el && !el.isContentEditable) {
+    el.contentEditable = 'true';
   }
-
-  const el = currentView.getChildrenContainer?.();
-  if (!el) {
-    return false;
-  }
-
-  const rte = (el as HTMLElement & { _rte?: { insertHTML: (value: string) => void } })._rte;
-  if (!rte?.insertHTML) {
-    return false;
-  }
-
-  rte.insertHTML(insertion);
-  return true;
-}
-
-function insertMergeTokenAtPosition(editor: Editor, component: Component, token: string) {
-  const insertion = formatMergeTokenInsertion(token);
-  const state = getMergeTokenState(editor);
-
-  // Snapshot BEFORE any insert/disable side effects.
-  rememberMergeTargetContent(editor, component);
-  const snapshot = resolveMergeTargetHtml(editor, component);
-  if (snapshot) {
-    state.contentByComponentId.set(component.getId(), snapshot);
-  }
-
-  const minPlainLength = Math.max(htmlPlainLength(snapshot), 1);
-
-  // Try native RTE insert first (keeps caret). Verify it did not wipe the block.
-  if (snapshot && insertIntoActiveRte(editor, insertion)) {
-    const after = getEditableElement(component)?.innerHTML?.trim() ?? '';
-    if (htmlPlainLength(after) >= minPlainLength && after.includes(insertion.trim())) {
-      state.contentByComponentId.set(component.getId(), after);
-      return;
-    }
-  }
-
-  // Safe fallback: rewrite from snapshot + token (never from a possibly-empty live DOM).
-  const next = appendTokenPreservingHtml(snapshot, insertion);
-  commitMergeTargetHtml(editor, component, next);
-  state.caretOffsetByComponentId.set(component.getId(), htmlPlainLength(next));
+  el?.focus();
+  return el;
 }
 
 /**
- * Prevent GrapesJS from syncing empty RTE output when the toolbar is clicked, and
- * cache selected block text so merge tokens append instead of replacing content.
+ * Insert at the saved caret using the live DOM Range API.
+ * Must NOT rewrite innerHTML / reconcile / set('content') while editing —
+ * those destroy Grapes' RTE binding and leave the block frozen/uneditable.
+ */
+function insertTokenAtCaretInElement(
+  editor: Editor,
+  component: Component,
+  el: HTMLElement,
+  insertion: string
+): boolean {
+  const doc = el.ownerDocument;
+  if (!doc) {
+    return false;
+  }
+
+  const state = getMergeTokenState(editor);
+  const savedOffset = state.caretOffsetByComponentId.get(component.getId());
+
+  // Prefer restored caret — picker focus almost always clears the live iframe selection.
+  if (savedOffset !== undefined) {
+    placeCaretAtTextOffset(el, savedOffset);
+  } else {
+    const sel = doc.getSelection();
+    if (!sel?.rangeCount || !sel.anchorNode || !el.contains(sel.anchorNode)) {
+      placeCaretAtTextOffset(el, el.textContent?.length ?? 0);
+    }
+  }
+
+  const selection = doc.getSelection();
+  if (!selection?.rangeCount) {
+    return false;
+  }
+
+  const range = selection.getRangeAt(0);
+  if (!el.contains(range.commonAncestorContainer)) {
+    return false;
+  }
+
+  range.deleteContents();
+  const textNode = doc.createTextNode(insertion);
+  range.insertNode(textNode);
+
+  // Move caret to just after the inserted token.
+  range.setStartAfter(textNode);
+  range.collapse(true);
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  const nextOffset = getTextOffset(el, textNode, textNode.data.length);
+  state.caretOffsetByComponentId.set(component.getId(), nextOffset);
+  state.lastEditableComponentId = component.getId();
+  state.contentByComponentId.set(component.getId(), el.innerHTML);
+
+  el.focus();
+  return true;
+}
+
+/** Push live RTE DOM into the component model without tearing down editing. */
+async function syncLiveTextToModel(component: Component) {
+  const view = component.view as TextComponentView | undefined;
+  if (!view?.rteEnabled || !view.syncContent) {
+    return;
+  }
+  try {
+    await view.syncContent({ fromDisable: true });
+  } catch {
+    // Keep editing even if sync fails — DOM still has the user's text.
+  }
+}
+
+/**
+ * Flush the active text editor into the component model before preview/save.
+ * Safe to call when nothing is being edited.
+ */
+export async function flushActiveTextEditing(editor: Editor) {
+  const state = getMergeTokenState(editor);
+  const currentView = editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
+  const active = currentView?.model ?? null;
+  const last = findComponentById(editor, state.lastEditableComponentId);
+  const targets = [active, last].filter((component, index, list): component is Component => {
+    if (!component || !isMergeTokenTextComponent(component)) {
+      return false;
+    }
+    return list.findIndex((other) => other?.getId() === component.getId()) === index;
+  });
+
+  for (const component of targets) {
+    await syncLiveTextToModel(component);
+    rememberMergeTargetContent(editor, component);
+  }
+}
+
+/**
+ * Keep a content snapshot + caret while editing, and prevent empty RTE sync when the
+ * variable picker steals focus. Insert path itself must not rewrite the block HTML.
  */
 export function installMergeTokenEditorSupport(editor: Editor): () => void {
   const state = getMergeTokenState(editor);
 
   const onComponentSelected = (component: Component) => {
     const target = findMergeTokenTarget(component) ?? component;
+    if (!isMergeTokenTextComponent(target) && (target.get('type') as string) !== 'mj-image') {
+      return;
+    }
     rememberMergeTargetContent(editor, target);
     saveCaretForTarget(editor, target);
-
-    if (!state.caretOffsetByComponentId.has(target.getId())) {
-      const el = getEditableElement(target);
-      const textLength = el?.textContent?.length ?? readMergeTargetContent(target).replace(/<[^>]+>/g, '').length;
-      state.caretOffsetByComponentId.set(target.getId(), textLength);
-    }
-  };
-  const onComponentUpdate = (component: Component) => {
-    rememberMergeTargetContent(editor, component);
   };
 
   editor.on('component:selected', onComponentSelected);
-  editor.on('component:update', onComponentUpdate);
 
   const trackCaretInFrame = () => {
     const frame = editor.Canvas.getFrameEl();
@@ -474,20 +511,40 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
 
     const onSelectionChange = () => {
       const target = findMergeTokenTarget(editor.getSelected());
-      if (target) {
-        saveCaretForTarget(editor, target);
-        rememberMergeTargetContent(editor, target);
+      if (!target || !isMergeTokenTextComponent(target)) {
+        return;
       }
+      if (!isRteEnabledOnComponent(target)) {
+        return;
+      }
+      saveCaretForTarget(editor, target);
+      const el = getEditableElement(target);
+      if (el?.innerHTML) {
+        state.contentByComponentId.set(target.getId(), el.innerHTML);
+      }
+    };
+
+    // Capture caret on blur BEFORE the iframe selection is cleared.
+    const onFrameBlur = () => {
+      const target =
+        findMergeTokenTarget(editor.getSelected()) || findComponentById(editor, state.lastEditableComponentId);
+      if (!target || !isMergeTokenTextComponent(target)) {
+        return;
+      }
+      saveCaretForTarget(editor, target);
+      rememberMergeTargetContent(editor, target);
     };
 
     doc.addEventListener('selectionchange', onSelectionChange);
     doc.addEventListener('keyup', onSelectionChange);
     doc.addEventListener('mouseup', onSelectionChange);
+    doc.defaultView?.addEventListener('blur', onFrameBlur);
 
     state.teardownCaretTracking = () => {
       doc.removeEventListener('selectionchange', onSelectionChange);
       doc.removeEventListener('keyup', onSelectionChange);
       doc.removeEventListener('mouseup', onSelectionChange);
+      doc.defaultView?.removeEventListener('blur', onFrameBlur);
     };
   };
 
@@ -499,18 +556,26 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
     if (!(target instanceof Element)) {
       return;
     }
-    // Keep RTE alive while using our toolbar OR the variable picker popover.
     if (!target.closest('.sbm-grapes-toolbar, [data-slot="popover-content"]')) {
       return;
     }
+
+    // Capture caret/content BEFORE the iframe blurs.
     const selected = findMergeTokenTarget(editor.getSelected());
-    if (selected) {
+    if (selected && isMergeTokenTextComponent(selected)) {
+      saveCaretForTarget(editor, selected);
       rememberMergeTargetContent(editor, selected);
+    } else if (state.lastEditableComponentId) {
+      const last = findComponentById(editor, state.lastEditableComponentId);
+      if (last) {
+        rememberMergeTargetContent(editor, last);
+      }
     }
+
     state.toolbarGuard = true;
     window.setTimeout(() => {
       state.toolbarGuard = false;
-    }, 1000);
+    }, 1500);
   };
 
   document.addEventListener('mousedown', guardToolbarInteraction, true);
@@ -524,14 +589,18 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
   const originalDisable = rteModule.disable.bind(rteModule);
   rteModule.disable = async (view, rte, opts) => {
     const component = view?.model as Component | undefined;
-    let liveHtml = '';
+    let snapshot = '';
     if (component && isMjmlTextComponent(component)) {
-      rememberMergeTargetContent(editor, component);
-      liveHtml = resolveMergeTargetHtml(editor, component);
+      snapshot =
+        getEditableElement(component)?.innerHTML?.trim() ||
+        state.contentByComponentId.get(component.getId()) ||
+        readMergeTargetContent(component);
+      if (snapshot) {
+        state.contentByComponentId.set(component.getId(), snapshot);
+      }
     }
 
-    // Variable picker / custom toolbar clicks steal focus. Skip disable so Grapes does not
-    // sync an empty RTE buffer and wipe the block; just tuck the format bar away.
+    // Picker/toolbar interaction: keep RTE alive so the block stays editable.
     if (state.toolbarGuard) {
       hideRteToolbar();
       return {};
@@ -540,13 +609,14 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
     const result = await originalDisable(view, rte, opts);
 
     if (component && isMjmlTextComponent(component)) {
-      const after = getEditableElement(component)?.innerHTML?.trim() || readMergeTargetContent(component) || '';
-      const cached = state.contentByComponentId.get(component.getId()) ?? '';
-      const restore = htmlPlainLength(after) > 0 ? after : htmlPlainLength(liveHtml) > 0 ? liveHtml : cached;
-
-      if (restore.trim()) {
+      const after = getEditableElement(component)?.innerHTML?.trim() || readMergeTargetContent(component);
+      const restore = after.trim() ? after : snapshot;
+      if (restore.trim() && !after.trim()) {
+        // Only restore when Grapes wiped the block during disable.
         reconcileMjmlTextComponent(component, { forceHtml: restore });
         state.contentByComponentId.set(component.getId(), restore);
+      } else if (after.trim()) {
+        state.contentByComponentId.set(component.getId(), after);
       }
     }
 
@@ -556,13 +626,14 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
 
   const onRteEnable = () => {
     window.setTimeout(() => {
-      if (rteModule.model.get('currentView')) {
-        const toolbar = rteModule.getToolbarEl();
-        if (toolbar) {
-          toolbar.style.display = '';
-        }
-        rteModule.updatePosition();
+      if (!rteModule.model.get('currentView')) {
+        return;
       }
+      const toolbar = rteModule.getToolbarEl();
+      if (toolbar) {
+        toolbar.style.display = '';
+      }
+      rteModule.updatePosition();
     }, 0);
   };
 
@@ -571,7 +642,6 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
 
   return () => {
     editor.off('component:selected', onComponentSelected);
-    editor.off('component:update', onComponentUpdate);
     editor.off('load', trackCaretInFrame);
     editor.off('rte:enable', onRteEnable);
     editor.off('rte:disable', hideRteToolbar);
@@ -583,9 +653,14 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
   };
 }
 
-export function insertMergeToken(editor: Editor, token: string) {
-  const selected = editor.getSelected();
-  const target = findMergeTokenTarget(selected);
+export async function insertMergeToken(editor: Editor, token: string) {
+  const state = getMergeTokenState(editor);
+  const selected = findMergeTokenTarget(editor.getSelected());
+  const target =
+    selected && isMergeTokenTextComponent(selected)
+      ? selected
+      : findComponentById(editor, state.lastEditableComponentId);
+
   if (!target) {
     return;
   }
@@ -599,27 +674,45 @@ export function insertMergeToken(editor: Editor, token: string) {
     return;
   }
 
-  const state = getMergeTokenState(editor);
+  // Freeze caret before any async enable work.
+  const caretBefore = state.caretOffsetByComponentId.get(target.getId());
+  const insertion = formatMergeTokenInsertion(token);
   state.toolbarGuard = true;
+
   try {
-    insertMergeTokenAtPosition(editor, target, token);
+    const el = await ensureTextEditing(editor, target);
+    if (!el) {
+      return;
+    }
+
+    // ensureTextEditing can move the native selection — restore our saved caret.
+    if (caretBefore !== undefined) {
+      state.caretOffsetByComponentId.set(target.getId(), caretBefore);
+    }
+
+    const ok = insertTokenAtCaretInElement(editor, target, el, insertion);
+    if (!ok) {
+      const textNode = el.ownerDocument.createTextNode(insertion);
+      el.appendChild(textNode);
+      state.contentByComponentId.set(target.getId(), el.innerHTML);
+      el.focus();
+    }
+
+    // Persist into the Grapes model so preview/save see the token without exiting edit mode.
+    await syncLiveTextToModel(target);
+
+    const rteModule = editor.RichTextEditor;
+    if (rteModule.model.get('currentView')) {
+      const toolbar = rteModule.getToolbarEl();
+      if (toolbar) {
+        toolbar.style.display = '';
+      }
+      rteModule.updatePosition();
+    }
   } finally {
     window.setTimeout(() => {
       state.toolbarGuard = false;
-    }, 1000);
-  }
-
-  if (selected !== target) {
-    editor.select(target);
-  }
-
-  const rteModule = editor.RichTextEditor;
-  if (rteModule.model.get('currentView')) {
-    const toolbar = rteModule.getToolbarEl();
-    if (toolbar) {
-      toolbar.style.display = '';
-    }
-    rteModule.updatePosition();
+    }, 1500);
   }
 }
 
