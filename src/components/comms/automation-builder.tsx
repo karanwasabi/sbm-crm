@@ -41,15 +41,17 @@ import {
   normalizeStageTriggerConfig,
   normalizeTagTriggerConfig,
   normalizeRenewalTriggerConfig,
+  buildRenewalTriggerConfig,
+  parseRenewalTriggerCategories,
   RENEW_CATEGORY_DESCRIPTIONS,
   RENEW_CATEGORY_LABELS,
-  RENEW_CATEGORY_SELECT_OPTIONS,
   RENEW_PAYABLE_CATEGORIES,
   RENEWAL_PAYMENT_TRIGGER_DESCRIPTION,
-  renewCategoryDescription,
+  renewalCategoriesFilterLabel,
   nodeLabel,
   validationIssueDisplay,
 } from '@/lib/automation-types';
+import { RenewalCategoryMultiSelect } from '@/components/comms/renewal-category-multi-select';
 import {
   activateAutomationAction,
   archiveAutomationAction,
@@ -79,7 +81,13 @@ import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 import { commsAutomationHref, COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
 
+type TriggerConfigState = Record<string, string | string[]>;
+
 type BuilderTemplate = { id: string; name: string };
+
+function triggerConfigString(value: string | string[] | undefined): string {
+  return typeof value === 'string' ? value : '';
+}
 
 function graphToFlow(
   graph: AutomationGraph,
@@ -249,7 +257,7 @@ export function AutomationBuilder({
   const [name, setName] = useState(automation?.name ?? 'New nurture workflow');
   const [description, setDescription] = useState(automation?.description ?? '');
   const [triggerType, setTriggerType] = useState<AutomationTriggerType>(automation?.triggerType ?? 'lead_created');
-  const [triggerConfig, setTriggerConfig] = useState<Record<string, string>>(() => {
+  const [triggerConfig, setTriggerConfig] = useState<TriggerConfigState>(() => {
     if (automation?.triggerType === 'stage_changed') {
       return normalizeStageTriggerConfig(automation.triggerConfig);
     }
@@ -276,6 +284,16 @@ export function AutomationBuilder({
     setValidationPassed(false);
     setValidationIssues([]);
   }, []);
+
+  const selectedRenewalCategories = useMemo(() => parseRenewalTriggerCategories(triggerConfig), [triggerConfig]);
+
+  const setRenewalCategories = useCallback(
+    (categories: string[]) => {
+      invalidateValidation();
+      setTriggerConfig({ renewal_categories: categories });
+    },
+    [invalidateValidation]
+  );
 
   const validationErrorByNode = useMemo(() => {
     const map = new Map<string, string>();
@@ -348,7 +366,7 @@ export function AutomationBuilder({
   const tagTriggerSelectOptions = useMemo(
     () => [
       { value: '', label: 'Any tag', searchText: 'any tag' },
-      ...buildTagSelectOptions(tagSuggestions, triggerConfig.tag ?? ''),
+      ...buildTagSelectOptions(tagSuggestions, triggerConfigString(triggerConfig.tag)),
     ],
     [tagSuggestions, triggerConfig.tag]
   );
@@ -460,10 +478,10 @@ export function AutomationBuilder({
       };
     }
     if (triggerType === 'tag_added') {
-      return { tag: (triggerConfig.tag ?? '').trim() };
+      return { tag: triggerConfigString(triggerConfig.tag).trim() };
     }
     if (triggerType === 'renewal_payment_received') {
-      return normalizeRenewalTriggerConfig(triggerConfig);
+      return buildRenewalTriggerConfig(parseRenewalTriggerCategories(triggerConfig));
     }
     return {};
   }, [triggerConfig, triggerType]);
@@ -764,7 +782,7 @@ export function AutomationBuilder({
                   }
                   if (value === 'renewal_payment_received') {
                     setTriggerConfig((current) => {
-                      if ('renewal_category' in current) {
+                      if ('renewal_categories' in current || 'renewal_category' in current) {
                         return current;
                       }
                       return normalizeRenewalTriggerConfig(undefined);
@@ -779,7 +797,7 @@ export function AutomationBuilder({
               <>
                 <Field label="From stage" className="min-w-[160px]">
                   <AutomationBuilderSelect
-                    value={triggerConfig.from_stage ?? ''}
+                    value={triggerConfigString(triggerConfig.from_stage)}
                     onChange={(value) => setTriggerConfig((current) => ({ ...current, from_stage: value }))}
                     options={stageSelectOptions}
                     disabled={isGraphLocked}
@@ -787,7 +805,7 @@ export function AutomationBuilder({
                 </Field>
                 <Field label="To stage" className="min-w-[160px]">
                   <AutomationBuilderSelect
-                    value={triggerConfig.to_stage ?? ''}
+                    value={triggerConfigString(triggerConfig.to_stage)}
                     onChange={(value) => setTriggerConfig((current) => ({ ...current, to_stage: value }))}
                     options={stageSelectOptions}
                     disabled={isGraphLocked}
@@ -796,11 +814,10 @@ export function AutomationBuilder({
               </>
             ) : null}
             {triggerType === 'renewal_payment_received' ? (
-              <Field label="Renew category" className="min-w-[220px]">
-                <AutomationBuilderSelect
-                  value={triggerConfig.renewal_category ?? ''}
-                  onChange={(value) => setTriggerConfig((current) => ({ ...current, renewal_category: value }))}
-                  options={[{ value: '', label: 'Any renew category' }, ...RENEW_CATEGORY_SELECT_OPTIONS]}
+              <Field label="Renew categories" className="min-w-[220px]">
+                <RenewalCategoryMultiSelect
+                  selected={selectedRenewalCategories}
+                  onChange={setRenewalCategories}
                   disabled={isGraphLocked}
                 />
               </Field>
@@ -808,7 +825,7 @@ export function AutomationBuilder({
             {triggerType === 'tag_added' ? (
               <Field label="Tag added" className="min-w-[200px]">
                 <SearchableSelect
-                  value={triggerConfig.tag ?? ''}
+                  value={triggerConfigString(triggerConfig.tag)}
                   onChange={(slug) => setTriggerConfig((current) => ({ ...current, tag: slug }))}
                   options={tagTriggerSelectOptions}
                   placeholder="Any tag"
@@ -889,7 +906,8 @@ export function AutomationBuilder({
               <NodeConfigPanel
                 node={selectedNode}
                 triggerType={triggerType}
-                triggerConfig={triggerConfig}
+                selectedRenewalCategories={selectedRenewalCategories}
+                onRenewalCategoriesChange={setRenewalCategories}
                 emailTemplates={emailActiveTemplates}
                 whatsappTemplatesForSelect={whatsappTemplatesForSelect}
                 tagSuggestions={tagSuggestions}
@@ -940,26 +958,42 @@ export function AutomationBuilder({
   );
 }
 
-function RenewalTriggerSidebarHelp({ renewalCategory }: { renewalCategory: string }) {
-  const selectedSlug = renewalCategory.trim();
+function RenewalTriggerSidebarHelp({
+  selectedCategories,
+  onChange,
+  readOnly,
+}: {
+  selectedCategories: string[];
+  onChange: (categories: string[]) => void;
+  readOnly?: boolean;
+}) {
+  const selectedSet = new Set(selectedCategories);
 
   return (
     <div className="flex flex-col gap-3">
       <p className="text-sm text-slate-600">{RENEWAL_PAYMENT_TRIGGER_DESCRIPTION}</p>
       <div className="rounded-xl border border-slate-100 bg-canvas-cool p-3">
-        <p className="text-xs font-semibold text-slate-800">
-          {selectedSlug ? (RENEW_CATEGORY_LABELS[selectedSlug] ?? selectedSlug) : 'Any renew category'}
+        <p className="text-xs font-semibold text-slate-800">{renewalCategoriesFilterLabel(selectedCategories)}</p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">
+          {selectedCategories.length === 0
+            ? 'Workflow runs for every successful /renew payment.'
+            : 'Workflow runs when the payment category matches any selected option below.'}
         </p>
-        <p className="mt-1 text-xs leading-relaxed text-slate-600">{renewCategoryDescription(selectedSlug)}</p>
       </div>
+      <RenewalCategoryMultiSelect
+        variant="inline"
+        selected={selectedCategories}
+        onChange={onChange}
+        disabled={readOnly}
+      />
       <div className="flex flex-col gap-2">
-        <p className="text-xs font-semibold text-slate-700">All renew categories</p>
-        <ul className="max-h-64 space-y-2 overflow-y-auto pr-1 text-xs leading-relaxed text-slate-600">
+        <p className="text-xs font-semibold text-slate-700">Category reference</p>
+        <ul className="max-h-48 space-y-2 overflow-y-auto pr-1 text-xs leading-relaxed text-slate-600">
           {RENEW_PAYABLE_CATEGORIES.map((slug) => (
             <li
               key={slug}
               className={
-                slug === selectedSlug
+                selectedSet.has(slug)
                   ? 'rounded-lg border border-slate-200 bg-white px-2.5 py-2'
                   : 'rounded-lg border border-transparent px-2.5 py-2'
               }
@@ -981,7 +1015,8 @@ function RenewalTriggerSidebarHelp({ renewalCategory }: { renewalCategory: strin
 function NodeConfigPanel({
   node,
   triggerType,
-  triggerConfig,
+  selectedRenewalCategories,
+  onRenewalCategoriesChange,
   emailTemplates,
   whatsappTemplatesForSelect,
   tagSuggestions,
@@ -990,7 +1025,8 @@ function NodeConfigPanel({
 }: {
   node: Node<BuilderNodeData>;
   triggerType: AutomationTriggerType;
-  triggerConfig: Record<string, string>;
+  selectedRenewalCategories: string[];
+  onRenewalCategoriesChange: (categories: string[]) => void;
   emailTemplates: BuilderTemplate[];
   whatsappTemplatesForSelect: WhatsAppTemplate[];
   tagSuggestions: TagSuggestion[];
@@ -1019,7 +1055,13 @@ function NodeConfigPanel({
 
   const panel = (() => {
     if (node.data.nodeType === 'trigger' && triggerType === 'renewal_payment_received') {
-      return <RenewalTriggerSidebarHelp renewalCategory={triggerConfig.renewal_category ?? ''} />;
+      return (
+        <RenewalTriggerSidebarHelp
+          selectedCategories={selectedRenewalCategories}
+          onChange={onRenewalCategoriesChange}
+          readOnly={readOnly}
+        />
+      );
     }
 
     if (node.data.nodeType === 'wait') {

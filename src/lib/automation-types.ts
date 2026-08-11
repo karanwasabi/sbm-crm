@@ -166,7 +166,10 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
 };
 
 export type AutomationRenewalTriggerConfig = {
+  /** Legacy single-category filter; still honored when loading old automations. */
   renewal_category?: string;
+  /** When set, workflow runs if payment category matches any listed slug (OR). */
+  renewal_categories?: string[];
 };
 
 /** Payable renew categories for trigger filtering (excludes autopay-only paths). */
@@ -213,19 +216,60 @@ export const RENEW_CATEGORY_DESCRIPTIONS: Record<string, string> = {
   member_manual_renew: 'Active monthly member with autopay off. Prepaid extension for 3 / 6 / 12 months.',
 };
 
+export function isRenewPayableCategory(slug: string): boolean {
+  return (RENEW_PAYABLE_CATEGORIES as readonly string[]).includes(slug.trim());
+}
+
+export function parseRenewalTriggerCategories(
+  raw?: Record<string, unknown> | AutomationRenewalTriggerConfig | null
+): string[] {
+  const fromArray = raw?.renewal_categories;
+  const categories: string[] = [];
+
+  if (Array.isArray(fromArray)) {
+    for (const item of fromArray) {
+      const slug = String(item).trim();
+      if (slug && isRenewPayableCategory(slug)) {
+        categories.push(slug);
+      }
+    }
+  }
+
+  const legacy = raw?.renewal_category;
+  if (legacy != null && String(legacy).trim() !== '') {
+    const slug = String(legacy).trim();
+    if (isRenewPayableCategory(slug)) {
+      categories.push(slug);
+    }
+  }
+
+  return [...new Set(categories)];
+}
+
 export function renewCategoryDescription(category: string): string {
   const slug = category.trim();
   if (!slug) return RENEW_ANY_CATEGORY_DESCRIPTION;
   return RENEW_CATEGORY_DESCRIPTIONS[slug] ?? slug;
 }
 
-export function normalizeRenewalTriggerConfig(
-  raw?: Record<string, unknown> | AutomationRenewalTriggerConfig | null
-): Record<string, string> {
-  const category = raw?.renewal_category;
-  return {
-    renewal_category: category != null && String(category).trim() !== '' ? String(category).trim() : '',
-  };
+export function renewalCategoriesFilterLabel(categories: string[]): string {
+  if (categories.length === 0) return 'Any renew category';
+  if (categories.length === 1) {
+    return RENEW_CATEGORY_LABELS[categories[0]] ?? categories[0];
+  }
+  return `${categories.length} renew categories`;
+}
+
+export function buildRenewalTriggerConfig(categories: string[]): Record<string, unknown> {
+  const unique = [...new Set(categories.filter(isRenewPayableCategory))];
+  if (unique.length === 0) return {};
+  return { renewal_categories: unique };
+}
+
+export function normalizeRenewalTriggerConfig(raw?: Record<string, unknown> | AutomationRenewalTriggerConfig | null): {
+  renewal_categories: string[];
+} {
+  return { renewal_categories: parseRenewalTriggerCategories(raw) };
 }
 
 export const RENEW_CATEGORY_SELECT_OPTIONS = RENEW_PAYABLE_CATEGORIES.map((value) => ({
