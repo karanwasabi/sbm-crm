@@ -9,9 +9,22 @@ type EmailVariablesPickerProps = {
   variables: EmailVariable[];
   disabled?: boolean;
   onInsert: (token: string) => void;
+  /** Button label. Defaults to "Insert variable". */
+  label?: string;
+  /** Footer tip under the list. */
+  tip?: string;
+  /** Keep focus on a related input (e.g. subject) when picking a variable. */
+  preserveFocus?: boolean;
 };
 
-export function EmailVariablesPicker({ variables, disabled, onInsert }: EmailVariablesPickerProps) {
+export function EmailVariablesPicker({
+  variables,
+  disabled,
+  onInsert,
+  label = 'Insert variable',
+  tip = 'Tip: click into the text first, then insert at the caret.',
+  preserveFocus = true,
+}: EmailVariablesPickerProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
 
@@ -37,7 +50,7 @@ export function EmailVariablesPicker({ variables, disabled, onInsert }: EmailVar
         className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200/80 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-brand/30 hover:text-brand disabled:opacity-50"
       >
         <Braces className="h-3.5 w-3.5" strokeWidth={2.25} />
-        Insert variable
+        {label}
       </PopoverTrigger>
       <PopoverContent align="start" className="w-80 p-2" sideOffset={8}>
         <input
@@ -58,9 +71,11 @@ export function EmailVariablesPicker({ variables, disabled, onInsert }: EmailVar
                 title={variable.token}
                 className="flex w-full flex-col items-start rounded-md px-2 py-1.5 text-left hover:bg-slate-50"
                 onPointerDown={(event) => {
-                  // Keep canvas caret / RTE focus while inserting.
-                  event.preventDefault();
-                  event.stopPropagation();
+                  if (preserveFocus) {
+                    // Keep caret / RTE focus while inserting.
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }
                   onInsert(variable.token);
                   setOpen(false);
                   setQuery('');
@@ -72,10 +87,33 @@ export function EmailVariablesPicker({ variables, disabled, onInsert }: EmailVar
             ))
           )}
         </div>
-        <p className="mt-2 border-t border-slate-100 px-1 pt-2 text-[11px] text-slate-400">
-          Tip: click into the text first, then insert at the caret.
-        </p>
+        {tip ? <p className="mt-2 border-t border-slate-100 px-1 pt-2 text-[11px] text-slate-400">{tip}</p> : null}
       </PopoverContent>
     </Popover>
   );
+}
+
+/** Insert `token` into a text input at the current selection (or append). */
+export function insertTokenIntoInput(
+  input: HTMLInputElement | HTMLTextAreaElement | null,
+  token: string,
+  onChange: (next: string) => void
+) {
+  if (!input) {
+    onChange(token);
+    return;
+  }
+
+  const value = input.value;
+  const start = input.selectionStart ?? value.length;
+  const end = input.selectionEnd ?? value.length;
+  const next = `${value.slice(0, start)}${token}${value.slice(end)}`;
+  onChange(next);
+
+  const caret = start + token.length;
+  // Restore focus + caret after React state update.
+  window.requestAnimationFrame(() => {
+    input.focus();
+    input.setSelectionRange(caret, caret);
+  });
 }

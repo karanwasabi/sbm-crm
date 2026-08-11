@@ -10,7 +10,7 @@ import grapesjsTuiImageEditor from 'grapesjs-tui-image-editor';
 import 'grapesjs/dist/css/grapes.min.css';
 import '@/components/comms/grapes-font-awesome.css';
 import '@/components/comms/grapes-editor.css';
-import { EmailVariablesPicker } from '@/components/comms/email-variables-picker';
+import { EmailVariablesPicker, insertTokenIntoInput } from '@/components/comms/email-variables-picker';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -185,6 +185,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   const editorReadyRef = useRef(false);
   const editorShellRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const subjectInputRef = useRef<HTMLInputElement | null>(null);
   const applyLinkTargetsRef = useRef<(() => void) | null>(null);
   const [editorReady, setEditorReady] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -587,14 +588,28 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 ring-brand/20 outline-none focus:ring-2"
             />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
-            Subject
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <label htmlFor="email-template-subject" className="text-sm font-semibold text-slate-700">
+                Subject
+              </label>
+              <EmailVariablesPicker
+                variables={templateVariables}
+                label="Add variable"
+                tip="Tip: click in the subject first to insert at the cursor."
+                onInsert={(token) => {
+                  insertTokenIntoInput(subjectInputRef.current, token, setSubject);
+                }}
+              />
+            </div>
             <input
+              id="email-template-subject"
+              ref={subjectInputRef}
               value={subject}
               onChange={(event) => setSubject(event.target.value)}
               className="rounded-xl border border-slate-200 bg-white px-3 py-2 font-medium text-slate-800 ring-brand/20 outline-none focus:ring-2"
             />
-          </label>
+          </div>
           <div className="grid gap-2.5 sm:grid-cols-2">
             <label className="flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
               From name
