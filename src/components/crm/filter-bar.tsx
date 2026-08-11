@@ -32,9 +32,9 @@ type FilterBarProps = {
   filters: LeadDatabaseFilters;
   stageOptions: StageFilterOption[];
   filterOptions: LeadFilterOptions;
-  tagSuggestions: TagSuggestion[];
-  emailTemplates: EmailTemplate[];
-  whatsappTemplates: WhatsAppTemplate[];
+  tagSuggestions?: TagSuggestion[];
+  emailTemplates?: EmailTemplate[];
+  whatsappTemplates?: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
   unseenUpdatesCount: number;
   restrictToCreatedByMe?: boolean;
@@ -44,9 +44,9 @@ export function FilterBar({
   filters,
   stageOptions,
   filterOptions,
-  tagSuggestions,
-  emailTemplates,
-  whatsappTemplates,
+  tagSuggestions = [],
+  emailTemplates = [],
+  whatsappTemplates = [],
   whatsappSendsEnabled = false,
   unseenUpdatesCount,
   restrictToCreatedByMe = false,

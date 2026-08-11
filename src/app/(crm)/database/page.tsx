@@ -3,15 +3,7 @@ import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
 import { isMarketingOnly } from '@/lib/access';
-import {
-  getLeadFilterOptions,
-  getLeadSummary,
-  getMyAccess,
-  getWhatsAppFlags,
-  listEmailTemplates,
-  listTagSuggestions,
-  listWhatsAppTemplates,
-} from '@/utils/api';
+import { getLeadFilterOptions, getLeadSummary, getMyAccess, getWhatsAppFlags } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary } from '@/types/crm';
 import { LeadDatabaseTableLoader } from './lead-database-table-loader';
 
@@ -56,43 +48,26 @@ export default async function DatabasePage({
   const defaultCreatedByMe = false;
   const filters = parseLeadDatabaseFilters(params, { defaultCreatedByMe });
   const suspenseKey = buildLeadDatabaseHref(filters);
+  const includeReferrerCoaches = filters.referrerCoaches.length > 0;
 
   let summary = EMPTY_SUMMARY;
   let filterOptions = EMPTY_FILTER_OPTIONS;
-  let tagSuggestions: import('@/types/crm').TagSuggestion[] = [];
-  let emailTemplates: import('@/utils/api').EmailTemplate[] = [];
-  let whatsappTemplates: import('@/utils/api').WhatsAppTemplate[] = [];
   let whatsappSendsEnabled = false;
 
-  try {
-    [summary, filterOptions] = await Promise.all([getLeadSummary(filters.createdByMe), getLeadFilterOptions()]);
-  } catch {
-    summary = EMPTY_SUMMARY;
-    filterOptions = EMPTY_FILTER_OPTIONS;
-  }
+  const [summaryResult, filterOptionsResult, flagsResult] = await Promise.allSettled([
+    getLeadSummary(filters.createdByMe),
+    getLeadFilterOptions(includeReferrerCoaches),
+    getWhatsAppFlags(),
+  ]);
 
-  try {
-    tagSuggestions = await listTagSuggestions();
-  } catch {
-    tagSuggestions = [];
+  if (summaryResult.status === 'fulfilled') {
+    summary = summaryResult.value;
   }
-
-  try {
-    emailTemplates = await listEmailTemplates();
-  } catch {
-    emailTemplates = [];
+  if (filterOptionsResult.status === 'fulfilled') {
+    filterOptions = filterOptionsResult.value;
   }
-
-  try {
-    const [flags, templates] = await Promise.all([
-      getWhatsAppFlags().catch(() => ({ sendsEnabled: false, templatesEnabled: false })),
-      listWhatsAppTemplates().catch(() => [] as import('@/utils/api').WhatsAppTemplate[]),
-    ]);
-    whatsappSendsEnabled = flags.sendsEnabled;
-    whatsappTemplates = templates;
-  } catch {
-    whatsappTemplates = [];
-    whatsappSendsEnabled = false;
+  if (flagsResult.status === 'fulfilled') {
+    whatsappSendsEnabled = flagsResult.value.sendsEnabled;
   }
 
   return (
@@ -100,9 +75,9 @@ export default async function DatabasePage({
       filters={filters}
       summary={summary}
       filterOptions={filterOptions}
-      tagSuggestions={tagSuggestions}
-      emailTemplates={emailTemplates}
-      whatsappTemplates={whatsappTemplates}
+      tagSuggestions={[]}
+      emailTemplates={[]}
+      whatsappTemplates={[]}
       whatsappSendsEnabled={whatsappSendsEnabled}
       restrictToCreatedByMe={restrictToCreatedByMe}
     >

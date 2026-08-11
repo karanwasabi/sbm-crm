@@ -3,6 +3,7 @@
 import { Search, Tag } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,7 +24,7 @@ import type { TagFilterMode, TagSuggestion } from '@/types/crm';
 
 type TagFilterSheetProps = {
   filters: LeadDatabaseFilters;
-  suggestions: TagSuggestion[];
+  suggestions?: TagSuggestion[];
 };
 
 function filterSuggestions(suggestions: TagSuggestion[], query: string): TagSuggestion[] {
@@ -100,19 +101,58 @@ function TagSection({
   );
 }
 
-export function TagFilterSheet({ filters, suggestions }: TagFilterSheetProps) {
+export function TagFilterSheet({ filters, suggestions = [] }: TagFilterSheetProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [draftTags, setDraftTags] = useState<string[]>(filters.tags);
   const [draftExcludeTags, setDraftExcludeTags] = useState<string[]>(filters.excludeTags);
   const [draftMode, setDraftMode] = useState<TagFilterMode>(filters.tagMode);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loadedSuggestions, setLoadedSuggestions] = useState<TagSuggestion[]>(suggestions);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
-  const visibleSuggestions = useMemo(() => filterSuggestions(suggestions, searchQuery), [suggestions, searchQuery]);
+  const visibleSuggestions = useMemo(
+    () => filterSuggestions(loadedSuggestions, searchQuery),
+    [loadedSuggestions, searchQuery]
+  );
   const visibleSlugs = useMemo(() => visibleSuggestions.map((item) => item.slug), [visibleSuggestions]);
 
   const tagFilterActive = filters.tags.length > 0 || filters.excludeTags.length > 0;
   const tagFilterCount = filters.tags.length + filters.excludeTags.length;
+
+  const loadSuggestionsIfNeeded = async () => {
+    if (loadedSuggestions.length > 0 || loadingSuggestions) {
+      return;
+    }
+    setLoadingSuggestions(true);
+    try {
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        return;
+      }
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080';
+      const response = await fetch(`${backendUrl}/admin/tags`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        return;
+      }
+      const tags = (await response.json()) as TagSuggestion[];
+      setLoadedSuggestions(
+        tags.map((tag) => ({
+          slug: tag.slug,
+          label: tagSlugToLabel(tag.slug),
+        }))
+      );
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  };
 
   const resetDraftFromFilters = () => {
     setDraftTags(filters.tags);
@@ -192,7 +232,10 @@ export function TagFilterSheet({ filters, suggestions }: TagFilterSheetProps) {
       open={open}
       onOpenChange={(next) => {
         setOpen(next);
-        if (next) resetDraftFromFilters();
+        if (next) {
+          resetDraftFromFilters();
+          void loadSuggestionsIfNeeded();
+        }
       }}
     >
       <SheetTrigger type="button" className={filterPopoverTriggerClass(tagFilterActive)}>
@@ -206,6 +249,7 @@ export function TagFilterSheet({ filters, suggestions }: TagFilterSheetProps) {
         </SheetHeader>
 
         <SheetBody className="space-y-5">
+          {loadingSuggestions ? <p className="text-xs text-slate-500">Loading tags…</p> : null}
           <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
             <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
             <input

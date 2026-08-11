@@ -15,9 +15,9 @@ type LeadDatabaseViewProps = {
   filters: LeadDatabaseFilters;
   summary: LeadSummary;
   filterOptions: LeadFilterOptions;
-  tagSuggestions: TagSuggestion[];
-  emailTemplates: EmailTemplate[];
-  whatsappTemplates: WhatsAppTemplate[];
+  tagSuggestions?: TagSuggestion[];
+  emailTemplates?: EmailTemplate[];
+  whatsappTemplates?: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
   restrictToCreatedByMe?: boolean;
   children: ReactNode;
@@ -27,9 +27,9 @@ export function LeadDatabaseView({
   filters,
   summary,
   filterOptions,
-  tagSuggestions,
-  emailTemplates,
-  whatsappTemplates,
+  tagSuggestions = [],
+  emailTemplates = [],
+  whatsappTemplates = [],
   whatsappSendsEnabled = false,
   restrictToCreatedByMe = false,
   children,

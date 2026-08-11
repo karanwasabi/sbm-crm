@@ -2,7 +2,8 @@
 
 import { type LucideIcon, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { createClient } from '@/utils/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
@@ -39,6 +40,57 @@ export function LeadDatabaseMultiSelectPopover({
   const selected = filters[field];
   const [draft, setDraft] = useState<string[]>(selected);
   const selectedSet = useMemo(() => new Set(draft), [draft]);
+  const [loadedOptions, setLoadedOptions] = useState(options);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+
+  useEffect(() => {
+    if (options.length > 0) {
+      setLoadedOptions(options);
+    }
+  }, [options]);
+
+  useEffect(() => {
+    if (!open || field !== 'referrerCoaches' || loadedOptions.length > 0 || loadingOptions) {
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingOptions(true);
+    void (async () => {
+      try {
+        const supabase = createClient();
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (!token) {
+          return;
+        }
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080';
+        const response = await fetch(`${backendUrl}/admin/leads/filter-options/referrer-coaches`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          return;
+        }
+        const payload = (await response.json()) as {
+          referrer_coaches?: { value: string; label?: string; count: number }[];
+        };
+        if (!cancelled) {
+          setLoadedOptions(payload.referrer_coaches ?? []);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingOptions(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, field, loadedOptions.length, loadingOptions]);
 
   const apply = () => {
     router.push(buildLeadDatabaseHref(filters, { [field]: draft }));
@@ -67,10 +119,12 @@ export function LeadDatabaseMultiSelectPopover({
       <PopoverContent className="w-80 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by {label.toLowerCase()}</p>
         <div className="mt-3 max-h-48 space-y-1 overflow-y-auto">
-          {options.length === 0 ? (
+          {loadingOptions ? (
+            <p className="px-3 py-2 text-xs text-slate-500">Loading…</p>
+          ) : loadedOptions.length === 0 ? (
             <p className="px-3 py-2 text-xs text-slate-500">No values yet.</p>
           ) : (
-            options.map((option) => {
+            loadedOptions.map((option) => {
               const active = selectedSet.has(option.value);
               return (
                 <button

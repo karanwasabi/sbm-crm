@@ -9,20 +9,21 @@ import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selecti
 import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/toast';
+import { fetchEmailTemplatesClient, fetchWhatsAppTemplatesClient } from '@/lib/comms-templates-client';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import { cn } from '@/lib/cn';
 
 type LeadDatabaseBulkSendButtonProps = {
-  emailTemplates: EmailTemplate[];
-  whatsappTemplates: WhatsAppTemplate[];
+  emailTemplates?: EmailTemplate[];
+  whatsappTemplates?: WhatsAppTemplate[];
   whatsappSendsEnabled?: boolean;
   createdByMe: boolean;
   restrictToCreatedByMe?: boolean;
 };
 
 export function LeadDatabaseBulkSendButton({
-  emailTemplates,
-  whatsappTemplates,
+  emailTemplates = [],
+  whatsappTemplates = [],
   whatsappSendsEnabled = false,
   createdByMe,
   restrictToCreatedByMe = false,
@@ -34,12 +35,32 @@ export function LeadDatabaseBulkSendButton({
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
   const [preparingOpen, setPreparingOpen] = useState(false);
   const [leadIds, setLeadIds] = useState<string[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [fetchedEmailTemplates, setFetchedEmailTemplates] = useState<EmailTemplate[]>(emailTemplates);
+  const [fetchedWhatsappTemplates, setFetchedWhatsappTemplates] = useState<WhatsAppTemplate[]>(whatsappTemplates);
 
-  const activeEmailTemplates = emailTemplates.filter((template) => template.status === 'active');
-  const activeWhatsappTemplates = whatsappTemplates.filter((template) => template.status === 'active');
-  const whatsappDisabled = !whatsappSendsEnabled || activeWhatsappTemplates.length === 0;
+  const activeEmailTemplates = fetchedEmailTemplates.filter((template) => template.status === 'active');
+  const activeWhatsappTemplates = fetchedWhatsappTemplates.filter((template) => template.status === 'active');
   const createdByMeBlocked = restrictToCreatedByMe && !createdByMe;
-  const isDisabled = selectedCount === 0 || createdByMeBlocked;
+  const isDisabled = selectedCount === 0 || createdByMeBlocked || loadingTemplates;
+
+  const ensureEmailTemplates = async (): Promise<EmailTemplate[]> => {
+    if (fetchedEmailTemplates.length > 0) {
+      return fetchedEmailTemplates;
+    }
+    const templates = await fetchEmailTemplatesClient();
+    setFetchedEmailTemplates(templates);
+    return templates;
+  };
+
+  const ensureWhatsappTemplates = async (): Promise<WhatsAppTemplate[]> => {
+    if (fetchedWhatsappTemplates.length > 0) {
+      return fetchedWhatsappTemplates;
+    }
+    const templates = await fetchWhatsAppTemplatesClient();
+    setFetchedWhatsappTemplates(templates);
+    return templates;
+  };
 
   const openWithLeads = (ids: string[], channel: 'email' | 'whatsapp') => {
     setLeadIds(ids);
@@ -50,7 +71,7 @@ export function LeadDatabaseBulkSendButton({
     }
   };
 
-  const handleClick = (channel: 'email' | 'whatsapp') => {
+  const handleClick = async (channel: 'email' | 'whatsapp') => {
     if (createdByMeBlocked) {
       toast({
         message:
@@ -63,8 +84,43 @@ export function LeadDatabaseBulkSendButton({
       return;
     }
 
-    if (selectedCount === 0) {
+    if (selectedCount === 0 || loadingTemplates) {
       return;
+    }
+
+    if (channel === 'whatsapp' && !whatsappSendsEnabled) {
+      toast({
+        message: 'WhatsApp sends are disabled on the backend.',
+        variant: 'warning',
+        durationMs: 5000,
+      });
+      return;
+    }
+
+    try {
+      setLoadingTemplates(true);
+      if (channel === 'email') {
+        const templates = await ensureEmailTemplates();
+        if (templates.filter((template) => template.status === 'active').length === 0) {
+          toast({ message: 'No active email templates available.', variant: 'warning', durationMs: 5000 });
+          return;
+        }
+      } else {
+        const templates = await ensureWhatsappTemplates();
+        if (templates.filter((template) => template.status === 'active').length === 0) {
+          toast({ message: 'No active WhatsApp templates available.', variant: 'warning', durationMs: 5000 });
+          return;
+        }
+      }
+    } catch (error) {
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to load templates.',
+        variant: 'error',
+        durationMs: 5000,
+      });
+      return;
+    } finally {
+      setLoadingTemplates(false);
     }
 
     if (!needsPrefetchForExport()) {
@@ -100,14 +156,14 @@ export function LeadDatabaseBulkSendButton({
         variant="light"
         size="sm"
         leftIcon={<Mail className="h-3.5 w-3.5" />}
-        aria-disabled={isDisabled || activeEmailTemplates.length === 0}
+        aria-disabled={isDisabled || loadingTemplates}
         className={cn(
-          (isDisabled || activeEmailTemplates.length === 0) &&
+          (isDisabled || loadingTemplates) &&
             'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none'
         )}
-        onClick={() => handleClick('email')}
+        onClick={() => void handleClick('email')}
       >
-        Send email
+        {loadingTemplates ? 'Loading…' : 'Send email'}
       </Button>
 
       <Button
@@ -115,15 +171,15 @@ export function LeadDatabaseBulkSendButton({
         variant="light"
         size="sm"
         leftIcon={<WhatsAppIcon />}
-        aria-disabled={isDisabled || whatsappDisabled}
+        aria-disabled={isDisabled || !whatsappSendsEnabled || loadingTemplates}
         title={!whatsappSendsEnabled ? 'WhatsApp sends are disabled on the backend.' : undefined}
         className={cn(
-          (isDisabled || whatsappDisabled) &&
+          (isDisabled || !whatsappSendsEnabled || loadingTemplates) &&
             'cursor-not-allowed border-b-slate-200 bg-slate-100 text-slate-400 shadow-none'
         )}
-        onClick={() => handleClick('whatsapp')}
+        onClick={() => void handleClick('whatsapp')}
       >
-        Send WhatsApp
+        {loadingTemplates ? 'Loading…' : 'Send WhatsApp'}
       </Button>
 
       <LeadExportPreparingDialog open={preparingOpen} selectedCount={selectedCount} onCancel={handleCancelPrepare} />

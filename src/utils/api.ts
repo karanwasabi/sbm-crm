@@ -87,13 +87,13 @@ async function requireApiFetch(path: string, init?: RequestInit): Promise<Respon
   return response;
 }
 
-export async function getMyAccess() {
+export const getMyAccess = cache(async () => {
   const response = await requireApiFetch('/me/access');
   if (!response.ok) {
     throw new ApiError(`Failed to load access (${response.status})`, response.status);
   }
   return response.json() as Promise<import('@/lib/access').AccessClaims>;
-}
+});
 
 export type StaffMember = {
   user_id: string;
@@ -164,7 +164,7 @@ export async function revokeStaffAccess(userId: string): Promise<void> {
   }
 }
 
-export async function getLatestProfile(): Promise<Profile> {
+export const getLatestProfile = cache(async (): Promise<Profile> => {
   const response = await requireApiFetch('/me');
 
   if (response.status === 404) {
@@ -177,7 +177,7 @@ export async function getLatestProfile(): Promise<Profile> {
   }
 
   return response.json() as Promise<Profile>;
-}
+});
 
 export async function patchProfile(body: ProfilePatch): Promise<Profile> {
   const response = await requireApiFetch('/me', {
@@ -690,38 +690,41 @@ export async function listLeads(
   };
 }
 
-export async function getLeadFilterOptions(): Promise<import('@/types/crm').LeadFilterOptions> {
-  const response = await requireApiFetch('/admin/leads/filter-options');
-  if (!response.ok) {
-    throw new ApiError('Failed to load lead filter options.', response.status);
+export const getLeadFilterOptions = cache(
+  async (includeReferrerCoaches = false): Promise<import('@/types/crm').LeadFilterOptions> => {
+    const query = includeReferrerCoaches ? '?include_referrer_coaches=true' : '';
+    const response = await requireApiFetch(`/admin/leads/filter-options${query}`);
+    if (!response.ok) {
+      throw new ApiError('Failed to load lead filter options.', response.status);
+    }
+    const payload = (await response.json()) as {
+      programs: { value: string; count: number }[];
+      batches: { value: string; count: number }[];
+      geography: { value: string; count: number }[];
+      sources: { value: string; count: number }[];
+      coaches?: { value: string; label?: string; count: number }[];
+      referrer_coaches?: { value: string; label?: string; count: number }[];
+    };
+    return {
+      programs: payload.programs ?? [],
+      batches: payload.batches ?? [],
+      geography: payload.geography ?? [],
+      sources: payload.sources ?? [],
+      coaches: (payload.coaches ?? []).map((row) => ({
+        value: row.value,
+        label: row.label,
+        count: row.count,
+      })),
+      referrerCoaches: (payload.referrer_coaches ?? []).map((row) => ({
+        value: row.value,
+        label: row.label,
+        count: row.count,
+      })),
+    };
   }
-  const payload = (await response.json()) as {
-    programs: { value: string; count: number }[];
-    batches: { value: string; count: number }[];
-    geography: { value: string; count: number }[];
-    sources: { value: string; count: number }[];
-    coaches?: { value: string; label?: string; count: number }[];
-    referrer_coaches?: { value: string; label?: string; count: number }[];
-  };
-  return {
-    programs: payload.programs ?? [],
-    batches: payload.batches ?? [],
-    geography: payload.geography ?? [],
-    sources: payload.sources ?? [],
-    coaches: (payload.coaches ?? []).map((row) => ({
-      value: row.value,
-      label: row.label,
-      count: row.count,
-    })),
-    referrerCoaches: (payload.referrer_coaches ?? []).map((row) => ({
-      value: row.value,
-      label: row.label,
-      count: row.count,
-    })),
-  };
-}
+);
 
-export async function listTagSuggestions(): Promise<import('@/types/crm').TagSuggestion[]> {
+export const listTagSuggestions = cache(async (): Promise<import('@/types/crm').TagSuggestion[]> => {
   const response = await requireApiFetch('/admin/tags');
   if (!response.ok) {
     throw new ApiError('Failed to load tags.', response.status);
@@ -731,7 +734,7 @@ export async function listTagSuggestions(): Promise<import('@/types/crm').TagSug
     slug: tag.slug,
     label: tagSlugToLabel(tag.slug),
   }));
-}
+});
 
 export async function updateLeadTags(leadId: string, manualTags: string[]): Promise<import('@/types/crm').LeadDetail> {
   const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/tags`, {
@@ -3663,7 +3666,7 @@ export type WhatsAppFlags = {
   sendsEnabled: boolean;
 };
 
-export async function getWhatsAppFlags(): Promise<WhatsAppFlags> {
+export const getWhatsAppFlags = cache(async (): Promise<WhatsAppFlags> => {
   const response = await requireApiFetch('/admin/comms/whatsapp/flags');
   if (!response.ok) {
     throw new ApiError('Failed to load WhatsApp settings.', response.status);
@@ -3673,7 +3676,7 @@ export async function getWhatsAppFlags(): Promise<WhatsAppFlags> {
     templatesEnabled: row.templates_enabled,
     sendsEnabled: row.sends_enabled,
   };
-}
+});
 
 export async function listWhatsAppTemplates(): Promise<WhatsAppTemplate[]> {
   const response = await requireApiFetch('/admin/comms/whatsapp/templates');
@@ -4867,6 +4870,31 @@ export async function listAdminResources(category?: ResourceCategory): Promise<A
   }
   const payload = (await response.json()) as { resources: ApiResourceResponse[] };
   return (payload.resources ?? []).map(mapAdminResource);
+}
+
+export async function listAdminResourceCohortOptions(): Promise<
+  { id: string; name: string; cohorts: { id: string; name: string; startsOn: string }[] }[]
+> {
+  const response = await requireApiFetch('/admin/resources/cohort-options');
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load cohort options.');
+  }
+  const payload = (await response.json()) as {
+    items?: {
+      id: string;
+      name: string;
+      cohorts?: { id: string; name: string; starts_on?: string }[];
+    }[];
+  };
+  return (payload.items ?? []).map((program) => ({
+    id: program.id,
+    name: program.name,
+    cohorts: (program.cohorts ?? []).map((cohort) => ({
+      id: cohort.id,
+      name: cohort.name,
+      startsOn: cohort.starts_on ?? '',
+    })),
+  }));
 }
 
 export async function createAdminResource(input: CreateAdminResourceInput): Promise<AdminResource> {

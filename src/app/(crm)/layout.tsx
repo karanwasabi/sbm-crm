@@ -44,21 +44,20 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
     redirect('/unauthorized');
   }
 
+  // Fetch profile and WhatsApp flags in parallel
+  const [profileResult, flagsResult] = await Promise.allSettled([getLatestProfile(), getWhatsAppFlags()]);
+
   let profile: Profile | null = null;
   let profileError: string | null = null;
-  let whatsappSendsEnabled = false;
-
-  try {
-    profile = await getLatestProfile();
-  } catch (error) {
-    profileError = error instanceof ApiError ? error.message : 'Failed to load profile.';
+  if (profileResult.status === 'fulfilled') {
+    profile = profileResult.value;
+  } else {
+    profileError = profileResult.reason instanceof ApiError ? profileResult.reason.message : 'Failed to load profile.';
   }
 
-  try {
-    const flags = await getWhatsAppFlags();
-    whatsappSendsEnabled = flags.sendsEnabled;
-  } catch {
-    whatsappSendsEnabled = false;
+  let whatsappSendsEnabled = false;
+  if (flagsResult.status === 'fulfilled') {
+    whatsappSendsEnabled = flagsResult.value.sendsEnabled;
   }
 
   const staffUser = {

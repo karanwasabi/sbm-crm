@@ -73,37 +73,35 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const { listStaff, getMetaIntegrationStatus, getRazorpayIntegrationStatus, listPurgeAuditEvents } =
     await import('@/utils/api');
 
+  // Fetch all data in parallel
+  const [staffResult, integrationResult, razorpayResult, purgeAuditResult] = await Promise.allSettled([
+    listStaff(),
+    getMetaIntegrationStatus(),
+    getRazorpayIntegrationStatus(),
+    listPurgeAuditEvents({ limit: 50, offset: 0 }),
+  ]);
+
   let staff: StaffList = EMPTY_STAFF;
   let integrationStatus: MetaIntegrationStatus = EMPTY_META_STATUS;
   let razorpayStatus: RazorpayIntegrationStatus = EMPTY_RAZORPAY_STATUS;
   let purgeAuditItems: Awaited<ReturnType<typeof listPurgeAuditEvents>>['items'] = [];
   let purgeAuditTotal = 0;
 
-  try {
-    staff = await listStaff();
-  } catch {
-    staff = EMPTY_STAFF;
+  if (staffResult.status === 'fulfilled') {
+    staff = staffResult.value;
   }
 
-  try {
-    integrationStatus = await getMetaIntegrationStatus();
-  } catch {
-    integrationStatus = EMPTY_META_STATUS;
+  if (integrationResult.status === 'fulfilled') {
+    integrationStatus = integrationResult.value;
   }
 
-  try {
-    razorpayStatus = await getRazorpayIntegrationStatus();
-  } catch {
-    razorpayStatus = EMPTY_RAZORPAY_STATUS;
+  if (razorpayResult.status === 'fulfilled') {
+    razorpayStatus = razorpayResult.value;
   }
 
-  try {
-    const purgeAudit = await listPurgeAuditEvents({ limit: 50, offset: 0 });
-    purgeAuditItems = purgeAudit.items;
-    purgeAuditTotal = purgeAudit.total;
-  } catch {
-    purgeAuditItems = [];
-    purgeAuditTotal = 0;
+  if (purgeAuditResult.status === 'fulfilled') {
+    purgeAuditItems = purgeAuditResult.value.items;
+    purgeAuditTotal = purgeAuditResult.value.total;
   }
 
   return (
