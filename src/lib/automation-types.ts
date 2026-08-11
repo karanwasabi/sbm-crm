@@ -169,7 +169,7 @@ export type AutomationRenewalTriggerConfig = {
   renewal_category?: string;
 };
 
-/** Six payable renew categories for trigger filtering. */
+/** Payable renew categories for trigger filtering (excludes autopay-only paths). */
 export const RENEW_PAYABLE_CATEGORIES = [
   'new_user',
   'new_lead_no_sub',
@@ -189,6 +189,35 @@ export const RENEW_CATEGORY_LABELS: Record<string, string> = {
   newbie_manual_renew: 'Newbie manual renewal',
   member_manual_renew: 'Member manual renewal',
 };
+
+/** Sidebar copy when the renewal payment received trigger is selected. */
+export const RENEWAL_PAYMENT_TRIGGER_DESCRIPTION =
+  'Runs after someone successfully pays on /renew and their membership is updated — not when they open the page or when a card attempt fails.';
+
+export const RENEW_ANY_CATEGORY_DESCRIPTION =
+  'No filter — runs for every successful /renew payment in any category listed below.';
+
+export const RENEW_CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  new_user:
+    'Email is not in CRM yet. They are starting Take Control via trial checkout on /renew (1- or 3-month prepaid).',
+  new_lead_no_sub:
+    'Lead exists in CRM but has no active membership and is not tagged as an old student. Trial checkout on /renew (1- or 3-month prepaid).',
+  returnee_no_sub:
+    'Membership has lapsed, or they are on the old-student list, with autopay off. Comeback renew: 1-month (often with autopay) or prepaid 3 / 6 / 12 months.',
+  old_student_active_renew:
+    'OLD-STUDENTS tag or source, still has active access today, autopay off. Extending membership before access ends.',
+  trial_extend:
+    'On the 1-month trial, paid fewer than 3 trial months, not yet on monthly billing. Pays to extend trial (and optionally bundle prepaid renewal).',
+  newbie_manual_renew:
+    'Active member, autopay off, not yet on monthly billing. Prepaid extension for 3 / 6 / 12 months.',
+  member_manual_renew: 'Active monthly member with autopay off. Prepaid extension for 3 / 6 / 12 months.',
+};
+
+export function renewCategoryDescription(category: string): string {
+  const slug = category.trim();
+  if (!slug) return RENEW_ANY_CATEGORY_DESCRIPTION;
+  return RENEW_CATEGORY_DESCRIPTIONS[slug] ?? slug;
+}
 
 export function normalizeRenewalTriggerConfig(
   raw?: Record<string, unknown> | AutomationRenewalTriggerConfig | null

@@ -41,7 +41,12 @@ import {
   normalizeStageTriggerConfig,
   normalizeTagTriggerConfig,
   normalizeRenewalTriggerConfig,
+  RENEW_CATEGORY_DESCRIPTIONS,
+  RENEW_CATEGORY_LABELS,
   RENEW_CATEGORY_SELECT_OPTIONS,
+  RENEW_PAYABLE_CATEGORIES,
+  RENEWAL_PAYMENT_TRIGGER_DESCRIPTION,
+  renewCategoryDescription,
   nodeLabel,
   validationIssueDisplay,
 } from '@/lib/automation-types';
@@ -883,6 +888,8 @@ export function AutomationBuilder({
               </div>
               <NodeConfigPanel
                 node={selectedNode}
+                triggerType={triggerType}
+                triggerConfig={triggerConfig}
                 emailTemplates={emailActiveTemplates}
                 whatsappTemplatesForSelect={whatsappTemplatesForSelect}
                 tagSuggestions={tagSuggestions}
@@ -933,8 +940,48 @@ export function AutomationBuilder({
   );
 }
 
+function RenewalTriggerSidebarHelp({ renewalCategory }: { renewalCategory: string }) {
+  const selectedSlug = renewalCategory.trim();
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm text-slate-600">{RENEWAL_PAYMENT_TRIGGER_DESCRIPTION}</p>
+      <div className="rounded-xl border border-slate-100 bg-canvas-cool p-3">
+        <p className="text-xs font-semibold text-slate-800">
+          {selectedSlug ? (RENEW_CATEGORY_LABELS[selectedSlug] ?? selectedSlug) : 'Any renew category'}
+        </p>
+        <p className="mt-1 text-xs leading-relaxed text-slate-600">{renewCategoryDescription(selectedSlug)}</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <p className="text-xs font-semibold text-slate-700">All renew categories</p>
+        <ul className="max-h-64 space-y-2 overflow-y-auto pr-1 text-xs leading-relaxed text-slate-600">
+          {RENEW_PAYABLE_CATEGORIES.map((slug) => (
+            <li
+              key={slug}
+              className={
+                slug === selectedSlug
+                  ? 'rounded-lg border border-slate-200 bg-white px-2.5 py-2'
+                  : 'rounded-lg border border-transparent px-2.5 py-2'
+              }
+            >
+              <span className="font-semibold text-slate-800">{RENEW_CATEGORY_LABELS[slug]}</span>
+              <span className="text-slate-500"> — </span>
+              {RENEW_CATEGORY_DESCRIPTIONS[slug]}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <p className="text-xs text-slate-500">
+        People on autopay (newbie or member auto-renew) cannot pay on /renew, so they do not appear here.
+      </p>
+    </div>
+  );
+}
+
 function NodeConfigPanel({
   node,
+  triggerType,
+  triggerConfig,
   emailTemplates,
   whatsappTemplatesForSelect,
   tagSuggestions,
@@ -942,6 +989,8 @@ function NodeConfigPanel({
   onChange,
 }: {
   node: Node<BuilderNodeData>;
+  triggerType: AutomationTriggerType;
+  triggerConfig: Record<string, string>;
   emailTemplates: BuilderTemplate[];
   whatsappTemplatesForSelect: WhatsAppTemplate[];
   tagSuggestions: TagSuggestion[];
@@ -969,6 +1018,10 @@ function NodeConfigPanel({
   }, [readOnly, node.data.nodeType, node.id, node.data.config, onChange]);
 
   const panel = (() => {
+    if (node.data.nodeType === 'trigger' && triggerType === 'renewal_payment_received') {
+      return <RenewalTriggerSidebarHelp renewalCategory={triggerConfig.renewal_category ?? ''} />;
+    }
+
     if (node.data.nodeType === 'wait') {
       const wait = node.data.config as AutomationWaitData;
       return (
