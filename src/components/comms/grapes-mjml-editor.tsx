@@ -243,8 +243,8 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       noticeOnUnload: false,
       showOffsets: false,
       richTextEditor: {
-        // Built-in bold/italic/link bar stays on screen and blocks editing; Cmd/Ctrl+B/I still work.
-        custom: true,
+        // Keep a simple formatting bar (users aren't expected to know Cmd+B / Cmd+I).
+        actions: ['bold', 'italic', 'underline', 'link'],
       },
       undoManager: {
         trackSelection: false,

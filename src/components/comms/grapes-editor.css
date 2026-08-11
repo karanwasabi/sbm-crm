@@ -432,9 +432,34 @@
   margin-left: auto;
 }
 
-/* Built-in RTE bold/italic/link bar — hide even if Grapes re-creates it */
-.gjs-rte-toolbar,
-.gjs-rte-actionbar {
-  display: none !important;
-  pointer-events: none !important;
+/* Floating text-format bar (Bold / Italic / Underline / Link) — only while editing text */
+.gjs-rte-toolbar {
+  z-index: 20;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 0.12);
+  padding: 4px;
+}
+
+.gjs-rte-toolbar .gjs-rte-actionbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.gjs-rte-toolbar .gjs-rte-action {
+  min-width: 30px;
+  min-height: 30px;
+  border-radius: 6px;
+  color: #334155;
+}
+
+.gjs-rte-toolbar .gjs-rte-action:hover {
+  background: #f1f5f9;
+}
+
+.gjs-rte-toolbar .gjs-rte-active {
+  background: rgba(244, 94, 67, 0.12);
+  color: #c2410c;
 }

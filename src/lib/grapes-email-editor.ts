@@ -572,22 +572,29 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
   document.addEventListener('mousedown', guardToolbarInteraction, true);
   document.addEventListener('pointerdown', guardToolbarInteraction, true);
 
-  const hideBuiltinRteToolbar = () => {
-    const toolbar = document.querySelector('.gjs-rte-toolbar') as HTMLElement | null;
-    if (toolbar) {
-      toolbar.style.display = 'none';
-    }
+  const hideRteToolbar = () => {
+    editor.RichTextEditor.hideToolbar();
   };
 
-  const onRteEnable = () => {
-    // Keep built-in bold/italic/link chrome hidden — it sticks around and blocks editing.
-    hideBuiltinRteToolbar();
+  const forceDisableRte = () => {
+    state.toolbarGuard = false;
+    const rteModule = editor.RichTextEditor;
+    const currentView = rteModule.model.get('currentView') as TextComponentView | undefined;
+    if (currentView) {
+      const globalRte = (rteModule as { globalRte?: { disable: () => void } }).globalRte;
+      void rteModule.disable(currentView as never, globalRte as never);
+    } else {
+      hideRteToolbar();
+    }
   };
 
   const rteModule = editor.RichTextEditor;
   const originalDisable = rteModule.disable.bind(rteModule);
   rteModule.disable = async (view, rte, opts) => {
+    // Variable / custom toolbar clicks briefly steal focus. Skipping disable keeps the
+    // caret for insert, but we must tuck the floating bar away so it doesn't block UI.
     if (state.toolbarGuard) {
+      hideRteToolbar();
       return {};
     }
 
@@ -606,20 +613,34 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
       rememberMergeTargetContent(editor, component);
     }
 
-    hideBuiltinRteToolbar();
+    hideRteToolbar();
     return result;
   };
 
+  const onRteEnable = () => {
+    // Re-show after a prior guarded hide (e.g. opening the variable picker).
+    window.setTimeout(() => {
+      if (rteModule.model.get('currentView')) {
+        const toolbar = rteModule.getToolbarEl();
+        if (toolbar) {
+          toolbar.style.display = '';
+        }
+        rteModule.updatePosition();
+      }
+    }, 0);
+  };
+
   editor.on('rte:enable', onRteEnable);
-  editor.on('rte:disable', hideBuiltinRteToolbar);
-  hideBuiltinRteToolbar();
+  editor.on('rte:disable', hideRteToolbar);
+  editor.on('component:deselected', forceDisableRte);
 
   return () => {
     editor.off('component:selected', onComponentSelected);
     editor.off('component:update', onComponentUpdate);
+    editor.off('component:deselected', forceDisableRte);
     editor.off('load', trackCaretInFrame);
     editor.off('rte:enable', onRteEnable);
-    editor.off('rte:disable', hideBuiltinRteToolbar);
+    editor.off('rte:disable', hideRteToolbar);
     state.teardownCaretTracking?.();
     document.removeEventListener('mousedown', guardToolbarInteraction, true);
     document.removeEventListener('pointerdown', guardToolbarInteraction, true);
@@ -648,6 +669,16 @@ export function insertMergeToken(editor: Editor, token: string) {
 
   if (selected !== target) {
     editor.select(target);
+  }
+
+  // Variable picker briefly hides the format bar; bring it back if still editing.
+  const rteModule = editor.RichTextEditor;
+  if (rteModule.model.get('currentView')) {
+    const toolbar = rteModule.getToolbarEl();
+    if (toolbar) {
+      toolbar.style.display = '';
+    }
+    rteModule.updatePosition();
   }
 }
 
