@@ -6,6 +6,10 @@ export const RENEWAL_DURATION_FILTER_OPTIONS: Array<{ value: string; label: stri
   { value: '6', label: '6 months', count: 0 },
   { value: '12', label: '12 months', count: 0 },
   { value: 'trial_extend', label: 'Trial +2 only', count: 0 },
+  { value: 'trial_extend_1', label: 'Trial +2 · 1 month', count: 0 },
+  { value: 'trial_extend_3', label: 'Trial +2 · 3 months', count: 0 },
+  { value: 'trial_extend_6', label: 'Trial +2 · 6 months', count: 0 },
+  { value: 'trial_extend_12', label: 'Trial +2 · 12 months', count: 0 },
 ];
 
 export function renewalDurationFilterLabel(value: string): string {
