@@ -132,7 +132,10 @@ type TextComponentView = {
   model?: Component;
   rteEnabled?: boolean;
   onActive?: (event?: Event) => void;
+  onInput?: () => void;
+  disableEditing?: (opts?: Record<string, unknown>) => Promise<void>;
   syncContent?: (opts?: Record<string, unknown>) => Promise<void>;
+  __sbmDisablePatched?: boolean;
 };
 
 type MergeTokenEditorState = {
@@ -140,6 +143,10 @@ type MergeTokenEditorState = {
   caretOffsetByComponentId: Map<string, number>;
   /** Last text block the user was editing — used when picker steals focus. */
   lastEditableComponentId: string | null;
+  /**
+   * When true, skip the entire Grapes disableEditing path (not only rte.disable).
+   * Patching only rte.disable still lets toggleEvents/syncContent run and freezes the block.
+   */
   toolbarGuard: boolean;
   teardownCaretTracking?: () => void;
 };
@@ -449,39 +456,82 @@ function insertTokenAtCaretInElement(
   return true;
 }
 
-/** Push live RTE DOM into the component model without tearing down editing. */
-async function syncLiveTextToModel(component: Component) {
-  const view = component.view as TextComponentView | undefined;
-  if (!view?.rteEnabled || !view.syncContent) {
-    return;
-  }
-  try {
-    await view.syncContent({ fromDisable: true });
-  } catch {
-    // Keep editing even if sync fails — DOM still has the user's text.
-  }
-}
-
 /**
- * Flush the active text editor into the component model before preview/save.
- * Safe to call when nothing is being edited.
+ * Commit active RTE DOM into the model via a real Grapes disableEditing cycle.
+ * Optionally re-enter editing afterward (preview) so the block does not stay frozen.
  */
-export async function flushActiveTextEditing(editor: Editor) {
+export async function flushActiveTextEditing(editor: Editor, options: { resumeEditing?: boolean } = {}) {
   const state = getMergeTokenState(editor);
   const currentView = editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
   const active = currentView?.model ?? null;
   const last = findComponentById(editor, state.lastEditableComponentId);
-  const targets = [active, last].filter((component, index, list): component is Component => {
-    if (!component || !isMergeTokenTextComponent(component)) {
-      return false;
-    }
-    return list.findIndex((other) => other?.getId() === component.getId()) === index;
-  });
+  const component =
+    (active && isMergeTokenTextComponent(active) ? active : null) ||
+    (last && isMergeTokenTextComponent(last) ? last : null);
 
-  for (const component of targets) {
-    await syncLiveTextToModel(component);
-    rememberMergeTargetContent(editor, component);
+  if (!component) {
+    return;
   }
+
+  const view = (component.view as TextComponentView | undefined) ?? currentView;
+  const caret = state.caretOffsetByComponentId.get(component.getId());
+  const wasEditing = !!view?.rteEnabled;
+
+  rememberMergeTargetContent(editor, component);
+  if (wasEditing) {
+    saveCaretForTarget(editor, component);
+  }
+
+  // Must clear the guard — otherwise disableEditing is a no-op and the model stays stale.
+  const previousGuard = state.toolbarGuard;
+  state.toolbarGuard = false;
+  try {
+    if (view?.rteEnabled && view.disableEditing) {
+      await view.disableEditing();
+    }
+  } finally {
+    // When resuming edit mode, leave the guard off so the next canvas click can
+    // cleanly exit RTE. Otherwise the picker mousedown timer keeps guard true and
+    // the block looks "stuck" until another element is selected.
+    state.toolbarGuard = options.resumeEditing ? false : previousGuard;
+  }
+
+  rememberMergeTargetContent(editor, component);
+
+  if (!options.resumeEditing || !wasEditing) {
+    return;
+  }
+
+  await ensureTextEditing(editor, component);
+  const el = getEditableElement(component);
+  if (el && caret !== undefined) {
+    placeCaretAtTextOffset(el, caret);
+    state.caretOffsetByComponentId.set(component.getId(), caret);
+  }
+  el?.focus();
+}
+
+function patchTextViewDisableEditing(editor: Editor, view: TextComponentView | null | undefined) {
+  if (!view?.disableEditing || view.__sbmDisablePatched) {
+    return;
+  }
+
+  const state = getMergeTokenState(editor);
+  const originalDisableEditing = view.disableEditing.bind(view);
+  view.__sbmDisablePatched = true;
+  view.disableEditing = async (opts?: Record<string, unknown>) => {
+    if (state.toolbarGuard) {
+      // Full skip: do not syncContent, do not toggleEvents — keep contentEditable alive.
+      editor.RichTextEditor.hideToolbar();
+      const component = view.model;
+      if (component && isMergeTokenTextComponent(component)) {
+        saveCaretForTarget(editor, component);
+        rememberMergeTargetContent(editor, component);
+      }
+      return;
+    }
+    return originalDisableEditing(opts);
+  };
 }
 
 /**
@@ -556,11 +606,13 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
     if (!(target instanceof Element)) {
       return;
     }
-    if (!target.closest('.sbm-grapes-toolbar, [data-slot="popover-content"]')) {
+    if (
+      !target.closest('.sbm-grapes-toolbar, [data-slot="popover-content"], .gjs-rte-toolbar, .gjs-toolbar, .actionbar')
+    ) {
       return;
     }
 
-    // Capture caret/content BEFORE the iframe blurs.
+    // Capture caret/content BEFORE the iframe blurs / Grapes disableEditing runs.
     const selected = findMergeTokenTarget(editor.getSelected());
     if (selected && isMergeTokenTextComponent(selected)) {
       saveCaretForTarget(editor, selected);
@@ -585,13 +637,15 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
     editor.RichTextEditor.hideToolbar();
   };
 
+  // Grapes calls view.disableEditing on any parent-document mousedown. Patching only
+  // rte.disable is not enough — disableEditing still runs toggleEvents + syncContent and
+  // freezes the block. Skip the whole disableEditing while the variable UI is in use.
   const rteModule = editor.RichTextEditor;
   const originalDisable = rteModule.disable.bind(rteModule);
   rteModule.disable = async (view, rte, opts) => {
     const component = view?.model as Component | undefined;
-    let snapshot = '';
     if (component && isMjmlTextComponent(component)) {
-      snapshot =
+      const snapshot =
         getEditableElement(component)?.innerHTML?.trim() ||
         state.contentByComponentId.get(component.getId()) ||
         readMergeTargetContent(component);
@@ -600,7 +654,6 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
       }
     }
 
-    // Picker/toolbar interaction: keep RTE alive so the block stays editable.
     if (state.toolbarGuard) {
       hideRteToolbar();
       return {};
@@ -610,9 +663,8 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
 
     if (component && isMjmlTextComponent(component)) {
       const after = getEditableElement(component)?.innerHTML?.trim() || readMergeTargetContent(component);
-      const restore = after.trim() ? after : snapshot;
+      const restore = after.trim() ? after : state.contentByComponentId.get(component.getId()) || '';
       if (restore.trim() && !after.trim()) {
-        // Only restore when Grapes wiped the block during disable.
         reconcileMjmlTextComponent(component, { forceHtml: restore });
         state.contentByComponentId.set(component.getId(), restore);
       } else if (after.trim()) {
@@ -625,6 +677,9 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
   };
 
   const onRteEnable = () => {
+    const currentView = rteModule.model.get('currentView') as TextComponentView | undefined;
+    patchTextViewDisableEditing(editor, currentView);
+
     window.setTimeout(() => {
       if (!rteModule.model.get('currentView')) {
         return;
@@ -680,6 +735,8 @@ export async function insertMergeToken(editor: Editor, token: string) {
   state.toolbarGuard = true;
 
   try {
+    patchTextViewDisableEditing(editor, target.view as TextComponentView | undefined);
+
     const el = await ensureTextEditing(editor, target);
     if (!el) {
       return;
@@ -695,11 +752,16 @@ export async function insertMergeToken(editor: Editor, token: string) {
       const textNode = el.ownerDocument.createTextNode(insertion);
       el.appendChild(textNode);
       state.contentByComponentId.set(target.getId(), el.innerHTML);
+      placeCaretAtTextOffset(el, el.textContent?.length ?? 0);
       el.focus();
     }
 
-    // Persist into the Grapes model so preview/save see the token without exiting edit mode.
-    await syncLiveTextToModel(target);
+    // Keep the live contentEditable session intact. Model sync happens later via
+    // flushActiveTextEditing (preview commit / save) — never syncContent here.
+    if (!el.isContentEditable) {
+      el.contentEditable = 'true';
+    }
+    el.focus();
 
     const rteModule = editor.RichTextEditor;
     if (rteModule.model.get('currentView')) {
@@ -710,9 +772,9 @@ export async function insertMergeToken(editor: Editor, token: string) {
       rteModule.updatePosition();
     }
   } finally {
-    window.setTimeout(() => {
-      state.toolbarGuard = false;
-    }, 1500);
+    // Clear immediately — delayed guard left disableEditing skipped after insert,
+    // which matched the "frozen until another element is selected" symptom.
+    state.toolbarGuard = false;
   }
 }
 

@@ -222,14 +222,11 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   }
 
   function refreshPreview(editor: Editor) {
-    void (async () => {
-      try {
-        await flushActiveTextEditing(editor);
-        setPreviewHtml(substitutePreviewVariables(compileEditorHtml(editor)));
-      } catch {
-        // Editor may not be ready yet.
-      }
-    })();
+    try {
+      setPreviewHtml(substitutePreviewVariables(compileEditorHtml(editor)));
+    } catch {
+      // Editor may not be ready yet.
+    }
   }
 
   async function buildSavePayload(status: 'active' | 'archived' = 'active') {
@@ -684,6 +681,8 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
                   const editor = editorRef.current;
                   if (!editor) return;
                   void insertMergeToken(editor, token).then(() => {
+                    // Do not flush/disable here — that recreates the freeze. Canvas already
+                    // shows the token; preview/save commit via real disableEditing later.
                     refreshPreview(editor);
                   });
                 }}
