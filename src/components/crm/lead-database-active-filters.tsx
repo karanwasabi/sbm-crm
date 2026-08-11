@@ -5,6 +5,7 @@ import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import { leadSourceLabel, perfSourceLabel } from '@/lib/lead-sources';
+import { renewalDurationFilterLabel } from '@/lib/renewal-duration';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { LeadFilterOptions } from '@/types/crm';
 
@@ -194,6 +195,16 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       href: buildLeadDatabaseHref(filters, { offlineCrmPaid: false }),
     });
   }
+  filters.renewalDurations.forEach((duration) => {
+    chips.push({
+      key: `renewal-duration-${duration}`,
+      label: 'Renewal',
+      value: renewalDurationFilterLabel(duration),
+      href: buildLeadDatabaseHref(filters, {
+        renewalDurations: filters.renewalDurations.filter((item) => item !== duration),
+      }),
+    });
+  });
   if (filters.updatedFrom || filters.updatedTo) {
     chips.push({
       key: 'updated',
@@ -231,6 +242,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
           paidFrom: '',
           paidTo: '',
           offlineCrmPaid: false,
+          renewalDurations: [],
           perfSource: '',
           metaCampaignId: '',
           metaCampaignUnattributed: false,

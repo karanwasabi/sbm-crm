@@ -9,8 +9,16 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { leadSourceLabel } from '@/lib/lead-sources';
+import { renewalDurationFilterLabel } from '@/lib/renewal-duration';
 
-type MultiSelectField = 'programs' | 'batches' | 'geography' | 'sources' | 'coaches' | 'referrerCoaches';
+type MultiSelectField =
+  | 'programs'
+  | 'batches'
+  | 'geography'
+  | 'sources'
+  | 'coaches'
+  | 'referrerCoaches'
+  | 'renewalDurations';
 
 type LeadDatabaseMultiSelectPopoverProps = {
   label: string;
@@ -25,6 +33,7 @@ function optionLabel(field: MultiSelectField, option: { value: string; label?: s
   if (field === 'sources') return leadSourceLabel(option.value) || option.value;
   if (field === 'coaches' && option.value === 'unassigned') return 'Unassigned';
   if (field === 'referrerCoaches' && option.value === 'unassigned') return 'Unassigned';
+  if (field === 'renewalDurations') return renewalDurationFilterLabel(option.value);
   return option.value;
 }
 

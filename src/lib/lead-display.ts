@@ -40,6 +40,7 @@ export function leadDetailToContactProfile(
   lead: import('@/types/crm').LeadDetail,
   timezoneId?: string | null
 ): import('@/types/crm').ContactProfile {
+  const liveBatch = lead.cohortName?.trim() || lead.batch;
   return {
     id: lead.id,
     name: lead.name,
@@ -49,7 +50,7 @@ export function leadDetailToContactProfile(
     location: lead.location || '—',
     joinedAt: formatLeadAddedAt(lead.addedAt, timezoneId),
     stage: lead.stage,
-    batch: lead.batch,
+    batch: liveBatch,
     tags: lead.tags,
     manualSourceLabel: manualSourceLabel(lead.manualSource),
     notes: lead.notes,

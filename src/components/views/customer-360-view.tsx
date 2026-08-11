@@ -430,7 +430,11 @@ export function Customer360View({
           <ProgramHistory
             items={programHistory}
             interest={lead.interest}
-            batch={lead.stage === 'transferred' && lead.batch?.trim() ? `${lead.batch} · Transferred` : lead.batch}
+            batch={
+              lead.stage === 'transferred' && (lead.cohortName?.trim() || lead.batch?.trim())
+                ? `${lead.cohortName?.trim() || lead.batch} · Transferred`
+                : lead.cohortName?.trim() || lead.batch
+            }
             attribution={lead.attribution}
             leadId={lead.id}
             leadStage={lead.stage}

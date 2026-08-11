@@ -32,6 +32,10 @@ type ApiLeadResponse = {
   marketing_unsubscribed_at?: string | null;
   unseen_suggestion_count?: number;
   source_label?: string | null;
+  member_kind?: 'renewal' | 'returnee' | null;
+  latest_renewal_plan_key?: string | null;
+  latest_renewal_duration?: string | null;
+  latest_renewal_category?: string | null;
 };
 
 const BULK_FETCH_CONCURRENCY = 3;
@@ -67,6 +71,10 @@ function mapLead(row: ApiLeadResponse): Lead {
     marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
     unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
+    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
+    latestRenewalPlanKey: row.latest_renewal_plan_key?.trim() || null,
+    latestRenewalDuration: row.latest_renewal_duration?.trim() || null,
+    latestRenewalCategory: row.latest_renewal_category?.trim() || null,
   };
 }
 

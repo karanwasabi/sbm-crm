@@ -240,6 +240,9 @@ type ApiLeadResponse = {
   notes?: string | null;
   member_user_id?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;
+  latest_renewal_plan_key?: string | null;
+  latest_renewal_duration?: string | null;
+  latest_renewal_category?: string | null;
   created_by?: string | null;
   referrer_coach_name?: string | null;
   can_mutate?: boolean;
@@ -249,6 +252,7 @@ type ApiLeadResponse = {
   can_transfer_membership?: boolean;
   coach_name?: string | null;
   cohort_id?: string | null;
+  cohort_name?: string | null;
   referred_by?: {
     referrer_lead_id?: string | null;
     referrer_email: string;
@@ -365,6 +369,9 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
     unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
     memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
+    latestRenewalPlanKey: row.latest_renewal_plan_key?.trim() || null,
+    latestRenewalDuration: row.latest_renewal_duration?.trim() || null,
+    latestRenewalCategory: row.latest_renewal_category?.trim() || null,
     createdBy: row.created_by ?? null,
     referrerCoachName: row.referrer_coach_name ?? null,
   };
@@ -886,6 +893,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     timeline: row.timeline ? mapTimelineEvents(row.timeline) : [],
     coachName: row.coach_name?.trim() || null,
     cohortId: row.cohort_id?.trim() || null,
+    cohortName: row.cohort_name?.trim() || null,
     referredBy: row.referred_by
       ? {
           referrerLeadId: row.referred_by.referrer_lead_id?.trim() || null,
@@ -2396,6 +2404,10 @@ type ApiEnrollmentResponse = {
   recurring_start_at?: string | null;
   auto_renew_enabled?: boolean;
   drives_lifecycle?: boolean;
+  checkout_product?: string | null;
+  renewal_plan_key?: string | null;
+  renewal_category?: string | null;
+  renewal_duration?: string | null;
 };
 
 export async function listPrograms(): Promise<ApiProgramResponse[]> {
@@ -2750,6 +2762,10 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     recurringStartAt: row.recurring_start_at ?? null,
     autoRenewEnabled: Boolean(row.auto_renew_enabled),
     drivesLifecycle: Boolean(row.drives_lifecycle),
+    checkoutProduct: row.checkout_product?.trim() || null,
+    renewalPlanKey: row.renewal_plan_key?.trim() || null,
+    renewalCategory: row.renewal_category?.trim() || null,
+    renewalDuration: row.renewal_duration?.trim() || null,
   }));
 }
 

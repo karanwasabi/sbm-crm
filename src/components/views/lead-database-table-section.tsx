@@ -209,9 +209,16 @@ function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: b
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <TruncatedWithTooltip text={lead.name} className="font-semibold text-slate-800" />
-        {lead.memberKind === 'renewal' || lead.memberKind === 'returnee' ? (
-          <div className="mt-0.5">
-            <MemberKindPill kind={lead.memberKind} />
+        {lead.memberKind === 'renewal' || lead.memberKind === 'returnee' || lead.latestRenewalDuration ? (
+          <div className="mt-0.5 flex flex-wrap items-center gap-1">
+            {lead.memberKind === 'renewal' || lead.memberKind === 'returnee' ? (
+              <MemberKindPill kind={lead.memberKind} />
+            ) : null}
+            {lead.latestRenewalDuration ? (
+              <Pill tone="brand" className="text-[10px] tracking-wide normal-case">
+                Renewed · {lead.latestRenewalDuration}
+              </Pill>
+            ) : null}
           </div>
         ) : null}
         <TruncatedWithTooltip text={lead.email} className="text-[11px] text-slate-500" />

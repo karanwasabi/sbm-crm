@@ -1,6 +1,16 @@
 'use client';
 
-import { CalendarClock, CalendarPlus, Globe, GraduationCap, Layers, Megaphone, UserRound, Users } from 'lucide-react';
+import {
+  CalendarClock,
+  CalendarPlus,
+  Globe,
+  GraduationCap,
+  Layers,
+  Megaphone,
+  RefreshCw,
+  UserRound,
+  Users,
+} from 'lucide-react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
 import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-date-range-popover';
@@ -20,6 +30,7 @@ import {
   toggleStageFilter,
   type LeadDatabaseFilters,
 } from '@/lib/lead-database-url';
+import { RENEWAL_DURATION_FILTER_OPTIONS } from '@/lib/renewal-duration';
 import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
 
 export type StageFilterOption = {
@@ -98,6 +109,13 @@ export function FilterBar({
             field="referrerCoaches"
             filters={filters}
             options={filterOptions.referrerCoaches}
+          />
+          <LeadDatabaseMultiSelectPopover
+            label="Renewal duration"
+            icon={RefreshCw}
+            field="renewalDurations"
+            filters={filters}
+            options={RENEWAL_DURATION_FILTER_OPTIONS}
           />
           <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />

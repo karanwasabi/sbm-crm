@@ -62,6 +62,11 @@ export type Lead = {
   marketingUnsubscribedAt?: string | null;
   unseenSuggestionCount: number;
   memberKind?: 'renewal' | 'returnee' | null;
+  /** Latest paid renewal checkout plan key (e.g. renewal_6m). */
+  latestRenewalPlanKey?: string | null;
+  /** Short duration label from latest paid renewal (e.g. "6 mo"). */
+  latestRenewalDuration?: string | null;
+  latestRenewalCategory?: string | null;
   createdBy?: string | null;
   referrerCoachName?: string | null;
 };
@@ -266,6 +271,7 @@ export type LeadDetail = Lead & {
   timeline: TimelineEvent[];
   coachName?: string | null;
   cohortId?: string | null;
+  cohortName?: string | null;
   referredBy?: LeadReferredBy | null;
 };
 
@@ -618,6 +624,11 @@ export type ProgramHistoryItem = {
   autoRenewEnabled?: boolean;
   /** True for the enrollment that drives lead lifecycle stage (latest paid checkout). */
   drivesLifecycle?: boolean;
+  checkoutProduct?: string | null;
+  renewalPlanKey?: string | null;
+  renewalCategory?: string | null;
+  /** Short label e.g. "6 mo" or "Trial +2 · 6 mo". */
+  renewalDuration?: string | null;
 };
 
 export type CohortSummary = {
