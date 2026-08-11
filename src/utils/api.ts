@@ -711,6 +711,7 @@ export const getLeadFilterOptions = cache(
       sources: { value: string; count: number }[];
       coaches?: { value: string; label?: string; count: number }[];
       referrer_coaches?: { value: string; label?: string; count: number }[];
+      renewal_durations?: { value: string; label?: string; count: number }[];
     };
     return {
       programs: payload.programs ?? [],
@@ -723,6 +724,11 @@ export const getLeadFilterOptions = cache(
         count: row.count,
       })),
       referrerCoaches: (payload.referrer_coaches ?? []).map((row) => ({
+        value: row.value,
+        label: row.label,
+        count: row.count,
+      })),
+      renewalDurations: (payload.renewal_durations ?? []).map((row) => ({
         value: row.value,
         label: row.label,
         count: row.count,

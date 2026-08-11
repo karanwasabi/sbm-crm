@@ -30,6 +30,7 @@ const EMPTY_FILTER_OPTIONS: LeadFilterOptions = {
   sources: [],
   coaches: [],
   referrerCoaches: [],
+  renewalDurations: [],
 };
 
 export default async function DatabasePage({

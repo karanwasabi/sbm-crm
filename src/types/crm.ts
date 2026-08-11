@@ -90,6 +90,7 @@ export type LeadFilterOptions = {
   sources: LeadFilterOption[];
   coaches: LeadFilterOption[];
   referrerCoaches: LeadFilterOption[];
+  renewalDurations: LeadFilterOption[];
 };
 
 export type LeadListResult = {

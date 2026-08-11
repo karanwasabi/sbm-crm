@@ -30,7 +30,7 @@ import {
   toggleStageFilter,
   type LeadDatabaseFilters,
 } from '@/lib/lead-database-url';
-import { RENEWAL_DURATION_FILTER_OPTIONS } from '@/lib/renewal-duration';
+import { mergeRenewalDurationFilterOptions } from '@/lib/renewal-duration';
 import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
 
 export type StageFilterOption = {
@@ -115,7 +115,7 @@ export function FilterBar({
             icon={RefreshCw}
             field="renewalDurations"
             filters={filters}
-            options={RENEWAL_DURATION_FILTER_OPTIONS}
+            options={mergeRenewalDurationFilterOptions(filterOptions.renewalDurations)}
           />
           <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
