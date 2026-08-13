@@ -47,6 +47,7 @@ import type {
   CohortResourceCategoryInput,
   CreateAdminResourceInput,
   ResourceCategory,
+  ResourceCitation,
   ResourceKind,
 } from '@/utils/api';
 
@@ -97,7 +98,21 @@ type ResourceFormState = {
   youtubeUrl: string;
   published: boolean;
   pdfFile: File | null;
+  citations: ResourceCitation[];
 };
+
+function emptyCitation(): ResourceCitation {
+  return { text: '', url: '' };
+}
+
+function normalizeCitationRows(citations: ResourceCitation[]): ResourceCitation[] {
+  return citations
+    .map((c) => ({
+      text: c.text.trim(),
+      url: c.url?.trim() || null,
+    }))
+    .filter((c) => c.text.length > 0);
+}
 
 function youtubeThumbnailFromInput(raw: string): string {
   const id = extractYouTubeVideoId(raw);
@@ -136,6 +151,7 @@ function defaultFormState(category: ResourceCategory = 'plans'): ResourceFormSta
     youtubeUrl: '',
     published: true,
     pdfFile: null,
+    citations: [],
   };
 }
 
@@ -158,6 +174,7 @@ function formStateFromResource(resource: AdminResource): ResourceFormState {
     youtubeUrl,
     published: resource.published,
     pdfFile: null,
+    citations: resource.citations.length > 0 ? resource.citations.map((c) => ({ text: c.text, url: c.url ?? '' })) : [],
   };
 }
 
@@ -324,6 +341,7 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
           thumbnail_url: thumbnailUrl || (mode === 'edit' ? '' : null),
           speaker: form.speaker.trim() || null,
           duration: form.duration.trim() || null,
+          citations: normalizeCitationRows(form.citations),
           published: form.published,
         };
 
@@ -413,6 +431,62 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
               onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))}
               rows={3}
             />
+          </Field>
+
+          <Field label="Citations / sources (optional)">
+            <div className="space-y-3">
+              <p className="text-xs text-slate-500">
+                Shown in the member app under Sources. Add a link when available (DOI, PubMed, official page).
+              </p>
+              {form.citations.map((citation, index) => (
+                <div key={index} className="space-y-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3">
+                  <Textarea
+                    value={citation.text}
+                    onChange={(e) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        citations: prev.citations.map((row, i) =>
+                          i === index ? { ...row, text: e.target.value } : row
+                        ),
+                      }))
+                    }
+                    rows={3}
+                    placeholder="Full bibliographic citation"
+                  />
+                  <TextInput
+                    value={citation.url ?? ''}
+                    onChange={(value) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        citations: prev.citations.map((row, i) => (i === index ? { ...row, url: value } : row)),
+                      }))
+                    }
+                    placeholder="https://doi.org/… (optional)"
+                  />
+                  <button
+                    type="button"
+                    className="text-xs font-medium text-rose-600 underline-offset-2 hover:underline"
+                    onClick={() =>
+                      setForm((prev) => ({
+                        ...prev,
+                        citations: prev.citations.filter((_, i) => i !== index),
+                      }))
+                    }
+                  >
+                    Remove citation
+                  </button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="light"
+                size="sm"
+                onClick={() => setForm((prev) => ({ ...prev, citations: [...prev.citations, emptyCitation()] }))}
+              >
+                <Plus size={14} />
+                Add citation
+              </Button>
+            </div>
           </Field>
 
           {form.kind === 'youtube' ? (

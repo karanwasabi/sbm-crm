@@ -4786,6 +4786,11 @@ export async function getAutomationEnrollmentLog(
 export type ResourceCategory = 'plans' | 'webinars' | 'exercise' | 'guides' | 'recipes' | 'faqs';
 export type ResourceKind = 'pdf' | 'youtube';
 
+export type ResourceCitation = {
+  text: string;
+  url?: string | null;
+};
+
 export type AdminResource = {
   id: string;
   category: ResourceCategory;
@@ -4800,6 +4805,7 @@ export type AdminResource = {
   duration: string | null;
   youtubeVideoId: string | null;
   pdfStoragePath: string | null;
+  citations: ResourceCitation[];
   published: boolean;
   isFeatured?: boolean;
   sortOrder?: number;
@@ -4823,6 +4829,7 @@ export type CreateAdminResourceInput = {
   youtube_url?: string | null;
   youtube_video_id?: string | null;
   pdf_storage_path?: string | null;
+  citations?: ResourceCitation[];
   published?: boolean;
 };
 
@@ -4858,6 +4865,7 @@ type ApiResourceResponse = {
   duration?: string | null;
   youtube_video_id?: string | null;
   pdf_storage_path?: string | null;
+  citations?: Array<{ text?: string; url?: string | null }> | null;
   published?: boolean | null;
   is_featured?: boolean | null;
   sort_order?: number | null;
@@ -4878,6 +4886,12 @@ function mapAdminResource(row: ApiResourceResponse): AdminResource {
     duration: row.duration ?? null,
     youtubeVideoId: row.youtube_video_id ?? null,
     pdfStoragePath: row.pdf_storage_path ?? null,
+    citations: (row.citations ?? [])
+      .map((c) => ({
+        text: (c.text ?? '').trim(),
+        url: c.url?.trim() || null,
+      }))
+      .filter((c) => c.text.length > 0),
     published: row.published ?? true,
     isFeatured: row.is_featured ?? undefined,
     sortOrder: row.sort_order ?? undefined,
