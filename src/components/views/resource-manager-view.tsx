@@ -13,6 +13,7 @@ import {
   putCohortResourceCategoriesAction,
   putCohortResourcesAction,
 } from '@/app/(crm)/resources/actions';
+import { CohortSelectOptGroups, defaultCohortSelectValue } from '@/components/crm/cohort-select-opt-groups';
 import { TabBar } from '@/components/crm/tab-bar';
 import { PerformanceSortableHeader } from '@/components/crm/performance-sortable-header';
 import {
@@ -75,7 +76,7 @@ const CATEGORY_LABELS = Object.fromEntries(RESOURCE_CATEGORIES.map((c) => [c.id,
 export type ProgramCohortOption = {
   id: string;
   name: string;
-  cohorts: { id: string; name: string; startsOn: string }[];
+  cohorts: { id: string; name: string; startsOn: string; isLive: boolean }[];
 };
 
 type ResourceManagerViewProps = {
@@ -974,6 +975,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
           cohortId: cohort.id,
           cohortName: cohort.name,
           startsOn: cohort.startsOn,
+          isLive: cohort.isLive,
         }))
       ),
     [programCohorts]
@@ -988,7 +990,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
   }, [programCohorts, selectedProgramId]);
 
   useEffect(() => {
-    const firstCohort = cohortOptions[0]?.id ?? '';
+    const firstCohort = defaultCohortSelectValue(cohortOptions);
     setSelectedCohortId(firstCohort);
   }, [selectedProgramId, cohortOptions]);
 
@@ -1093,10 +1095,18 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
   };
 
   const openCopyDialog = () => {
-    const fallback =
-      allCohortChoices.find((choice) => choice.cohortId !== selectedCohortId) ?? allCohortChoices[0] ?? null;
+    const others = allCohortChoices
+      .filter((choice) => choice.cohortId !== selectedCohortId)
+      .map((choice) => ({
+        id: choice.cohortId,
+        startsOn: choice.startsOn,
+        isLive: choice.isLive,
+        programId: choice.programId,
+      }));
+    const nextId = defaultCohortSelectValue(others);
+    const fallback = others.find((choice) => choice.id === nextId) ?? others[0] ?? null;
     setCopySourceProgramId(fallback?.programId ?? selectedProgramId);
-    setCopySourceCohortId(fallback && fallback.cohortId !== selectedCohortId ? fallback.cohortId : '');
+    setCopySourceCohortId(fallback?.id ?? '');
     setCopyOpen(true);
   };
 
@@ -1170,11 +1180,10 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
               {cohortOptions.length === 0 ? (
                 <option value="">No cohorts</option>
               ) : (
-                cohortOptions.map((cohort) => (
-                  <option key={cohort.id} value={cohort.id}>
-                    {cohort.name} · starts {cohort.startsOn}
-                  </option>
-                ))
+                <CohortSelectOptGroups
+                  cohorts={cohortOptions}
+                  labelFor={(cohort) => `${cohort.name} · starts ${cohort.startsOn}`}
+                />
               )}
             </select>
           </Field>
@@ -1337,7 +1346,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
                   const nextCohorts =
                     programCohorts.find((p) => p.id === programId)?.cohorts.filter((c) => c.id !== selectedCohortId) ??
                     [];
-                  setCopySourceCohortId(nextCohorts[0]?.id ?? '');
+                  setCopySourceCohortId(defaultCohortSelectValue(nextCohorts));
                 }}
                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-brand/20"
               >
@@ -1358,11 +1367,11 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
                 {copySourceCohortOptions.length === 0 ? (
                   <option value="">No other cohorts in this program</option>
                 ) : (
-                  copySourceCohortOptions.map((cohort) => (
-                    <option key={cohort.id} value={cohort.id}>
-                      {cohort.name} · starts {cohort.startsOn}
-                    </option>
-                  ))
+                  <CohortSelectOptGroups
+                    cohorts={copySourceCohortOptions}
+                    emptyLabel="No other cohorts in this program"
+                    labelFor={(cohort) => `${cohort.name} · starts ${cohort.startsOn}`}
+                  />
                 )}
               </select>
             </Field>

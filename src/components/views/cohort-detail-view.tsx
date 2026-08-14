@@ -69,6 +69,7 @@ import {
   deleteCohortAction,
   lockCohortAction,
   patchCohortIsDemoAction,
+  patchCohortIsLiveAction,
   patchCohortPointAEnabledAction,
 } from '@/app/(crm)/programs/actions';
 import { cohortHeaderAccent, formatCohortStartDateLong, cohortStartDateReached } from '@/lib/cohort-display';
@@ -633,6 +634,10 @@ function CohortDetailHeader({
   isDemo,
   isDemoSaving,
   onRequestToggleIsDemo,
+  isLive,
+  canEditIsLive,
+  isLiveSaving,
+  onRequestToggleIsLive,
 }: {
   cohort: CohortDetail;
   activeCount: number;
@@ -646,11 +651,18 @@ function CohortDetailHeader({
   isDemo: boolean;
   isDemoSaving?: boolean;
   onRequestToggleIsDemo?: (enabled: boolean) => void;
+  isLive: boolean;
+  canEditIsLive?: boolean;
+  isLiveSaving?: boolean;
+  onRequestToggleIsLive?: (enabled: boolean) => void;
 }) {
   const startDateReached = cohortStartDateReached(cohort.startsOn);
   const showPointAToggle = !startDateReached;
   const showDemoToggle = /demo/i.test(cohort.name);
-  const showSettingsRow = Boolean(canManagePointA && (showPointAToggle || showDemoToggle || startDateReached));
+  const showLiveToggle = Boolean(canEditIsLive);
+  const showSettingsRow = Boolean(
+    canManagePointA && (showPointAToggle || showDemoToggle || showLiveToggle || startDateReached)
+  );
 
   return (
     <div
@@ -666,6 +678,9 @@ function CohortDetailHeader({
             <h1 className="text-[26px] font-extrabold tracking-tight">{cohort.name}</h1>
             <span className="inline-flex items-center rounded-full border-b-2 border-black/20 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
               {cohort.phaseLabel}
+            </span>
+            <span className="inline-flex items-center rounded-full border-b-2 border-black/20 bg-black/18 px-3 py-1.25 text-[10px] font-bold tracking-[0.14em] uppercase">
+              {isLive ? 'Live' : 'Test'}
             </span>
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-1 text-xs font-medium text-white/92">
@@ -718,6 +733,18 @@ function CohortDetailHeader({
                     </span>
                   ) : null}
                 </>
+              ) : null}
+              {showLiveToggle ? (
+                <label className="inline-flex cursor-pointer items-center gap-2.5 rounded-full border border-white/25 bg-black/18 px-3 py-1.5 text-xs font-semibold">
+                  <input
+                    type="checkbox"
+                    className="h-3.5 w-3.5 rounded border-white/40"
+                    checked={isLive}
+                    disabled={isLiveSaving}
+                    onChange={(e) => onRequestToggleIsLive?.(e.target.checked)}
+                  />
+                  Live cohort
+                </label>
               ) : null}
             </div>
           ) : null}
@@ -1054,6 +1081,9 @@ export function CohortDetailView({
   const [isDemo, setIsDemo] = useState(Boolean(cohort.isDemo));
   const [isDemoSaving, setIsDemoSaving] = useState(false);
   const [pendingIsDemo, setPendingIsDemo] = useState<boolean | null>(null);
+  const [isLive, setIsLive] = useState(Boolean(cohort.isLive));
+  const [isLiveSaving, setIsLiveSaving] = useState(false);
+  const [pendingIsLive, setPendingIsLive] = useState<boolean | null>(null);
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
@@ -1069,6 +1099,10 @@ export function CohortDetailView({
   useEffect(() => {
     setIsDemo(Boolean(cohort.isDemo));
   }, [cohort.isDemo]);
+
+  useEffect(() => {
+    setIsLive(Boolean(cohort.isLive));
+  }, [cohort.isLive]);
 
   useEffect(() => {
     setSelectedIds(new Set());
@@ -1131,6 +1165,30 @@ export function CohortDetailView({
       });
     } finally {
       setIsDemoSaving(false);
+    }
+  };
+
+  const handleToggleIsLive = async (enabled: boolean) => {
+    const prev = isLive;
+    setIsLive(enabled);
+    setIsLiveSaving(true);
+    try {
+      const updated = await patchCohortIsLiveAction(cohort.id, enabled);
+      setIsLive(Boolean(updated.isLive));
+      setPendingIsLive(null);
+      toast({
+        message: enabled ? 'Cohort marked live.' : 'Cohort marked as test.',
+        variant: 'success',
+      });
+      router.refresh();
+    } catch (error) {
+      setIsLive(prev);
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to update live setting.',
+        variant: 'error',
+      });
+    } finally {
+      setIsLiveSaving(false);
     }
   };
 
@@ -1694,6 +1752,10 @@ export function CohortDetailView({
         isDemo={isDemo}
         isDemoSaving={isDemoSaving}
         onRequestToggleIsDemo={(enabled) => setPendingIsDemo(enabled)}
+        isLive={isLive}
+        canEditIsLive={Boolean(cohort.canEditIsLive)}
+        isLiveSaving={isLiveSaving}
+        onRequestToggleIsLive={(enabled) => setPendingIsLive(enabled)}
       />
 
       {isSuperadmin ? <CohortScheduledPushList cohortId={cohort.id} refreshKey={scheduledPushRefreshKey} /> : null}
@@ -1743,6 +1805,31 @@ export function CohortDetailView({
         onConfirm={() => {
           if (pendingIsDemo === null) return;
           void handleToggleIsDemo(pendingIsDemo);
+        }}
+      />
+
+      <CohortSettingConfirmDialog
+        open={pendingIsLive !== null}
+        onOpenChange={(open) => {
+          if (!open && !isLiveSaving) setPendingIsLive(null);
+        }}
+        title={pendingIsLive ? 'Mark cohort live?' : 'Mark cohort as test?'}
+        description={
+          pendingIsLive
+            ? 'Confirm marking this cohort as live in admin and coach views'
+            : 'Confirm marking this cohort as test in admin and coach views'
+        }
+        body={
+          pendingIsLive
+            ? 'This cohort will sort with live batches in program management, resource assignment, push notifications, and the coach dashboard. Members never see this classification.'
+            : 'This cohort will sort after live batches. Upcoming and queued cohorts cannot be unmarked. Members never see this classification.'
+        }
+        confirmLabel={pendingIsLive ? 'Mark live' : 'Mark as test'}
+        confirmVariant={pendingIsLive ? 'primary' : 'amber'}
+        pending={isLiveSaving}
+        onConfirm={() => {
+          if (pendingIsLive === null) return;
+          void handleToggleIsLive(pendingIsLive);
         }}
       />
 

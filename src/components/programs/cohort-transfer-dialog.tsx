@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { useToast } from '@/components/ui/toast';
+import { CohortSelectOptGroups, defaultCohortSelectValue } from '@/components/crm/cohort-select-opt-groups';
 import { formatCohortStartDate } from '@/lib/cohort-display';
 import type { CohortMember, CohortSummary } from '@/types/crm';
 
@@ -33,7 +34,7 @@ export function CohortTransferDialog({ cohortId, member, targets, open, onOpenCh
 
   useEffect(() => {
     if (!open) return;
-    setTargetCohortId(targets[0]?.id ?? '');
+    setTargetCohortId(defaultCohortSelectValue(targets));
   }, [open, targets]);
 
   const submit = () => {
@@ -72,11 +73,12 @@ export function CohortTransferDialog({ cohortId, member, targets, open, onOpenCh
             {targets.length === 0 ? (
               <option value="">No eligible cohorts</option>
             ) : (
-              targets.map((target) => (
-                <option key={target.id} value={target.id}>
-                  {target.name} · starts {formatCohortStartDate(target.startsOn)} · {target.phaseLabel}
-                </option>
-              ))
+              <CohortSelectOptGroups
+                cohorts={targets}
+                labelFor={(target) =>
+                  `${target.name} · starts ${formatCohortStartDate(target.startsOn)} · ${target.phaseLabel}`
+                }
+              />
             )}
           </select>
         </Field>

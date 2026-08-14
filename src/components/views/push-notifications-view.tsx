@@ -22,6 +22,7 @@ import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
+import { isLiveCohort } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortPushAssignment, PushTemplate, PushTemplateStatus } from '@/utils/api';
 
@@ -259,12 +260,13 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
               <DataTableHeaderCell>Cohort</DataTableHeaderCell>
               <DataTableHeaderCell>Starts</DataTableHeaderCell>
               <DataTableHeaderCell>Status</DataTableHeaderCell>
+              <DataTableHeaderCell>Type</DataTableHeaderCell>
               <DataTableHeaderCell>Assigned template</DataTableHeaderCell>
             </DataTableHead>
             <DataTableBody>
               {assignments.length === 0 ? (
                 <DataTableRow>
-                  <DataTableCell colSpan={4} className="py-10 text-center text-sm text-slate-500">
+                  <DataTableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
                     No take-control cohorts found.
                   </DataTableCell>
                 </DataTableRow>
@@ -278,6 +280,11 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
                     <DataTableCell className="tabular-nums">{row.startsOn}</DataTableCell>
                     <DataTableCell>
                       <Pill tone="neutral">{row.status}</Pill>
+                    </DataTableCell>
+                    <DataTableCell>
+                      <Pill tone={isLiveCohort(row) ? 'success' : 'neutral'}>
+                        {isLiveCohort(row) ? 'Live' : 'Test'}
+                      </Pill>
                     </DataTableCell>
                     <DataTableCell>
                       <select

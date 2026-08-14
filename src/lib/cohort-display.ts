@@ -1,9 +1,37 @@
-import type { CohortSummary } from '@/types/crm';
-
 type PhasePillTone = 'neutral' | 'brand' | 'success' | 'warn' | 'danger' | 'deep' | 'paid' | 'organic' | 'offline';
 
-export function sortCohorts(cohorts: CohortSummary[]): CohortSummary[] {
-  return [...cohorts].sort((a, b) => b.startsOn.localeCompare(a.startsOn));
+export function isLiveCohort(cohort: { isLive?: boolean; status?: string }): boolean {
+  return cohort.status === 'upcoming' || cohort.status === 'queued' || Boolean(cohort.isLive);
+}
+
+export function compareCohortsLiveFirst(
+  a: { startsOn: string; isLive?: boolean; status?: string },
+  b: { startsOn: string; isLive?: boolean; status?: string }
+): number {
+  const liveDiff = Number(isLiveCohort(b)) - Number(isLiveCohort(a));
+  if (liveDiff !== 0) return liveDiff;
+  return b.startsOn.localeCompare(a.startsOn);
+}
+
+export function sortCohorts<T extends { startsOn: string; isLive?: boolean; status?: string }>(cohorts: T[]): T[] {
+  return [...cohorts].sort(compareCohortsLiveFirst);
+}
+
+export function partitionCohorts<T extends { startsOn: string; isLive?: boolean; status?: string }>(
+  cohorts: T[]
+): { live: T[]; test: T[] } {
+  const sorted = sortCohorts(cohorts);
+  return {
+    live: sorted.filter((cohort) => isLiveCohort(cohort)),
+    test: sorted.filter((cohort) => !isLiveCohort(cohort)),
+  };
+}
+
+export function firstLiveCohortId<T extends { id: string; isLive?: boolean; status?: string; startsOn: string }>(
+  cohorts: T[]
+): string {
+  const { live, test } = partitionCohorts(cohorts);
+  return live[0]?.id ?? test[0]?.id ?? '';
 }
 
 export function formatCohortStartDate(startsOn: string): string {

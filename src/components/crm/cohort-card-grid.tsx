@@ -10,6 +10,7 @@ import {
   cohortCardHref,
   cohortCardSurface,
   formatCohortStartDateCard,
+  isLiveCohort,
   phasePillTone,
   sortCohorts,
 } from '@/lib/cohort-display';
@@ -78,6 +79,7 @@ export function CohortCardGrid({ cohorts }: CohortCardGridProps) {
                         <Pencil className="h-3 w-3" />
                       </span>
                     )}
+                    {!isLiveCohort(cohort) ? <Pill tone="neutral">Test</Pill> : null}
                     <Pill tone={phasePillTone(cohort.phaseLabel)}>{cohort.phaseLabel}</Pill>
                   </div>
                 </div>

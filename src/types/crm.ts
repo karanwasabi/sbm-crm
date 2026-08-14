@@ -643,6 +643,7 @@ export type CohortSummary = {
   memberCount: number;
   canEdit: boolean;
   canEditStartsOn: boolean;
+  isLive: boolean;
   color: string;
 };
 
@@ -654,6 +655,7 @@ export type CohortDetail = CohortSummary & {
   canEditPointAEnabled?: boolean;
   isDemo?: boolean;
   canEditIsDemo?: boolean;
+  canEditIsLive?: boolean;
   canDelete?: boolean;
   canArchive?: boolean;
   cleanupBlockers?: string[];

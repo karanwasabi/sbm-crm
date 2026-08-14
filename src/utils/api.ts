@@ -2387,6 +2387,7 @@ type ApiCohortResponse = {
   member_count: number;
   can_edit: boolean;
   can_edit_starts_on: boolean;
+  is_live?: boolean;
   color: string;
 };
 
@@ -2398,6 +2399,7 @@ type ApiCohortDetailResponse = ApiCohortResponse & {
   can_edit_point_a_enabled?: boolean;
   is_demo?: boolean;
   can_edit_is_demo?: boolean;
+  can_edit_is_live?: boolean;
   can_delete?: boolean;
   can_archive?: boolean;
   cleanup_blockers?: string[];
@@ -2443,6 +2445,7 @@ function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortS
     memberCount: row.member_count,
     canEdit: row.can_edit,
     canEditStartsOn: row.can_edit_starts_on,
+    isLive: Boolean(row.is_live),
     color: row.color,
   };
 }
@@ -2457,6 +2460,7 @@ function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').Co
     canEditPointAEnabled: row.can_edit_point_a_enabled,
     isDemo: row.is_demo,
     canEditIsDemo: row.can_edit_is_demo,
+    canEditIsLive: row.can_edit_is_live,
     canDelete: row.can_delete,
     canArchive: row.can_archive,
     cleanupBlockers: row.cleanup_blockers,
@@ -2593,6 +2597,22 @@ export async function patchCohortIsDemo(
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to update demo setting.', response.status);
+  }
+  return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
+}
+
+export async function patchCohortIsLive(
+  cohortId: string,
+  isLive: boolean
+): Promise<import('@/types/crm').CohortDetail> {
+  const response = await requireApiFetch(`/admin/cohorts/${encodeURIComponent(cohortId)}/is-live`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ is_live: isLive }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to update live setting.', response.status);
   }
   return mapCohortDetail((await response.json()) as ApiCohortDetailResponse);
 }
@@ -5059,7 +5079,7 @@ export async function listAdminResources(category?: ResourceCategory): Promise<A
 }
 
 export async function listAdminResourceCohortOptions(): Promise<
-  { id: string; name: string; cohorts: { id: string; name: string; startsOn: string }[] }[]
+  { id: string; name: string; cohorts: { id: string; name: string; startsOn: string; isLive: boolean }[] }[]
 > {
   const response = await requireApiFetch('/admin/resources/cohort-options');
   if (!response.ok) {
@@ -5069,7 +5089,7 @@ export async function listAdminResourceCohortOptions(): Promise<
     items?: {
       id: string;
       name: string;
-      cohorts?: { id: string; name: string; starts_on?: string }[];
+      cohorts?: { id: string; name: string; starts_on?: string; is_live?: boolean }[];
     }[];
   };
   return (payload.items ?? []).map((program) => ({
@@ -5079,6 +5099,7 @@ export async function listAdminResourceCohortOptions(): Promise<
       id: cohort.id,
       name: cohort.name,
       startsOn: cohort.starts_on ?? '',
+      isLive: Boolean(cohort.is_live),
     })),
   }));
 }
@@ -5277,6 +5298,7 @@ export type CohortPushAssignment = {
   status: string;
   programId: string;
   programName: string;
+  isLive: boolean;
   templateId: string | null;
   templateName: string | null;
   templateStatus: PushTemplateStatus | null;
@@ -5434,6 +5456,7 @@ export async function listCohortPushAssignments(): Promise<CohortPushAssignment[
     status: string;
     program_id: string;
     program_name: string;
+    is_live?: boolean;
     template_id: string | null;
     template_name: string | null;
     template_status: PushTemplateStatus | null;
@@ -5445,6 +5468,7 @@ export async function listCohortPushAssignments(): Promise<CohortPushAssignment[
     status: row.status,
     programId: row.program_id,
     programName: row.program_name,
+    isLive: Boolean(row.is_live),
     templateId: row.template_id,
     templateName: row.template_name,
     templateStatus: row.template_status,

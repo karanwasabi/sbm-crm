@@ -8,6 +8,7 @@ import {
   lockCohort,
   patchCohort,
   patchCohortIsDemo,
+  patchCohortIsLive,
   patchCohortPointAEnabled,
   sendCohortPushBroadcast,
   scheduleCohortPushBroadcast,
@@ -37,6 +38,13 @@ export async function patchCohortPointAEnabledAction(cohortId: string, pointAEna
 
 export async function patchCohortIsDemoAction(cohortId: string, isDemo: boolean) {
   const result = await patchCohortIsDemo(cohortId, isDemo);
+  revalidatePath(`/programs/cohorts/${cohortId}`);
+  revalidatePath('/programs');
+  return result;
+}
+
+export async function patchCohortIsLiveAction(cohortId: string, isLive: boolean) {
+  const result = await patchCohortIsLive(cohortId, isLive);
   revalidatePath(`/programs/cohorts/${cohortId}`);
   revalidatePath('/programs');
   return result;
