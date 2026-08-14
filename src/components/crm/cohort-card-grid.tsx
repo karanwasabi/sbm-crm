@@ -10,9 +10,8 @@ import {
   cohortCardHref,
   cohortCardSurface,
   formatCohortStartDateCard,
-  isLiveCohort,
+  isFutureCohort,
   phasePillTone,
-  sortCohorts,
 } from '@/lib/cohort-display';
 import { cn } from '@/lib/cn';
 import type { CohortSummary } from '@/types/crm';
@@ -35,16 +34,16 @@ function CohortCardPending() {
 }
 
 export function CohortCardGrid({ cohorts }: CohortCardGridProps) {
-  const sorted = sortCohorts(cohorts);
-
-  if (sorted.length === 0) {
+  if (cohorts.length === 0) {
     return <Card className="p-8 text-center text-sm text-slate-500">No cohorts found for this program.</Card>;
   }
 
   return (
     <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-3">
-      {sorted.map((cohort) => {
+      {cohorts.map((cohort) => {
         const glow = cohortCardGlow(cohort.status);
+        const future = isFutureCohort(cohort);
+        const liveRunning = !future && Boolean(cohort.isLive);
         return (
           <Link
             key={cohort.id}
@@ -79,7 +78,8 @@ export function CohortCardGrid({ cohorts }: CohortCardGridProps) {
                         <Pencil className="h-3 w-3" />
                       </span>
                     )}
-                    {!isLiveCohort(cohort) ? <Pill tone="neutral">Test</Pill> : null}
+                    {liveRunning ? <Pill tone="success">Live</Pill> : null}
+                    {!future && !liveRunning ? <Pill tone="neutral">Test</Pill> : null}
                     <Pill tone={phasePillTone(cohort.phaseLabel)}>{cohort.phaseLabel}</Pill>
                   </div>
                 </div>

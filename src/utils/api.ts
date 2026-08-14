@@ -5079,7 +5079,11 @@ export async function listAdminResources(category?: ResourceCategory): Promise<A
 }
 
 export async function listAdminResourceCohortOptions(): Promise<
-  { id: string; name: string; cohorts: { id: string; name: string; startsOn: string; isLive: boolean }[] }[]
+  {
+    id: string;
+    name: string;
+    cohorts: { id: string; name: string; startsOn: string; status: string; isLive: boolean }[];
+  }[]
 > {
   const response = await requireApiFetch('/admin/resources/cohort-options');
   if (!response.ok) {
@@ -5089,7 +5093,7 @@ export async function listAdminResourceCohortOptions(): Promise<
     items?: {
       id: string;
       name: string;
-      cohorts?: { id: string; name: string; starts_on?: string; is_live?: boolean }[];
+      cohorts?: { id: string; name: string; starts_on?: string; status?: string; is_live?: boolean }[];
     }[];
   };
   return (payload.items ?? []).map((program) => ({
@@ -5099,6 +5103,7 @@ export async function listAdminResourceCohortOptions(): Promise<
       id: cohort.id,
       name: cohort.name,
       startsOn: cohort.starts_on ?? '',
+      status: cohort.status ?? '',
       isLive: Boolean(cohort.is_live),
     })),
   }));

@@ -22,13 +22,22 @@ export function CohortSelectOptGroups<T extends CohortSelectItem>({
     return <option value="">{emptyLabel}</option>;
   }
 
-  const { live, test } = partitionCohorts(cohorts);
+  const { live, future, test } = partitionCohorts(cohorts);
 
   return (
     <>
       {live.length > 0 ? (
         <optgroup label="Live">
           {live.map((cohort) => (
+            <option key={cohort.id} value={cohort.id}>
+              {labelFor(cohort)}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      {future.length > 0 ? (
+        <optgroup label="Future">
+          {future.map((cohort) => (
             <option key={cohort.id} value={cohort.id}>
               {labelFor(cohort)}
             </option>

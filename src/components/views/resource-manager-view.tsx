@@ -76,7 +76,7 @@ const CATEGORY_LABELS = Object.fromEntries(RESOURCE_CATEGORIES.map((c) => [c.id,
 export type ProgramCohortOption = {
   id: string;
   name: string;
-  cohorts: { id: string; name: string; startsOn: string; isLive: boolean }[];
+  cohorts: { id: string; name: string; startsOn: string; status: string; isLive: boolean }[];
 };
 
 type ResourceManagerViewProps = {
@@ -975,6 +975,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
           cohortId: cohort.id,
           cohortName: cohort.name,
           startsOn: cohort.startsOn,
+          status: cohort.status,
           isLive: cohort.isLive,
         }))
       ),
@@ -1100,6 +1101,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
       .map((choice) => ({
         id: choice.cohortId,
         startsOn: choice.startsOn,
+        status: choice.status,
         isLive: choice.isLive,
         programId: choice.programId,
       }));

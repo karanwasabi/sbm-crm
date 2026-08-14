@@ -66,7 +66,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/': { title: 'Dashboard', subtitle: 'Reporting & performance overview' },
   '/leads': { title: 'Lead Intake', subtitle: 'Manual intake, public forms & Meta inbound' },
   '/database': { title: 'Lead Database' },
-  '/programs': { title: 'Program Management', subtitle: 'Cohort queue, phases & members' },
+  '/programs': { title: 'Program Management', subtitle: 'Live, future & test cohorts' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals & Retention', subtitle: 'Subscription retention monitoring' },
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
