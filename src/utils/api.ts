@@ -3612,6 +3612,46 @@ export async function sendLeadEmail(leadId: string, templateId: string): Promise
   }
 }
 
+export type EmailTemplatePreview = {
+  from: string;
+  subject: string;
+  html: string;
+  missing: string[];
+  leadId: string;
+  leadName: string;
+  leadEmail: string;
+};
+
+export async function previewEmailTemplate(templateId: string, leadId: string): Promise<EmailTemplatePreview> {
+  const response = await requireApiFetch(`/admin/comms/email/templates/${encodeURIComponent(templateId)}/preview`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lead_id: leadId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to preview email.', response.status);
+  }
+  const row = (await response.json()) as {
+    from: string;
+    subject: string;
+    html: string;
+    missing?: string[];
+    lead_id: string;
+    lead_name: string;
+    lead_email: string;
+  };
+  return {
+    from: row.from,
+    subject: row.subject,
+    html: row.html,
+    missing: row.missing ?? [],
+    leadId: row.lead_id,
+    leadName: row.lead_name,
+    leadEmail: row.lead_email,
+  };
+}
+
 export type BulkLeadEmailPreview = {
   template_id: string;
   classification: 'transactional' | 'marketing';
@@ -3626,6 +3666,7 @@ export type BulkLeadEmailPreview = {
     marketing_contact_cap: number;
     already_sent: number;
   };
+  example_lead_id?: string;
 };
 
 export type BulkLeadEmailSendJob = {

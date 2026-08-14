@@ -15,6 +15,7 @@ import {
   markLeadLost,
   purgeLead,
   sendLeadEmail,
+  previewEmailTemplate,
   sendLeadWhatsApp,
   updateLeadTags,
   offlineEnrollLead,
@@ -190,6 +191,19 @@ export async function logLeadCall(
 
 export async function sendLeadEmailAction(leadId: string, templateId: string): Promise<void> {
   await sendLeadEmail(leadId, templateId);
+}
+
+export async function previewEmailTemplateAction(
+  templateId: string,
+  leadId: string
+): Promise<{ preview: import('@/utils/api').EmailTemplatePreview | null; error: string | null }> {
+  try {
+    const preview = await previewEmailTemplate(templateId, leadId);
+    return { preview, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to preview email.';
+    return { preview: null, error: message };
+  }
 }
 
 export async function sendLeadWhatsAppAction(

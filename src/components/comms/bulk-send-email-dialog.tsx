@@ -8,11 +8,13 @@ import {
   previewBulkLeadEmailSendAction,
   startBulkLeadEmailSendAction,
 } from '@/app/(crm)/database/actions';
-import { BulkSendPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
+import { previewEmailTemplateAction } from '@/app/(crm)/customers/actions';
+import { BulkSendPreviewSkeleton, EmailInboxPreviewSkeleton } from '@/components/comms/bulk-send-list-row-skeleton';
+import { EmailInboxPreview } from '@/components/comms/email-inbox-preview';
 import { formatBulkSkipSummary } from '@/lib/bulk-send-display';
 import { commsBulkSendHref } from '@/lib/comms-channel';
 import { Button } from '@/components/ui/button';
-import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate } from '@/utils/api';
+import type { BulkLeadEmailPreview, BulkLeadEmailSendJob, EmailTemplate, EmailTemplatePreview } from '@/utils/api';
 
 type BulkSendEmailDialogProps = {
   open: boolean;
@@ -29,6 +31,8 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
   const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
   const [preview, setPreview] = useState<BulkLeadEmailPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [emailPreview, setEmailPreview] = useState<EmailTemplatePreview | null>(null);
+  const [emailPreviewLoading, setEmailPreviewLoading] = useState(false);
   const [confirmDuplicates, setConfirmDuplicates] = useState(false);
   const [job, setJob] = useState<BulkLeadEmailSendJob | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +42,8 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     if (!open) {
       setPreview(null);
       setPreviewLoading(false);
+      setEmailPreview(null);
+      setEmailPreviewLoading(false);
       setConfirmDuplicates(false);
       setJob(null);
       setError(null);
@@ -47,25 +53,40 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
     if (!templateId) {
       setPreview(null);
       setPreviewLoading(false);
+      setEmailPreview(null);
+      setEmailPreviewLoading(false);
       return;
     }
 
     let cancelled = false;
     setPreview(null);
     setPreviewLoading(true);
+    setEmailPreview(null);
+    setEmailPreviewLoading(false);
     setConfirmDuplicates(false);
 
     void (async () => {
       const result = await previewBulkLeadEmailSendAction(templateId, leadIds);
-      if (!cancelled) {
-        setPreviewLoading(false);
-        if (result.error) {
-          setPreview(null);
-          setError(result.error);
-        } else {
-          setPreview(result.preview);
-          setError(null);
-        }
+      if (cancelled) return;
+      setPreviewLoading(false);
+      if (result.error) {
+        setPreview(null);
+        setError(result.error);
+        return;
+      }
+      setPreview(result.preview);
+      setError(null);
+
+      const exampleLeadId = result.preview?.example_lead_id?.trim();
+      if (!exampleLeadId) {
+        return;
+      }
+      setEmailPreviewLoading(true);
+      const rendered = await previewEmailTemplateAction(templateId, exampleLeadId);
+      if (cancelled) return;
+      setEmailPreviewLoading(false);
+      if (rendered.preview) {
+        setEmailPreview(rendered.preview);
       }
     })();
 
@@ -121,7 +142,7 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-lg rounded-3xl border border-slate-100 bg-white p-5 shadow-xl">
+      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-100 bg-white p-5 shadow-xl">
         <h2 className="text-lg font-extrabold text-slate-800">Send email to selected leads</h2>
         <p className="mt-1 text-sm font-medium text-slate-500">
           {leadIds.length.toLocaleString('en-IN')} lead{leadIds.length === 1 ? '' : 's'} selected.
@@ -173,6 +194,27 @@ export function BulkSendEmailDialog({ open, onClose, leadIds, templates }: BulkS
                     ) : (
                       <p className="mt-1 text-slate-500">No leads will be skipped for consent or eligibility.</p>
                     )}
+                  </div>
+                ) : null}
+
+                {emailPreviewLoading ? (
+                  <div className="mt-4">
+                    <EmailInboxPreviewSkeleton />
+                  </div>
+                ) : null}
+                {emailPreview && !emailPreviewLoading ? (
+                  <div className="mt-4">
+                    <EmailInboxPreview
+                      from={emailPreview.from}
+                      to={emailPreview.leadEmail}
+                      subject={emailPreview.subject}
+                      html={emailPreview.html}
+                      caption={
+                        emailPreview.leadName
+                          ? `Example for ${emailPreview.leadName}. Each recipient gets their own merge fields.`
+                          : 'Example for the first eligible recipient. Each recipient gets their own merge fields.'
+                      }
+                    />
                   </div>
                 ) : null}
               </>

@@ -37,3 +37,15 @@ export function BulkSendPreviewSkeleton() {
     </div>
   );
 }
+
+export function EmailInboxPreviewSkeleton() {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+      <div className="space-y-2 border-b border-slate-200 bg-slate-50/80 px-4 py-3">
+        <Skeleton className="h-3 w-40" />
+        <Skeleton className="h-3 w-56" />
+      </div>
+      <Skeleton className="h-[360px] w-full rounded-none" />
+    </div>
+  );
+}
