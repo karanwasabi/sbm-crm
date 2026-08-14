@@ -630,6 +630,7 @@ export type ProgramHistoryItem = {
   renewalCategory?: string | null;
   /** Short label e.g. "6 mo" or "Trial +2 · 6 mo". */
   renewalDuration?: string | null;
+  paymentMethodSummary?: string | null;
 };
 
 export type CohortSummary = {

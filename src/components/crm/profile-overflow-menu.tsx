@@ -8,6 +8,7 @@ import {
   Clock,
   GraduationCap,
   KeyRound,
+  Landmark,
   MoreVertical,
   RefreshCw,
   RotateCcw,
@@ -27,6 +28,7 @@ type ProfileOverflowMenuProps = {
   onTransferMembership?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
+  onRecordZohoPayment?: () => void;
   onMarkRenewal?: () => void;
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
@@ -54,6 +56,7 @@ export function ProfileOverflowMenu({
   onTransferMembership,
   onSyncPayment,
   onMarkPaidOffline,
+  onRecordZohoPayment,
   onMarkRenewal,
   onMarkReturnee,
   onClearMemberKind,
@@ -236,6 +239,20 @@ export function ProfileOverflowMenu({
               >
                 <Banknote className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Mark paid (offline)
+              </button>
+            ) : null}
+            {onRecordZohoPayment ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onRecordZohoPayment();
+                }}
+              >
+                <Landmark className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Record Zoho payment
               </button>
             ) : null}
             {onSetPassword ? (

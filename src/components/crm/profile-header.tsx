@@ -44,6 +44,7 @@ type ProfileHeaderProps = {
   onTransferMembership?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
+  onRecordZohoPayment?: () => void;
   onMarkRenewal?: () => void;
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
@@ -156,6 +157,7 @@ export function ProfileHeader({
   onTransferMembership,
   onSyncPayment,
   onMarkPaidOffline,
+  onRecordZohoPayment,
   onMarkRenewal,
   onMarkReturnee,
   onClearMemberKind,
@@ -179,6 +181,7 @@ export function ProfileHeader({
     onTransferMembership ||
     onSyncPayment ||
     onMarkPaidOffline ||
+    onRecordZohoPayment ||
     onMarkRenewal ||
     onMarkReturnee ||
     onClearMemberKind ||
@@ -309,6 +312,7 @@ export function ProfileHeader({
                     onTransferMembership={onTransferMembership}
                     onSyncPayment={onSyncPayment}
                     onMarkPaidOffline={onMarkPaidOffline}
+                    onRecordZohoPayment={onRecordZohoPayment}
                     onMarkRenewal={onMarkRenewal}
                     onMarkReturnee={onMarkReturnee}
                     onClearMemberKind={onClearMemberKind}

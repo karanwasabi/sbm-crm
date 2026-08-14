@@ -23,6 +23,8 @@ import {
   applyMembershipTransfer,
   syncLeadCheckout,
   markLeadCheckoutPaidOffline,
+  attachLeadZohoPayment,
+  previewLeadZohoPayment,
   setLeadPassword,
   verifyLeadEmail,
   getLeadMemberProfile,
@@ -49,6 +51,8 @@ import type {
   LeadPurgePreview,
   LeadCheckoutSyncResult,
   MarkCheckoutPaidOfflineResult,
+  AttachZohoPaymentResult,
+  PreviewZohoPaymentResult,
   SetLeadPasswordResult,
   VerifyLeadEmailResult,
   MemberProfile,
@@ -331,6 +335,33 @@ export async function markLeadCheckoutPaidOfflineAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to mark checkout paid offline.';
+    return { result: null, error: message };
+  }
+}
+
+export async function previewLeadZohoPaymentAction(
+  leadId: string,
+  razorpayPaymentId: string
+): Promise<{ result: PreviewZohoPaymentResult | null; error: string | null }> {
+  try {
+    const result = await previewLeadZohoPayment(leadId, razorpayPaymentId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load Razorpay payment.';
+    return { result: null, error: message };
+  }
+}
+
+export async function attachLeadZohoPaymentAction(
+  leadId: string,
+  razorpayPaymentId: string,
+  months: number
+): Promise<{ result: AttachZohoPaymentResult | null; error: string | null }> {
+  try {
+    const result = await attachLeadZohoPayment(leadId, razorpayPaymentId, months);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to attach Zoho payment.';
     return { result: null, error: message };
   }
 }

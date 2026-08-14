@@ -126,6 +126,7 @@ function EnrollmentRow({
             <h3 className="text-sm font-bold text-slate-900">{item.program}</h3>
             <Pill tone={enrollmentStatusTone(statusLabel)}>{statusLabel}</Pill>
             {item.renewalDuration ? <Pill tone="brand">Renewal · {item.renewalDuration}</Pill> : null}
+            {item.paymentMethodSummary === 'zoho_checkout' ? <Pill tone="brand">Zoho payment</Pill> : null}
             {renew ? <Pill tone={renew.tone}>Auto-renew {renew.label}</Pill> : null}
           </div>
           <p className="mt-1 text-sm text-slate-600">{item.batch}</p>

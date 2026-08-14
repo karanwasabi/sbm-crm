@@ -1232,6 +1232,107 @@ export async function markLeadCheckoutPaidOffline(leadId: string): Promise<MarkC
   };
 }
 
+export type PreviewZohoPaymentResult = {
+  razorpayPaymentId: string;
+  amountPaise: number;
+  currency: string;
+  status: string;
+  email: string;
+  emailMatches: boolean;
+  suggestedMonths: number | null;
+  canAttach: boolean;
+  blockReason: string;
+};
+
+export async function previewLeadZohoPayment(
+  leadId: string,
+  razorpayPaymentId: string
+): Promise<PreviewZohoPaymentResult> {
+  const params = new URLSearchParams({ razorpay_payment_id: razorpayPaymentId });
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/checkout/zoho-payment?${params.toString()}`
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load Razorpay payment.', response.status);
+  }
+  const row = (await response.json()) as {
+    razorpay_payment_id: string;
+    amount_paise: number;
+    currency: string;
+    status: string;
+    email?: string;
+    email_matches: boolean;
+    suggested_months?: number | null;
+    can_attach: boolean;
+    block_reason?: string;
+  };
+  return {
+    razorpayPaymentId: row.razorpay_payment_id,
+    amountPaise: row.amount_paise,
+    currency: row.currency,
+    status: row.status,
+    email: row.email ?? '',
+    emailMatches: Boolean(row.email_matches),
+    suggestedMonths: row.suggested_months ?? null,
+    canAttach: Boolean(row.can_attach),
+    blockReason: row.block_reason ?? '',
+  };
+}
+
+export type AttachZohoPaymentResult = {
+  userId: string;
+  enrollmentId: string;
+  checkoutSessionId: string;
+  razorpayPaymentId: string;
+  amountPaise: number;
+  months: number;
+  accessUntil: string;
+  paymentMethodSummary: string;
+  renewalPlanKey: string;
+  renewalCategory: string;
+};
+
+export async function attachLeadZohoPayment(
+  leadId: string,
+  razorpayPaymentId: string,
+  months: number
+): Promise<AttachZohoPaymentResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/checkout/attach-zoho-payment`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ razorpay_payment_id: razorpayPaymentId, months }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to attach Zoho payment.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    enrollment_id: string;
+    checkout_session_id: string;
+    razorpay_payment_id: string;
+    amount_paise: number;
+    months: number;
+    access_until: string;
+    payment_method_summary: string;
+    renewal_plan_key: string;
+    renewal_category: string;
+  };
+  return {
+    userId: row.user_id,
+    enrollmentId: row.enrollment_id,
+    checkoutSessionId: row.checkout_session_id,
+    razorpayPaymentId: row.razorpay_payment_id,
+    amountPaise: row.amount_paise,
+    months: row.months,
+    accessUntil: row.access_until,
+    paymentMethodSummary: row.payment_method_summary,
+    renewalPlanKey: row.renewal_plan_key,
+    renewalCategory: row.renewal_category,
+  };
+}
+
 export type SetLeadPasswordResult = {
   userId: string;
   updated: boolean;
@@ -2414,6 +2515,7 @@ type ApiEnrollmentResponse = {
   renewal_plan_key?: string | null;
   renewal_category?: string | null;
   renewal_duration?: string | null;
+  payment_method_summary?: string | null;
 };
 
 export async function listPrograms(): Promise<ApiProgramResponse[]> {
@@ -2772,6 +2874,7 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     renewalPlanKey: row.renewal_plan_key?.trim() || null,
     renewalCategory: row.renewal_category?.trim() || null,
     renewalDuration: row.renewal_duration?.trim() || null,
+    paymentMethodSummary: row.payment_method_summary?.trim() || null,
   }));
 }
 

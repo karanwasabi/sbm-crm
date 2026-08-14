@@ -17,6 +17,7 @@ import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
+import { AttachZohoPaymentDialog } from '@/components/crm/attach-zoho-payment-dialog';
 import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
 import { CheckInEditorDialog } from '@/components/crm/check-in-editor-dialog';
@@ -117,6 +118,7 @@ export function Customer360View({
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
+  const [attachZohoPaymentOpen, setAttachZohoPaymentOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
   const [checkInsOpen, setCheckInsOpen] = useState(false);
   const [correctHeightOpen, setCorrectHeightOpen] = useState(false);
@@ -359,6 +361,9 @@ export function Customer360View({
           onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
           onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
           onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
+          onRecordZohoPayment={
+            canSyncPayment && lead.memberUserId != null ? () => setAttachZohoPaymentOpen(true) : undefined
+          }
           onMarkRenewal={
             canSyncPayment && lead.memberKind !== 'renewal' ? () => handleSetMemberKind('renewal') : undefined
           }
@@ -497,6 +502,13 @@ export function Customer360View({
         memberEmail={contact.email}
         open={setPasswordOpen}
         onOpenChange={setSetPasswordOpen}
+      />
+      <AttachZohoPaymentDialog
+        leadId={lead.id}
+        memberEmail={contact.email}
+        open={attachZohoPaymentOpen}
+        onOpenChange={setAttachZohoPaymentOpen}
+        onAttached={refresh}
       />
       <CorrectWeightsDialog
         leadId={lead.id}
