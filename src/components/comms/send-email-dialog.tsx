@@ -55,7 +55,7 @@ export function SendEmailDialog({ open, onClose, leadId, templates, onSent }: Se
 
   if (!open) return null;
 
-  const canSend = Boolean(templateId) && Boolean(preview) && preview.missing.length === 0 && !previewLoading;
+  const canSend = Boolean(templateId) && !previewLoading && preview !== null && preview.missing.length === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
