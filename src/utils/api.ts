@@ -4953,6 +4953,8 @@ export type AdminResource = {
   published: boolean;
   isFeatured?: boolean;
   sortOrder?: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CohortResourceCategory = {
@@ -5013,6 +5015,8 @@ type ApiResourceResponse = {
   published?: boolean | null;
   is_featured?: boolean | null;
   sort_order?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 };
 
 function mapAdminResource(row: ApiResourceResponse): AdminResource {
@@ -5039,6 +5043,8 @@ function mapAdminResource(row: ApiResourceResponse): AdminResource {
     published: row.published ?? true,
     isFeatured: row.is_featured ?? undefined,
     sortOrder: row.sort_order ?? undefined,
+    createdAt: row.created_at ?? '',
+    updatedAt: row.updated_at ?? '',
   };
 }
 

@@ -14,6 +14,7 @@ import {
   putCohortResourcesAction,
 } from '@/app/(crm)/resources/actions';
 import { TabBar } from '@/components/crm/tab-bar';
+import { PerformanceSortableHeader } from '@/components/crm/performance-sortable-header';
 import {
   DataTable,
   DataTableBody,
@@ -40,6 +41,9 @@ import { SectionHead } from '@/components/ui/section-head';
 import { TextInput } from '@/components/ui/text-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
+import { formatRelativeTime } from '@/lib/datetime-display';
+import { formatDateTimeIST } from '@/lib/ist-datetime';
+import type { PerformanceSortDirection } from '@/hooks/use-performance-table-state';
 import { cn } from '@/lib/cn';
 import type {
   AdminResource,
@@ -246,6 +250,71 @@ function flattenAssignments(
 
 function kindLabel(kind: string) {
   return kind === 'youtube' ? 'YouTube' : 'PDF';
+}
+
+type ResourceLibrarySortKey = 'title' | 'category' | 'kind' | 'tag' | 'status' | 'createdAt' | 'updatedAt';
+
+const RESOURCE_LIBRARY_DEFAULT_DIRECTION: Record<ResourceLibrarySortKey, PerformanceSortDirection> = {
+  title: 'asc',
+  category: 'asc',
+  kind: 'asc',
+  tag: 'asc',
+  status: 'asc',
+  createdAt: 'desc',
+  updatedAt: 'desc',
+};
+
+function statusSortLabel(published: boolean) {
+  return published ? 'Published' : 'Draft';
+}
+
+function getResourceSortValue(resource: AdminResource, key: ResourceLibrarySortKey): string | number {
+  switch (key) {
+    case 'title':
+      return resource.title;
+    case 'category':
+      return CATEGORY_LABELS[resource.category] ?? resource.category;
+    case 'kind':
+      return kindLabel(resource.kind);
+    case 'tag':
+      return resource.tag;
+    case 'status':
+      return statusSortLabel(resource.published);
+    case 'createdAt': {
+      const ms = Date.parse(resource.createdAt);
+      return Number.isNaN(ms) ? -1 : ms;
+    }
+    case 'updatedAt': {
+      const ms = Date.parse(resource.updatedAt);
+      return Number.isNaN(ms) ? -1 : ms;
+    }
+  }
+}
+
+function compareResourceSortValues(
+  left: string | number,
+  right: string | number,
+  direction: PerformanceSortDirection
+): number {
+  const leftMissing = left === -1;
+  const rightMissing = right === -1;
+  if (leftMissing && rightMissing) return 0;
+  if (leftMissing) return 1;
+  if (rightMissing) return -1;
+  if (typeof left === 'number' && typeof right === 'number') {
+    return direction === 'asc' ? left - right : right - left;
+  }
+  const comparison = String(left).localeCompare(String(right), undefined, { sensitivity: 'base' });
+  return direction === 'asc' ? comparison : -comparison;
+}
+
+function ResourceTableTimestamp({ iso }: { iso: string }) {
+  if (!iso) return <>—</>;
+  return (
+    <span className="text-slate-600 tabular-nums" title={formatDateTimeIST(iso)}>
+      {formatRelativeTime(iso)}
+    </span>
+  );
 }
 
 type ResourceFormDialogProps = {
@@ -587,11 +656,33 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
   const [editResource, setEditResource] = useState<AdminResource | null>(null);
   const [deleteResource, setDeleteResource] = useState<AdminResource | null>(null);
   const [deletePending, startDeleteTransition] = useTransition();
+  const [sortKey, setSortKey] = useState<ResourceLibrarySortKey>('updatedAt');
+  const [sortDirection, setSortDirection] = useState<PerformanceSortDirection>('desc');
 
   const filteredResources = useMemo(() => {
     if (categoryFilter === 'all') return resources;
     return resources.filter((r) => r.category === categoryFilter);
   }, [resources, categoryFilter]);
+
+  const toggleSort = useCallback(
+    (key: ResourceLibrarySortKey) => {
+      if (sortKey === key) {
+        setSortDirection((direction) => (direction === 'asc' ? 'desc' : 'asc'));
+        return;
+      }
+      setSortKey(key);
+      setSortDirection(RESOURCE_LIBRARY_DEFAULT_DIRECTION[key]);
+    },
+    [sortKey]
+  );
+
+  const sortedResources = useMemo(() => {
+    const sorted = [...filteredResources];
+    sorted.sort((a, b) =>
+      compareResourceSortValues(getResourceSortValue(a, sortKey), getResourceSortValue(b, sortKey), sortDirection)
+    );
+    return sorted;
+  }, [filteredResources, sortKey, sortDirection]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { all: resources.length };
@@ -667,22 +758,80 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
             </div>
             <DataTable>
               <DataTableHead>
-                <DataTableHeaderCell>Title</DataTableHeaderCell>
-                <DataTableHeaderCell>Category</DataTableHeaderCell>
-                <DataTableHeaderCell>Kind</DataTableHeaderCell>
-                <DataTableHeaderCell>Tag</DataTableHeaderCell>
-                <DataTableHeaderCell>Status</DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Title"
+                    sortKey="title"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Category"
+                    sortKey="category"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Kind"
+                    sortKey="kind"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Tag"
+                    sortKey="tag"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Status"
+                    sortKey="status"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Added"
+                    sortKey="createdAt"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  <PerformanceSortableHeader
+                    label="Updated"
+                    sortKey="updatedAt"
+                    activeSortKey={sortKey}
+                    sortDirection={sortDirection}
+                    onSort={toggleSort}
+                  />
+                </DataTableHeaderCell>
                 <DataTableHeaderCell className="text-right"> </DataTableHeaderCell>
               </DataTableHead>
               <DataTableBody>
-                {filteredResources.length === 0 ? (
+                {sortedResources.length === 0 ? (
                   <DataTableRow>
-                    <DataTableCell colSpan={6} className="py-8 text-center text-sm text-slate-500">
+                    <DataTableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
                       No resources in this category yet.
                     </DataTableCell>
                   </DataTableRow>
                 ) : (
-                  filteredResources.map((resource) => (
+                  sortedResources.map((resource) => (
                     <DataTableRow key={resource.id}>
                       <DataTableCell>
                         <div className="flex items-center gap-2">
@@ -701,6 +850,12 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
                         <Pill tone={resource.published ? 'success' : 'neutral'}>
                           {resource.published ? 'Published' : 'Draft'}
                         </Pill>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <ResourceTableTimestamp iso={resource.createdAt} />
+                      </DataTableCell>
+                      <DataTableCell>
+                        <ResourceTableTimestamp iso={resource.updatedAt} />
                       </DataTableCell>
                       <DataTableCell className="text-right">
                         <div className="flex justify-end gap-1">
@@ -906,7 +1061,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
       if (existing.has(resourceId)) return prev;
       return {
         ...prev,
-        [category]: [...(prev[category] ?? []), { resourceId, isFeatured: false }],
+        [category]: [{ resourceId, isFeatured: false }, ...(prev[category] ?? [])],
       };
     });
     setAddCategory(null);

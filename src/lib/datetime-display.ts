@@ -82,3 +82,30 @@ export function formatLeadTimestampLines(
 export function formatActivityTimestamp(iso: string | null | undefined, timezoneId?: string | null): string {
   return formatDateTimeInTimezone(iso, timezoneId, 'activity');
 }
+
+export function formatRelativeTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  const diffSec = Math.round((date.getTime() - Date.now()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+
+  const absSec = Math.abs(diffSec);
+  if (absSec < 60) return rtf.format(diffSec, 'second');
+
+  const diffMin = Math.round(diffSec / 60);
+  if (Math.abs(diffMin) < 60) return rtf.format(diffMin, 'minute');
+
+  const diffHour = Math.round(diffSec / 3600);
+  if (Math.abs(diffHour) < 24) return rtf.format(diffHour, 'hour');
+
+  const diffDay = Math.round(diffSec / 86400);
+  if (Math.abs(diffDay) < 30) return rtf.format(diffDay, 'day');
+
+  const diffMonth = Math.round(diffSec / (86400 * 30));
+  if (Math.abs(diffMonth) < 12) return rtf.format(diffMonth, 'month');
+
+  return rtf.format(Math.round(diffSec / (86400 * 365)), 'year');
+}
