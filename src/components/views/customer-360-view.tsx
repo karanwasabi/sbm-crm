@@ -18,6 +18,8 @@ import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { CorrectEmailDialog } from '@/components/crm/correct-email-dialog';
+import { CorrectNameDialog } from '@/components/crm/correct-name-dialog';
+import { CorrectPhoneDialog } from '@/components/crm/correct-phone-dialog';
 import { AttachZohoPaymentDialog } from '@/components/crm/attach-zoho-payment-dialog';
 import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
@@ -121,6 +123,8 @@ export function Customer360View({
   const [transferOpen, setTransferOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctEmailOpen, setCorrectEmailOpen] = useState(false);
+  const [correctNameOpen, setCorrectNameOpen] = useState(false);
+  const [correctPhoneOpen, setCorrectPhoneOpen] = useState(false);
   const [attachZohoPaymentOpen, setAttachZohoPaymentOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
   const [checkInsOpen, setCheckInsOpen] = useState(false);
@@ -380,7 +384,9 @@ export function Customer360View({
           }
           onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
           onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
+          onCorrectName={canSyncPayment ? () => setCorrectNameOpen(true) : undefined}
           onCorrectEmail={canSyncPayment && lead.memberUserId != null ? () => setCorrectEmailOpen(true) : undefined}
+          onCorrectPhone={canSyncPayment ? () => setCorrectPhoneOpen(true) : undefined}
           onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
           onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
           onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
@@ -518,6 +524,27 @@ export function Customer360View({
         open={correctEmailOpen}
         onOpenChange={setCorrectEmailOpen}
         onDone={refresh}
+      />
+      <CorrectNameDialog
+        leadId={lead.id}
+        currentFirstName={lead.firstName}
+        currentLastName={lead.lastName}
+        open={correctNameOpen}
+        onOpenChange={setCorrectNameOpen}
+        onDone={() => {
+          setMemberProfileKey((k) => k + 1);
+          refresh();
+        }}
+      />
+      <CorrectPhoneDialog
+        leadId={lead.id}
+        currentPhone={contact.phone}
+        open={correctPhoneOpen}
+        onOpenChange={setCorrectPhoneOpen}
+        onDone={() => {
+          setMemberProfileKey((k) => k + 1);
+          refresh();
+        }}
       />
       <AttachZohoPaymentDialog
         leadId={lead.id}

@@ -1412,6 +1412,78 @@ export async function correctLeadEmail(leadId: string, email: string): Promise<C
   };
 }
 
+export type CorrectLeadNameResult = {
+  userId?: string;
+  fromName: string;
+  toName: string;
+  updated: boolean;
+  unchanged: boolean;
+};
+
+export async function correctLeadName(
+  leadId: string,
+  firstName: string,
+  lastName: string
+): Promise<CorrectLeadNameResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/correct-name`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ first_name: firstName, last_name: lastName }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to correct name.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id?: string;
+    from_name: string;
+    to_name: string;
+    updated: boolean;
+    unchanged: boolean;
+  };
+  return {
+    userId: row.user_id,
+    fromName: row.from_name,
+    toName: row.to_name,
+    updated: row.updated,
+    unchanged: row.unchanged,
+  };
+}
+
+export type CorrectLeadPhoneResult = {
+  userId?: string;
+  fromPhone: string;
+  toPhone: string;
+  updated: boolean;
+  unchanged: boolean;
+};
+
+export async function correctLeadPhone(leadId: string, phone: string): Promise<CorrectLeadPhoneResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/correct-phone`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to correct phone.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id?: string;
+    from_phone: string;
+    to_phone: string;
+    updated: boolean;
+    unchanged: boolean;
+  };
+  return {
+    userId: row.user_id,
+    fromPhone: row.from_phone,
+    toPhone: row.to_phone,
+    updated: row.updated,
+    unchanged: row.unchanged,
+  };
+}
+
 export type MemberServingsSnapshot = {
   protein: number;
   fiber: number;

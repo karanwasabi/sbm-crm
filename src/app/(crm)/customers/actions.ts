@@ -29,6 +29,8 @@ import {
   setLeadPassword,
   verifyLeadEmail,
   correctLeadEmail,
+  correctLeadName,
+  correctLeadPhone,
   getLeadMemberProfile,
   forceLeadNutritionRecalc,
   putLeadServingAddons,
@@ -58,6 +60,8 @@ import type {
   SetLeadPasswordResult,
   VerifyLeadEmailResult,
   CorrectLeadEmailResult,
+  CorrectLeadNameResult,
+  CorrectLeadPhoneResult,
   MemberProfile,
   NutritionRecalcResult,
   CorrectHeightResult,
@@ -416,6 +420,33 @@ export async function correctLeadEmailAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to correct email.';
+    return { result: null, error: message };
+  }
+}
+
+export async function correctLeadNameAction(
+  leadId: string,
+  firstName: string,
+  lastName: string
+): Promise<{ result: CorrectLeadNameResult | null; error: string | null }> {
+  try {
+    const result = await correctLeadName(leadId, firstName, lastName);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to correct name.';
+    return { result: null, error: message };
+  }
+}
+
+export async function correctLeadPhoneAction(
+  leadId: string,
+  phone: string
+): Promise<{ result: CorrectLeadPhoneResult | null; error: string | null }> {
+  try {
+    const result = await correctLeadPhone(leadId, phone);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to correct phone.';
     return { result: null, error: message };
   }
 }

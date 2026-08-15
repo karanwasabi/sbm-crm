@@ -49,7 +49,9 @@ type ProfileHeaderProps = {
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
   onSetPassword?: () => void;
+  onCorrectName?: () => void;
   onCorrectEmail?: () => void;
+  onCorrectPhone?: () => void;
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
@@ -163,7 +165,9 @@ export function ProfileHeader({
   onMarkReturnee,
   onClearMemberKind,
   onSetPassword,
+  onCorrectName,
   onCorrectEmail,
+  onCorrectPhone,
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
@@ -188,7 +192,9 @@ export function ProfileHeader({
     onMarkReturnee ||
     onClearMemberKind ||
     onSetPassword ||
+    onCorrectName ||
     onCorrectEmail ||
+    onCorrectPhone ||
     onVerifyEmail ||
     onForceNutritionRecalc ||
     onCorrectWeights ||
@@ -320,7 +326,9 @@ export function ProfileHeader({
                     onMarkReturnee={onMarkReturnee}
                     onClearMemberKind={onClearMemberKind}
                     onSetPassword={onSetPassword}
+                    onCorrectName={onCorrectName}
                     onCorrectEmail={onCorrectEmail}
+                    onCorrectPhone={onCorrectPhone}
                     onVerifyEmail={onVerifyEmail}
                     onForceNutritionRecalc={onForceNutritionRecalc}
                     onCorrectWeights={onCorrectWeights}

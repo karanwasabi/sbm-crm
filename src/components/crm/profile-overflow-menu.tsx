@@ -11,11 +11,13 @@ import {
   Landmark,
   AtSign,
   MoreVertical,
+  Phone,
   RefreshCw,
   RotateCcw,
   Ruler,
   Scale,
   Trash2,
+  UserRound,
   UserRoundCheck,
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -34,7 +36,9 @@ type ProfileOverflowMenuProps = {
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
   onSetPassword?: () => void;
+  onCorrectName?: () => void;
   onCorrectEmail?: () => void;
+  onCorrectPhone?: () => void;
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
@@ -63,7 +67,9 @@ export function ProfileOverflowMenu({
   onMarkReturnee,
   onClearMemberKind,
   onSetPassword,
+  onCorrectName,
   onCorrectEmail,
+  onCorrectPhone,
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
@@ -272,6 +278,20 @@ export function ProfileOverflowMenu({
                 Set password
               </button>
             ) : null}
+            {onCorrectName ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onCorrectName();
+                }}
+              >
+                <UserRound className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Correct name
+              </button>
+            ) : null}
             {onCorrectEmail ? (
               <button
                 type="button"
@@ -284,6 +304,20 @@ export function ProfileOverflowMenu({
               >
                 <AtSign className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Correct email
+              </button>
+            ) : null}
+            {onCorrectPhone ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onCorrectPhone();
+                }}
+              >
+                <Phone className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Correct phone / WhatsApp
               </button>
             ) : null}
             {onVerifyEmail ? (
