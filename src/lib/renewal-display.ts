@@ -3,8 +3,6 @@ import { formatInclusiveAccessEndDate, daysUntilInclusiveAccessEnd } from '@/lib
 import { formatInrFromPaise } from '@/lib/money';
 import { buildRenewalsHref, DEFAULT_RENEWAL_FILTERS } from '@/lib/renewal-query';
 import { renewalDurationFilterLabel } from '@/lib/renewal-duration';
-import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
-import type { LifecycleStage } from '@/types/crm';
 
 export type RenewalBucketFilter = 'at_risk' | RenewalRetentionBucket | 'all';
 
@@ -30,15 +28,35 @@ export const RENEWAL_PRODUCT_FILTERS: { id: string; label: string }[] = [
   { id: 'subscription', label: 'Subscription' },
 ];
 
-export const RENEWAL_STAGE_FILTERS: { id: string; label: string }[] = [
+export const RENEWAL_STATUS_FILTERS: { id: string; label: string }[] = [
   { id: 'newbie', label: 'Newbie' },
+  { id: 'renewal', label: 'Renewal' },
+  { id: 'returnee', label: 'Returnee' },
   { id: 'member', label: 'Member' },
 ];
 
-export const RENEWAL_MEMBER_KIND_FILTERS: { id: string; label: string }[] = [
-  { id: 'renewal', label: 'Renewal' },
-  { id: 'returnee', label: 'Returnee' },
-];
+export type RenewalMemberStatus = (typeof RENEWAL_STATUS_FILTERS)[number]['id'];
+
+export function renewalMemberStatusId(row: Pick<RenewalRow, 'memberKind' | 'lifecycleStage'>): RenewalMemberStatus {
+  if (row.memberKind === 'returnee') return 'returnee';
+  if (row.memberKind === 'renewal') return 'renewal';
+  if (row.lifecycleStage?.trim() === 'newbie') return 'newbie';
+  return 'member';
+}
+
+export function statusToRenewalFilters(status: string): { stage: string; memberKind: string } {
+  if (status === 'renewal' || status === 'returnee') {
+    return { stage: '', memberKind: status };
+  }
+  if (status === 'newbie' || status === 'member') {
+    return { stage: status, memberKind: '' };
+  }
+  return { stage: '', memberKind: '' };
+}
+
+export function renewalStatusFromFilters(stage: string, memberKind: string): string {
+  return memberKind || stage;
+}
 
 export const RENEWAL_EXPIRY_FILTERS: { id: string; label: string }[] = [
   { id: '7d', label: 'Next 7 days' },
@@ -104,10 +122,6 @@ export function membershipProductLabel(row: RenewalRow): string {
     default:
       return 'Fixed term';
   }
-}
-
-export function isLifecycleStage(value: string | null | undefined): value is LifecycleStage {
-  return Boolean(value && value in LIFECYCLE_STAGES);
 }
 
 export function bucketLabel(bucket: RenewalRetentionBucket): string {

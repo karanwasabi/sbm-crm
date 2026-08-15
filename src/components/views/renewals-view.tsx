@@ -31,8 +31,8 @@ import {
   bucketLabel,
   bucketTone,
   formatAccessExpiryLabel,
-  isLifecycleStage,
   membershipProductLabel,
+  renewalMemberStatusId,
   renewalSubtitle,
 } from '@/lib/renewal-display';
 import {
@@ -285,15 +285,7 @@ export function RenewalsView({
                     onSort={handleSort}
                   />
                 </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Stage"
-                    sortKey="stage"
-                    activeSortKey={filters.sort}
-                    sortDirection={filters.order}
-                    onSort={handleSort}
-                  />
-                </DataTableHeaderCell>
+                <DataTableHeaderCell>Status</DataTableHeaderCell>
                 <DataTableHeaderCell>
                   <PerformanceSortableHeader
                     label="Product"
@@ -321,7 +313,7 @@ export function RenewalsView({
                     onSort={handleSort}
                   />
                 </DataTableHeaderCell>
-                <DataTableHeaderCell>Status</DataTableHeaderCell>
+                <DataTableHeaderCell>Retention</DataTableHeaderCell>
               </DataTableHead>
               <DataTableBody>
                 {rows.length === 0 ? (
@@ -359,12 +351,7 @@ export function RenewalsView({
                           </div>
                         </DataTableCell>
                         <DataTableCell>
-                          <div className="flex flex-wrap items-center gap-1">
-                            {isLifecycleStage(row.lifecycleStage) ? <StagePill stage={row.lifecycleStage} /> : null}
-                            {row.memberKind === 'renewal' || row.memberKind === 'returnee' ? (
-                              <MemberKindPill kind={row.memberKind} />
-                            ) : null}
-                          </div>
+                          <RenewalMemberStatus row={row} />
                         </DataTableCell>
                         <DataTableCell className="text-slate-700">{membershipProductLabel(row)}</DataTableCell>
                         <DataTableCell>{row.cohortName}</DataTableCell>
@@ -405,6 +392,15 @@ export function RenewalsView({
       />
     </CrmPageLayout>
   );
+}
+
+function RenewalMemberStatus({ row }: { row: RenewalRow }) {
+  const status = renewalMemberStatusId(row);
+  if (status === 'returnee' || status === 'renewal') {
+    return <MemberKindPill kind={status} />;
+  }
+  if (status === 'newbie') return <StagePill stage="newbie" />;
+  return <StagePill stage="member" />;
 }
 
 function SelectAllCheckbox({

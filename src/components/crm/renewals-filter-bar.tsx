@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarClock, Layers, Shield, UserRound } from 'lucide-react';
+import { CalendarClock, Layers, Shield, Tags } from 'lucide-react';
 import { useState } from 'react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
@@ -14,10 +14,11 @@ import {
   RENEWAL_ACCESS_FILTERS,
   RENEWAL_BUCKET_FILTERS,
   RENEWAL_EXPIRY_FILTERS,
-  RENEWAL_MEMBER_KIND_FILTERS,
   RENEWAL_PRODUCT_FILTERS,
-  RENEWAL_STAGE_FILTERS,
+  RENEWAL_STATUS_FILTERS,
   filterCount,
+  renewalStatusFromFilters,
+  statusToRenewalFilters,
   type RenewalBucketFilter,
 } from '@/lib/renewal-display';
 import { DEFAULT_RENEWAL_FILTERS, buildRenewalsHref, type RenewalFilters } from '@/lib/renewal-query';
@@ -73,12 +74,12 @@ export function RenewalsFilterBar({
             options={withCounts(RENEWAL_PRODUCT_FILTERS, summary.facets.products)}
             onSelect={(product) => onNavigate(buildRenewalsHref(filters, { product }))}
           />
-          <RenewalStageKindPopover
-            stage={filters.stage}
-            memberKind={filters.memberKind}
-            stageOptions={withCounts(RENEWAL_STAGE_FILTERS, summary.facets.stages)}
-            kindOptions={withCounts(RENEWAL_MEMBER_KIND_FILTERS, summary.facets.memberKinds)}
-            onApply={(next) => onNavigate(buildRenewalsHref(filters, next))}
+          <RenewalSelectPopover
+            label="Status"
+            icon={Tags}
+            value={renewalStatusFromFilters(filters.stage, filters.memberKind)}
+            options={statusOptions(summary)}
+            onSelect={(status) => onNavigate(buildRenewalsHref(filters, statusToRenewalFilters(status)))}
           />
           <RenewalSelectPopover
             label="Access"
@@ -146,8 +147,8 @@ export function RenewalsFilterBar({
           ) : null}
           {filters.stage || filters.memberKind ? (
             <ActiveFilterTag
-              label="Stage"
-              value={stageKindLabel(filters.stage, filters.memberKind)}
+              label="Status"
+              value={labelFor(RENEWAL_STATUS_FILTERS, renewalStatusFromFilters(filters.stage, filters.memberKind))}
               onDismiss={() => onNavigate(buildRenewalsHref(filters, { stage: '', memberKind: '' }))}
             />
           ) : null}
@@ -188,17 +189,16 @@ function withCounts(
   }));
 }
 
-function labelFor(options: { id: string; label: string }[], value: string): string {
-  return options.find((option) => option.id === value)?.label ?? value;
+function statusOptions(summary: RenewalSummary): { id: string; label: string; count?: number }[] {
+  return RENEWAL_STATUS_FILTERS.map((option) => {
+    const facets =
+      option.id === 'renewal' || option.id === 'returnee' ? summary.facets.memberKinds : summary.facets.stages;
+    return { ...option, count: facets.find((facet) => facet.value === option.id)?.count };
+  });
 }
 
-function stageKindLabel(stage: string, memberKind: string): string {
-  return [
-    stage ? labelFor(RENEWAL_STAGE_FILTERS, stage) : '',
-    memberKind ? labelFor(RENEWAL_MEMBER_KIND_FILTERS, memberKind) : '',
-  ]
-    .filter(Boolean)
-    .join(' · ');
+function labelFor(options: { id: string; label: string }[], value: string): string {
+  return options.find((option) => option.id === value)?.label ?? value;
 }
 
 function RenewalSelectPopover({
@@ -263,120 +263,6 @@ function RenewalSelectPopover({
             </Button>
           </div>
         ) : null}
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function OptionRow({
-  option,
-  active,
-  onClick,
-}: {
-  option: { id: string; label: string; count?: number };
-  active: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm',
-        active ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
-      )}
-      onClick={onClick}
-    >
-      <span className="truncate pr-2">{option.label}</span>
-      {option.count != null ? (
-        <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
-      ) : null}
-    </button>
-  );
-}
-
-function RenewalStageKindPopover({
-  stage,
-  memberKind,
-  stageOptions,
-  kindOptions,
-  onApply,
-}: {
-  stage: string;
-  memberKind: string;
-  stageOptions: { id: string; label: string; count?: number }[];
-  kindOptions: { id: string; label: string; count?: number }[];
-  onApply: (next: { stage: string; memberKind: string }) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [draftStage, setDraftStage] = useState(stage);
-  const [draftKind, setDraftKind] = useState(memberKind);
-  const selected = stageKindLabel(stage, memberKind);
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (next) {
-          setDraftStage(stage);
-          setDraftKind(memberKind);
-        }
-      }}
-    >
-      <PopoverTrigger type="button" className={filterPopoverTriggerClass(Boolean(stage || memberKind))}>
-        <UserRound className="h-3.5 w-3.5" />
-        {selected ? `Stage: ${selected}` : 'Stage'}
-      </PopoverTrigger>
-      <PopoverContent className="w-72 p-4" align="start">
-        <p className="text-sm font-semibold text-slate-800">Filter by stage</p>
-        <p className="mt-3 text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Lifecycle</p>
-        <div className="mt-1 space-y-1">
-          {stageOptions.map((option) => (
-            <OptionRow
-              key={option.id}
-              option={option}
-              active={draftStage === option.id}
-              onClick={() => setDraftStage(draftStage === option.id ? '' : option.id)}
-            />
-          ))}
-        </div>
-        <p className="mt-3 text-[10px] font-bold tracking-[0.12em] text-slate-400 uppercase">Member kind</p>
-        <div className="mt-1 space-y-1">
-          {kindOptions.map((option) => (
-            <OptionRow
-              key={option.id}
-              option={option}
-              active={draftKind === option.id}
-              onClick={() => setDraftKind(draftKind === option.id ? '' : option.id)}
-            />
-          ))}
-        </div>
-        <div className="mt-4 flex items-center gap-2">
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => {
-              onApply({ stage: draftStage, memberKind: draftKind });
-              setOpen(false);
-            }}
-          >
-            Apply
-          </Button>
-          {stage || memberKind || draftStage || draftKind ? (
-            <Button
-              variant="light"
-              size="sm"
-              onClick={() => {
-                setDraftStage('');
-                setDraftKind('');
-                onApply({ stage: '', memberKind: '' });
-                setOpen(false);
-              }}
-            >
-              Clear
-            </Button>
-          ) : null}
-        </div>
       </PopoverContent>
     </Popover>
   );
