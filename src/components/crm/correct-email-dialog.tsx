@@ -78,7 +78,13 @@ export function CorrectEmailDialog({ leadId, currentEmail, open, onOpenChange, o
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <form
+          className="space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submit();
+          }}
+        >
           <Field label="Current email">
             <TextInput value={currentEmail} disabled />
           </Field>
@@ -86,16 +92,15 @@ export function CorrectEmailDialog({ leadId, currentEmail, open, onOpenChange, o
             <TextInput type="email" value={email} onChange={setEmail} disabled={pending} autoComplete="off" />
           </Field>
           {invalid ? <p className="text-xs font-medium text-red-600">Enter a valid email address.</p> : null}
-        </div>
-
-        <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={submit} loading={pending} disabled={!canSubmit}>
-            Save email
-          </Button>
-        </DialogFooter>
+          <DialogFooter>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" loading={pending} disabled={!canSubmit}>
+              Save email
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );
