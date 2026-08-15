@@ -38,6 +38,7 @@ import { useCrmContactName } from '@/components/layout/crm/crm-contact-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { CohortDetailSkeleton } from '@/components/loading/cohort-detail-skeleton';
 import { GenericCrmPageSkeleton } from '@/components/loading/crm-page-skeleton';
+import RenewalsLoading from '@/app/(crm)/renewals/loading';
 import { useToast } from '@/components/ui/toast';
 import { leadDetailToContactProfile } from '@/lib/lead-display';
 import { useCrmNavigate } from '@/hooks/use-crm-navigate';
@@ -335,8 +336,13 @@ export function Customer360View({
     : undefined;
 
   if (isNavigating) {
-    // Browser back (no pendingHref) → cohort skeleton for the common cohort↔C360 flow.
-    if (!pendingHref || pendingHref.startsWith('/programs/cohorts/')) {
+    if (pendingHref?.startsWith('/renewals')) {
+      return <RenewalsLoading />;
+    }
+    if (pendingHref?.startsWith('/programs/cohorts/') || !pendingHref) {
+      if (typeof window !== 'undefined' && sessionStorage.getItem('sbm-crm-c360-from') === 'renewals') {
+        return <RenewalsLoading />;
+      }
       return <CohortDetailSkeleton />;
     }
     return <GenericCrmPageSkeleton />;

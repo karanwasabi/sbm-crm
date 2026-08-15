@@ -741,7 +741,24 @@ export type RenewalRetentionBucket = 'healthy' | 'cancelling' | 'payment_issue' 
 
 export type RenewalRisk = 'high' | 'med' | 'low';
 
+export type RenewalFacetOption = {
+  value: string;
+  count: number;
+};
+
+export type RenewalFacets = {
+  products: RenewalFacetOption[];
+  stages: RenewalFacetOption[];
+  memberKinds: RenewalFacetOption[];
+  access: RenewalFacetOption[];
+  buckets: RenewalFacetOption[];
+};
+
 export type RenewalSummary = {
+  expiring7d: number;
+  expiring30d: number;
+  inGrace: number;
+  activeOrGrace: number;
   atRiskCount: number;
   atRiskMrrPaise: number;
   cancellingCount: number;
@@ -753,7 +770,12 @@ export type RenewalSummary = {
   nextCancellingLeadId?: string | null;
   nextCancellingName?: string | null;
   nextCancellingAccessAt?: string | null;
+  facets: RenewalFacets;
 };
+
+export type RenewalMembershipProduct = 'trial_1m' | 'trial_3m' | 'renewal' | 'fixed' | 'subscription';
+
+export type RenewalAccessState = 'active' | 'grace' | 'expired';
 
 export type RenewalRow = {
   checkoutSessionId: string;
@@ -765,6 +787,7 @@ export type RenewalRow = {
   cohortName: string;
   nextChargeAt?: string | null;
   accessUntil?: string | null;
+  accessUntilLabel?: string;
   monthlyTotalPaise: number;
   lifetimePaidPaise: number;
   retentionBucket: RenewalRetentionBucket;
@@ -773,17 +796,21 @@ export type RenewalRow = {
   paymentMethodSummary?: string;
   risk: RenewalRisk;
   daysUntilCharge?: number | null;
+  lifecycleStage?: string | null;
+  memberKind?: string | null;
+  checkoutProduct?: string | null;
+  renewalPlanKey?: string | null;
+  membershipProduct: string;
+  accessState: string;
+  daysUntilAccessEnd?: number | null;
 };
 
-export type RenewalAction = {
-  id: string;
-  title: string;
-  subtitle: string;
-  count: number;
-  accent: string;
-  cta?: string;
-  href?: string;
-  bucket?: 'cancelling' | 'payment_issue' | 'churned';
+export type RenewalListPage = {
+  items: RenewalRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 };
 
 export type SettingsIntegration = {

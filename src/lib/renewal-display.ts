@@ -1,28 +1,70 @@
-import type { RenewalAction, RenewalRetentionBucket, RenewalRow, RenewalSummary } from '@/types/crm';
+import type { RenewalRetentionBucket, RenewalRow, RenewalSummary } from '@/types/crm';
 import { formatInclusiveAccessEndDate, daysUntilInclusiveAccessEnd } from '@/lib/access-until-display';
-import { formatCompactInrFromPaise, formatInrFromPaise } from '@/lib/money';
+import { formatInrFromPaise } from '@/lib/money';
+import { buildRenewalsHref, DEFAULT_RENEWAL_FILTERS } from '@/lib/renewal-query';
+import { renewalDurationFilterLabel } from '@/lib/renewal-duration';
+import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
+import type { LifecycleStage } from '@/types/crm';
 
 export type RenewalBucketFilter = 'at_risk' | RenewalRetentionBucket | 'all';
 
 export function renewalBucketHref(bucket: RenewalBucketFilter): string {
-  return bucket === 'at_risk' || bucket === 'all' ? '/renewals' : `/renewals?bucket=${bucket}`;
+  if (bucket === 'all') return '/renewals';
+  return buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { bucket: bucket === 'at_risk' ? 'at_risk' : bucket });
 }
 
 export const RENEWAL_BUCKET_FILTERS: { id: RenewalBucketFilter; label: string }[] = [
+  { id: 'all', label: 'Members' },
   { id: 'at_risk', label: 'At Risk' },
   { id: 'cancelling', label: 'Cancelling' },
   { id: 'payment_issue', label: 'Payment Issue' },
   { id: 'churned', label: 'Churned' },
   { id: 'healthy', label: 'Healthy' },
-  { id: 'all', label: 'All' },
+];
+
+export const RENEWAL_PRODUCT_FILTERS: { id: string; label: string }[] = [
+  { id: 'trial_1m', label: '1m trial' },
+  { id: 'trial_3m', label: '3m trial' },
+  { id: 'renewal', label: 'Renewal' },
+  { id: 'fixed', label: 'Fixed term' },
+  { id: 'subscription', label: 'Subscription' },
+];
+
+export const RENEWAL_STAGE_FILTERS: { id: string; label: string }[] = [
+  { id: 'newbie', label: 'Newbie' },
+  { id: 'member', label: 'Member' },
+];
+
+export const RENEWAL_MEMBER_KIND_FILTERS: { id: string; label: string }[] = [
+  { id: 'renewal', label: 'Renewal' },
+  { id: 'returnee', label: 'Returnee' },
+];
+
+export const RENEWAL_EXPIRY_FILTERS: { id: string; label: string }[] = [
+  { id: '7d', label: 'Next 7 days' },
+  { id: '14d', label: 'Next 14 days' },
+  { id: '30d', label: 'Next 30 days' },
+  { id: '60d', label: 'Next 60 days' },
+  { id: 'grace', label: 'In grace' },
+  { id: 'expired', label: 'Already expired' },
+  { id: 'later', label: 'Later than 60 days' },
+];
+
+export const RENEWAL_ACCESS_FILTERS: { id: string; label: string }[] = [
+  { id: 'active', label: 'Active' },
+  { id: 'grace', label: 'Grace' },
+  { id: 'expired', label: 'Expired' },
 ];
 
 export function renewalSubtitle(summary: RenewalSummary): string {
-  if (summary.atRiskCount === 0) {
-    return 'No members at retention risk';
+  const members = summary.activeOrGrace;
+  const expiring = summary.expiring7d;
+  const memberLabel = members === 1 ? '1 member with access' : `${members} members with access`;
+  if (expiring === 0) {
+    return `${memberLabel} · none ending in 7 days`;
   }
-  const countLabel = summary.atRiskCount === 1 ? '1 member at risk' : `${summary.atRiskCount} members at risk`;
-  return `${countLabel} · ${formatCompactInrFromPaise(summary.atRiskMrrPaise)} MRR`;
+  const endingLabel = expiring === 1 ? '1 ending in 7 days' : `${expiring} ending in 7 days`;
+  return `${memberLabel} · ${endingLabel}`;
 }
 
 export function formatRenewalDate(iso?: string | null): string {
@@ -34,32 +76,38 @@ export function formatRenewalDate(iso?: string | null): string {
   });
 }
 
-export function formatChargeLabel(row: RenewalRow): string {
-  if (row.retentionBucket === 'cancelling' && row.accessUntil) {
-    const date = formatInclusiveAccessEndDate(row.accessUntil);
-    const days = daysUntilInclusiveAccessEnd(row.accessUntil);
-    if (days != null && days >= 0) {
-      return `Access ends ${date} · in ${days}d`;
-    }
-    return `Access ends ${date}`;
-  }
-  if (!row.nextChargeAt) return '—';
-  const date = formatRenewalDate(row.nextChargeAt);
-  const days = row.daysUntilCharge ?? daysUntilIso(row.nextChargeAt);
+export function formatAccessExpiryLabel(row: RenewalRow): string {
+  const date = row.accessUntilLabel || (row.accessUntil ? formatInclusiveAccessEndDate(row.accessUntil) : '—');
+  const days = row.daysUntilAccessEnd ?? (row.accessUntil ? daysUntilInclusiveAccessEnd(row.accessUntil) : null);
+  if (!row.accessUntil) return '—';
   if (days == null) return date;
-  if (days < 0) return `${date} · overdue`;
+  if (days < 0) return `${date} · ended`;
   if (days === 0) return `${date} · today`;
   if (days === 1) return `${date} · in 1d`;
   return `${date} · in ${days}d`;
 }
 
-function daysUntilIso(iso: string): number | null {
-  const target = new Date(iso);
-  if (Number.isNaN(target.getTime())) return null;
-  const today = new Date();
-  target.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+export function formatChargeLabel(row: RenewalRow): string {
+  return formatAccessExpiryLabel(row);
+}
+
+export function membershipProductLabel(row: RenewalRow): string {
+  switch (row.membershipProduct) {
+    case 'trial_1m':
+      return '1m trial';
+    case 'trial_3m':
+      return '3m trial';
+    case 'renewal':
+      return row.renewalPlanKey ? `Renewal · ${renewalDurationFilterLabel(row.renewalPlanKey)}` : 'Renewal';
+    case 'subscription':
+      return 'Subscription';
+    default:
+      return 'Fixed term';
+  }
+}
+
+export function isLifecycleStage(value: string | null | undefined): value is LifecycleStage {
+  return Boolean(value && value in LIFECYCLE_STAGES);
 }
 
 export function bucketLabel(bucket: RenewalRetentionBucket): string {
@@ -88,6 +136,17 @@ export function bucketTone(bucket: RenewalRetentionBucket): 'success' | 'warn' |
   }
 }
 
+export function accessStateLabel(state: string): string {
+  switch (state) {
+    case 'grace':
+      return 'Grace';
+    case 'expired':
+      return 'Expired';
+    default:
+      return 'Active';
+  }
+}
+
 export function riskLabel(risk: RenewalRow['risk']): string {
   switch (risk) {
     case 'high':
@@ -110,39 +169,8 @@ export function riskDotClass(risk: RenewalRow['risk']): string {
   }
 }
 
-export function buildRenewalActions(summary: RenewalSummary): RenewalAction[] {
-  return [
-    {
-      id: 'cancelling',
-      title: 'Cancelling Members',
-      subtitle: `${summary.cancellingCount} opted out of auto-renew`,
-      count: summary.cancellingCount,
-      accent: '#FFB703',
-      cta: 'View',
-      href: '/renewals?bucket=cancelling',
-      bucket: 'cancelling',
-    },
-    {
-      id: 'payment',
-      title: 'Payment Issues',
-      subtitle: 'Auto-renew may fail without a fix',
-      count: summary.paymentIssueCount,
-      accent: '#F43F5E',
-      cta: 'View',
-      href: '/renewals?bucket=payment_issue',
-      bucket: 'payment_issue',
-    },
-    {
-      id: 'churned',
-      title: 'Churned this month',
-      subtitle: 'Members who lapsed recently',
-      count: summary.churnedThisMonth,
-      accent: '#5C65CF',
-      cta: 'View',
-      href: '/renewals?bucket=churned',
-      bucket: 'churned',
-    },
-  ];
+function facetCount(summary: RenewalSummary, facet: keyof RenewalSummary['facets'], value: string): number | undefined {
+  return summary.facets[facet].find((option) => option.value === value)?.count;
 }
 
 export function filterCount(summary: RenewalSummary, filter: RenewalBucketFilter): number | undefined {
@@ -154,11 +182,11 @@ export function filterCount(summary: RenewalSummary, filter: RenewalBucketFilter
     case 'payment_issue':
       return summary.paymentIssueCount;
     case 'churned':
-      return summary.churnedCount;
+      return facetCount(summary, 'buckets', 'churned') ?? summary.churnedThisMonth;
     case 'healthy':
-      return summary.healthyCount;
+      return facetCount(summary, 'buckets', 'healthy') ?? summary.healthyCount;
     case 'all':
-      return summary.atRiskCount + summary.healthyCount + summary.churnedCount;
+      return summary.activeOrGrace;
     default:
       return undefined;
   }

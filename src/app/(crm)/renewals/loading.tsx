@@ -15,19 +15,19 @@ export default function RenewalsLoading() {
           </CardSkeleton>
         ))}
       </div>
-      <CardSkeleton className="min-h-[180px]">
-        <SectionHeadSkeleton />
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, index) => (
-            <Skeleton key={index} className="h-28 w-full rounded-2xl" />
+      <CardSkeleton padding="none" className="overflow-hidden">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
+          <Skeleton className="h-10 w-full max-w-96 rounded-2xl" />
+          {Array.from({ length: 5 }).map((_, index) => (
+            <Skeleton key={index} className="h-9 w-24 rounded-2xl" />
+          ))}
+        </div>
+        <div className="flex items-center gap-2 px-4 py-2.5">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <Skeleton key={index} className="h-8 w-24 rounded-full" />
           ))}
         </div>
       </CardSkeleton>
-      <div className="flex flex-wrap gap-2">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="h-8 w-24 animate-pulse rounded-full bg-slate-100" />
-        ))}
-      </div>
       <CardSkeleton padding="none" className="overflow-hidden">
         <div className="p-5">
           <SectionHeadSkeleton />

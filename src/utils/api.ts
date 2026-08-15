@@ -3092,7 +3092,16 @@ export async function updatePromoDescription(
   return response.json() as Promise<{ id: string; description?: string | null }>;
 }
 
+type ApiRenewalFacetOption = {
+  value: string;
+  count: number;
+};
+
 type ApiRenewalSummaryResponse = {
+  expiring_7d?: number;
+  expiring_30d?: number;
+  in_grace?: number;
+  active_or_grace?: number;
   at_risk_count: number;
   at_risk_mrr_paise: number;
   cancelling_count: number;
@@ -3104,6 +3113,13 @@ type ApiRenewalSummaryResponse = {
   next_cancelling_lead_id?: string | null;
   next_cancelling_name?: string | null;
   next_cancelling_access_at?: string | null;
+  facets?: {
+    products?: ApiRenewalFacetOption[];
+    stages?: ApiRenewalFacetOption[];
+    member_kinds?: ApiRenewalFacetOption[];
+    access?: ApiRenewalFacetOption[];
+    buckets?: ApiRenewalFacetOption[];
+  };
 };
 
 type ApiRenewalRowResponse = {
@@ -3116,18 +3132,42 @@ type ApiRenewalRowResponse = {
   cohort_name: string;
   next_charge_at?: string | null;
   access_until?: string | null;
+  access_until_label?: string;
   monthly_total_paise: number;
-  lifetime_paid_paise: number;
+  lifetime_paid_paise?: number;
   retention_bucket: import('@/types/crm').RenewalRetentionBucket;
   subscription_status: string;
   cancel_at_period_end: boolean;
   payment_method_summary?: string;
   risk: import('@/types/crm').RenewalRisk;
   days_until_charge?: number | null;
+  lifecycle_stage?: string | null;
+  member_kind?: string | null;
+  checkout_product?: string | null;
+  renewal_plan_key?: string | null;
+  membership_product?: string;
+  access_state?: string;
+  days_until_access_end?: number | null;
 };
+
+function mapRenewalFacets(facets: ApiRenewalSummaryResponse['facets']): import('@/types/crm').RenewalFacets {
+  const mapOpts = (rows?: ApiRenewalFacetOption[]) =>
+    (rows ?? []).map((row) => ({ value: row.value, count: row.count }));
+  return {
+    products: mapOpts(facets?.products),
+    stages: mapOpts(facets?.stages),
+    memberKinds: mapOpts(facets?.member_kinds),
+    access: mapOpts(facets?.access),
+    buckets: mapOpts(facets?.buckets),
+  };
+}
 
 function mapRenewalSummary(row: ApiRenewalSummaryResponse): import('@/types/crm').RenewalSummary {
   return {
+    expiring7d: row.expiring_7d ?? 0,
+    expiring30d: row.expiring_30d ?? 0,
+    inGrace: row.in_grace ?? 0,
+    activeOrGrace: row.active_or_grace ?? 0,
     atRiskCount: row.at_risk_count,
     atRiskMrrPaise: row.at_risk_mrr_paise,
     cancellingCount: row.cancelling_count,
@@ -3139,6 +3179,7 @@ function mapRenewalSummary(row: ApiRenewalSummaryResponse): import('@/types/crm'
     nextCancellingLeadId: row.next_cancelling_lead_id,
     nextCancellingName: row.next_cancelling_name,
     nextCancellingAccessAt: row.next_cancelling_access_at,
+    facets: mapRenewalFacets(row.facets),
   };
 }
 
@@ -3153,30 +3194,61 @@ function mapRenewalRow(row: ApiRenewalRowResponse): import('@/types/crm').Renewa
     cohortName: row.cohort_name,
     nextChargeAt: row.next_charge_at,
     accessUntil: row.access_until,
+    accessUntilLabel: row.access_until_label,
     monthlyTotalPaise: row.monthly_total_paise,
-    lifetimePaidPaise: row.lifetime_paid_paise,
+    lifetimePaidPaise: row.lifetime_paid_paise ?? 0,
     retentionBucket: row.retention_bucket,
     subscriptionStatus: row.subscription_status,
     cancelAtPeriodEnd: row.cancel_at_period_end,
     paymentMethodSummary: row.payment_method_summary,
     risk: row.risk,
     daysUntilCharge: row.days_until_charge,
+    lifecycleStage: row.lifecycle_stage,
+    memberKind: row.member_kind,
+    checkoutProduct: row.checkout_product,
+    renewalPlanKey: row.renewal_plan_key,
+    membershipProduct: row.membership_product ?? 'fixed',
+    accessState: row.access_state ?? 'active',
+    daysUntilAccessEnd: row.days_until_access_end,
   };
 }
 
-export async function getRenewalSummary(): Promise<import('@/types/crm').RenewalSummary> {
-  const response = await requireApiFetch('/admin/renewals/summary');
+function renewalQueryString(query?: string): string {
+  const trimmed = query?.replace(/^\?/, '') ?? '';
+  return trimmed ? `?${trimmed}` : '';
+}
+
+export async function getRenewalSummary(query?: string): Promise<import('@/types/crm').RenewalSummary> {
+  const response = await requireApiFetch(`/admin/renewals/summary${renewalQueryString(query)}`);
   if (!response.ok) throw new ApiError('Failed to load renewal summary.', response.status);
   const payload = (await response.json()) as ApiRenewalSummaryResponse;
   return mapRenewalSummary(payload);
 }
 
-export async function listRenewals(bucket?: string): Promise<import('@/types/crm').RenewalRow[]> {
-  const query = bucket && bucket !== 'all' ? `?bucket=${encodeURIComponent(bucket)}` : '';
-  const response = await requireApiFetch(`/admin/renewals${query}`);
+export async function listRenewals(query?: string): Promise<import('@/types/crm').RenewalListPage> {
+  const response = await requireApiFetch(`/admin/renewals${renewalQueryString(query)}`);
   if (!response.ok) throw new ApiError('Failed to load renewals.', response.status);
-  const payload = (await response.json()) as ApiRenewalRowResponse[];
-  return payload.map(mapRenewalRow);
+  const payload = (await response.json()) as {
+    items?: ApiRenewalRowResponse[];
+    total?: number;
+    page?: number;
+    page_size?: number;
+    total_pages?: number;
+  };
+  return {
+    items: (payload.items ?? []).map(mapRenewalRow),
+    total: payload.total ?? 0,
+    page: payload.page ?? 1,
+    pageSize: payload.page_size ?? 50,
+    totalPages: payload.total_pages ?? 0,
+  };
+}
+
+export async function listRenewalLeadIds(query?: string): Promise<{ ids: string[]; total: number }> {
+  const response = await requireApiFetch(`/admin/renewals/lead-ids${renewalQueryString(query)}`);
+  if (!response.ok) throw new ApiError('Failed to load renewal lead ids.', response.status);
+  const payload = (await response.json()) as { ids?: string[]; total?: number };
+  return { ids: payload.ids ?? [], total: payload.total ?? 0 };
 }
 
 export async function getMetaIntegrationStatus(): Promise<import('@/types/crm').MetaIntegrationStatus> {
