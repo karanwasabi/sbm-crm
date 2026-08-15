@@ -48,6 +48,7 @@ import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
 import type { EmailTemplate, WhatsAppFlags, WhatsAppTemplate } from '@/utils/api';
 import type { LeadDetail, ProgramHistoryItem, TagSuggestion } from '@/types/crm';
+import type { Country } from '@/types/reference';
 
 const CallLogModal = dynamic(
   () => import('@/components/crm/call-log-modal').then((module) => ({ default: module.CallLogModal })),
@@ -61,6 +62,7 @@ type Customer360ViewProps = {
   whatsappTemplates: WhatsAppTemplate[];
   whatsappFlags: WhatsAppFlags;
   tagSuggestions: TagSuggestion[];
+  countries: Country[];
   canSyncPayment?: boolean;
 };
 
@@ -108,6 +110,7 @@ export function Customer360View({
   whatsappTemplates,
   whatsappFlags,
   tagSuggestions,
+  countries,
   canSyncPayment = false,
 }: Customer360ViewProps) {
   const router = useRouter();
@@ -539,6 +542,8 @@ export function Customer360View({
       <CorrectPhoneDialog
         leadId={lead.id}
         currentPhone={contact.phone}
+        suggestedCountryIso={lead.countryCode}
+        countries={countries}
         open={correctPhoneOpen}
         onOpenChange={setCorrectPhoneOpen}
         onDone={() => {

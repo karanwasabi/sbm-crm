@@ -10,6 +10,7 @@ import {
   listEmailTemplates,
   listTagSuggestions,
   listWhatsAppTemplates,
+  fetchCountries,
 } from '@/utils/api';
 
 const DEFAULT_WHATSAPP_FLAGS = {
@@ -27,11 +28,12 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
   try {
     const [lead, access] = await Promise.all([getLead(id), getMyAccess()]);
     const whatsappFlags = await getWhatsAppFlags().catch(() => DEFAULT_WHATSAPP_FLAGS);
-    const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions] = await Promise.all([
+    const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions, countries] = await Promise.all([
       lead.memberUserId != null ? getMemberEnrollments(lead.memberUserId).catch(() => []) : Promise.resolve([]),
       listEmailTemplates().catch(() => []),
       whatsappFlags.sendsEnabled ? listWhatsAppTemplates().catch(() => []) : Promise.resolve([]),
       listTagSuggestions().catch(() => []),
+      fetchCountries().catch(() => []),
     ]);
     return (
       <Customer360View
@@ -41,6 +43,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         whatsappTemplates={whatsappTemplates}
         whatsappFlags={whatsappFlags}
         tagSuggestions={tagSuggestions}
+        countries={countries}
         canSyncPayment={isSuperadmin(access.roles)}
       />
     );

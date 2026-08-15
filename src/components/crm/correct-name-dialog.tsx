@@ -46,9 +46,7 @@ export function CorrectNameDialog({
 
   const nextFirst = firstName.trim();
   const nextLast = lastName.trim();
-  const currentFirst = currentFirstName.trim();
-  const currentLast = currentLastName.trim();
-  const canSubmit = nextFirst.length > 0 && (nextFirst !== currentFirst || nextLast !== currentLast) && !pending;
+  const canSubmit = nextFirst.length > 0 && !pending;
 
   const submit = () => {
     if (!canSubmit) return;
