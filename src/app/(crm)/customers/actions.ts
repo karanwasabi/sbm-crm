@@ -28,6 +28,7 @@ import {
   previewLeadZohoPayment,
   setLeadPassword,
   verifyLeadEmail,
+  correctLeadEmail,
   getLeadMemberProfile,
   forceLeadNutritionRecalc,
   putLeadServingAddons,
@@ -56,6 +57,7 @@ import type {
   PreviewZohoPaymentResult,
   SetLeadPasswordResult,
   VerifyLeadEmailResult,
+  CorrectLeadEmailResult,
   MemberProfile,
   NutritionRecalcResult,
   CorrectHeightResult,
@@ -401,6 +403,19 @@ export async function verifyLeadEmailAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to verify email.';
+    return { result: null, error: message };
+  }
+}
+
+export async function correctLeadEmailAction(
+  leadId: string,
+  email: string
+): Promise<{ result: CorrectLeadEmailResult | null; error: string | null }> {
+  try {
+    const result = await correctLeadEmail(leadId, email);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to correct email.';
     return { result: null, error: message };
   }
 }

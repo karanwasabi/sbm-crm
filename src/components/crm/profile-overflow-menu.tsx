@@ -9,6 +9,7 @@ import {
   GraduationCap,
   KeyRound,
   Landmark,
+  AtSign,
   MoreVertical,
   RefreshCw,
   RotateCcw,
@@ -33,6 +34,7 @@ type ProfileOverflowMenuProps = {
   onMarkReturnee?: () => void;
   onClearMemberKind?: () => void;
   onSetPassword?: () => void;
+  onCorrectEmail?: () => void;
   onVerifyEmail?: () => void;
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
@@ -61,6 +63,7 @@ export function ProfileOverflowMenu({
   onMarkReturnee,
   onClearMemberKind,
   onSetPassword,
+  onCorrectEmail,
   onVerifyEmail,
   onForceNutritionRecalc,
   onCorrectWeights,
@@ -267,6 +270,20 @@ export function ProfileOverflowMenu({
               >
                 <KeyRound className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Set password
+              </button>
+            ) : null}
+            {onCorrectEmail ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onCorrectEmail();
+                }}
+              >
+                <AtSign className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Correct email
               </button>
             ) : null}
             {onVerifyEmail ? (

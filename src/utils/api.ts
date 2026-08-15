@@ -1378,6 +1378,40 @@ export async function verifyLeadEmail(leadId: string): Promise<VerifyLeadEmailRe
   };
 }
 
+export type CorrectLeadEmailResult = {
+  userId: string;
+  fromEmail: string;
+  toEmail: string;
+  updated: boolean;
+  unchanged: boolean;
+};
+
+export async function correctLeadEmail(leadId: string, email: string): Promise<CorrectLeadEmailResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/correct-email`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to correct email.', response.status);
+  }
+  const row = (await response.json()) as {
+    user_id: string;
+    from_email: string;
+    to_email: string;
+    updated: boolean;
+    unchanged: boolean;
+  };
+  return {
+    userId: row.user_id,
+    fromEmail: row.from_email,
+    toEmail: row.to_email,
+    updated: row.updated,
+    unchanged: row.unchanged,
+  };
+}
+
 export type MemberServingsSnapshot = {
   protein: number;
   fiber: number;

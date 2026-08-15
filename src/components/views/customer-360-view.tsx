@@ -17,6 +17,7 @@ import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
 import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
+import { CorrectEmailDialog } from '@/components/crm/correct-email-dialog';
 import { AttachZohoPaymentDialog } from '@/components/crm/attach-zoho-payment-dialog';
 import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
 import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
@@ -118,6 +119,7 @@ export function Customer360View({
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
+  const [correctEmailOpen, setCorrectEmailOpen] = useState(false);
   const [attachZohoPaymentOpen, setAttachZohoPaymentOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
   const [checkInsOpen, setCheckInsOpen] = useState(false);
@@ -372,6 +374,7 @@ export function Customer360View({
           }
           onClearMemberKind={canSyncPayment && lead.memberKind != null ? () => handleSetMemberKind(null) : undefined}
           onSetPassword={canSyncPayment && lead.memberUserId != null ? () => setSetPasswordOpen(true) : undefined}
+          onCorrectEmail={canSyncPayment && lead.memberUserId != null ? () => setCorrectEmailOpen(true) : undefined}
           onVerifyEmail={canSyncPayment && lead.memberUserId != null ? handleVerifyEmail : undefined}
           onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
           onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
@@ -502,6 +505,13 @@ export function Customer360View({
         memberEmail={contact.email}
         open={setPasswordOpen}
         onOpenChange={setSetPasswordOpen}
+      />
+      <CorrectEmailDialog
+        leadId={lead.id}
+        currentEmail={contact.email}
+        open={correctEmailOpen}
+        onOpenChange={setCorrectEmailOpen}
+        onDone={refresh}
       />
       <AttachZohoPaymentDialog
         leadId={lead.id}
