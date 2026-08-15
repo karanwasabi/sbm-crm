@@ -86,7 +86,7 @@ export function CorrectEmailDialog({ leadId, currentEmail, open, onOpenChange, o
           }}
         >
           <Field label="Current email">
-            <TextInput value={currentEmail} disabled />
+            <TextInput value={currentEmail} onChange={() => undefined} disabled />
           </Field>
           <Field label="Correct email">
             <TextInput type="email" value={email} onChange={setEmail} disabled={pending} autoComplete="off" />
