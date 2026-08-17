@@ -27,6 +27,8 @@ export const DEFAULT_RENEWAL_FILTERS: RenewalFilters = {
   page: 1,
 };
 
+export const RENEWAL_LIST_BULK_PAGE_SIZE = 100;
+
 const SORT_KEYS: RenewalSortKey[] = ['access_until', 'name', 'cohort', 'product', 'stage'];
 
 function parseSort(raw?: string): RenewalSortKey {

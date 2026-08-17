@@ -10,6 +10,7 @@ import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { RenewalsSearch } from '@/components/crm/renewals-search';
 import { RenewalsBulkSendButton } from '@/components/crm/renewals-bulk-send-button';
+import { RenewalsExportButton } from '@/components/crm/renewals-export-button';
 import {
   RENEWAL_ACCESS_FILTERS,
   RENEWAL_BUCKET_FILTERS,
@@ -23,7 +24,7 @@ import {
 } from '@/lib/renewal-display';
 import { DEFAULT_RENEWAL_FILTERS, buildRenewalsHref, type RenewalFilters } from '@/lib/renewal-query';
 import { cn } from '@/lib/cn';
-import type { RenewalSummary } from '@/types/crm';
+import type { RenewalRow, RenewalSummary } from '@/types/crm';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 
 type FacetCount = { value: string; count: number };
@@ -39,6 +40,10 @@ type RenewalsFilterBarProps = {
   emailTemplates: EmailTemplate[];
   whatsappTemplates: WhatsAppTemplate[];
   whatsappSendsEnabled: boolean;
+  pageItems: RenewalRow[];
+  selectedIds: Set<string>;
+  selectAllFiltered: boolean;
+  selectedCount: number;
 };
 
 export function RenewalsFilterBar({
@@ -52,6 +57,10 @@ export function RenewalsFilterBar({
   emailTemplates,
   whatsappTemplates,
   whatsappSendsEnabled,
+  pageItems,
+  selectedIds,
+  selectAllFiltered,
+  selectedCount,
 }: RenewalsFilterBarProps) {
   const displayedBucket = (filters.bucket || 'all') as RenewalBucketFilter;
   const secondaryActive =
@@ -126,6 +135,13 @@ export function RenewalsFilterBar({
               whatsappSendsEnabled={whatsappSendsEnabled}
             />
           ) : null}
+          <RenewalsExportButton
+            filters={filters}
+            pageItems={pageItems}
+            selectedIds={selectedIds}
+            selectAllFiltered={selectAllFiltered}
+            selectedCount={selectedCount}
+          />
         </div>
       </div>
 

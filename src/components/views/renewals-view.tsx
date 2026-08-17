@@ -242,6 +242,10 @@ export function RenewalsView({
         emailTemplates={emailTemplates}
         whatsappTemplates={whatsappTemplates}
         whatsappSendsEnabled={whatsappSendsEnabled}
+        pageItems={rows}
+        selectedIds={selectedIds}
+        selectAllFiltered={selectAllFiltered}
+        selectedCount={selectAllFiltered ? page.total : selectedIds.size}
       />
 
       <Card padding="none" className={cn(isTableLoading && 'pointer-events-none')}>
