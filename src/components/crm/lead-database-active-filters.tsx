@@ -155,6 +155,14 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       href: buildLeadDatabaseHref(filters, { paidFrom: '', paidTo: '' }),
     });
   }
+  if (filters.purchaseKind === 'new' || filters.purchaseKind === 'renewal') {
+    chips.push({
+      key: 'purchase-kind',
+      label: 'Purchase',
+      value: filters.purchaseKind === 'renewal' ? 'Renewal' : 'New',
+      href: buildLeadDatabaseHref(filters, { purchaseKind: '' }),
+    });
+  }
   if (filters.perfSource) {
     chips.push({
       key: 'perf-source',
@@ -242,6 +250,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
           paidFrom: '',
           paidTo: '',
           offlineCrmPaid: false,
+          purchaseKind: '',
           renewalDurations: [],
           perfSource: '',
           metaCampaignId: '',

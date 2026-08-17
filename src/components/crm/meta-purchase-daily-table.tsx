@@ -23,7 +23,14 @@ type MetaPurchaseDailyTableProps = {
   error?: string | null;
 };
 
-type DaySortKey = 'day' | 'purchases' | 'capiSent' | 'capiPendingOrFailed' | 'capiNotRecorded';
+type DaySortKey =
+  | 'day'
+  | 'purchasesNew'
+  | 'purchasesRenewal'
+  | 'purchasesOldStudents'
+  | 'capiSent'
+  | 'capiPendingOrFailed'
+  | 'capiNotRecorded';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -48,7 +55,7 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
       return;
     }
     setSortKey(key);
-    setSortDirection(key === 'day' ? 'desc' : 'desc');
+    setSortDirection('desc');
   };
 
   const sortedRows = useMemo(() => {
@@ -59,8 +66,14 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
         case 'day':
           comparison = a.day.localeCompare(b.day);
           break;
-        case 'purchases':
-          comparison = a.purchases - b.purchases;
+        case 'purchasesNew':
+          comparison = a.purchasesNew - b.purchasesNew;
+          break;
+        case 'purchasesRenewal':
+          comparison = a.purchasesRenewal - b.purchasesRenewal;
+          break;
+        case 'purchasesOldStudents':
+          comparison = a.purchasesOldStudents - b.purchasesOldStudents;
           break;
         case 'capiSent':
           comparison = a.capiSent - b.capiSent;
@@ -81,12 +94,21 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
     () =>
       rows.reduce(
         (acc, row) => ({
-          purchases: acc.purchases + row.purchases,
+          purchasesNew: acc.purchasesNew + row.purchasesNew,
+          purchasesRenewal: acc.purchasesRenewal + row.purchasesRenewal,
+          purchasesOldStudents: acc.purchasesOldStudents + row.purchasesOldStudents,
           capiSent: acc.capiSent + row.capiSent,
           capiPendingOrFailed: acc.capiPendingOrFailed + row.capiPendingOrFailed,
           capiNotRecorded: acc.capiNotRecorded + row.capiNotRecorded,
         }),
-        { purchases: 0, capiSent: 0, capiPendingOrFailed: 0, capiNotRecorded: 0 }
+        {
+          purchasesNew: 0,
+          purchasesRenewal: 0,
+          purchasesOldStudents: 0,
+          capiSent: 0,
+          capiPendingOrFailed: 0,
+          capiNotRecorded: 0,
+        }
       ),
     [rows]
   );
@@ -100,13 +122,15 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
         subtitle={`${subtitle} · ${total.toLocaleString()} purchases · skipped/historical rows count as not sent`}
       />
       {error ? <p className="px-4 pt-2 text-xs font-medium text-danger-press">{error}</p> : null}
-      <DataTable tableClassName="table-fixed min-w-[640px]">
+      <DataTable tableClassName="table-fixed min-w-[860px]">
         <colgroup>
-          <col className="w-[22%]" />
+          <col className="w-[16%]" />
+          <col className="w-[12%]" />
+          <col className="w-[12%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
           <col className="w-[16%]" />
           <col className="w-[16%]" />
-          <col className="w-[23%]" />
-          <col className="w-[23%]" />
         </colgroup>
         <DataTableHead>
           <DataTableHeaderCell className={perfHeader}>
@@ -120,8 +144,26 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
           </DataTableHeaderCell>
           <DataTableHeaderCell className={perfHeader}>
             <PerformanceSortableHeader
-              label="Purchases"
-              sortKey="purchases"
+              label="New"
+              sortKey="purchasesNew"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Renewal"
+              sortKey="purchasesRenewal"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Old students"
+              sortKey="purchasesOldStudents"
               activeSortKey={sortKey}
               sortDirection={sortDirection}
               onSort={toggleSort}
@@ -158,7 +200,7 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
         <DataTableBody>
           {sortedRows.length === 0 ? (
             <DataTableRow>
-              <DataTableCell colSpan={5} className={`${perfCell} py-6 text-center text-slate-500`}>
+              <DataTableCell colSpan={7} className={`${perfCell} py-6 text-center text-slate-500`}>
                 No meta-influenced purchases in this window.
               </DataTableCell>
             </DataTableRow>
@@ -166,7 +208,11 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
             sortedRows.map((row) => (
               <DataTableRow key={row.day}>
                 <DataTableCell className={`${perfCell} font-medium text-slate-800`}>{row.day}</DataTableCell>
-                <DataTableCell className={countCellClass(row.purchases)}>{row.purchases}</DataTableCell>
+                <DataTableCell className={countCellClass(row.purchasesNew)}>{row.purchasesNew}</DataTableCell>
+                <DataTableCell className={countCellClass(row.purchasesRenewal)}>{row.purchasesRenewal}</DataTableCell>
+                <DataTableCell className={countCellClass(row.purchasesOldStudents)}>
+                  {row.purchasesOldStudents}
+                </DataTableCell>
                 <DataTableCell className={countCellClass(row.capiSent)}>{row.capiSent}</DataTableCell>
                 <DataTableCell className={countCellClass(row.capiPendingOrFailed, true)}>
                   {row.capiPendingOrFailed}
@@ -180,8 +226,14 @@ export function MetaPurchaseDailyTable({ rows, windowDays, total, error }: MetaP
           {sortedRows.length > 0 ? (
             <DataTableRow className="border-t-2 border-slate-200 bg-slate-50/80">
               <DataTableCell className={`${perfCell} font-semibold text-slate-700`}>Total</DataTableCell>
-              <DataTableCell className={cn(countCellClass(totals.purchases), 'font-semibold')}>
-                {totals.purchases}
+              <DataTableCell className={cn(countCellClass(totals.purchasesNew), 'font-semibold')}>
+                {totals.purchasesNew}
+              </DataTableCell>
+              <DataTableCell className={cn(countCellClass(totals.purchasesRenewal), 'font-semibold')}>
+                {totals.purchasesRenewal}
+              </DataTableCell>
+              <DataTableCell className={cn(countCellClass(totals.purchasesOldStudents), 'font-semibold')}>
+                {totals.purchasesOldStudents}
               </DataTableCell>
               <DataTableCell className={cn(countCellClass(totals.capiSent), 'font-semibold')}>
                 {totals.capiSent}

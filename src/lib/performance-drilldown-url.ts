@@ -11,6 +11,7 @@ export type PerformanceDrilldownParams = {
   campaignUnattributed?: boolean;
   utmContent?: string;
   offlineCrmPaid?: boolean;
+  purchaseKind?: 'new' | 'renewal';
   since?: string | null;
   until?: string | null;
 };
@@ -32,6 +33,9 @@ export function buildPerformanceDrilldownHref(params: PerformanceDrilldownParams
   }
   if (params.offlineCrmPaid) {
     search.set('offline_crm_paid', 'true');
+  }
+  if (params.purchaseKind) {
+    search.set('purchase_kind', params.purchaseKind);
   }
 
   if (params.mode === 'leads') {

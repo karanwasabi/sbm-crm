@@ -3371,7 +3371,9 @@ export async function getMetaPurchaseDaily(days = 30): Promise<import('@/types/c
     total_purchases: number;
     rows: Array<{
       day: string;
-      purchases: number;
+      purchases_new: number;
+      purchases_renewal: number;
+      purchases_old_students: number;
       capi_sent: number;
       capi_pending_or_failed: number;
       capi_not_recorded: number;
@@ -3383,7 +3385,9 @@ export async function getMetaPurchaseDaily(days = 30): Promise<import('@/types/c
     totalPurchases: payload.total_purchases,
     rows: payload.rows.map((row) => ({
       day: row.day,
-      purchases: row.purchases,
+      purchasesNew: row.purchases_new ?? 0,
+      purchasesRenewal: row.purchases_renewal ?? 0,
+      purchasesOldStudents: row.purchases_old_students ?? 0,
       capiSent: row.capi_sent,
       capiPendingOrFailed: row.capi_pending_or_failed,
       capiNotRecorded: row.capi_not_recorded,
@@ -3451,6 +3455,8 @@ export async function getSourcePerformance(
       medium: import('@/types/crm').LeadMedium;
       leads: number;
       paid: number;
+      paid_new: number;
+      paid_renewal: number;
       cvr: number;
       cpl: number | null;
       cac: number | null;
@@ -3467,6 +3473,8 @@ export async function getSourcePerformance(
       medium: row.medium,
       leads: row.leads,
       paid: row.paid,
+      paidNew: row.paid_new ?? 0,
+      paidRenewal: row.paid_renewal ?? 0,
       cvr: row.cvr,
       cpl: row.cpl,
       cac: row.cac,
@@ -3497,6 +3505,9 @@ export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset)
       health: string;
       leads: number;
       paid: number;
+      paid_new: number;
+      paid_renewal: number;
+      paid_old_students: number;
       spend: number | null;
       impressions: number | null;
       clicks: number | null;
@@ -3519,6 +3530,9 @@ export async function getMetaCampaignPerformance(days?: PerformanceWindowPreset)
       health: row.health,
       leads: row.leads,
       paid: row.paid,
+      paidNew: row.paid_new ?? 0,
+      paidRenewal: row.paid_renewal ?? 0,
+      paidOldStudents: row.paid_old_students ?? 0,
       spend: row.spend,
       impressions: row.impressions,
       clicks: row.clicks,
@@ -3556,6 +3570,9 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
       health: string;
       leads: number;
       paid: number;
+      paid_new: number;
+      paid_renewal: number;
+      paid_old_students: number;
       cvr: number;
       last_activity_at?: string | null;
     }>;
@@ -3573,6 +3590,9 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
       health: row.health,
       leads: row.leads,
       paid: row.paid,
+      paidNew: row.paid_new ?? 0,
+      paidRenewal: row.paid_renewal ?? 0,
+      paidOldStudents: row.paid_old_students ?? 0,
       cvr: row.cvr,
       lastActivityAt: row.last_activity_at ?? null,
     })),

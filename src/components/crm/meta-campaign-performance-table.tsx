@@ -38,7 +38,18 @@ import type { MetaCampaignPerformanceRow, PerformanceReportMeta } from '@/types/
 
 const UNATTRIBUTED_CAMPAIGN_ID = '__unattributed__';
 
-type CampaignSortKey = 'campaign' | 'clicks' | 'leads' | 'paid' | 'cvr' | 'spend' | 'cpl' | 'cac' | 'lastActivity';
+type CampaignSortKey =
+  | 'campaign'
+  | 'clicks'
+  | 'leads'
+  | 'paidNew'
+  | 'paidRenewal'
+  | 'paidOldStudents'
+  | 'cvr'
+  | 'spend'
+  | 'cpl'
+  | 'cac'
+  | 'lastActivity';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -134,8 +145,12 @@ export function MetaCampaignPerformanceTable({
         return row.clicks ?? -1;
       case 'leads':
         return row.leads;
-      case 'paid':
-        return row.paid;
+      case 'paidNew':
+        return row.paidNew;
+      case 'paidRenewal':
+        return row.paidRenewal;
+      case 'paidOldStudents':
+        return row.paidOldStudents;
       case 'cvr':
         return row.cvr;
       case 'spend':
@@ -208,16 +223,18 @@ export function MetaCampaignPerformanceTable({
             )
           }
         />
-        <DataTable tableClassName="table-fixed min-w-[1040px]">
+        <DataTable tableClassName="table-fixed min-w-[1180px]">
           <colgroup>
-            <col className="w-[30%]" />
-            <col className="w-[11%]" />
-            <col className="w-[9%]" />
+            <col className="w-[24%]" />
             <col className="w-[9%]" />
             <col className="w-[8%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
-            <col className="w-[11%]" />
+            <col className="w-[7%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[7%]" />
+            <col className="w-[10%]" />
+            <col className="w-[9%]" />
+            <col className="w-[10%]" />
           </colgroup>
           <DataTableHead>
             <DataTableHeaderCell className={perfHeader}>
@@ -249,8 +266,26 @@ export function MetaCampaignPerformanceTable({
             </DataTableHeaderCell>
             <DataTableHeaderCell className={perfHeader}>
               <PerformanceSortableHeader
-                label="Purchases"
-                sortKey="paid"
+                label="New"
+                sortKey="paidNew"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Renewal"
+                sortKey="paidRenewal"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Old students"
+                sortKey="paidOldStudents"
                 activeSortKey={table.sortKey}
                 sortDirection={table.sortDirection}
                 onSort={table.toggleSort}
@@ -296,7 +331,7 @@ export function MetaCampaignPerformanceTable({
           <DataTableBody>
             {table.pageRows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={8} className={`${perfCell} py-6 text-center text-slate-500`}>
+                <DataTableCell colSpan={10} className={`${perfCell} py-6 text-center text-slate-500`}>
                   {!loaded
                     ? 'Loading…'
                     : table.search
@@ -337,11 +372,12 @@ export function MetaCampaignPerformanceTable({
                     )}
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top font-bold whitespace-nowrap tabular-nums`}>
-                    {row.paid > 0 ? (
+                    {row.paidNew > 0 ? (
                       <Link
                         href={buildPerformanceDrilldownHref({
                           mode: 'purchases',
                           sourceKey: 'meta_influenced',
+                          purchaseKind: 'new',
                           campaignId: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID ? undefined : row.campaignId,
                           campaignUnattributed: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID,
                           since: window?.since,
@@ -349,10 +385,49 @@ export function MetaCampaignPerformanceTable({
                         })}
                         className="text-brand underline-offset-2 hover:underline"
                       >
-                        {row.paid}
+                        {row.paidNew}
                       </Link>
                     ) : (
                       '0'
+                    )}
+                  </DataTableCell>
+                  <DataTableCell className={`${perfCell} align-top font-bold whitespace-nowrap tabular-nums`}>
+                    {row.paidRenewal > 0 ? (
+                      <Link
+                        href={buildPerformanceDrilldownHref({
+                          mode: 'purchases',
+                          sourceKey: 'meta_influenced',
+                          purchaseKind: 'renewal',
+                          campaignId: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID ? undefined : row.campaignId,
+                          campaignUnattributed: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID,
+                          since: window?.since,
+                          until: window?.until,
+                        })}
+                        className="text-brand underline-offset-2 hover:underline"
+                      >
+                        {row.paidRenewal}
+                      </Link>
+                    ) : (
+                      '0'
+                    )}
+                  </DataTableCell>
+                  <DataTableCell className={`${perfCell} align-top whitespace-nowrap tabular-nums`}>
+                    {row.paidOldStudents > 0 ? (
+                      <Link
+                        href={buildPerformanceDrilldownHref({
+                          mode: 'purchases',
+                          sourceKey: 'meta_influenced_old_students',
+                          campaignId: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID ? undefined : row.campaignId,
+                          campaignUnattributed: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID,
+                          since: window?.since,
+                          until: window?.until,
+                        })}
+                        className="text-brand underline-offset-2 hover:underline"
+                      >
+                        {row.paidOldStudents}
+                      </Link>
+                    ) : (
+                      <span className="text-slate-400">0</span>
                     )}
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top whitespace-nowrap`}>

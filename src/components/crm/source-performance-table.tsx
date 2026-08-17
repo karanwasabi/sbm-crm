@@ -26,7 +26,7 @@ type SourcePerformanceTableProps = {
   headerRight?: ReactNode;
 };
 
-type SourceSortKey = 'source' | 'leads' | 'paid' | 'cvr';
+type SourceSortKey = 'source' | 'leads' | 'paidNew' | 'paidRenewal' | 'cvr';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -90,8 +90,11 @@ export function SourcePerformanceTable({
         case 'source':
           comparison = a.source.localeCompare(b.source, undefined, { sensitivity: 'base' });
           break;
-        case 'paid':
-          comparison = a.paid - b.paid;
+        case 'paidNew':
+          comparison = a.paidNew - b.paidNew;
+          break;
+        case 'paidRenewal':
+          comparison = a.paidRenewal - b.paidRenewal;
           break;
         case 'cvr':
           comparison = a.cvr - b.cvr;
@@ -132,8 +135,17 @@ export function SourcePerformanceTable({
           </DataTableHeaderCell>
           <DataTableHeaderCell className={perfHeader}>
             <PerformanceSortableHeader
-              label="Purchases"
-              sortKey="paid"
+              label="New"
+              sortKey="paidNew"
+              activeSortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={toggleSort}
+            />
+          </DataTableHeaderCell>
+          <DataTableHeaderCell className={perfHeader}>
+            <PerformanceSortableHeader
+              label="Renewal"
+              sortKey="paidRenewal"
               activeSortKey={sortKey}
               sortDirection={sortDirection}
               onSort={toggleSort}
@@ -154,7 +166,7 @@ export function SourcePerformanceTable({
         <DataTableBody>
           {sortedRows.length === 0 ? (
             <DataTableRow>
-              <DataTableCell colSpan={7} className={`${perfCell} py-6 text-center text-slate-500`}>
+              <DataTableCell colSpan={8} className={`${perfCell} py-6 text-center text-slate-500`}>
                 No attributed leads in this window.
               </DataTableCell>
             </DataTableRow>
@@ -181,10 +193,24 @@ export function SourcePerformanceTable({
                     href={buildPerformanceDrilldownHref({
                       mode: 'purchases',
                       sourceKey: row.sourceKey,
+                      purchaseKind: 'new',
                       since: window?.since,
                       until: window?.until,
                     })}
-                    value={row.paid}
+                    value={row.paidNew}
+                    bold
+                  />
+                </DataTableCell>
+                <DataTableCell className={perfCell}>
+                  <DrilldownCell
+                    href={buildPerformanceDrilldownHref({
+                      mode: 'purchases',
+                      sourceKey: row.sourceKey,
+                      purchaseKind: 'renewal',
+                      since: window?.since,
+                      until: window?.until,
+                    })}
+                    value={row.paidRenewal}
                     bold
                   />
                 </DataTableCell>
@@ -239,6 +265,7 @@ export function SourcePerformanceTable({
                   bold
                 />
               </DataTableCell>
+              <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
               <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
               <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>
               <DataTableCell className={`${perfCell} text-slate-400`}>—</DataTableCell>

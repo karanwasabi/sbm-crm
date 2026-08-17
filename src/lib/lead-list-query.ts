@@ -44,6 +44,7 @@ export function buildLeadListSearchParams(
   if (filters.paidFrom) params.set('paid_from', filters.paidFrom);
   if (filters.paidTo) params.set('paid_to', filters.paidTo);
   if (filters.offlineCrmPaid) params.set('offline_crm_paid', 'true');
+  if (filters.purchaseKind) params.set('purchase_kind', filters.purchaseKind);
   if (filters.renewalDurations.length > 0) params.set('renewal_durations', filters.renewalDurations.join(','));
   if (page > 1) params.set('page', String(page));
   if (pageSize !== 50) params.set('page_size', String(pageSize));

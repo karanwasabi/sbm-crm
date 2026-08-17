@@ -47,5 +47,8 @@ export function perfSourceLabel(sourceKey: string | null | undefined): string {
   if (sourceKey === 'meta_influenced') {
     return 'Meta Influenced';
   }
+  if (sourceKey === 'meta_influenced_old_students') {
+    return 'Old students (Meta)';
+  }
   return leadSourceLabel(sourceKey) || sourceKey;
 }

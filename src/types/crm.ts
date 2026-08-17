@@ -419,6 +419,8 @@ export type SourcePerformanceRow = {
   medium: LeadMedium;
   leads: number;
   paid: number;
+  paidNew: number;
+  paidRenewal: number;
   cvr: number;
   cpl: number | null;
   cac: number | null;
@@ -447,6 +449,9 @@ export type MetaCampaignPerformanceRow = {
   health: string;
   leads: number;
   paid: number;
+  paidNew: number;
+  paidRenewal: number;
+  paidOldStudents: number;
   spend: number | null;
   impressions: number | null;
   clicks: number | null;
@@ -467,6 +472,9 @@ export type AdPerformanceRow = {
   health: string;
   leads: number;
   paid: number;
+  paidNew: number;
+  paidRenewal: number;
+  paidOldStudents: number;
   cvr: number;
   lastActivityAt?: string | null;
 };
@@ -489,7 +497,9 @@ export type MetaIntegrationStatus = {
 
 export type MetaPurchaseDailyRow = {
   day: string;
-  purchases: number;
+  purchasesNew: number;
+  purchasesRenewal: number;
+  purchasesOldStudents: number;
   capiSent: number;
   capiPendingOrFailed: number;
   capiNotRecorded: number;

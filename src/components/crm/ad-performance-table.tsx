@@ -30,7 +30,17 @@ import {
 import { buildPerformanceDrilldownHref } from '@/lib/performance-drilldown-url';
 import type { AdPerformanceRow, PerformanceReportMeta } from '@/types/crm';
 
-type AdSortKey = 'ad' | 'adset' | 'campaign' | 'program' | 'leads' | 'paid' | 'cvr' | 'lastActivity';
+type AdSortKey =
+  | 'ad'
+  | 'adset'
+  | 'campaign'
+  | 'program'
+  | 'leads'
+  | 'paidNew'
+  | 'paidRenewal'
+  | 'paidOldStudents'
+  | 'cvr'
+  | 'lastActivity';
 
 const perfCell = 'px-3 py-2 text-[12px]';
 const perfHeader = 'px-3 py-2';
@@ -107,8 +117,12 @@ export function AdPerformanceTable({
         return humanizeMarketingLabel(row.program);
       case 'leads':
         return row.leads;
-      case 'paid':
-        return row.paid;
+      case 'paidNew':
+        return row.paidNew;
+      case 'paidRenewal':
+        return row.paidRenewal;
+      case 'paidOldStudents':
+        return row.paidOldStudents;
       case 'cvr':
         return row.cvr;
       case 'lastActivity':
@@ -179,15 +193,17 @@ export function AdPerformanceTable({
             )
           }
         />
-        <DataTable tableClassName="table-fixed min-w-[1040px]">
+        <DataTable tableClassName="table-fixed min-w-[1180px]">
           <colgroup>
-            <col className="w-[28%]" />
-            <col className="w-[16%]" />
-            <col className="w-[18%]" />
-            <col className="w-[12%]" />
-            <col className="w-[9%]" />
-            <col className="w-[9%]" />
+            <col className="w-[24%]" />
+            <col className="w-[14%]" />
+            <col className="w-[14%]" />
+            <col className="w-[10%]" />
             <col className="w-[8%]" />
+            <col className="w-[7%]" />
+            <col className="w-[8%]" />
+            <col className="w-[8%]" />
+            <col className="w-[7%]" />
           </colgroup>
           <DataTableHead>
             <DataTableHeaderCell className={perfHeader}>
@@ -237,8 +253,26 @@ export function AdPerformanceTable({
             </DataTableHeaderCell>
             <DataTableHeaderCell className={perfHeader}>
               <PerformanceSortableHeader
-                label="Paid"
-                sortKey="paid"
+                label="New"
+                sortKey="paidNew"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Renewal"
+                sortKey="paidRenewal"
+                activeSortKey={table.sortKey}
+                sortDirection={table.sortDirection}
+                onSort={table.toggleSort}
+              />
+            </DataTableHeaderCell>
+            <DataTableHeaderCell className={perfHeader}>
+              <PerformanceSortableHeader
+                label="Old students"
+                sortKey="paidOldStudents"
                 activeSortKey={table.sortKey}
                 sortDirection={table.sortDirection}
                 onSort={table.toggleSort}
@@ -257,7 +291,7 @@ export function AdPerformanceTable({
           <DataTableBody>
             {table.pageRows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={7} className={`${perfCell} py-6 text-center text-slate-500`}>
+                <DataTableCell colSpan={9} className={`${perfCell} py-6 text-center text-slate-500`}>
                   {!loaded
                     ? 'Loading…'
                     : table.search
@@ -306,11 +340,37 @@ export function AdPerformanceTable({
                       href={buildPerformanceDrilldownHref({
                         mode: 'purchases',
                         utmContent: row.adContent,
+                        purchaseKind: 'new',
                         since: window?.since,
                         until: window?.until,
                       })}
-                      value={row.paid}
+                      value={row.paidNew}
                       bold
+                    />
+                  </DataTableCell>
+                  <DataTableCell className={`${perfCell} align-top`}>
+                    <DrilldownCell
+                      href={buildPerformanceDrilldownHref({
+                        mode: 'purchases',
+                        utmContent: row.adContent,
+                        purchaseKind: 'renewal',
+                        since: window?.since,
+                        until: window?.until,
+                      })}
+                      value={row.paidRenewal}
+                      bold
+                    />
+                  </DataTableCell>
+                  <DataTableCell className={`${perfCell} align-top`}>
+                    <DrilldownCell
+                      href={buildPerformanceDrilldownHref({
+                        mode: 'purchases',
+                        sourceKey: 'meta_influenced_old_students',
+                        utmContent: row.adContent,
+                        since: window?.since,
+                        until: window?.until,
+                      })}
+                      value={row.paidOldStudents}
                     />
                   </DataTableCell>
                   <DataTableCell className={`${perfCell} align-top whitespace-nowrap`}>
