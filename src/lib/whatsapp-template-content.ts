@@ -305,7 +305,11 @@ export function parseWhatsAppTemplateContent(content: unknown, runtimeParams?: u
     if (fromComponents.buttons?.length) form.buttons = fromComponents.buttons;
   }
 
+  const bodyRecord = asRecord(record.body);
   let variables = parseVariablesFromParams(record.params);
+  if (variables.length === 0 && bodyRecord) {
+    variables = parseVariablesFromParams(bodyRecord.params);
+  }
   if (variables.length === 0 && Array.isArray(runtimeParams)) {
     variables = parseVariablesFromParams(runtimeParams);
   }
@@ -362,20 +366,14 @@ export function buildWhatsAppTemplateContent(form: WhatsAppTemplateFormContent):
 
   if (form.headerFormat === 'text' && form.headerText.trim()) {
     content.header = {
-      format: 'TEXT',
+      format: 'text',
       text: form.headerText.trim(),
     };
   }
 
-  content.body = {
+  const body: Record<string, unknown> = {
     text: form.body,
   };
-
-  if (form.footer.trim()) {
-    content.footer = {
-      text: form.footer.trim(),
-    };
-  }
 
   const params = form.variables
     .filter((variable) => variable.name.trim())
@@ -390,7 +388,15 @@ export function buildWhatsAppTemplateContent(form: WhatsAppTemplateFormContent):
     });
 
   if (params.length > 0) {
-    content.params = params;
+    body.params = params;
+  }
+
+  content.body = body;
+
+  if (form.footer.trim()) {
+    content.footer = {
+      text: form.footer.trim(),
+    };
   }
 
   const buttons = buildContentButtons(form.buttons);
