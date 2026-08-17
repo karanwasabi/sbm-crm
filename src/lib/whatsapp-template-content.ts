@@ -334,20 +334,20 @@ function buildContentButtons(buttons: WhatsAppTemplateButton[]): Record<string, 
     .map((button) => {
       if (button.type === 'url') {
         return {
-          type: 'URL',
+          type: 'url',
           text: button.text.trim(),
           url: button.url?.trim() || 'https://slowburnmethod.in',
         };
       }
       if (button.type === 'phone') {
         return {
-          type: 'PHONE_NUMBER',
+          type: 'phone_number',
           text: button.text.trim(),
           phone_number: button.phone?.trim() || '',
         };
       }
       return {
-        type: 'QUICK_REPLY',
+        type: 'quick_reply',
         text: button.text.trim(),
       };
     });

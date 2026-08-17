@@ -205,16 +205,26 @@ export function WhatsAppTemplateEditor({ template = null, managementEnabled = tr
       setError(null);
       setMessage(null);
       try {
-        const updated =
-          action === 'submit'
-            ? await submitWhatsAppTemplateAction(template.id)
-            : action === 'activate'
+        if (action === 'submit') {
+          const result = await submitWhatsAppTemplateAction(template.id);
+          if (result.error) {
+            setError(result.error);
+            return;
+          }
+          if (!result.template) {
+            setError('Failed to submit template.');
+            return;
+          }
+          setStatus(result.template.status);
+          setMessage('Template submitted.');
+        } else {
+          const updated =
+            action === 'activate'
               ? await activateWhatsAppTemplateAction(template.id)
               : await deactivateWhatsAppTemplateAction(template.id);
-        setStatus(updated.status);
-        setMessage(
-          `Template ${action === 'submit' ? 'submitted' : action === 'activate' ? 'activated' : 'deactivated'}.`
-        );
+          setStatus(updated.status);
+          setMessage(`Template ${action === 'activate' ? 'activated' : 'deactivated'}.`);
+        }
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : `Failed to ${action} template.`);

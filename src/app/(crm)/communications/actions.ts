@@ -93,8 +93,16 @@ export async function saveWhatsAppTemplateAction(
   return createWhatsAppTemplate(input);
 }
 
-export async function submitWhatsAppTemplateAction(templateId: string): Promise<WhatsAppTemplate> {
-  return submitWhatsAppTemplate(templateId);
+export async function submitWhatsAppTemplateAction(
+  templateId: string
+): Promise<{ template: WhatsAppTemplate | null; error: string | null }> {
+  try {
+    const template = await submitWhatsAppTemplate(templateId);
+    return { template, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to submit template.';
+    return { template: null, error: message };
+  }
 }
 
 export async function activateWhatsAppTemplateAction(templateId: string): Promise<WhatsAppTemplate> {
