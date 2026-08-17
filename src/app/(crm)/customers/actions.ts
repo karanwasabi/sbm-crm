@@ -49,6 +49,7 @@ import {
   getLeadCheckInSchedule,
   getLeadCheckIn,
   putLeadCheckIn,
+  getLeadCheckInTelemetry,
 } from '@/utils/api';
 import type {
   LeadPurgeInput,
@@ -83,6 +84,7 @@ import type {
   CheckInDay,
   PutCheckInInput,
   PutCheckInResult,
+  CheckInTelemetry,
 } from '@/utils/api';
 import type {
   OfflineEnrollCohort,
@@ -679,6 +681,19 @@ export async function putLeadCheckInAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to save check-in.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadCheckInTelemetryAction(
+  leadId: string,
+  localDate: string
+): Promise<{ result: CheckInTelemetry | null; error: string | null }> {
+  try {
+    const result = await getLeadCheckInTelemetry(leadId, localDate);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load check-in activity.';
     return { result: null, error: message };
   }
 }

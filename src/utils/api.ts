@@ -5904,3 +5904,171 @@ export async function putLeadCheckIn(leadId: string, input: PutCheckInInput): Pr
     goalsRebuilt: row.goals_rebuilt,
   };
 }
+
+export type CheckInTelemetryEvent = {
+  id: string;
+  eventType: string;
+  step?: number;
+  detail: Record<string, unknown>;
+  createdAt: string;
+};
+
+export type CheckInServerDraft = {
+  step: number;
+  steps?: number;
+  sleepHours?: number;
+  exercised?: boolean;
+  exerciseType?: string;
+  exerciseIntensity?: string;
+  nutritionAnswers: Record<string, string>;
+  clientUpdatedAt?: string;
+  updatedAt: string;
+};
+
+export type CheckInSyncIssue = {
+  userId: string;
+  localDate: string;
+  status: string;
+  attempts: number;
+  lastError?: string;
+  lastHttp?: number;
+  enqueuedAt?: string;
+  lastAttemptAt?: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  detail: Record<string, unknown>;
+  updatedAt: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  leadId?: string;
+};
+
+export type CheckInTelemetry = {
+  localDate: string;
+  events: CheckInTelemetryEvent[];
+  draft?: CheckInServerDraft;
+  checkIn?: { exists: boolean };
+  syncIssue?: CheckInSyncIssue;
+};
+
+function mapSyncIssue(row: {
+  user_id: string;
+  local_date: string;
+  status: string;
+  attempts: number;
+  last_error?: string;
+  last_http?: number;
+  enqueued_at?: string;
+  last_attempt_at?: string;
+  resolved_at?: string;
+  resolved_by?: string;
+  detail?: Record<string, unknown>;
+  updated_at: string;
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  lead_id?: string;
+}): CheckInSyncIssue {
+  return {
+    userId: row.user_id,
+    localDate: row.local_date,
+    status: row.status,
+    attempts: row.attempts,
+    lastError: row.last_error,
+    lastHttp: row.last_http,
+    enqueuedAt: row.enqueued_at,
+    lastAttemptAt: row.last_attempt_at,
+    resolvedAt: row.resolved_at,
+    resolvedBy: row.resolved_by,
+    detail: row.detail ?? {},
+    updatedAt: row.updated_at,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    email: row.email,
+    leadId: row.lead_id,
+  };
+}
+
+export async function getLeadCheckInTelemetry(leadId: string, localDate: string): Promise<CheckInTelemetry> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/check-in-telemetry?local_date=${encodeURIComponent(localDate)}`
+  );
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load check-in activity.');
+  }
+  const row = (await response.json()) as {
+    local_date: string;
+    events: {
+      id: string;
+      event_type: string;
+      step?: number;
+      detail?: Record<string, unknown>;
+      created_at: string;
+    }[];
+    draft?: {
+      step: number;
+      steps?: number;
+      sleep_hours?: number;
+      exercised?: boolean;
+      exercise_type?: string;
+      exercise_intensity?: string;
+      nutrition_answers?: Record<string, string>;
+      client_updated_at?: string;
+      updated_at: string;
+    };
+    check_in?: { exists: boolean };
+    sync_issue?: Parameters<typeof mapSyncIssue>[0];
+  };
+  return {
+    localDate: row.local_date,
+    events: (row.events ?? []).map((e) => ({
+      id: e.id,
+      eventType: e.event_type,
+      step: e.step,
+      detail: e.detail ?? {},
+      createdAt: e.created_at,
+    })),
+    draft: row.draft
+      ? {
+          step: row.draft.step,
+          steps: row.draft.steps,
+          sleepHours: row.draft.sleep_hours,
+          exercised: row.draft.exercised,
+          exerciseType: row.draft.exercise_type,
+          exerciseIntensity: row.draft.exercise_intensity,
+          nutritionAnswers: row.draft.nutrition_answers ?? {},
+          clientUpdatedAt: row.draft.client_updated_at,
+          updatedAt: row.draft.updated_at,
+        }
+      : undefined,
+    checkIn: row.check_in,
+    syncIssue: row.sync_issue ? mapSyncIssue(row.sync_issue) : undefined,
+  };
+}
+
+export async function listCheckInSyncIssues(status?: string): Promise<{ count: number; issues: CheckInSyncIssue[] }> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const response = await requireApiFetch(`/admin/check-in-sync-issues${qs}`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load check-in sync issues.');
+  }
+  const row = (await response.json()) as {
+    count: number;
+    issues: Parameters<typeof mapSyncIssue>[0][];
+  };
+  return {
+    count: row.count,
+    issues: (row.issues ?? []).map(mapSyncIssue),
+  };
+}
+
+export async function resolveCheckInSyncIssue(userId: string, localDate: string): Promise<void> {
+  const response = await requireApiFetch(
+    `/admin/check-in-sync-issues/${encodeURIComponent(userId)}/${encodeURIComponent(localDate)}/resolve`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to resolve sync issue.');
+  }
+}

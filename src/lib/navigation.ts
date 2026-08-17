@@ -1,6 +1,7 @@
 import {
   Bell,
   Calendar,
+  CloudOff,
   Database,
   FileText,
   LayoutDashboard,
@@ -57,6 +58,13 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
         icon: Bell,
         superadminOnly: true,
       },
+      {
+        id: 'check-in-syncs',
+        href: '/check-in-syncs',
+        label: 'Check-in syncs',
+        icon: CloudOff,
+        superadminOnly: true,
+      },
       { id: 'settings', href: '/settings', label: 'Settings', icon: Settings, marketingAllowed: true },
     ],
   },
@@ -75,6 +83,10 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/push-notifications': {
     title: 'Push notifications',
     subtitle: 'Habit nudge templates & cohort assignment',
+  },
+  '/check-in-syncs': {
+    title: 'Check-in syncs',
+    subtitle: 'Failed flushes, expired outbox & incomplete Sunday goals',
   },
   '/settings': { title: 'Settings', subtitle: 'Profile, team, integrations & purge audit' },
 };

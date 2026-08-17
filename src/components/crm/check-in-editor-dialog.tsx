@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import {
   getLeadCheckInAction,
   getLeadCheckInScheduleAction,
+  getLeadCheckInTelemetryAction,
   putLeadCheckInAction,
 } from '@/app/(crm)/customers/actions';
 import { Button } from '@/components/ui/button';
@@ -41,13 +42,14 @@ import {
   sleepQuestion,
   walkingQuestion,
 } from '@/lib/check-in-question-copy';
-import type { CheckInDay, CheckInSchedule } from '@/utils/api';
+import type { CheckInDay, CheckInSchedule, CheckInServerDraft, CheckInTelemetry } from '@/utils/api';
 import { cn } from '@/lib/cn';
 
 type CheckInEditorDialogProps = {
   leadId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialLocalDate?: string;
 };
 
 type DraftState = {
@@ -99,6 +101,20 @@ function draftFromCheckIn(day: CheckInDay): DraftState {
   };
 }
 
+function draftFromServerDraft(draft: CheckInServerDraft): DraftState {
+  const sleep = draft.sleepHours ?? 0;
+  const { hours, minutes } = sleepHoursToHoursMinutes(sleep);
+  return {
+    sleepHours: hours,
+    sleepMinutes: minutes,
+    steps: draft.steps != null ? String(draft.steps) : '',
+    exercised: draft.exercised ?? false,
+    exerciseType: draft.exerciseType ?? 'strength',
+    exerciseIntensity: draft.exerciseIntensity ?? 'moderate',
+    nutritionAnswers: { ...(draft.nutritionAnswers ?? {}) },
+  };
+}
+
 function pickInitialDay(schedule: CheckInSchedule): string | null {
   const selectable = schedule.days.filter((d) => d.selectable);
   if (selectable.length === 0) return null;
@@ -116,7 +132,7 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
-export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEditorDialogProps) {
+export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDate }: CheckInEditorDialogProps) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
@@ -127,6 +143,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<DraftState>(emptyDraft);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
+  const [telemetry, setTelemetry] = useState<CheckInTelemetry | null>(null);
 
   const servings: RecommendedNutritionServings = useMemo(() => {
     const snap = checkIn?.servingsSnapshot ?? schedule?.recommendedServings;
@@ -184,12 +201,15 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
       if (error || !result) {
         toast({ message: error ?? 'Failed to load check-in.', variant: 'error' });
         setCheckIn(null);
+        setTelemetry(null);
         setLoading(false);
         return;
       }
       setCheckIn(result);
       setDraft(draftFromCheckIn(result));
       setEditing(false);
+      const telemetryResult = await getLeadCheckInTelemetryAction(leadId, localDate);
+      setTelemetry(telemetryResult.result);
       setLoading(false);
     },
     [leadId, toast]
@@ -198,8 +218,8 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
   useEffect(() => {
     if (!open) return;
     setWeekOffset(0);
-    void loadSchedule(0);
-  }, [open, loadSchedule]);
+    void loadSchedule(0, initialLocalDate);
+  }, [open, loadSchedule, initialLocalDate]);
 
   useEffect(() => {
     if (!open || !selectedDate) return;
@@ -213,6 +233,12 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
 
   const startEdit = () => {
     if (checkIn) setDraft(draftFromCheckIn(checkIn));
+    setEditing(true);
+  };
+
+  const applyServerDraft = () => {
+    if (!telemetry?.draft) return;
+    setDraft(draftFromServerDraft(telemetry.draft));
     setEditing(true);
   };
 
@@ -475,6 +501,34 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
                 ) : null}
               </div>
             )}
+            {telemetry && (telemetry.events.length > 0 || telemetry.draft || telemetry.syncIssue) ? (
+              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                <p className="text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">Activity</p>
+                {telemetry.syncIssue ? (
+                  <p className="mt-1 text-xs font-semibold text-amber-800">
+                    Sync: {telemetry.syncIssue.status.replaceAll('_', ' ')}
+                    {telemetry.syncIssue.lastError ? ` · ${telemetry.syncIssue.lastError}` : ''}
+                    {telemetry.syncIssue.attempts > 0 ? ` · ${telemetry.syncIssue.attempts} attempts` : ''}
+                  </p>
+                ) : null}
+                {telemetry.draft ? (
+                  <p className="mt-1 text-xs text-slate-600">
+                    Phone snapshot
+                    {telemetry.draft.steps != null ? ` · ${telemetry.draft.steps.toLocaleString()} steps` : ''}
+                    {telemetry.draft.sleepHours != null ? ` · ${telemetry.draft.sleepHours}h sleep` : ''}
+                    {telemetry.draft.exercised != null ? ` · exercise ${telemetry.draft.exercised ? 'yes' : 'no'}` : ''}
+                  </p>
+                ) : null}
+                <ul className="mt-2 space-y-1">
+                  {telemetry.events.map((ev) => (
+                    <li key={ev.id} className="text-[11px] text-slate-500">
+                      {new Date(ev.createdAt).toLocaleString()} · {ev.eventType}
+                      {ev.step != null ? ` · step ${ev.step}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
           </div>
         ) : loading ? (
           <p className="text-sm text-slate-500">Loading…</p>
@@ -496,9 +550,16 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange }: CheckInEdito
               </Button>
             </>
           ) : schedule && schedule.pointAComplete && !schedule.awaitingStart && selectedDate ? (
-            <Button onClick={startEdit} disabled={pending || loading}>
-              Edit
-            </Button>
+            <>
+              {telemetry?.draft ? (
+                <Button variant="light" onClick={applyServerDraft} disabled={pending || loading}>
+                  Apply draft
+                </Button>
+              ) : null}
+              <Button onClick={startEdit} disabled={pending || loading}>
+                Edit
+              </Button>
+            </>
           ) : null}
         </DialogFooter>
       </DialogContent>
