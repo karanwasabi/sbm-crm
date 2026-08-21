@@ -27,20 +27,33 @@ type StaffAccessModalProps = {
 
 type ModalView = 'edit' | 'revoke-confirm';
 
+type CrmTier = 'admin' | 'marketing' | 'marketing_plus' | null;
+
 const ROLE_OPTIONS: { role: StaffAccessRole; label: string; description: string }[] = [
-  { role: 'admin', label: 'Admin', description: 'CRM and forum admin' },
-  { role: 'coach', label: 'Coach', description: 'Coach dashboard and forum' },
+  { role: 'admin', label: 'Admin', description: 'Full CRM and forum admin' },
   {
     role: 'marketing',
     label: 'Marketing',
     description: 'Lead intake, owned leads, and profile settings',
   },
+  {
+    role: 'marketing_plus',
+    label: 'Marketing Plus',
+    description: 'Marketing access plus dashboard and lead integrations',
+  },
+  { role: 'coach', label: 'Coach', description: 'Coach dashboard and forum' },
 ];
 
+function crmTierFromRoles(roles: string[]): CrmTier {
+  if (roles.includes('admin')) return 'admin';
+  if (roles.includes('marketing_plus')) return 'marketing_plus';
+  if (roles.includes('marketing')) return 'marketing';
+  return null;
+}
+
 export function StaffAccessModal({ member, currentUserId, inactive = false, onClose, onSaved }: StaffAccessModalProps) {
-  const [admin, setAdmin] = useState(false);
+  const [crmTier, setCrmTier] = useState<CrmTier>(null);
   const [coach, setCoach] = useState(false);
-  const [marketing, setMarketing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<ModalView>('edit');
   const [pending, startTransition] = useTransition();
@@ -50,46 +63,33 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
 
   useEffect(() => {
     if (!member) return;
-    setAdmin(member.roles.includes('admin'));
+    setCrmTier(crmTierFromRoles(member.roles));
     setCoach(member.roles.includes('coach'));
-    setMarketing(member.roles.includes('marketing'));
     setError(null);
     setView('edit');
   }, [member]);
 
   const displayName = member ? formatStaffName(member) : '';
   const initials = member ? staffInitials(member) : '';
-  const hasSelectedRole = admin || coach || marketing;
+  const hasSelectedRole = crmTier !== null || coach;
 
   const roleEnabled = (role: StaffAccessRole) => {
-    if (role === 'admin') return admin;
     if (role === 'coach') return coach;
-    return marketing;
+    return crmTier === role;
   };
 
   const setRoleEnabled = (role: StaffAccessRole, enabled: boolean) => {
-    if (role === 'marketing') {
-      setMarketing(enabled);
-      if (enabled) {
-        setAdmin(false);
-        setCoach(false);
-      }
+    if (role === 'coach') {
+      setCoach(enabled);
       return;
     }
-    if (role === 'admin') {
-      setAdmin(enabled);
-      if (enabled) setMarketing(false);
-      return;
-    }
-    setCoach(enabled);
-    if (enabled) setMarketing(false);
+    setCrmTier(enabled ? role : null);
   };
 
   const selectedRoles = (): StaffAccessRole[] => {
     const roles: StaffAccessRole[] = [];
-    if (admin) roles.push('admin');
+    if (crmTier) roles.push(crmTier);
     if (coach) roles.push('coach');
-    if (marketing) roles.push('marketing');
     return roles;
   };
 
@@ -154,7 +154,7 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
             <div className="space-y-4 px-6 py-5">
               <p className="text-sm leading-relaxed text-slate-600">
                 Revoke all access for <span className="font-semibold text-slate-800">{displayName}</span>? They will
-                remain a staff account but lose admin, coach, and marketing roles.
+                remain a staff account but lose admin, coach, marketing, and marketing plus roles.
               </p>
               {error ? <p className="text-sm font-semibold text-danger-press">{error}</p> : null}
             </div>
@@ -177,8 +177,8 @@ export function StaffAccessModal({ member, currentUserId, inactive = false, onCl
                 </DialogTitle>
                 <DialogDescription className="text-sm text-slate-500">
                   {inactive
-                    ? 'Choose which roles this staff member should receive.'
-                    : 'Update admin, coach, and marketing permissions for this staff member.'}
+                    ? 'Choose one CRM tier and optionally Coach.'
+                    : 'Update CRM tier and coach permissions. Admin, Marketing, and Marketing Plus are mutually exclusive.'}
                 </DialogDescription>
               </div>
             </DialogHeader>

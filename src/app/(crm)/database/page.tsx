@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
-import { isMarketingOnly } from '@/lib/access';
+import { isMarketingFamily } from '@/lib/access';
 import { getLeadFilterOptions, getLeadSummary, getMyAccess, getWhatsAppFlags } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary } from '@/types/crm';
 import { LeadDatabaseTableLoader } from './lead-database-table-loader';
@@ -42,7 +42,7 @@ export default async function DatabasePage({
   let restrictToCreatedByMe = false;
   try {
     const access = await getMyAccess();
-    restrictToCreatedByMe = isMarketingOnly(access.roles);
+    restrictToCreatedByMe = isMarketingFamily(access.roles);
   } catch {
     restrictToCreatedByMe = false;
   }

@@ -26,6 +26,7 @@ type CrmShellProps = {
   profileError: string | null;
   isSuperadmin?: boolean;
   isMarketing?: boolean;
+  isMarketingPlus?: boolean;
   whatsappSendsEnabled?: boolean;
 };
 
@@ -36,6 +37,7 @@ export function CrmShell({
   profileError,
   isSuperadmin = false,
   isMarketing = false,
+  isMarketingPlus = false,
   whatsappSendsEnabled = false,
 }: CrmShellProps) {
   return (
@@ -47,7 +49,11 @@ export function CrmShell({
               <CrmDashboardFilterProvider>
                 <CrmProfileProvider profile={profile} profileError={profileError} roleLabel={staffUser.roleLabel}>
                   <div className="flex h-dvh min-w-0 bg-white">
-                    <CrmSidebar isSuperadmin={isSuperadmin} isMarketing={isMarketing} />
+                    <CrmSidebar
+                      isSuperadmin={isSuperadmin}
+                      isMarketing={isMarketing}
+                      isMarketingPlus={isMarketingPlus}
+                    />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <CrmTopbar staffUser={staffUser} whatsappSendsEnabled={whatsappSendsEnabled} />
                       <CrmDashboardContextBar />

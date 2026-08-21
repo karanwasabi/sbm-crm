@@ -1,5 +1,5 @@
 import { LeadIntakeView } from '@/components/views/lead-intake-view';
-import { isMarketingOnly } from '@/lib/access';
+import { isMarketingFamily, isMarketingOnly } from '@/lib/access';
 import type {
   InboundLead,
   IntakeForm,
@@ -36,12 +36,15 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     data: { user },
   } = await supabase.auth.getUser();
 
-  let isMarketing = false;
+  let marketingScoped = false;
+  let hideIntegrations = false;
   try {
     const access = await getMyAccess();
-    isMarketing = isMarketingOnly(access.roles);
+    marketingScoped = isMarketingFamily(access.roles);
+    hideIntegrations = isMarketingOnly(access.roles);
   } catch {
-    isMarketing = false;
+    marketingScoped = false;
+    hideIntegrations = false;
   }
 
   let countries: Country[] = [];
@@ -58,7 +61,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
     countries = [];
   }
 
-  if (!isMarketing) {
+  if (!hideIntegrations) {
     try {
       const { getMetaIntegrationStatus, getMetaInboundLeads, getMetaPurchaseDaily } = await import('@/utils/api');
       const [status, leads, daily] = await Promise.all([
@@ -100,7 +103,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       intakeForms={intakeForms}
       initialTab={tab}
       initialFormId={form}
-      isMarketing={isMarketing}
+      isMarketing={marketingScoped}
+      hideIntegrations={hideIntegrations}
       currentUserId={user?.id ?? ''}
     />
   );

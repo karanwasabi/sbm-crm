@@ -52,6 +52,7 @@ type LeadIntakeViewProps = {
   initialTab?: string;
   initialFormId?: string;
   isMarketing?: boolean;
+  hideIntegrations?: boolean;
   currentUserId?: string;
 };
 
@@ -66,20 +67,21 @@ export function LeadIntakeView({
   initialTab,
   initialFormId,
   isMarketing = false,
+  hideIntegrations = false,
   currentUserId = '',
 }: LeadIntakeViewProps) {
-  const intakeTabs = isMarketing
+  const intakeTabs = hideIntegrations
     ? (['Manual Lead', 'Intake Forms'] as const)
     : (['Manual Lead', 'Intake Forms', 'Integrations'] as const);
   const [activeTab, setActiveTab] = useState<LeadIntakeTab>(() => {
-    const resolved = resolveLeadIntakeTab(isMarketing && initialTab === 'integrations' ? 'manual' : initialTab);
-    return isMarketing && resolved === 'Integrations' ? 'Manual Lead' : resolved;
+    const resolved = resolveLeadIntakeTab(hideIntegrations && initialTab === 'integrations' ? 'manual' : initialTab);
+    return hideIntegrations && resolved === 'Integrations' ? 'Manual Lead' : resolved;
   });
 
   useEffect(() => {
-    const resolved = resolveLeadIntakeTab(isMarketing && initialTab === 'integrations' ? 'manual' : initialTab);
-    setActiveTab(isMarketing && resolved === 'Integrations' ? 'Manual Lead' : resolved);
-  }, [initialTab, isMarketing]);
+    const resolved = resolveLeadIntakeTab(hideIntegrations && initialTab === 'integrations' ? 'manual' : initialTab);
+    setActiveTab(hideIntegrations && resolved === 'Integrations' ? 'Manual Lead' : resolved);
+  }, [initialTab, hideIntegrations]);
 
   const handleTabChange = (tab: string) => {
     const next = tab as LeadIntakeTab;

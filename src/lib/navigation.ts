@@ -21,6 +21,7 @@ export type CrmNavItem = {
   icon: LucideIcon;
   superadminOnly?: boolean;
   marketingAllowed?: boolean;
+  marketingPlusAllowed?: boolean;
 };
 
 export type CrmPageMeta = {
@@ -31,7 +32,7 @@ export type CrmPageMeta = {
 export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
   {
     items: [
-      { id: 'dashboard', href: '/', label: 'Dashboard', icon: LayoutDashboard },
+      { id: 'dashboard', href: '/', label: 'Dashboard', icon: LayoutDashboard, marketingPlusAllowed: true },
       { id: 'leads', href: '/leads', label: 'Lead Intake', icon: UserPlus, marketingAllowed: true },
       { id: 'database', href: '/database', label: 'Lead Database', icon: Database, marketingAllowed: true },
       { id: 'programs', href: '/programs', label: 'Program Management', icon: Calendar },

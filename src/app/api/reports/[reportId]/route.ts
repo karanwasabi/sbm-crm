@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { NextResponse, type NextRequest } from 'next/server';
-import { hasProduct, isMarketingOnly, PRODUCT_CRM } from '@/lib/access';
+import { hasProduct, isMarketingFamily, PRODUCT_CRM } from '@/lib/access';
 import { getReportById, reportFilePath } from '@/lib/reports';
 import { getMyAccess } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
@@ -20,7 +20,7 @@ async function ensureAuthorized() {
     if (!hasProduct(access.products, PRODUCT_CRM)) {
       return { ok: false as const, reason: 'unauthorized' };
     }
-    if (isMarketingOnly(access.roles)) {
+    if (isMarketingFamily(access.roles)) {
       return { ok: false as const, reason: 'unauthorized' };
     }
   } catch {

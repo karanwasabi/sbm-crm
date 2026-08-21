@@ -1,9 +1,9 @@
 export const PRODUCT_MEMBER_PORTAL = 'member_portal';
 export const PRODUCT_CRM = 'crm';
 
-export type AppRole = 'member' | 'staff' | 'admin' | 'coach' | 'marketing' | 'superadmin';
+export type AppRole = 'member' | 'staff' | 'admin' | 'coach' | 'marketing' | 'marketing_plus' | 'superadmin';
 
-export type StaffAccessRole = 'admin' | 'coach' | 'marketing';
+export type StaffAccessRole = 'admin' | 'coach' | 'marketing' | 'marketing_plus';
 
 export type Product = 'member_portal' | 'app' | 'crm' | 'coach_dashboard' | 'forum' | 'forum_admin';
 
@@ -16,16 +16,43 @@ export function isSuperadmin(roles: AppRole[]): boolean {
   return roles.includes('superadmin');
 }
 
-export function isMarketing(roles: AppRole[]): boolean {
-  return roles.includes('marketing');
+export function isMarketingFamily(roles: AppRole[]): boolean {
+  if (roles.includes('admin') || roles.includes('superadmin')) return false;
+  return roles.includes('marketing') || roles.includes('marketing_plus');
 }
 
+/** Plain marketing role (not Marketing Plus), without admin/superadmin. */
 export function isMarketingOnly(roles: AppRole[]): boolean {
-  return isMarketing(roles) && !roles.includes('admin') && !roles.includes('superadmin');
+  return (
+    roles.includes('marketing') &&
+    !roles.includes('marketing_plus') &&
+    !roles.includes('admin') &&
+    !roles.includes('superadmin')
+  );
+}
+
+export function isMarketingPlus(roles: AppRole[]): boolean {
+  return roles.includes('marketing_plus') && !roles.includes('admin') && !roles.includes('superadmin');
+}
+
+export function staffAccessRoleLabel(role: StaffAccessRole): string {
+  switch (role) {
+    case 'marketing_plus':
+      return 'Marketing Plus';
+    case 'admin':
+      return 'Admin';
+    case 'coach':
+      return 'Coach';
+    case 'marketing':
+      return 'Marketing';
+  }
 }
 
 export function visibleStaffRoles(roles: AppRole[]): StaffAccessRole[] {
-  return roles.filter((role): role is StaffAccessRole => role === 'admin' || role === 'coach' || role === 'marketing');
+  return roles.filter(
+    (role): role is StaffAccessRole =>
+      role === 'admin' || role === 'coach' || role === 'marketing' || role === 'marketing_plus'
+  );
 }
 
 export function parseAccessTokenClaims(accessToken: string | undefined): AccessClaims {
@@ -68,6 +95,7 @@ function isAppRole(value: unknown): value is AppRole {
     value === 'admin' ||
     value === 'coach' ||
     value === 'marketing' ||
+    value === 'marketing_plus' ||
     value === 'superadmin'
   );
 }

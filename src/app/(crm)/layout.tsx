@@ -1,6 +1,14 @@
 import { redirect } from 'next/navigation';
 import { CrmShell } from '@/components/layout/crm/crm-shell';
-import { hasProduct, PRODUCT_CRM, visibleStaffRoles, isSuperadmin, isMarketingOnly } from '@/lib/access';
+import {
+  hasProduct,
+  PRODUCT_CRM,
+  visibleStaffRoles,
+  isSuperadmin,
+  isMarketingFamily,
+  isMarketingPlus,
+  staffAccessRoleLabel,
+} from '@/lib/access';
 import { getLatestProfile, getMyAccess, getWhatsAppFlags, ApiError } from '@/utils/api';
 import { createClient } from '@/utils/supabase/server';
 import { getInitials, type Profile } from '@/types/profile';
@@ -27,18 +35,20 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
   let accessLabel = 'Staff';
   let superadmin = false;
   let marketing = false;
+  let marketingPlus = false;
   try {
     const access = await getMyAccess();
     if (!hasProduct(access.products, PRODUCT_CRM)) {
       redirect('/unauthorized');
     }
     superadmin = isSuperadmin(access.roles);
-    marketing = isMarketingOnly(access.roles);
+    marketing = isMarketingFamily(access.roles);
+    marketingPlus = isMarketingPlus(access.roles);
     const visible = visibleStaffRoles(access.roles);
     if (superadmin) {
       accessLabel = 'Superadmin';
     } else if (visible.length > 0) {
-      accessLabel = visible.map((role) => role.charAt(0).toUpperCase() + role.slice(1)).join(', ');
+      accessLabel = visible.map((role) => staffAccessRoleLabel(role)).join(', ');
     }
   } catch {
     redirect('/unauthorized');
@@ -73,6 +83,7 @@ export default async function CrmLayout({ children }: { children: React.ReactNod
       profileError={profileError}
       isSuperadmin={superadmin}
       isMarketing={marketing}
+      isMarketingPlus={marketingPlus}
       whatsappSendsEnabled={whatsappSendsEnabled}
     >
       {children}

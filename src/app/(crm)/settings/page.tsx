@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { SettingsView } from '@/components/views/settings-view';
-import { isMarketingOnly } from '@/lib/access';
+import { isMarketingFamily } from '@/lib/access';
 import type { MetaIntegrationStatus, RazorpayIntegrationStatus } from '@/types/crm';
 import type { StaffList } from '@/utils/api';
 import { fetchCountries, getMyAccess } from '@/utils/api';
@@ -41,7 +41,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   let isMarketing = false;
   try {
     const access = await getMyAccess();
-    isMarketing = isMarketingOnly(access.roles);
+    isMarketing = isMarketingFamily(access.roles);
   } catch {
     isMarketing = false;
   }

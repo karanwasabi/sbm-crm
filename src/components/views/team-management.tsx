@@ -36,43 +36,25 @@ type TeamManagementProps = {
   currentUserId: string;
 };
 
+type CrmTier = 'admin' | 'marketing' | 'marketing_plus' | null;
+
 export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
-  const [admin, setAdmin] = useState(true);
+  const [crmTier, setCrmTier] = useState<CrmTier>('admin');
   const [coach, setCoach] = useState(true);
-  const [marketing, setMarketing] = useState(false);
   const [pending, startTransition] = useTransition();
   const [editingMember, setEditingMember] = useState<StaffMember | null>(null);
   const [editingInactive, setEditingInactive] = useState(false);
 
   const selectedRoles = (): StaffAccessRole[] => {
     const roles: StaffAccessRole[] = [];
-    if (admin) roles.push('admin');
+    if (crmTier) roles.push(crmTier);
     if (coach) roles.push('coach');
-    if (marketing) roles.push('marketing');
     return roles;
-  };
-
-  const setAdminRole = (enabled: boolean) => {
-    setAdmin(enabled);
-    if (enabled) setMarketing(false);
-  };
-
-  const setCoachRole = (enabled: boolean) => {
-    setCoach(enabled);
-    if (enabled) setMarketing(false);
-  };
-
-  const setMarketingRole = (enabled: boolean) => {
-    setMarketing(enabled);
-    if (enabled) {
-      setAdmin(false);
-      setCoach(false);
-    }
   };
 
   const handleCreate = () => {
@@ -109,9 +91,8 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         setFirstName('');
         setLastName('');
         setEmail('');
-        setAdmin(true);
+        setCrmTier('admin');
         setCoach(true);
-        setMarketing(false);
         toast({
           message: result.member.promoted
             ? `${normalizedEmail} promoted to staff`
@@ -139,9 +120,9 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         <Card>
           <SectionHead
             title="Add staff member"
-            subtitle="Staff get member portal access. Assign Admin, Coach, or Marketing for CRM access."
+            subtitle="Staff get member portal access. Choose one CRM tier (Admin, Marketing, or Marketing Plus) and optionally Coach."
           />
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1fr)_auto]">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.25fr)_minmax(0,1.4fr)_auto]">
             <Field label="First name">
               <TextInput
                 value={firstName}
@@ -169,9 +150,25 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
             </Field>
             <Field label="Roles">
               <div className="flex min-h-[42px] flex-wrap items-center gap-x-4 gap-y-2 pt-0.5">
-                <Checkbox checked={admin} onChange={setAdminRole} disabled={pending} label="Admin" />
-                <Checkbox checked={coach} onChange={setCoachRole} disabled={pending} label="Coach" />
-                <Checkbox checked={marketing} onChange={setMarketingRole} disabled={pending} label="Marketing" />
+                <Checkbox
+                  checked={crmTier === 'admin'}
+                  onChange={(enabled) => setCrmTier(enabled ? 'admin' : null)}
+                  disabled={pending}
+                  label="Admin"
+                />
+                <Checkbox
+                  checked={crmTier === 'marketing'}
+                  onChange={(enabled) => setCrmTier(enabled ? 'marketing' : null)}
+                  disabled={pending}
+                  label="Marketing"
+                />
+                <Checkbox
+                  checked={crmTier === 'marketing_plus'}
+                  onChange={(enabled) => setCrmTier(enabled ? 'marketing_plus' : null)}
+                  disabled={pending}
+                  label="Marketing Plus"
+                />
+                <Checkbox checked={coach} onChange={setCoach} disabled={pending} label="Coach" />
               </div>
             </Field>
             <div className="flex flex-col gap-1.5 sm:col-span-2 xl:col-span-1">
@@ -191,7 +188,7 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
         </Card>
 
         <Card>
-          <SectionHead title="Active staff" subtitle="Users with admin, coach, or marketing access" />
+          <SectionHead title="Active staff" subtitle="Users with admin, coach, marketing, or marketing plus access" />
           {staff.active.length === 0 ? (
             <p className="text-sm text-slate-500">No active staff yet.</p>
           ) : (
@@ -249,7 +246,7 @@ function StaffTable({ children }: { children: ReactNode }) {
       <DataTableHead>
         <DataTableHeaderCell className="w-[28%] min-w-[160px]">Name</DataTableHeaderCell>
         <DataTableHeaderCell className="w-[32%] min-w-[200px]">Email</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[24%] min-w-[180px]">Access</DataTableHeaderCell>
+        <DataTableHeaderCell className="w-[24%] min-w-[200px]">Access</DataTableHeaderCell>
         <DataTableHeaderCell className="w-[16%] min-w-[120px] text-right"> </DataTableHeaderCell>
       </DataTableHead>
       <DataTableBody>{children}</DataTableBody>
@@ -286,6 +283,7 @@ function StaffRow({
   const hasAdmin = member.roles.includes('admin');
   const hasCoach = member.roles.includes('coach');
   const hasMarketing = member.roles.includes('marketing');
+  const hasMarketingPlus = member.roles.includes('marketing_plus');
   const hasSuperadmin = member.roles.includes('superadmin');
 
   return (
@@ -304,6 +302,7 @@ function StaffRow({
           <RolePill label="Admin" active={hasAdmin} tone="deep" />
           <RolePill label="Coach" active={hasCoach} tone="success" />
           <RolePill label="Marketing" active={hasMarketing} tone="brand" />
+          <RolePill label="Marketing Plus" active={hasMarketingPlus} tone="brand" />
           {hasSuperadmin ? <RolePill label="Superadmin" active tone="deep" /> : null}
         </div>
       </DataTableCell>
