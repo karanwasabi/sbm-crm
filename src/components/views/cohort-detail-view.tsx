@@ -402,7 +402,7 @@ function MemberTable({
   sortOrder?: CohortMemberSortOrder;
   onSort?: (key: CohortMemberSortKey) => void;
   emptyMessage?: string;
-  statusMode: 'lifecycle' | 'lapsed' | 'transferred';
+  statusMode: 'lifecycle' | 'grace' | 'lapsed' | 'transferred';
   toolbar?: ReactNode;
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
   showBodyMetrics?: boolean;
@@ -606,6 +606,8 @@ function MemberTable({
                       <Pill tone="neutral">Transferred</Pill>
                     ) : statusMode === 'lapsed' ? (
                       <Pill tone="neutral">Lapsed</Pill>
+                    ) : statusMode === 'grace' ? (
+                      <Pill tone="warn">Grace</Pill>
                     ) : (
                       <ActiveMemberStatus member={member} />
                     )}
@@ -687,6 +689,7 @@ function CohortHeaderStat({ label, value }: { label: string; value: number }) {
 function CohortDetailHeader({
   cohort,
   activeCount,
+  graceCount,
   lapsedCount,
   transferredCount,
   canManagePointA,
@@ -704,6 +707,7 @@ function CohortDetailHeader({
 }: {
   cohort: CohortDetail;
   activeCount: number;
+  graceCount: number;
   lapsedCount: number;
   transferredCount: number;
   canManagePointA?: boolean;
@@ -815,6 +819,8 @@ function CohortDetailHeader({
 
         <div className="inline-flex shrink-0 overflow-hidden rounded-2xl border-b-2 border-black/22 bg-black/16 sm:self-center">
           <CohortHeaderStat label="Active" value={activeCount} />
+          <div className="w-px self-stretch bg-white/20" aria-hidden />
+          <CohortHeaderStat label="Grace" value={graceCount} />
           <div className="w-px self-stretch bg-white/20" aria-hidden />
           <CohortHeaderStat label="Lapsed" value={lapsedCount} />
           <div className="w-px self-stretch bg-white/20" aria-hidden />
@@ -1401,6 +1407,10 @@ export function CohortDetailView({
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'active'),
     [geoFilteredMembers]
   );
+  const graceMembers = useMemo(
+    () => geoFilteredMembers.filter((member) => member.subscriptionState === 'grace'),
+    [geoFilteredMembers]
+  );
   const lapsedMembers = useMemo(
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'lapsed'),
     [geoFilteredMembers]
@@ -1411,6 +1421,7 @@ export function CohortDetailView({
   );
 
   const allActiveMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'active'), [members]);
+  const allGraceMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'grace'), [members]);
   const allLapsedMembers = useMemo(() => members.filter((member) => member.subscriptionState === 'lapsed'), [members]);
   const allTransferredMembers = useMemo(
     () => members.filter((member) => member.subscriptionState === 'transferred'),
@@ -1540,6 +1551,10 @@ export function CohortDetailView({
   const sortedLapsedMembers = useMemo(() => {
     return [...lapsedMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
   }, [lapsedMembers, sortKey, sortOrder]);
+
+  const sortedGraceMembers = useMemo(() => {
+    return [...graceMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
+  }, [graceMembers, sortKey, sortOrder]);
 
   const sortedTransferredMembers = useMemo(() => {
     return [...transferredMembers].sort((a, b) => compareMembers(a, b, sortKey, sortOrder));
@@ -1869,6 +1884,7 @@ export function CohortDetailView({
       <CohortDetailHeader
         cohort={cohort}
         activeCount={allActiveMembers.length}
+        graceCount={allGraceMembers.length}
         lapsedCount={allLapsedMembers.length}
         transferredCount={allTransferredMembers.length}
         canManagePointA={canManagePointA}
@@ -2087,6 +2103,26 @@ export function CohortDetailView({
           emptyMessage={filtersActive ? 'No active members match the current filters.' : 'No members in this section.'}
           statusMode="lifecycle"
           toolbar={activeFilterToolbar}
+          coachTones={coachTones}
+          showBodyMetrics={showBodyMetrics}
+        />
+        <MemberTable
+          title="Grace"
+          subtitle={`${sortedGraceMembers.length} member${sortedGraceMembers.length === 1 ? '' : 's'} past access end, still in grace`}
+          rows={sortedGraceMembers}
+          transferColumn={canTransfer}
+          showTransfer={canTransfer}
+          selectedIds={selectedIds}
+          onToggle={toggle}
+          onToggleAll={toggleAll}
+          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+          onTransfer={setTransferMember}
+          sortable
+          sortKey={sortKey}
+          sortOrder={sortOrder}
+          onSort={handleSort}
+          emptyMessage={filtersActive ? 'No grace members match the current filters.' : undefined}
+          statusMode="grace"
           coachTones={coachTones}
           showBodyMetrics={showBodyMetrics}
         />

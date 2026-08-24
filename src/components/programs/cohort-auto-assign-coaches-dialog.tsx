@@ -57,7 +57,11 @@ export function CohortAutoAssignCoachesDialog({
   const plan = useMemo(() => balanceCoachAssignments({ members, selectedCoaches }), [members, selectedCoaches]);
 
   const unassignedCount = useMemo(
-    () => members.filter((member) => member.subscriptionState === 'active' && !member.coachUserId).length,
+    () =>
+      members.filter(
+        (member) =>
+          (member.subscriptionState === 'active' || member.subscriptionState === 'grace') && !member.coachUserId
+      ).length,
     [members]
   );
 

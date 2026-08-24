@@ -688,7 +688,7 @@ export type CohortMember = {
   timezoneLabel: string;
   enrollmentStatus: string;
   memberPhase: string;
-  subscriptionState: 'active' | 'lapsed' | 'transferred';
+  subscriptionState: 'active' | 'grace' | 'lapsed' | 'transferred';
   subscriptionStatus?: string;
   lifecycleStage?: string;
   memberKind?: 'renewal' | 'returnee';

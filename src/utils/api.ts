@@ -2527,7 +2527,7 @@ type ApiCohortMemberResponse = {
   timezone_label?: string | null;
   enrollment_status: string;
   member_phase: string;
-  subscription_state: 'active' | 'lapsed' | 'transferred';
+  subscription_state: 'active' | 'grace' | 'lapsed' | 'transferred';
   subscription_status?: string;
   lifecycle_stage?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;

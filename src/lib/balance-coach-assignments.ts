@@ -34,15 +34,16 @@ function compareCoaches(a: { load: number; name: string; id: string }, b: { load
 }
 
 /**
- * Distribute unassigned active members onto selected coaches so totals
+ * Distribute unassigned active/grace members onto selected coaches so totals
  * (existing cohort load + new) stay as even as possible.
  */
 export function balanceCoachAssignments({ members, selectedCoaches }: BalanceCoachInput): BalanceCoachResult {
+  const withAccess = (member: CohortMember) =>
+    member.subscriptionState === 'active' || member.subscriptionState === 'grace';
+
   const selected = selectedCoaches.filter((coach) => Boolean(coach.user_id));
   if (selected.length === 0) {
-    const unassignedCount = members.filter(
-      (member) => member.subscriptionState === 'active' && !member.coachUserId
-    ).length;
+    const unassignedCount = members.filter((member) => withAccess(member) && !member.coachUserId).length;
     return { unassignedCount, assignments: [], byEnrollmentId: new Map() };
   }
 
@@ -60,7 +61,7 @@ export function balanceCoachAssignments({ members, selectedCoaches }: BalanceCoa
   }
 
   const unassigned = members
-    .filter((member) => member.subscriptionState === 'active' && !member.coachUserId)
+    .filter((member) => withAccess(member) && !member.coachUserId)
     .slice()
     .sort((a, b) => a.memberName.localeCompare(b.memberName, undefined, { sensitivity: 'base' }));
 
