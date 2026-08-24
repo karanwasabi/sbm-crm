@@ -1,7 +1,8 @@
 'use client';
 
 import { Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useRef } from 'react';
+import { useDebouncedSearchInput } from '@/hooks/use-debounced-search-input';
 import { buildRenewalsHref, type RenewalFilters } from '@/lib/renewal-query';
 import { cn } from '@/lib/cn';
 
@@ -12,20 +13,20 @@ type RenewalsSearchProps = {
 };
 
 export function RenewalsSearch({ filters, onNavigate, className }: RenewalsSearchProps) {
-  const [value, setValue] = useState(filters.q);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const onNavigateRef = useRef(onNavigate);
+  onNavigateRef.current = onNavigate;
 
-  useEffect(() => {
-    setValue(filters.q);
-  }, [filters.q]);
+  const onCommit = useCallback((trimmedQuery: string) => {
+    onNavigateRef.current(buildRenewalsHref(filtersRef.current, { q: trimmedQuery }));
+  }, []);
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      const trimmed = value.trim();
-      if (trimmed === filters.q.trim()) return;
-      onNavigate(buildRenewalsHref(filters, { q: trimmed }));
-    }, 350);
-    return () => window.clearTimeout(handle);
-  }, [value, filters, onNavigate]);
+  const { value, setValue, inputRef, onBlur, onKeyDown } = useDebouncedSearchInput({
+    committedQuery: filters.q,
+    debounceMs: 400,
+    onCommit,
+  });
 
   return (
     <div
@@ -36,10 +37,15 @@ export function RenewalsSearch({ filters, onNavigate, className }: RenewalsSearc
     >
       <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
       <input
+        ref={inputRef}
         type="search"
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
         placeholder="Search name or email"
+        autoComplete="off"
+        spellCheck={false}
         className="min-w-0 flex-1 border-none bg-transparent text-[13px] font-medium text-slate-700 outline-none placeholder:text-slate-400"
       />
     </div>

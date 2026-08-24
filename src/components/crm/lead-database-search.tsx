@@ -2,7 +2,8 @@
 
 import { Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useRef, useTransition } from 'react';
+import { useDebouncedSearchInput } from '@/hooks/use-debounced-search-input';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { cn } from '@/lib/cn';
 
@@ -13,20 +14,25 @@ type LeadDatabaseSearchProps = {
 
 export function LeadDatabaseSearch({ filters, className }: LeadDatabaseSearchProps) {
   const router = useRouter();
-  const [value, setValue] = useState(filters.q);
+  const [, startTransition] = useTransition();
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
 
-  useEffect(() => {
-    setValue(filters.q);
-  }, [filters.q]);
+  const onCommit = useCallback(
+    (trimmedQuery: string) => {
+      const href = buildLeadDatabaseHref(filtersRef.current, { q: trimmedQuery });
+      startTransition(() => {
+        router.replace(href);
+      });
+    },
+    [router, startTransition]
+  );
 
-  useEffect(() => {
-    const handle = window.setTimeout(() => {
-      const trimmed = value.trim();
-      if (trimmed === filters.q.trim()) return;
-      router.push(buildLeadDatabaseHref(filters, { q: trimmed }));
-    }, 350);
-    return () => window.clearTimeout(handle);
-  }, [value, filters, router]);
+  const { value, setValue, inputRef, onBlur, onKeyDown } = useDebouncedSearchInput({
+    committedQuery: filters.q,
+    debounceMs: 400,
+    onCommit,
+  });
 
   return (
     <div
@@ -37,10 +43,15 @@ export function LeadDatabaseSearch({ filters, className }: LeadDatabaseSearchPro
     >
       <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
       <input
+        ref={inputRef}
         type="search"
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        onBlur={onBlur}
+        onKeyDown={onKeyDown}
         placeholder="Search name or email"
+        autoComplete="off"
+        spellCheck={false}
         className="min-w-0 flex-1 border-none bg-transparent text-[13px] font-medium text-slate-700 outline-none placeholder:text-slate-400"
       />
     </div>
