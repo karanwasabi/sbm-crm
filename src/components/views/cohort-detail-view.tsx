@@ -2108,7 +2108,7 @@ export function CohortDetailView({
         />
         <MemberTable
           title="Grace"
-          subtitle={`${sortedGraceMembers.length} member${sortedGraceMembers.length === 1 ? '' : 's'} past access end, still in grace`}
+          subtitle={`${sortedGraceMembers.length} member${sortedGraceMembers.length === 1 ? '' : 's'} whose access ended, still within grace`}
           rows={sortedGraceMembers}
           transferColumn={canTransfer}
           showTransfer={canTransfer}
