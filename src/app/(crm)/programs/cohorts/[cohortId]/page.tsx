@@ -1,5 +1,6 @@
 import { CohortDetailView } from '@/components/views/cohort-detail-view';
 import { isSuperadmin } from '@/lib/access';
+import { parseCohortMemberListQuery } from '@/lib/cohort-member-query';
 import {
   getCohort,
   getCohortMembers,
@@ -11,8 +12,15 @@ import {
   listWhatsAppTemplates,
 } from '@/utils/api';
 
-export default async function CohortDetailPage({ params }: { params: Promise<{ cohortId: string }> }) {
+export default async function CohortDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ cohortId: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const { cohortId } = await params;
+  const listQuery = parseCohortMemberListQuery(await searchParams);
 
   let cohort: Awaited<ReturnType<typeof getCohort>> | null = null;
   let members: Awaited<ReturnType<typeof getCohortMembers>> = [];
@@ -79,6 +87,7 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ c
     <CohortDetailView
       cohort={cohort}
       members={members}
+      listQuery={listQuery}
       transferTargets={transferTargets}
       coaches={coaches}
       emailTemplates={emailTemplates}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowDown,
@@ -74,6 +74,15 @@ import {
 } from '@/app/(crm)/programs/actions';
 import { cohortHeaderAccent, formatCohortStartDateLong, cohortStartDateReached } from '@/lib/cohort-display';
 import { cohortMembershipDurationDisplay, cohortMembershipEndsDisplay } from '@/lib/cohort-membership-display';
+import {
+  buildCohortDetailHref,
+  cohortMemberListQueryKey,
+  mergeCohortMemberListQuery,
+  type CohortMemberListQuery,
+  type CohortMemberSortKey,
+  type CohortMemberSortOrder,
+} from '@/lib/cohort-member-query';
+import { useDebouncedSearchInput } from '@/hooks/use-debounced-search-input';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
 import { SEX_OPTIONS } from '@/types/profile';
@@ -82,6 +91,7 @@ import type { EmailTemplate, StaffMember, WhatsAppTemplate } from '@/utils/api';
 type CohortDetailViewProps = {
   cohort: CohortDetail;
   members: CohortMember[];
+  listQuery: CohortMemberListQuery;
   transferTargets: CohortSummary[];
   coaches: StaffMember[];
   emailTemplates: EmailTemplate[];
@@ -91,19 +101,6 @@ type CohortDetailViewProps = {
   canLockCohort?: boolean;
   isSuperadmin?: boolean;
 };
-
-type ActiveSortKey =
-  | 'name'
-  | 'coach'
-  | 'whatsapp'
-  | 'city'
-  | 'country'
-  | 'timezone'
-  | 'duration'
-  | 'membershipEnds'
-  | 'extended'
-  | 'enrolled';
-type SortOrder = 'asc' | 'desc';
 
 const UNSPECIFIED_FILTER = 'unspecified';
 
@@ -194,10 +191,10 @@ function LocalSortableHeader({
   onSort,
 }: {
   label: string;
-  sortKey: ActiveSortKey;
-  activeKey: ActiveSortKey;
-  order: SortOrder;
-  onSort: (key: ActiveSortKey) => void;
+  sortKey: CohortMemberSortKey;
+  activeKey: CohortMemberSortKey;
+  order: CohortMemberSortOrder;
+  onSort: (key: CohortMemberSortKey) => void;
 }) {
   const active = activeKey === sortKey;
   const Icon = !active ? ArrowUpDown : order === 'asc' ? ArrowUp : ArrowDown;
@@ -401,9 +398,9 @@ function MemberTable({
   onRowClick: (member: CohortMember) => void;
   onTransfer: (member: CohortMember) => void;
   sortable?: boolean;
-  sortKey?: ActiveSortKey;
-  sortOrder?: SortOrder;
-  onSort?: (key: ActiveSortKey) => void;
+  sortKey?: CohortMemberSortKey;
+  sortOrder?: CohortMemberSortOrder;
+  onSort?: (key: CohortMemberSortKey) => void;
   emptyMessage?: string;
   statusMode: 'lifecycle' | 'lapsed' | 'transferred';
   toolbar?: ReactNode;
@@ -1018,7 +1015,7 @@ function CoachSummaryCard({ members }: { members: CohortMember[] }) {
   );
 }
 
-function compareText(a: string, b: string, order: SortOrder): number {
+function compareText(a: string, b: string, order: CohortMemberSortOrder): number {
   const aValue = a.trim();
   const bValue = b.trim();
   if (!aValue && !bValue) return 0;
@@ -1028,7 +1025,12 @@ function compareText(a: string, b: string, order: SortOrder): number {
   return aValue.localeCompare(bValue, undefined, { sensitivity: 'base' }) * direction;
 }
 
-function compareMembers(a: CohortMember, b: CohortMember, sortKey: ActiveSortKey, order: SortOrder): number {
+function compareMembers(
+  a: CohortMember,
+  b: CohortMember,
+  sortKey: CohortMemberSortKey,
+  order: CohortMemberSortOrder
+): number {
   const direction = order === 'asc' ? 1 : -1;
   if (sortKey === 'name') {
     return a.memberName.localeCompare(b.memberName, undefined, { sensitivity: 'base' }) * direction;
@@ -1123,6 +1125,7 @@ function memberMatchesSearch(member: CohortMember, query: string): boolean {
 export function CohortDetailView({
   cohort,
   members,
+  listQuery: initialListQuery,
   transferTargets,
   coaches,
   emailTemplates,
@@ -1135,25 +1138,63 @@ export function CohortDetailView({
   const router = useRouter();
   const { push, isPending, pendingHref } = useCrmNavigate();
   const { toast } = useToast();
-  const openCustomer = (leadId: string) => push(`/customers/${leadId}`);
+  const [listQuery, setListQuery] = useState(initialListQuery);
+  const listQueryRef = useRef(listQuery);
+  listQueryRef.current = listQuery;
+  const initialQueryKey = cohortMemberListQueryKey(initialListQuery);
+
+  useEffect(() => {
+    setListQuery(initialListQuery);
+    // Restore URL-driven filters when returning from Customer 360 (or a refresh).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialQueryKey captures the committed query
+  }, [initialQueryKey]);
+
+  const commitQuery = (patch: Partial<CohortMemberListQuery>) => {
+    const next = mergeCohortMemberListQuery(listQueryRef.current, patch);
+    listQueryRef.current = next;
+    setListQuery(next);
+    // Shallow URL sync only — keep filtering client-side so we don't remount/refetch.
+    window.history.replaceState(window.history.state, '', buildCohortDetailHref(cohort.id, next));
+  };
+
+  const {
+    value: searchQuery,
+    setValue: setSearchQuery,
+    inputRef: searchInputRef,
+    onBlur: onSearchBlur,
+    onKeyDown: onSearchKeyDown,
+  } = useDebouncedSearchInput({
+    committedQuery: listQuery.q,
+    debounceMs: 400,
+    onCommit: (q) => commitQuery({ q }),
+  });
+
+  const openCustomer = (leadId: string) => {
+    const next = mergeCohortMemberListQuery(listQueryRef.current, { q: searchQuery.trim() });
+    listQueryRef.current = next;
+    setListQuery(next);
+    window.history.replaceState(window.history.state, '', buildCohortDetailHref(cohort.id, next));
+    push(`/customers/${leadId}`);
+  };
+
+  const statusFilters = listQuery.statuses;
+  const onboardingFilters = listQuery.onboarding;
+  const coachFilters = listQuery.coaches;
+  const cityFilters = listQuery.cities;
+  const sexFilters = listQuery.sex;
+  const countryFilters = listQuery.countries;
+  const timezoneFilters = listQuery.timezones;
+  const showBodyMetrics = listQuery.showBodyMetrics;
+  const sortKey = listQuery.sort;
+  const sortOrder = listQuery.order;
+
   const [editOpen, setEditOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [autoAssignOpen, setAutoAssignOpen] = useState(false);
   const [transferMember, setTransferMember] = useState<CohortMember | null>(null);
   const [lockPending, setLockPending] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [statusFilters, setStatusFilters] = useState<string[]>([]);
-  const [onboardingFilters, setOnboardingFilters] = useState<string[]>([]);
-  const [coachFilters, setCoachFilters] = useState<string[]>([]);
-  const [cityFilters, setCityFilters] = useState<string[]>([]);
-  const [sexFilters, setSexFilters] = useState<string[]>([]);
-  const [countryFilters, setCountryFilters] = useState<string[]>([]);
-  const [timezoneFilters, setTimezoneFilters] = useState<string[]>([]);
-  const [showBodyMetrics, setShowBodyMetrics] = useState(false);
   const [scheduledPushRefreshKey, setScheduledPushRefreshKey] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortKey, setSortKey] = useState<ActiveSortKey>('enrolled');
-  const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [pointAEnabled, setPointAEnabled] = useState(Boolean(cohort.pointAEnabled));
   const [pointAEffective, setPointAEffective] = useState(Boolean(cohort.pointAEffective ?? cohort.pointAEnabled));
   const [pointASaving, setPointASaving] = useState(false);
@@ -1562,13 +1603,12 @@ export function CohortDetailView({
     }));
   }, [members]);
 
-  const handleSort = (key: ActiveSortKey) => {
+  const handleSort = (key: CohortMemberSortKey) => {
     if (sortKey === key) {
-      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+      commitQuery({ order: sortOrder === 'asc' ? 'desc' : 'asc' });
       return;
     }
-    setSortKey(key);
-    setSortOrder(key === 'enrolled' ? 'desc' : 'asc');
+    commitQuery({ sort: key, order: key === 'enrolled' ? 'desc' : 'asc' });
   };
 
   const activeFilterToolbar = (
@@ -1577,10 +1617,15 @@ export function CohortDetailView({
         <div className="flex w-full max-w-96 min-w-[220px] flex-1 shrink-0 items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.25 shadow-sm">
           <Search className="h-3.5 w-3.5 shrink-0 text-slate-400" />
           <input
+            ref={searchInputRef}
             type="search"
             value={searchQuery}
             onChange={(event) => setSearchQuery(event.target.value)}
+            onBlur={onSearchBlur}
+            onKeyDown={onSearchKeyDown}
             placeholder="Search name, email, or phone"
+            autoComplete="off"
+            spellCheck={false}
             className="min-w-0 flex-1 border-none bg-transparent text-[13px] font-medium text-slate-700 outline-none placeholder:text-slate-400"
             aria-label="Search members by name, email, or phone"
           />
@@ -1590,7 +1635,7 @@ export function CohortDetailView({
           icon={<Tags className="h-3.5 w-3.5" />}
           options={statusFilterOptions}
           selected={statusFilters}
-          onChange={setStatusFilters}
+          onChange={(statuses) => commitQuery({ statuses })}
           emptyLabel="No statuses yet."
         />
         <CohortMultiFilterPopover
@@ -1598,7 +1643,7 @@ export function CohortDetailView({
           icon={<CheckCircle2 className="h-3.5 w-3.5" />}
           options={onboardingFilterOptions}
           selected={onboardingFilters}
-          onChange={setOnboardingFilters}
+          onChange={(onboarding) => commitQuery({ onboarding })}
           emptyLabel="No onboarding states yet."
         />
         <CohortMultiFilterPopover
@@ -1606,7 +1651,7 @@ export function CohortDetailView({
           icon={<UserRound className="h-3.5 w-3.5" />}
           options={coachFilterOptions}
           selected={coachFilters}
-          onChange={setCoachFilters}
+          onChange={(coaches) => commitQuery({ coaches })}
           emptyLabel="No coaches yet."
         />
         <CohortMultiFilterPopover
@@ -1614,7 +1659,7 @@ export function CohortDetailView({
           icon={<MapPin className="h-3.5 w-3.5" />}
           options={cityFilterOptions}
           selected={cityFilters}
-          onChange={setCityFilters}
+          onChange={(cities) => commitQuery({ cities })}
           emptyLabel="No cities yet."
         />
         <CohortMultiFilterPopover
@@ -1622,7 +1667,7 @@ export function CohortDetailView({
           icon={<Users className="h-3.5 w-3.5" />}
           options={sexFilterOptions}
           selected={sexFilters}
-          onChange={setSexFilters}
+          onChange={(sex) => commitQuery({ sex })}
           emptyLabel="No sex values yet."
         />
         <CohortMultiFilterPopover
@@ -1630,7 +1675,7 @@ export function CohortDetailView({
           icon={<Globe2 className="h-3.5 w-3.5" />}
           options={countryFilterOptions}
           selected={countryFilters}
-          onChange={setCountryFilters}
+          onChange={(countries) => commitQuery({ countries })}
           emptyLabel="No countries yet."
         />
         <CohortMultiFilterPopover
@@ -1638,7 +1683,7 @@ export function CohortDetailView({
           icon={<Clock3 className="h-3.5 w-3.5" />}
           options={timezoneFilterOptions}
           selected={timezoneFilters}
-          onChange={setTimezoneFilters}
+          onChange={(timezones) => commitQuery({ timezones })}
           emptyLabel="No timezones yet."
         />
         {isSuperadmin ? (
@@ -1647,7 +1692,7 @@ export function CohortDetailView({
               type="checkbox"
               className="h-3.5 w-3.5 rounded border-slate-300"
               checked={showBodyMetrics}
-              onChange={(event) => setShowBodyMetrics(event.target.checked)}
+              onChange={(event) => commitQuery({ showBodyMetrics: event.target.checked })}
             />
             Body metrics
           </label>
@@ -1656,14 +1701,14 @@ export function CohortDetailView({
       {filtersActive ? (
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-brand/5 px-4 py-2">
           {searchActive ? (
-            <ActiveFilterTag label="Search" value={searchQuery.trim()} onDismiss={() => setSearchQuery('')} />
+            <ActiveFilterTag label="Search" value={searchQuery.trim()} onDismiss={() => commitQuery({ q: '' })} />
           ) : null}
           {statusFilters.map((stage) => (
             <ActiveFilterTag
               key={`status-${stage}`}
               label="Status"
               value={STATUS_FILTER_OPTIONS.find((option) => option.id === stage)?.label ?? stage}
-              onDismiss={() => setStatusFilters((prev) => prev.filter((item) => item !== stage))}
+              onDismiss={() => commitQuery({ statuses: statusFilters.filter((item) => item !== stage) })}
             />
           ))}
           {onboardingFilters.map((state) => (
@@ -1671,7 +1716,7 @@ export function CohortDetailView({
               key={`onboarding-${state}`}
               label="Onboarding"
               value={ONBOARDING_FILTER_OPTIONS.find((option) => option.id === state)?.label ?? state}
-              onDismiss={() => setOnboardingFilters((prev) => prev.filter((item) => item !== state))}
+              onDismiss={() => commitQuery({ onboarding: onboardingFilters.filter((item) => item !== state) })}
             />
           ))}
           {coachFilters.map((coachId) => (
@@ -1679,7 +1724,7 @@ export function CohortDetailView({
               key={`coach-${coachId}`}
               label="Coach"
               value={coachLabelById.get(coachId) ?? coachId}
-              onDismiss={() => setCoachFilters((prev) => prev.filter((item) => item !== coachId))}
+              onDismiss={() => commitQuery({ coaches: coachFilters.filter((item) => item !== coachId) })}
             />
           ))}
           {cityFilters.map((city) => (
@@ -1687,7 +1732,7 @@ export function CohortDetailView({
               key={`city-${city}`}
               label="City"
               value={cityLabelByValue.get(city) ?? city}
-              onDismiss={() => setCityFilters((prev) => prev.filter((item) => item !== city))}
+              onDismiss={() => commitQuery({ cities: cityFilters.filter((item) => item !== city) })}
             />
           ))}
           {sexFilters.map((sex) => (
@@ -1695,7 +1740,7 @@ export function CohortDetailView({
               key={`sex-${sex}`}
               label="Sex"
               value={sexLabelByValue.get(sex) ?? sex}
-              onDismiss={() => setSexFilters((prev) => prev.filter((item) => item !== sex))}
+              onDismiss={() => commitQuery({ sex: sexFilters.filter((item) => item !== sex) })}
             />
           ))}
           {countryFilters.map((country) => (
@@ -1703,7 +1748,7 @@ export function CohortDetailView({
               key={`country-${country}`}
               label="Country"
               value={countryLabelByValue.get(country) ?? country}
-              onDismiss={() => setCountryFilters((prev) => prev.filter((item) => item !== country))}
+              onDismiss={() => commitQuery({ countries: countryFilters.filter((item) => item !== country) })}
             />
           ))}
           {timezoneFilters.map((timezone) => (
@@ -1711,20 +1756,22 @@ export function CohortDetailView({
               key={`timezone-${timezone}`}
               label="Timezone"
               value={timezoneLabelByValue.get(timezone) ?? timezone}
-              onDismiss={() => setTimezoneFilters((prev) => prev.filter((item) => item !== timezone))}
+              onDismiss={() => commitQuery({ timezones: timezoneFilters.filter((item) => item !== timezone) })}
             />
           ))}
           <button
             type="button"
             onClick={() => {
-              setSearchQuery('');
-              setStatusFilters([]);
-              setOnboardingFilters([]);
-              setCoachFilters([]);
-              setCityFilters([]);
-              setSexFilters([]);
-              setCountryFilters([]);
-              setTimezoneFilters([]);
+              commitQuery({
+                q: '',
+                statuses: [],
+                onboarding: [],
+                coaches: [],
+                cities: [],
+                sex: [],
+                countries: [],
+                timezones: [],
+              });
             }}
             className="text-xs font-semibold text-brand"
           >
