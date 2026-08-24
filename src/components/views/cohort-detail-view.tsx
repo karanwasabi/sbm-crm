@@ -73,6 +73,7 @@ import {
   patchCohortPointAEnabledAction,
 } from '@/app/(crm)/programs/actions';
 import { cohortHeaderAccent, formatCohortStartDateLong, cohortStartDateReached } from '@/lib/cohort-display';
+import { cohortMembershipDurationDisplay, cohortMembershipEndsDisplay } from '@/lib/cohort-membership-display';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
 import { SEX_OPTIONS } from '@/types/profile';
@@ -91,7 +92,17 @@ type CohortDetailViewProps = {
   isSuperadmin?: boolean;
 };
 
-type ActiveSortKey = 'name' | 'coach' | 'whatsapp' | 'city' | 'country' | 'timezone' | 'enrolled';
+type ActiveSortKey =
+  | 'name'
+  | 'coach'
+  | 'whatsapp'
+  | 'city'
+  | 'country'
+  | 'timezone'
+  | 'duration'
+  | 'membershipEnds'
+  | 'extended'
+  | 'enrolled';
 type SortOrder = 'asc' | 'desc';
 
 const UNSPECIFIED_FILTER = 'unspecified';
@@ -159,6 +170,9 @@ function MemberTableColGroup({ withActions, showBodyMetrics }: { withActions: bo
       <col style={{ minWidth: 90 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 160 }} />
+      <col style={{ minWidth: 140 }} />
+      <col style={{ minWidth: 170 }} />
+      <col style={{ minWidth: 90 }} />
       <col style={{ minWidth: 120 }} />
       {showBodyMetrics ? (
         <>
@@ -396,7 +410,7 @@ function MemberTable({
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
   showBodyMetrics?: boolean;
 }) {
-  const columnCount = 11 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
+  const columnCount = 14 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
   const rowIds = rows.map((row) => row.enrollmentId);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
@@ -407,7 +421,7 @@ function MemberTable({
       </div>
       {toolbar}
       <div className="overflow-x-auto">
-        <DataTable tableClassName="min-w-[1200px]">
+        <DataTable tableClassName="min-w-[1560px]">
           <MemberTableColGroup withActions={transferColumn} showBodyMetrics={showBodyMetrics} />
           <DataTableHead>
             <DataTableHeaderCell>
@@ -502,6 +516,45 @@ function MemberTable({
             <DataTableHeaderCell>
               {sortable && sortKey && sortOrder && onSort ? (
                 <LocalSortableHeader
+                  label="Duration"
+                  sortKey="duration"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Duration'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Membership ends"
+                  sortKey="membershipEnds"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Membership ends'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
+                  label="Extended"
+                  sortKey="extended"
+                  activeKey={sortKey}
+                  order={sortOrder}
+                  onSort={onSort}
+                />
+              ) : (
+                'Extended'
+              )}
+            </DataTableHeaderCell>
+            <DataTableHeaderCell>
+              {sortable && sortKey && sortOrder && onSort ? (
+                <LocalSortableHeader
                   label="Enrolled"
                   sortKey="enrolled"
                   activeKey={sortKey}
@@ -578,6 +631,19 @@ function MemberTable({
                     <span className="block max-w-[180px] truncate" title={timezoneDisplay(member) || undefined}>
                       {displayOrDash(timezoneDisplay(member))}
                     </span>
+                  </DataTableCell>
+                  <DataTableCell className="text-slate-600">
+                    <span className="block max-w-[160px] truncate" title={cohortMembershipDurationDisplay(member)}>
+                      {cohortMembershipDurationDisplay(member)}
+                    </span>
+                  </DataTableCell>
+                  <DataTableCell className="text-slate-600">
+                    <span className="block max-w-[190px] truncate" title={cohortMembershipEndsDisplay(member)}>
+                      {cohortMembershipEndsDisplay(member)}
+                    </span>
+                  </DataTableCell>
+                  <DataTableCell>
+                    {member.membershipExtended ? <Pill tone="success">Yes</Pill> : <Pill tone="neutral">No</Pill>}
                   </DataTableCell>
                   <DataTableCell className="text-slate-600">
                     <LeadTableTimestamp iso={member.enrolledAt} />
@@ -981,6 +1047,20 @@ function compareMembers(a: CohortMember, b: CohortMember, sortKey: ActiveSortKey
   }
   if (sortKey === 'timezone') {
     return compareText(timezoneDisplay(a), timezoneDisplay(b), order);
+  }
+  if (sortKey === 'duration') {
+    return compareText(cohortMembershipDurationDisplay(a), cohortMembershipDurationDisplay(b), order);
+  }
+  if (sortKey === 'membershipEnds') {
+    const aTime = a.membershipEndsAt ? new Date(a.membershipEndsAt).getTime() : Number.POSITIVE_INFINITY;
+    const bTime = b.membershipEndsAt ? new Date(b.membershipEndsAt).getTime() : Number.POSITIVE_INFINITY;
+    if (aTime === bTime) {
+      return compareText(cohortMembershipEndsDisplay(a), cohortMembershipEndsDisplay(b), order);
+    }
+    return (aTime - bTime) * direction;
+  }
+  if (sortKey === 'extended') {
+    return (Number(a.membershipExtended) - Number(b.membershipExtended)) * direction;
   }
   const aTime = new Date(a.enrolledAt).getTime();
   const bTime = new Date(b.enrolledAt).getTime();

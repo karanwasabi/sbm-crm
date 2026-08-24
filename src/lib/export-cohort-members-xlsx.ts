@@ -1,4 +1,9 @@
 import type { CohortMember } from '@/types/crm';
+import {
+  cohortMembershipDurationDisplay,
+  cohortMembershipEndsDisplay,
+  cohortMembershipExtendedDisplay,
+} from '@/lib/cohort-membership-display';
 import { SEX_OPTIONS } from '@/types/profile';
 
 const TEXT_NUMFMT = '@';
@@ -64,6 +69,27 @@ const BASE_EXPORT_COLUMNS: ExportColumn[] = [
   { header: 'Timezone', key: 'timezone', width: 28, kind: 'text', value: timezoneDisplay },
   { header: 'Status', key: 'status', width: 14, kind: 'text', value: memberStatusLabel },
   { header: 'Coach', key: 'coach', width: 20, kind: 'text', value: (m) => m.coachName?.trim() ?? '' },
+  {
+    header: 'Duration',
+    key: 'duration',
+    width: 22,
+    kind: 'text',
+    value: (m) => cohortMembershipDurationDisplay(m),
+  },
+  {
+    header: 'Membership ends',
+    key: 'membershipEnds',
+    width: 28,
+    kind: 'text',
+    value: (m) => cohortMembershipEndsDisplay(m),
+  },
+  {
+    header: 'Extended',
+    key: 'extended',
+    width: 12,
+    kind: 'text',
+    value: (m) => cohortMembershipExtendedDisplay(m),
+  },
   { header: 'Enrolled', key: 'enrolledAt', width: 20, kind: 'date', value: (m) => parseExportDate(m.enrolledAt) },
   {
     header: 'Onboarding',

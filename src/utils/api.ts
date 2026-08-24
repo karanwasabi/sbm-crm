@@ -2538,6 +2538,15 @@ type ApiCohortMemberResponse = {
   height_cm?: number | null;
   initial_weight_kg?: number | null;
   bmi?: number | null;
+  checkout_product?: string | null;
+  renewal_plan_key?: string | null;
+  membership_duration?: string | null;
+  access_until?: string | null;
+  recurring_start_at?: string | null;
+  membership_ends_at?: string | null;
+  auto_renew_enabled?: boolean;
+  cancel_at_period_end?: boolean;
+  membership_extended?: boolean;
 };
 
 function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortSummary {
@@ -2601,6 +2610,15 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     heightCm: row.height_cm ?? null,
     initialWeightKg: row.initial_weight_kg ?? null,
     bmi: row.bmi ?? null,
+    checkoutProduct: row.checkout_product ?? null,
+    renewalPlanKey: row.renewal_plan_key ?? null,
+    membershipDuration: row.membership_duration?.trim() || '—',
+    accessUntil: row.access_until ?? null,
+    recurringStartAt: row.recurring_start_at ?? null,
+    membershipEndsAt: row.membership_ends_at ?? null,
+    autoRenewEnabled: Boolean(row.auto_renew_enabled),
+    cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
+    membershipExtended: Boolean(row.membership_extended),
   };
 }
 

@@ -701,6 +701,20 @@ export type CohortMember = {
   heightCm?: number | null;
   initialWeightKg?: number | null;
   bmi?: number | null;
+  checkoutProduct?: string | null;
+  renewalPlanKey?: string | null;
+  /** Human-readable membership duration (e.g. "1 month trial", "6 month renewal"). */
+  membershipDuration: string;
+  /** Exclusive UTC access end from checkout; may be empty for open auto-renew. */
+  accessUntil?: string | null;
+  /** Exclusive UTC next charge / recurring start when access_until is empty. */
+  recurringStartAt?: string | null;
+  /** Effective exclusive end: access_until ?? recurring_start_at. */
+  membershipEndsAt?: string | null;
+  autoRenewEnabled: boolean;
+  cancelAtPeriodEnd: boolean;
+  /** True when latest paid checkout is a renewal / trial extend / trial installment > 1. */
+  membershipExtended: boolean;
 };
 
 /** @deprecated Use CohortSummary */
