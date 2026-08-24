@@ -52,3 +52,23 @@ export function perfSourceLabel(sourceKey: string | null | undefined): string {
   }
   return leadSourceLabel(sourceKey) || sourceKey;
 }
+
+/** Options for Lead Database performance-source filter (dashboard drilldown `perf_source`). */
+export const PERF_SOURCE_FILTER_OPTIONS: Array<{ id: string; label: string }> = [
+  { id: '', label: 'Any' },
+  { id: 'meta_influenced', label: 'Meta Influenced' },
+  { id: 'meta_influenced_old_students', label: 'Old students (Meta)' },
+  { id: 'old_students', label: 'Old Students' },
+  { id: 'meta', label: 'Meta Leads' },
+  { id: 'interest_form', label: 'Interest Form Leads' },
+  { id: 'cr_handle', label: 'CR Handle Leads' },
+  { id: 'referral', label: 'Referral Leads' },
+  { id: 'quad', label: 'Quad Leads' },
+  { id: 'other', label: 'Other Leads' },
+];
+
+export const PURCHASE_KIND_FILTER_OPTIONS: Array<{ id: '' | 'new' | 'renewal'; label: string }> = [
+  { id: '', label: 'Any' },
+  { id: 'new', label: 'New' },
+  { id: 'renewal', label: 'Renewal' },
+];

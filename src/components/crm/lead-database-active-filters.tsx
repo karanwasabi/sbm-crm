@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import { formatPaidRangeChip } from '@/lib/ist-datetime';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import { leadSourceLabel, perfSourceLabel } from '@/lib/lead-sources';
 import { renewalDurationFilterLabel } from '@/lib/renewal-duration';
@@ -151,7 +152,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
     chips.push({
       key: 'paid',
       label: 'Paid',
-      value: [filters.paidFrom, filters.paidTo].filter(Boolean).join(' → '),
+      value: formatPaidRangeChip(filters.paidFrom, filters.paidTo),
       href: buildLeadDatabaseHref(filters, { paidFrom: '', paidTo: '' }),
     });
   }

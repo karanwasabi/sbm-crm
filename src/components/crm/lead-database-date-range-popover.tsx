@@ -9,15 +9,37 @@ import { TextInput } from '@/components/ui/text-input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { buildLeadDatabaseHref, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import { istDateInputsToPaidRange, paidRangeToISTDateInputs } from '@/lib/ist-datetime';
 
-type DateRangeField = 'added' | 'updated';
+type DateRangeField = 'added' | 'updated' | 'paid';
 
 const DATE_RANGE_FIELDS: Record<
   DateRangeField,
-  { label: string; fromKey: 'addedFrom' | 'updatedFrom'; toKey: 'addedTo' | 'updatedTo' }
+  {
+    label: string;
+    fromKey: 'addedFrom' | 'updatedFrom' | 'paidFrom';
+    toKey: 'addedTo' | 'updatedTo' | 'paidTo';
+    hint: string;
+  }
 > = {
-  added: { label: 'Added', fromKey: 'addedFrom', toKey: 'addedTo' },
-  updated: { label: 'Updated', fromKey: 'updatedFrom', toKey: 'updatedTo' },
+  added: {
+    label: 'Added',
+    fromKey: 'addedFrom',
+    toKey: 'addedTo',
+    hint: 'Filter by lead created date.',
+  },
+  updated: {
+    label: 'Updated',
+    fromKey: 'updatedFrom',
+    toKey: 'updatedTo',
+    hint: 'Filter by lead last updated date.',
+  },
+  paid: {
+    label: 'Paid',
+    fromKey: 'paidFrom',
+    toKey: 'paidTo',
+    hint: 'Filter by checkout paid date (IST). Same as dashboard purchase drilldown.',
+  },
 };
 
 type LeadDatabaseDateRangePopoverProps = {
@@ -26,23 +48,35 @@ type LeadDatabaseDateRangePopoverProps = {
   filters: LeadDatabaseFilters;
 };
 
+function draftDatesForField(field: DateRangeField, filters: LeadDatabaseFilters): { from: string; to: string } {
+  if (field === 'paid') {
+    return paidRangeToISTDateInputs(filters.paidFrom, filters.paidTo);
+  }
+  const config = DATE_RANGE_FIELDS[field];
+  return { from: filters[config.fromKey], to: filters[config.toKey] };
+}
+
 export function LeadDatabaseDateRangePopover({ field, icon: Icon, filters }: LeadDatabaseDateRangePopoverProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const config = DATE_RANGE_FIELDS[field];
-  const fromValue = filters[config.fromKey];
-  const toValue = filters[config.toKey];
-  const [draftFrom, setDraftFrom] = useState(fromValue);
-  const [draftTo, setDraftTo] = useState(toValue);
-  const isFiltered = Boolean(fromValue || toValue);
+  const current = draftDatesForField(field, filters);
+  const [draftFrom, setDraftFrom] = useState(current.from);
+  const [draftTo, setDraftTo] = useState(current.to);
+  const isFiltered = Boolean(filters[config.fromKey] || filters[config.toKey]);
 
   const apply = () => {
-    router.push(
-      buildLeadDatabaseHref(filters, {
-        [config.fromKey]: draftFrom,
-        [config.toKey]: draftTo,
-      })
-    );
+    if (field === 'paid') {
+      const { paidFrom, paidTo } = istDateInputsToPaidRange(draftFrom, draftTo);
+      router.push(buildLeadDatabaseHref(filters, { paidFrom, paidTo }));
+    } else {
+      router.push(
+        buildLeadDatabaseHref(filters, {
+          [config.fromKey]: draftFrom,
+          [config.toKey]: draftTo,
+        })
+      );
+    }
     setOpen(false);
   };
 
@@ -64,8 +98,9 @@ export function LeadDatabaseDateRangePopover({ field, icon: Icon, filters }: Lea
       onOpenChange={(next) => {
         setOpen(next);
         if (next) {
-          setDraftFrom(fromValue);
-          setDraftTo(toValue);
+          const nextDraft = draftDatesForField(field, filters);
+          setDraftFrom(nextDraft.from);
+          setDraftTo(nextDraft.to);
         }
       }}
     >
@@ -76,6 +111,7 @@ export function LeadDatabaseDateRangePopover({ field, icon: Icon, filters }: Lea
       </PopoverTrigger>
       <PopoverContent className="w-64 p-4" align="end">
         <p className="text-sm font-semibold text-slate-800">Filter by {config.label.toLowerCase()} date</p>
+        <p className="mt-1 text-[11px] text-slate-500">{config.hint}</p>
         <div className="mt-3 space-y-3">
           <div>
             <Label className="mb-1 block text-[11px] text-slate-500">From</Label>

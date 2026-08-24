@@ -1,6 +1,40 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { istLocalInputToRFC3339, validateScheduledPushTime } from '@/lib/ist-datetime';
+import {
+  formatPaidRangeChip,
+  istDateInputsToPaidRange,
+  istLocalInputToRFC3339,
+  paidRangeToISTDateInputs,
+  shiftCalendarDate,
+  validateScheduledPushTime,
+} from '@/lib/ist-datetime';
+
+describe('ist-datetime paid range helpers', () => {
+  it('shifts calendar dates', () => {
+    expect(shiftCalendarDate('2026-08-24', 1)).toBe('2026-08-25');
+    expect(shiftCalendarDate('2026-08-01', -1)).toBe('2026-07-31');
+  });
+
+  it('converts inclusive IST dates to exclusive paid_to midnight', () => {
+    expect(istDateInputsToPaidRange('2026-08-17', '2026-08-24')).toEqual({
+      paidFrom: '2026-08-17T00:00:00+05:30',
+      paidTo: '2026-08-25T00:00:00+05:30',
+    });
+  });
+
+  it('reads exclusive paid_to midnight as inclusive end date', () => {
+    expect(paidRangeToISTDateInputs('2026-08-17T00:00:00+05:30', '2026-08-25T00:00:00+05:30')).toEqual({
+      from: '2026-08-17',
+      to: '2026-08-24',
+    });
+  });
+
+  it('formats paid chip labels for humans', () => {
+    expect(formatPaidRangeChip('2026-08-17T00:00:00+05:30', '2026-08-25T00:00:00+05:30')).toBe(
+      '2026-08-17 → 2026-08-24'
+    );
+  });
+});
 
 describe('ist-datetime scheduled push validation', () => {
   beforeEach(() => {

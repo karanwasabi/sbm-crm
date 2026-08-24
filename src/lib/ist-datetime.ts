@@ -64,6 +64,47 @@ export function isoToISTTimeInput(iso: string | null | undefined): string {
   return `${get('hour')}:${get('minute')}`;
 }
 
+/** Shift a YYYY-MM-DD calendar date by N days (UTC arithmetic on the calendar components). */
+export function shiftCalendarDate(date: string, days: number): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date.trim());
+  if (!match) return '';
+  const utc = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  utc.setUTCDate(utc.getUTCDate() + days);
+  return utc.toISOString().slice(0, 10);
+}
+
+/**
+ * Convert paid_from/paid_to URL values (ISO or YYYY-MM-DD) into inclusive IST date inputs.
+ * Performance drilldowns use exclusive `paid_to` at midnight IST → show the previous calendar day.
+ */
+export function paidRangeToISTDateInputs(paidFrom: string, paidTo: string): { from: string; to: string } {
+  const from = paidFrom.includes('T') ? isoToISTDateInput(paidFrom) : paidFrom.trim();
+  if (!paidTo.trim()) {
+    return { from, to: '' };
+  }
+  if (!paidTo.includes('T')) {
+    return { from, to: paidTo.trim() };
+  }
+  const toDate = isoToISTDateInput(paidTo);
+  const toTime = isoToISTTimeInput(paidTo);
+  if (toDate && (toTime === '00:00' || toTime === '0:00')) {
+    return { from, to: shiftCalendarDate(toDate, -1) };
+  }
+  return { from, to: toDate };
+}
+
+/** Inclusive IST calendar dates → paid_from / exclusive paid_to as RFC3339 (+05:30). */
+export function istDateInputsToPaidRange(from: string, to: string): { paidFrom: string; paidTo: string } {
+  const paidFrom = from.trim() ? istLocalInputToRFC3339(from.trim(), '00:00') : '';
+  const paidTo = to.trim() ? istLocalInputToRFC3339(shiftCalendarDate(to.trim(), 1), '00:00') : '';
+  return { paidFrom, paidTo };
+}
+
+export function formatPaidRangeChip(paidFrom: string, paidTo: string): string {
+  const { from, to } = paidRangeToISTDateInputs(paidFrom, paidTo);
+  return [from, to].filter(Boolean).join(' → ');
+}
+
 export type ISTDateTimeInput = { date: string; time: string };
 
 /** Allow start/end times that are slightly in the past (clock drift, minute rounding, save delay). */

@@ -3,6 +3,7 @@
 import {
   CalendarClock,
   CalendarPlus,
+  CreditCard,
   Globe,
   GraduationCap,
   Layers,
@@ -20,6 +21,8 @@ import { TagFilterSheet } from '@/components/crm/tag-filter-sheet';
 import { LeadDatabaseUnseenUpdatesFilter } from '@/components/crm/lead-database-unseen-updates-filter';
 import { LeadDatabasePhoneDuplicatesFilter } from '@/components/crm/lead-database-phone-duplicates-filter';
 import { LeadDatabaseCreatedByMeFilter } from '@/components/crm/lead-database-created-by-me-filter';
+import { LeadDatabasePurchaseKindFilter } from '@/components/crm/lead-database-purchase-kind-filter';
+import { LeadDatabasePerfSourceFilter } from '@/components/crm/lead-database-perf-source-filter';
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
@@ -120,6 +123,9 @@ export function FilterBar({
           <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
+          <LeadDatabaseDateRangePopover field="paid" icon={CreditCard} filters={filters} />
+          <LeadDatabasePurchaseKindFilter filters={filters} />
+          <LeadDatabasePerfSourceFilter filters={filters} />
           <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
           {restrictToCreatedByMe ? <LeadDatabaseCreatedByMeFilter filters={filters} /> : null}
           <LeadDatabasePhoneDuplicatesFilter filters={filters} />
