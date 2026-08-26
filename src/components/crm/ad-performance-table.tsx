@@ -69,7 +69,7 @@ function adActivityLabel(at?: string | null): string | undefined {
 }
 
 function adSearchHaystack(row: AdPerformanceRow): string {
-  return [row.adContent, row.adset, row.campaign, row.program, row.adKind, row.health]
+  return [row.adLabel, row.adContent, row.adset, row.campaign, row.program, row.adKind, row.health]
     .flatMap((value) => [
       value,
       humanizeMarketingLabel(value),
@@ -108,7 +108,7 @@ export function AdPerformanceTable({
   const getSortValue = useCallback((row: AdPerformanceRow, key: AdSortKey) => {
     switch (key) {
       case 'ad':
-        return humanizeMarketingLabel(row.adContent);
+        return humanizeMarketingLabel(row.adLabel || row.adContent);
       case 'adset':
         return humanizeMarketingLabel(row.adset);
       case 'campaign':
@@ -305,9 +305,13 @@ export function AdPerformanceTable({
                   <DataTableCell className={`${perfCell} align-top font-semibold text-slate-800`}>
                     <div className="flex flex-col gap-1">
                       <MarketingLabelCell
-                        value={row.adContent}
+                        value={row.adLabel || row.adContent}
                         secondary={adActivityLabel(row.lastActivityAt)}
-                        title={`UTM content: ${row.adContent}`}
+                        title={
+                          row.adLabel && row.adLabel !== row.adContent
+                            ? `UTM content: ${row.adContent}`
+                            : `UTM content: ${row.adContent}`
+                        }
                       />
                       <div className="flex flex-wrap gap-1">
                         <MarketingKindPill kind={row.adKind} />

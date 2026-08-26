@@ -3683,6 +3683,7 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
   const payload = (await response.json()) as {
     rows: Array<{
       ad_content: string;
+      ad_label?: string;
       adset: string;
       program: string;
       campaign: string;
@@ -3703,6 +3704,7 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
   return {
     rows: payload.rows.map((row) => ({
       adContent: row.ad_content,
+      adLabel: row.ad_label?.trim() || row.ad_content,
       adset: row.adset,
       program: row.program,
       campaign: row.campaign,

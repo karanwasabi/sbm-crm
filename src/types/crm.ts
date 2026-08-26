@@ -466,6 +466,7 @@ export type MetaCampaignPerformanceRow = {
 
 export type AdPerformanceRow = {
   adContent: string;
+  adLabel: string;
   adset: string;
   program: string;
   campaign: string;
