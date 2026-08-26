@@ -462,6 +462,7 @@ export function Customer360View({
             leadId={lead.id}
             leadStage={lead.stage}
             canEditAccess={canSyncPayment}
+            canManagePause={canSyncPayment}
             canPromoteToMember={canSyncPayment && lead.stage === 'newbie'}
             canDemoteToNewbie={canSyncPayment && lead.stage === 'member'}
           />

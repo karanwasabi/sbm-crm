@@ -16,6 +16,7 @@ const EMPTY_SUMMARY: LeadSummary = {
     registered: 0,
     newbie: 0,
     member: 0,
+    paused: 0,
     grace: 0,
     lapsed: 0,
     transferred: 0,

@@ -4,6 +4,7 @@ export type LifecycleStage =
   | 'registered'
   | 'newbie'
   | 'member'
+  | 'paused'
   | 'grace'
   | 'lapsed'
   | 'transferred'
@@ -642,6 +643,11 @@ export type ProgramHistoryItem = {
   /** Short label e.g. "6 mo" or "Trial +2 · 6 mo". */
   renewalDuration?: string | null;
   paymentMethodSummary?: string | null;
+  pauseId?: string | null;
+  pauseStatus?: string | null;
+  pauseStartsOn?: string | null;
+  pauseEndsOn?: string | null;
+  pauseReason?: string | null;
 };
 
 export type CohortSummary = {
@@ -688,7 +694,7 @@ export type CohortMember = {
   timezoneLabel: string;
   enrollmentStatus: string;
   memberPhase: string;
-  subscriptionState: 'active' | 'grace' | 'lapsed' | 'transferred';
+  subscriptionState: 'active' | 'grace' | 'paused' | 'lapsed' | 'transferred';
   subscriptionStatus?: string;
   lifecycleStage?: string;
   memberKind?: 'renewal' | 'returnee';

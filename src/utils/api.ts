@@ -2229,6 +2229,98 @@ export async function setLeadMembershipAccessUntil(
   };
 }
 
+export type MembershipPauseResult = {
+  id: string;
+  enrollmentId: string;
+  checkoutSessionId: string;
+  status: string;
+  pauseStartsOn: string;
+  pauseEndsOn: string;
+  reason: string;
+  daysExtended: number;
+  accessUntil?: string;
+  graceUntil?: string;
+  accessUntilBefore?: string;
+};
+
+function mapMembershipPauseResponse(row: {
+  id: string;
+  enrollment_id: string;
+  checkout_session_id: string;
+  status: string;
+  pause_starts_on: string;
+  pause_ends_on: string;
+  reason: string;
+  days_extended: number;
+  access_until?: string;
+  grace_until?: string;
+  access_until_before?: string;
+}): MembershipPauseResult {
+  return {
+    id: row.id,
+    enrollmentId: row.enrollment_id,
+    checkoutSessionId: row.checkout_session_id,
+    status: row.status,
+    pauseStartsOn: row.pause_starts_on,
+    pauseEndsOn: row.pause_ends_on,
+    reason: row.reason,
+    daysExtended: row.days_extended,
+    accessUntil: row.access_until,
+    graceUntil: row.grace_until,
+    accessUntilBefore: row.access_until_before,
+  };
+}
+
+export async function scheduleMembershipPause(
+  leadId: string,
+  input: {
+    enrollmentId: string;
+    pauseStartsOn: string;
+    pauseEndsOn: string;
+    reason: string;
+  }
+): Promise<MembershipPauseResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership/pause`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      enrollment_id: input.enrollmentId,
+      pause_starts_on: input.pauseStartsOn,
+      pause_ends_on: input.pauseEndsOn,
+      reason: input.reason,
+    }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to schedule membership pause.', response.status);
+  }
+  return mapMembershipPauseResponse(await response.json());
+}
+
+export async function cancelMembershipPause(leadId: string, pauseId: string): Promise<MembershipPauseResult> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/membership/pause/${encodeURIComponent(pauseId)}/cancel`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to cancel scheduled pause.', response.status);
+  }
+  return mapMembershipPauseResponse(await response.json());
+}
+
+export async function endMembershipPauseEarly(leadId: string, pauseId: string): Promise<MembershipPauseResult> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/membership/pause/${encodeURIComponent(pauseId)}/end-early`,
+    { method: 'POST' }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to end pause early.', response.status);
+  }
+  return mapMembershipPauseResponse(await response.json());
+}
+
 export type SetMemberKindResult = {
   leadId: string;
   memberKind: 'renewal' | 'returnee' | null;
@@ -2527,7 +2619,7 @@ type ApiCohortMemberResponse = {
   timezone_label?: string | null;
   enrollment_status: string;
   member_phase: string;
-  subscription_state: 'active' | 'grace' | 'lapsed' | 'transferred';
+  subscription_state: 'active' | 'grace' | 'paused' | 'lapsed' | 'transferred';
   subscription_status?: string;
   lifecycle_stage?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;
@@ -2644,6 +2736,11 @@ type ApiEnrollmentResponse = {
   renewal_category?: string | null;
   renewal_duration?: string | null;
   payment_method_summary?: string | null;
+  pause_id?: string | null;
+  pause_status?: string | null;
+  pause_starts_on?: string | null;
+  pause_ends_on?: string | null;
+  pause_reason?: string | null;
 };
 
 export async function listPrograms(): Promise<ApiProgramResponse[]> {
@@ -3019,6 +3116,11 @@ export async function getMemberEnrollments(userId: string): Promise<import('@/ty
     renewalCategory: row.renewal_category?.trim() || null,
     renewalDuration: row.renewal_duration?.trim() || null,
     paymentMethodSummary: row.payment_method_summary?.trim() || null,
+    pauseId: row.pause_id?.trim() || null,
+    pauseStatus: row.pause_status?.trim() || null,
+    pauseStartsOn: row.pause_starts_on?.trim() || null,
+    pauseEndsOn: row.pause_ends_on?.trim() || null,
+    pauseReason: row.pause_reason?.trim() || null,
   }));
 }
 

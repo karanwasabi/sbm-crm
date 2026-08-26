@@ -6,6 +6,7 @@ const FUNNEL_STAGES = [
   { stage: 'registered', label: 'Registered' },
   { stage: 'newbie', label: 'Newbie' },
   { stage: 'member', label: 'Member' },
+  { stage: 'paused', label: 'Paused' },
   { stage: 'grace', label: 'Grace' },
   { stage: 'lapsed', label: 'Lapsed' },
   { stage: 'transferred', label: 'Transferred' },

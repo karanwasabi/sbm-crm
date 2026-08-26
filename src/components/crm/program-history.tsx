@@ -2,9 +2,15 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownRight, ArrowUpRight, CalendarRange } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CalendarRange, PauseCircle } from 'lucide-react';
 import { EditMembershipAccessDialog } from '@/components/crm/edit-membership-access-dialog';
-import { demoteLeadToNewbieAction, promoteLeadToMemberAction } from '@/app/(crm)/customers/actions';
+import { MembershipPauseDialog } from '@/components/crm/membership-pause-dialog';
+import {
+  cancelMembershipPauseAction,
+  demoteLeadToNewbieAction,
+  endMembershipPauseEarlyAction,
+  promoteLeadToMemberAction,
+} from '@/app/(crm)/customers/actions';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill } from '@/components/ui/pill';
@@ -26,6 +32,7 @@ type ProgramHistoryProps = {
   /** When the lead is transferred, cancelled enrollments show as Transferred. */
   leadStage?: string;
   canEditAccess?: boolean;
+  canManagePause?: boolean;
   canPromoteToMember?: boolean;
   canDemoteToNewbie?: boolean;
 };
@@ -82,16 +89,43 @@ function isGraceOpen(graceUntil: string | null | undefined): boolean {
   return date.getTime() > Date.now();
 }
 
+function formatPauseDateOnly(value: string | null | undefined): string {
+  if (!value?.trim()) return '—';
+  const [y, m, d] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d));
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+function hasOpenPause(item: ProgramHistoryItem): boolean {
+  const status = item.pauseStatus?.trim().toLowerCase();
+  return Boolean(item.pauseId && (status === 'scheduled' || status === 'active'));
+}
+
+function canSchedulePause(item: ProgramHistoryItem): boolean {
+  const status = item.status.trim().toLowerCase();
+  return (status === 'active' || status === 'upcoming') && !hasOpenPause(item);
+}
+
 function EnrollmentRow({
   item,
   timezone,
   leadStage,
   canEditAccess,
+  canManagePause,
   canPromoteToMember,
   canDemoteToNewbie,
   promotePending,
   demotePending,
+  pauseActionPending,
   onEditAccess,
+  onSchedulePause,
+  onCancelPause,
+  onEndPauseEarly,
   onPromoteToMember,
   onDemoteToNewbie,
 }: {
@@ -99,11 +133,16 @@ function EnrollmentRow({
   timezone: string;
   leadStage?: string;
   canEditAccess?: boolean;
+  canManagePause?: boolean;
   canPromoteToMember?: boolean;
   canDemoteToNewbie?: boolean;
+  pauseActionPending?: boolean;
   promotePending?: boolean;
   demotePending?: boolean;
   onEditAccess?: (item: ProgramHistoryItem) => void;
+  onSchedulePause?: (item: ProgramHistoryItem) => void;
+  onCancelPause?: (item: ProgramHistoryItem) => void;
+  onEndPauseEarly?: (item: ProgramHistoryItem) => void;
   onPromoteToMember?: (item: ProgramHistoryItem) => void;
   onDemoteToNewbie?: (item: ProgramHistoryItem) => void;
 }) {
@@ -114,9 +153,14 @@ function EnrollmentRow({
     ? formatInclusiveAccessEndDate(item.accessUntil)
     : formatMembershipDate(item.accessUntil, timezone);
   const showGrace = isGraceOpen(item.graceUntil);
+  const openPause = hasOpenPause(item);
+  const pauseStatus = item.pauseStatus?.trim().toLowerCase();
   const hasMembershipWindow = Boolean(item.startsOn || item.accessUntil);
   const showPromote = Boolean(canPromoteToMember && onPromoteToMember && item.phase === 'initial');
   const showDemote = Boolean(canDemoteToNewbie && onDemoteToNewbie && item.phase === 'monthly' && item.drivesLifecycle);
+  const showSchedulePause = Boolean(canManagePause && onSchedulePause && canSchedulePause(item));
+  const showCancelPause = Boolean(canManagePause && onCancelPause && pauseStatus === 'scheduled' && item.pauseId);
+  const showEndPauseEarly = Boolean(canManagePause && onEndPauseEarly && pauseStatus === 'active' && item.pauseId);
 
   return (
     <article className="border-t border-slate-100 px-5 py-4">
@@ -154,6 +198,17 @@ function EnrollmentRow({
                   Grace until {formatInclusiveAccessEndDate(item.graceUntil)}
                 </p>
               ) : null}
+              {openPause ? (
+                <div className="mt-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2">
+                  <p className="text-xs font-bold tracking-wide text-sky-800 uppercase">
+                    {pauseStatus === 'active' ? 'Membership paused' : 'Pause scheduled'}
+                  </p>
+                  <p className="mt-1 text-xs font-semibold text-sky-900">
+                    {formatPauseDateOnly(item.pauseStartsOn)} → {formatPauseDateOnly(item.pauseEndsOn)}
+                  </p>
+                  {item.pauseReason ? <p className="mt-1 text-xs text-sky-800">{item.pauseReason}</p> : null}
+                </div>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               {showPromote ? (
@@ -189,6 +244,39 @@ function EnrollmentRow({
                   onClick={() => onEditAccess(item)}
                 >
                   Edit access
+                </Button>
+              ) : null}
+              {showSchedulePause ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  leftIcon={<PauseCircle className="h-3.5 w-3.5" />}
+                  onClick={() => onSchedulePause?.(item)}
+                >
+                  Schedule pause
+                </Button>
+              ) : null}
+              {showCancelPause ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  loading={pauseActionPending}
+                  onClick={() => onCancelPause?.(item)}
+                >
+                  Cancel schedule
+                </Button>
+              ) : null}
+              {showEndPauseEarly ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  loading={pauseActionPending}
+                  onClick={() => onEndPauseEarly?.(item)}
+                >
+                  End pause early
                 </Button>
               ) : null}
             </div>
@@ -231,6 +319,39 @@ function EnrollmentRow({
               Set access until
             </Button>
           ) : null}
+          {showSchedulePause ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              leftIcon={<PauseCircle className="h-3.5 w-3.5" />}
+              onClick={() => onSchedulePause?.(item)}
+            >
+              Schedule pause
+            </Button>
+          ) : null}
+          {showCancelPause ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              loading={pauseActionPending}
+              onClick={() => onCancelPause?.(item)}
+            >
+              Cancel schedule
+            </Button>
+          ) : null}
+          {showEndPauseEarly ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              loading={pauseActionPending}
+              onClick={() => onEndPauseEarly?.(item)}
+            >
+              End pause early
+            </Button>
+          ) : null}
         </div>
       )}
 
@@ -264,6 +385,7 @@ export function ProgramHistory({
   leadId,
   leadStage,
   canEditAccess = false,
+  canManagePause = false,
   canPromoteToMember = false,
   canDemoteToNewbie = false,
 }: ProgramHistoryProps) {
@@ -271,6 +393,9 @@ export function ProgramHistory({
   const { toast } = useToast();
   const timezone = useDisplayTimezone();
   const [editItem, setEditItem] = useState<ProgramHistoryItem | null>(null);
+  const [pauseItem, setPauseItem] = useState<ProgramHistoryItem | null>(null);
+  const [pauseActionPendingId, setPauseActionPendingId] = useState<string | null>(null);
+  const [pauseActionPending, startPauseAction] = useTransition();
   const [promotePendingId, setPromotePendingId] = useState<string | null>(null);
   const [promotePending, startPromote] = useTransition();
   const [demotePendingId, setDemotePendingId] = useState<string | null>(null);
@@ -320,6 +445,42 @@ export function ProgramHistory({
         message: `Downgraded to newbie. Stage is now ${result.stage}.`,
         variant: 'success',
       });
+      router.refresh();
+    });
+  };
+
+  const handleCancelPause = (item: ProgramHistoryItem) => {
+    if (!leadId || !item.pauseId) return;
+    const confirmed = window.confirm('Cancel this scheduled pause? Access dates will revert to before the pause.');
+    if (!confirmed) return;
+    setPauseActionPendingId(item.id);
+    startPauseAction(async () => {
+      const { error } = await cancelMembershipPauseAction(leadId, item.pauseId!);
+      setPauseActionPendingId(null);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
+      }
+      toast({ message: 'Scheduled pause cancelled.', variant: 'success' });
+      router.refresh();
+    });
+  };
+
+  const handleEndPauseEarly = (item: ProgramHistoryItem) => {
+    if (!leadId || !item.pauseId) return;
+    const confirmed = window.confirm(
+      'End this pause early? The member can log in again and unused pause days will be removed from the access extension.'
+    );
+    if (!confirmed) return;
+    setPauseActionPendingId(item.id);
+    startPauseAction(async () => {
+      const { error } = await endMembershipPauseEarlyAction(leadId, item.pauseId!);
+      setPauseActionPendingId(null);
+      if (error) {
+        toast({ message: error, variant: 'error' });
+        return;
+      }
+      toast({ message: 'Pause ended early.', variant: 'success' });
       router.refresh();
     });
   };
@@ -415,11 +576,16 @@ export function ProgramHistory({
               timezone={timezone}
               leadStage={leadStage}
               canEditAccess={canEditAccess}
+              canManagePause={canManagePause}
               canPromoteToMember={canPromoteToMember}
               canDemoteToNewbie={canDemoteToNewbie}
               promotePending={promotePending && promotePendingId === item.id}
               demotePending={demotePending && demotePendingId === item.id}
+              pauseActionPending={pauseActionPending && pauseActionPendingId === item.id}
               onEditAccess={canEditAccess ? setEditItem : undefined}
+              onSchedulePause={canManagePause ? setPauseItem : undefined}
+              onCancelPause={canManagePause ? handleCancelPause : undefined}
+              onEndPauseEarly={canManagePause ? handleEndPauseEarly : undefined}
               onPromoteToMember={canPromoteToMember ? handlePromote : undefined}
               onDemoteToNewbie={canDemoteToNewbie ? handleDemote : undefined}
             />
@@ -433,6 +599,16 @@ export function ProgramHistory({
           open={editItem !== null}
           onOpenChange={(open) => {
             if (!open) setEditItem(null);
+          }}
+        />
+      ) : null}
+      {leadId && canManagePause ? (
+        <MembershipPauseDialog
+          leadId={leadId}
+          item={pauseItem}
+          open={pauseItem !== null}
+          onOpenChange={(open) => {
+            if (!open) setPauseItem(null);
           }}
         />
       ) : null}

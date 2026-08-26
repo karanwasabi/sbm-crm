@@ -149,6 +149,7 @@ export const LIFECYCLE_STAGE_OPTIONS = [
   'registered',
   'newbie',
   'member',
+  'paused',
   'grace',
   'lapsed',
   'transferred',

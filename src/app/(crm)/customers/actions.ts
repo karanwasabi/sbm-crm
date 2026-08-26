@@ -43,6 +43,9 @@ import {
   putLeadPointA,
   resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
+  scheduleMembershipPause,
+  cancelMembershipPause,
+  endMembershipPauseEarly,
   setLeadMemberKind,
   promoteLeadToMember,
   demoteLeadToNewbie,
@@ -77,6 +80,7 @@ import type {
   PutPointAAssessmentInput,
   ResetOnboardingPointAResult,
   SetMembershipAccessResult,
+  MembershipPauseResult,
   SetMemberKindResult,
   PromoteToMemberResult,
   DemoteToNewbieResult,
@@ -603,6 +607,50 @@ export async function setLeadMembershipAccessUntilAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to update membership access.';
+    return { result: null, error: message };
+  }
+}
+
+export async function scheduleMembershipPauseAction(
+  leadId: string,
+  input: {
+    enrollmentId: string;
+    pauseStartsOn: string;
+    pauseEndsOn: string;
+    reason: string;
+  }
+): Promise<{ result: MembershipPauseResult | null; error: string | null }> {
+  try {
+    const result = await scheduleMembershipPause(leadId, input);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to schedule membership pause.';
+    return { result: null, error: message };
+  }
+}
+
+export async function cancelMembershipPauseAction(
+  leadId: string,
+  pauseId: string
+): Promise<{ result: MembershipPauseResult | null; error: string | null }> {
+  try {
+    const result = await cancelMembershipPause(leadId, pauseId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to cancel scheduled pause.';
+    return { result: null, error: message };
+  }
+}
+
+export async function endMembershipPauseEarlyAction(
+  leadId: string,
+  pauseId: string
+): Promise<{ result: MembershipPauseResult | null; error: string | null }> {
+  try {
+    const result = await endMembershipPauseEarly(leadId, pauseId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to end pause early.';
     return { result: null, error: message };
   }
 }
