@@ -9,9 +9,7 @@ import { FunnelChart } from '@/components/crm/charts/funnel-chart';
 import { AdPerformanceTable } from '@/components/crm/ad-performance-table';
 import { DashboardOverviewSection } from '@/components/crm/dashboard-overview-section';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
-import { MetaAcquisitionByPlanTable } from '@/components/crm/meta-acquisition-by-plan-table';
 import { MetaCampaignPerformanceTable } from '@/components/crm/meta-campaign-performance-table';
-import { MetaRenewalsTable } from '@/components/crm/meta-renewals-table';
 import { SourcePerformanceSection } from '@/components/crm/source-performance-section';
 import { useRegisterDashboardFilter } from '@/components/layout/crm/crm-dashboard-filter-context';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
@@ -231,14 +229,6 @@ export function DashboardPageClient({ initialData, initialError = null }: Dashbo
             subtitle={periodSubtitle}
             hideWindowSelector
           />
-
-          <MetaAcquisitionByPlanTable
-            rows={data.metaAcquisitionByPlan}
-            window={data.metaAcquisitionByPlanWindow}
-            subtitle={periodSubtitle}
-          />
-
-          <MetaRenewalsTable rows={data.metaRenewals} window={data.metaRenewalsWindow} subtitle={periodSubtitle} />
 
           <MetaCampaignPerformanceTable
             days={selected}

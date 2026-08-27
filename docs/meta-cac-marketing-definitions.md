@@ -24,10 +24,6 @@ The **Meta** row is Meta-influenced people who are **not** old students. **Purch
 
 **Old students (Meta)** is a separate informational row: same Meta influence signals, but `lead_attribution.source = 'old_students'`. **No CAC**.
 
-**Meta-influenced renewals** are reported in their own table (counts + revenue, **no spend / CAC**).
-
-**Meta acquisition by plan** compares **1-month trial** vs **3-month trial** new Meta acquisitions with attributed spend share, CAC, ROAS, and contribution after ads.
-
 **Old students** (non–Meta-influenced) remain a separate source row.
 
 Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrations, not duplicated on this dashboard.
@@ -40,7 +36,7 @@ Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrat
 
 **New / Purchases (Meta CAC)** — paid checkout with `checkout_product` other than `renewal` (`standard`, `trial_1m`, `trial_3m_prepaid`), plus later recurring charges on that checkout. Excludes old students.
 
-**Renewal** — paid checkout with `checkout_product = renewal` (alumni, trial extend, returnee, etc.), plus later recurring charges on that checkout. Counted in the **Renewals** table only for Meta economics — **not** sent to Meta as Purchase, **not** in Meta CAC.
+**Renewal** — paid checkout with `checkout_product = renewal` (alumni, trial extend, returnee, etc.), plus later recurring charges on that checkout. **Not** sent to Meta as Purchase, **not** in Meta CAC.
 
 **Lead (Meta)** — Someone submitted a Meta Lead Ad form. Meta counts these in Ads Manager.
 
@@ -49,12 +45,6 @@ Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrat
 **CPL (cost per lead)** — Ad spend ÷ Meta leads (excluding old students). Shown on the Meta row and campaign table.
 
 **CAC (in CRM)** — Ad spend ÷ Meta **new** purchases in the window (checkouts + recurring charges, **excluding old students and renewals**). This is **not** cost per lead.
-
-**ROAS** — Revenue ÷ attributed ad spend (acquisition-by-plan table).
-
-**Contribution after ads** — Revenue − attributed ad spend. Ads only; not full P&L.
-
-**Attributed spend (by plan)** — Same Meta sales-campaign spend as the Meta row, allocated to 1m / 3m **proportional to purchase count**. This is CRM-attributed spend share, not a Meta campaign-level split by plan.
 
 **Campaign / ad tables** — Purchases are non–old-student Meta-influenced **new** acquisitions. **Old students** column is Meta-influenced old-student purchases on that campaign/ad (not in CAC). Renewals are not shown here.
 

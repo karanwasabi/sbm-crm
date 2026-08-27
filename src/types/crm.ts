@@ -514,28 +514,6 @@ export type MetaPurchaseDailyReport = {
   totalPurchases: number;
 };
 
-export type MetaRenewalsRow = {
-  bucket: 'meta' | 'old_students' | string;
-  renewalCategory: string;
-  planFamily: string;
-  renewals: number;
-  revenue: number;
-  lastActivityAt?: string | null;
-};
-
-export type MetaAcquisitionByPlanRow = {
-  planKey: string;
-  planLabel: string;
-  purchases: number;
-  revenue: number;
-  attributedSpend: number | null;
-  cac: number | null;
-  roas: number | null;
-  contributionAfterAds: number | null;
-  lastActivityAt?: string | null;
-  isBlended: boolean;
-};
-
 export type RazorpayIntegrationStatus = {
   configured: boolean;
   webhookConfigured: boolean;

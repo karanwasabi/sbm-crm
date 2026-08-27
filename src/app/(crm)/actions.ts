@@ -3,22 +3,13 @@
 import type {
   AdPerformanceRow,
   DashboardAnalytics,
-  MetaAcquisitionByPlanRow,
   MetaCampaignPerformanceRow,
-  MetaRenewalsRow,
   OfflineMetaEnrollmentsSummary,
   PerformanceReportMeta,
   SourcePerformanceRow,
 } from '@/types/crm';
 import type { PerformanceWindowPreset } from '@/lib/performance-display';
-import {
-  getAdPerformance,
-  getDashboardAnalytics,
-  getMetaAcquisitionByPlan,
-  getMetaCampaignPerformance,
-  getMetaInfluencedRenewals,
-  getSourcePerformance,
-} from '@/utils/api';
+import { getAdPerformance, getDashboardAnalytics, getMetaCampaignPerformance, getSourcePerformance } from '@/utils/api';
 
 export type DashboardPageData = {
   analytics: DashboardAnalytics;
@@ -29,23 +20,17 @@ export type DashboardPageData = {
   campaignPerformanceWindow: PerformanceReportMeta | null;
   adPerformance: AdPerformanceRow[];
   adPerformanceWindow: PerformanceReportMeta | null;
-  metaRenewals: MetaRenewalsRow[];
-  metaRenewalsWindow: PerformanceReportMeta | null;
-  metaAcquisitionByPlan: MetaAcquisitionByPlanRow[];
-  metaAcquisitionByPlanWindow: PerformanceReportMeta | null;
 };
 
 export async function fetchDashboardPageData(
   days: PerformanceWindowPreset
 ): Promise<{ ok: true; data: DashboardPageData } | { ok: false; error: string }> {
   try {
-    const [analytics, source, campaigns, ads, renewals, acquisition] = await Promise.all([
+    const [analytics, source, campaigns, ads] = await Promise.all([
       getDashboardAnalytics(days),
       getSourcePerformance(days),
       getMetaCampaignPerformance(days),
       getAdPerformance(days),
-      getMetaInfluencedRenewals(days),
-      getMetaAcquisitionByPlan(days),
     ]);
     return {
       ok: true,
@@ -58,10 +43,6 @@ export async function fetchDashboardPageData(
         campaignPerformanceWindow: campaigns.window,
         adPerformance: ads.rows,
         adPerformanceWindow: ads.window,
-        metaRenewals: renewals.rows,
-        metaRenewalsWindow: renewals.window,
-        metaAcquisitionByPlan: acquisition.rows,
-        metaAcquisitionByPlanWindow: acquisition.window,
       },
     };
   } catch {
