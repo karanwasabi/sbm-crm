@@ -3726,6 +3726,92 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
   };
 }
 
+export async function getMetaInfluencedRenewals(days?: PerformanceWindowPreset): Promise<{
+  rows: import('@/types/crm').MetaRenewalsRow[];
+  window: import('@/types/crm').PerformanceReportMeta;
+}> {
+  const query = performanceDaysQuery(days);
+  const response = await requireApiFetch(`/admin/analytics/meta-renewals${query}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load meta renewals.', response.status);
+  }
+  const payload = (await response.json()) as {
+    rows: Array<{
+      bucket: string;
+      renewal_category: string;
+      plan_family: string;
+      renewals: number;
+      revenue: number;
+      last_activity_at?: string | null;
+    }>;
+    timezone?: string;
+    since?: string;
+    until?: string;
+  };
+  return {
+    rows: payload.rows.map((row) => ({
+      bucket: row.bucket,
+      renewalCategory: row.renewal_category,
+      planFamily: row.plan_family,
+      renewals: row.renewals,
+      revenue: row.revenue,
+      lastActivityAt: row.last_activity_at ?? null,
+    })),
+    window: {
+      timezone: payload.timezone ?? 'Asia/Kolkata',
+      since: payload.since ?? null,
+      until: payload.until ?? null,
+    },
+  };
+}
+
+export async function getMetaAcquisitionByPlan(days?: PerformanceWindowPreset): Promise<{
+  rows: import('@/types/crm').MetaAcquisitionByPlanRow[];
+  window: import('@/types/crm').PerformanceReportMeta;
+}> {
+  const query = performanceDaysQuery(days);
+  const response = await requireApiFetch(`/admin/analytics/meta-acquisition-by-plan${query}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load meta acquisition by plan.', response.status);
+  }
+  const payload = (await response.json()) as {
+    rows: Array<{
+      plan_key: string;
+      plan_label: string;
+      purchases: number;
+      revenue: number;
+      attributed_spend: number | null;
+      cac: number | null;
+      roas: number | null;
+      contribution_after_ads: number | null;
+      last_activity_at?: string | null;
+      is_blended?: boolean;
+    }>;
+    timezone?: string;
+    since?: string;
+    until?: string;
+  };
+  return {
+    rows: payload.rows.map((row) => ({
+      planKey: row.plan_key,
+      planLabel: row.plan_label,
+      purchases: row.purchases,
+      revenue: row.revenue,
+      attributedSpend: row.attributed_spend,
+      cac: row.cac,
+      roas: row.roas,
+      contributionAfterAds: row.contribution_after_ads,
+      lastActivityAt: row.last_activity_at ?? null,
+      isBlended: Boolean(row.is_blended),
+    })),
+    window: {
+      timezone: payload.timezone ?? 'Asia/Kolkata',
+      since: payload.since ?? null,
+      until: payload.until ?? null,
+    },
+  };
+}
+
 export async function getDashboardAnalytics(
   days?: PerformanceWindowPreset
 ): Promise<import('@/types/crm').DashboardAnalytics> {

@@ -37,7 +37,6 @@ type AdSortKey =
   | 'program'
   | 'leads'
   | 'paidNew'
-  | 'paidRenewal'
   | 'paidOldStudents'
   | 'cvr'
   | 'lastActivity';
@@ -119,8 +118,6 @@ export function AdPerformanceTable({
         return row.leads;
       case 'paidNew':
         return row.paidNew;
-      case 'paidRenewal':
-        return row.paidRenewal;
       case 'paidOldStudents':
         return row.paidOldStudents;
       case 'cvr':
@@ -253,17 +250,8 @@ export function AdPerformanceTable({
             </DataTableHeaderCell>
             <DataTableHeaderCell className={perfHeader}>
               <PerformanceSortableHeader
-                label="New"
+                label="Purchases"
                 sortKey="paidNew"
-                activeSortKey={table.sortKey}
-                sortDirection={table.sortDirection}
-                onSort={table.toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Renewal"
-                sortKey="paidRenewal"
                 activeSortKey={table.sortKey}
                 sortDirection={table.sortDirection}
                 onSort={table.toggleSort}
@@ -291,7 +279,7 @@ export function AdPerformanceTable({
           <DataTableBody>
             {table.pageRows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={9} className={`${perfCell} py-6 text-center text-slate-500`}>
+                <DataTableCell colSpan={8} className={`${perfCell} py-6 text-center text-slate-500`}>
                   {!loaded
                     ? 'Loading…'
                     : table.search
@@ -349,19 +337,6 @@ export function AdPerformanceTable({
                         until: window?.until,
                       })}
                       value={row.paidNew}
-                      bold
-                    />
-                  </DataTableCell>
-                  <DataTableCell className={`${perfCell} align-top`}>
-                    <DrilldownCell
-                      href={buildPerformanceDrilldownHref({
-                        mode: 'purchases',
-                        utmContent: row.adContent,
-                        purchaseKind: 'renewal',
-                        since: window?.since,
-                        until: window?.until,
-                      })}
-                      value={row.paidRenewal}
                       bold
                     />
                   </DataTableCell>

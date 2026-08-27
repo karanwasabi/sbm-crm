@@ -8,23 +8,27 @@ One-page guide for marketing. Full audit: [`meta-cac-audit-report.md`](./meta-ca
 
 ## Quick answers
 
-| You want to know…            | Trust **Meta Ads Manager**         | Trust **CRM dashboard**                                                                           |
-| ---------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------- |
-| How much we spent            | Yes                                | Yes (should match ~₹7.84L for 90d)                                                                |
-| How many Lead Ad form fills  | Yes                                | Use **native webhook** count (~612 in 90d), not CRM “Meta Leads” row (2,360 includes Zoho import) |
-| Cost per lead (CPL)          | Yes                                | Yes — **Meta** row (spend ÷ Meta leads, excluding old students)                                   |
-| Cost per paying member (CAC) | No                                 | Yes — **Meta** row only. Old students are excluded. New + Renewal (incl. recurring) lower CAC.    |
-| Meta pixel “Purchase” events | Yes (~133 in sales campaigns, 90d) | Compare to **Meta** New + Renewal, not Old students (Meta)                                        |
+| You want to know…            | Trust **Meta Ads Manager** | Trust **CRM dashboard**                                                                            |
+| ---------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------- |
+| How much we spent            | Yes                        | Yes (should match ~₹7.84L for 90d)                                                                 |
+| How many Lead Ad form fills  | Yes                        | Use **native webhook** count (~612 in 90d), not CRM “Meta Leads” row (2,360 includes Zoho import)  |
+| Cost per lead (CPL)          | Yes                        | Yes — **Meta** row (spend ÷ Meta leads, excluding old students)                                    |
+| Cost per paying member (CAC) | No                         | Yes — **Meta** row only. Old students excluded. **New acquisitions only** (renewals are separate). |
+| Meta pixel / CAPI Purchase   | New enrollments only       | Renewals are **not** sent as Meta Purchase (CAPI or browser pixel)                                 |
 
 ---
 
 ## Meta row (source performance)
 
-The **Meta** row is Meta-influenced people who are **not** old students. Purchases split into **New** vs **Renewal**. Recurring subscription charges stay in those columns (classified by the parent checkout product) and **lower CAC**. Spend, CPL, and CAC live only on this row.
+The **Meta** row is Meta-influenced people who are **not** old students. **Purchases** and **CAC** use **new acquisitions only** (`standard`, `trial_1m`, `trial_3m_prepaid`, plus recurring charges on those checkouts). Renewals no longer sit in this denominator and do not lower CAC.
 
-**Old students (Meta)** is a separate row: same Meta influence signals, but `lead_attribution.source = 'old_students'` (first purchase was before these campaigns). Visible so we can see who from that cohort is buying again. **No CAC** — they do not sit in the Meta denominator.
+**Old students (Meta)** is a separate informational row: same Meta influence signals, but `lead_attribution.source = 'old_students'`. **No CAC**.
 
-**Old students** is everyone else in that source who is not Meta-influenced.
+**Meta-influenced renewals** are reported in their own table (counts + revenue, **no spend / CAC**).
+
+**Meta acquisition by plan** compares **1-month trial** vs **3-month trial** new Meta acquisitions with attributed spend share, CAC, ROAS, and contribution after ads.
+
+**Old students** (non–Meta-influenced) remain a separate source row.
 
 Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrations, not duplicated on this dashboard.
 
@@ -34,9 +38,9 @@ Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrat
 
 **Old student** — CRM attribution source `old_students`. These members bought long before the current Meta campaigns.
 
-**New** — paid checkout with `checkout_product` other than `renewal` (`standard`, `trial_1m`, `trial_3m_prepaid`), plus later recurring charges on that checkout.
+**New / Purchases (Meta CAC)** — paid checkout with `checkout_product` other than `renewal` (`standard`, `trial_1m`, `trial_3m_prepaid`), plus later recurring charges on that checkout. Excludes old students.
 
-**Renewal** — paid checkout with `checkout_product = renewal`, plus later recurring charges on that checkout. Renewals from people Meta actually acquired stay on the **Meta** row and lower CAC.
+**Renewal** — paid checkout with `checkout_product = renewal` (alumni, trial extend, returnee, etc.), plus later recurring charges on that checkout. Counted in the **Renewals** table only for Meta economics — **not** sent to Meta as Purchase, **not** in Meta CAC.
 
 **Lead (Meta)** — Someone submitted a Meta Lead Ad form. Meta counts these in Ads Manager.
 
@@ -44,9 +48,15 @@ Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrat
 
 **CPL (cost per lead)** — Ad spend ÷ Meta leads (excluding old students). Shown on the Meta row and campaign table.
 
-**CAC (in CRM)** — Ad spend ÷ Meta **New + Renewal** purchases in the window (checkouts + recurring charges, **excluding old students**). This is **not** cost per lead.
+**CAC (in CRM)** — Ad spend ÷ Meta **new** purchases in the window (checkouts + recurring charges, **excluding old students and renewals**). This is **not** cost per lead.
 
-**Campaign / ad tables** — New and Renewal are non–old-student Meta-influenced purchases. **Old students** is Meta-influenced old-student purchases on that campaign/ad (not in CAC).
+**ROAS** — Revenue ÷ attributed ad spend (acquisition-by-plan table).
+
+**Contribution after ads** — Revenue − attributed ad spend. Ads only; not full P&L.
+
+**Attributed spend (by plan)** — Same Meta sales-campaign spend as the Meta row, allocated to 1m / 3m **proportional to purchase count**. This is CRM-attributed spend share, not a Meta campaign-level split by plan.
+
+**Campaign / ad tables** — Purchases are non–old-student Meta-influenced **new** acquisitions. **Old students** column is Meta-influenced old-student purchases on that campaign/ad (not in CAC). Renewals are not shown here.
 
 ---
 
@@ -56,6 +66,7 @@ Lead ads volume (native vs Zoho import) is available in Lead Intake → Integrat
 2. **CRM “Meta Leads” includes Zoho import** — inflates lead count vs Meta for recent periods.
 3. **Website/register campaigns** — spend on campaigns that drive site signups may show under **Interest Form**, not Meta Leads.
 4. **Date boundaries** — CRM leads use UTC `created_at`; Meta uses ad account timezone.
+5. **Renewals in Meta Ads Manager** — historical renewals may still appear in Meta if they were sent before the CAPI/pixel gate; going forward they should not.
 
 ---
 

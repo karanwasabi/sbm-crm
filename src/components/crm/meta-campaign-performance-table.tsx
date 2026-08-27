@@ -43,7 +43,6 @@ type CampaignSortKey =
   | 'clicks'
   | 'leads'
   | 'paidNew'
-  | 'paidRenewal'
   | 'paidOldStudents'
   | 'cvr'
   | 'spend'
@@ -147,8 +146,6 @@ export function MetaCampaignPerformanceTable({
         return row.leads;
       case 'paidNew':
         return row.paidNew;
-      case 'paidRenewal':
-        return row.paidRenewal;
       case 'paidOldStudents':
         return row.paidOldStudents;
       case 'cvr':
@@ -266,17 +263,8 @@ export function MetaCampaignPerformanceTable({
             </DataTableHeaderCell>
             <DataTableHeaderCell className={perfHeader}>
               <PerformanceSortableHeader
-                label="New"
+                label="Purchases"
                 sortKey="paidNew"
-                activeSortKey={table.sortKey}
-                sortDirection={table.sortDirection}
-                onSort={table.toggleSort}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={perfHeader}>
-              <PerformanceSortableHeader
-                label="Renewal"
-                sortKey="paidRenewal"
                 activeSortKey={table.sortKey}
                 sortDirection={table.sortDirection}
                 onSort={table.toggleSort}
@@ -331,7 +319,7 @@ export function MetaCampaignPerformanceTable({
           <DataTableBody>
             {table.pageRows.length === 0 ? (
               <DataTableRow>
-                <DataTableCell colSpan={10} className={`${perfCell} py-6 text-center text-slate-500`}>
+                <DataTableCell colSpan={9} className={`${perfCell} py-6 text-center text-slate-500`}>
                   {!loaded
                     ? 'Loading…'
                     : table.search
@@ -386,26 +374,6 @@ export function MetaCampaignPerformanceTable({
                         className="text-brand underline-offset-2 hover:underline"
                       >
                         {row.paidNew}
-                      </Link>
-                    ) : (
-                      '0'
-                    )}
-                  </DataTableCell>
-                  <DataTableCell className={`${perfCell} align-top font-bold whitespace-nowrap tabular-nums`}>
-                    {row.paidRenewal > 0 ? (
-                      <Link
-                        href={buildPerformanceDrilldownHref({
-                          mode: 'purchases',
-                          sourceKey: 'meta_influenced',
-                          purchaseKind: 'renewal',
-                          campaignId: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID ? undefined : row.campaignId,
-                          campaignUnattributed: row.campaignId === UNATTRIBUTED_CAMPAIGN_ID,
-                          since: window?.since,
-                          until: window?.until,
-                        })}
-                        className="text-brand underline-offset-2 hover:underline"
-                      >
-                        {row.paidRenewal}
                       </Link>
                     ) : (
                       '0'
