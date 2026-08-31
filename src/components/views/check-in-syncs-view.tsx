@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition } from 'react';
 import { resolveCheckInSyncIssueAction } from '@/app/(crm)/check-in-syncs/actions';
@@ -24,13 +25,11 @@ const FILTERS = [
   { id: '', label: 'Open' },
   { id: 'failing', label: 'Failing' },
   { id: 'expired', label: 'Expired' },
-  { id: 'sunday_goals_incomplete', label: 'Sunday incomplete' },
 ] as const;
 
 function statusTone(status: string): 'warn' | 'danger' | 'neutral' | 'success' {
   if (status === 'failing') return 'warn';
   if (status === 'expired') return 'danger';
-  if (status === 'sunday_goals_incomplete') return 'neutral';
   return 'success';
 }
 
@@ -101,8 +100,20 @@ export function CheckInSyncsView({ count, issues, status }: CheckInSyncsViewProp
               {issues.map((issue) => (
                 <DataTableRow key={`${issue.userId}:${issue.localDate}`}>
                   <DataTableCell>
-                    <div className="font-semibold text-slate-800">{memberLabel(issue)}</div>
-                    {issue.email ? <div className="text-xs text-slate-500">{issue.email}</div> : null}
+                    {issue.leadId ? (
+                      <Link
+                        href={`/customers/${issue.leadId}`}
+                        className="block rounded-sm hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      >
+                        <div className="font-semibold text-slate-800">{memberLabel(issue)}</div>
+                        {issue.email ? <div className="text-xs text-slate-500">{issue.email}</div> : null}
+                      </Link>
+                    ) : (
+                      <>
+                        <div className="font-semibold text-slate-800">{memberLabel(issue)}</div>
+                        {issue.email ? <div className="text-xs text-slate-500">{issue.email}</div> : null}
+                      </>
+                    )}
                   </DataTableCell>
                   <DataTableCell>{issue.localDate}</DataTableCell>
                   <DataTableCell>
