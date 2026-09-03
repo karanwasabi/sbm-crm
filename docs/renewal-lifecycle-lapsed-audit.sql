@@ -2,7 +2,11 @@
 -- Run: psql "$SBM_AUDIT_DATABASE_URL" -v ON_ERROR_STOP=1 -f code/sbm-crm/docs/renewal-lifecycle-lapsed-audit.sql
 --
 -- Expected BEFORE deploy: wrongly_lapsed = total_bug_rows (Jul 2026 renewals ~58).
--- Expected AFTER deploy:  wrongly_lapsed = 0, need_enrollment_reactivate = 0.
+-- Expected AFTER 20260929130000: wrongly_lapsed = 0 (lifecycle only).
+-- Expected AFTER 20260929140000 + backend cron fix: need_enrollment_reactivate = 0.
+--
+-- Root cause: lifecycle-sync CancelEnrollmentsPastAccessUntil matched ANY paid checkout
+-- on the enrollment (expired initial trial), re-cancelling after 20260929130000 reactivated.
 
 \echo '=== Summary ==='
 WITH latest_paid AS (

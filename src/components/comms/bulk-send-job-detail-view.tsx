@@ -7,6 +7,7 @@ import {
   getBulkLeadWhatsAppSendJobAction,
   listBulkLeadEmailSendJobSendsAction,
   listBulkLeadWhatsAppSendJobSendsAction,
+  retryBulkLeadEmailSendFailuresAction,
 } from '@/app/(crm)/communications/actions';
 import {
   DataTable,
@@ -62,8 +63,12 @@ export function BulkSendJobDetailView({ channel = 'email', initialJob }: BulkSen
   const [sendsLoading, setSendsLoading] = useState(true);
   const [sendsError, setSendsError] = useState<string | null>(null);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [retrying, setRetrying] = useState(false);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
 
   const isActive = job.status === 'queued' || job.status === 'running';
+  const canRetryFailures =
+    channel === 'email' && job.failed > 0 && (job.status === 'completed' || job.status === 'failed') && !isActive;
   const skipLines =
     channel === 'whatsapp'
       ? formatBulkWhatsAppSkipSummary((job as BulkLeadWhatsAppSendJob).skip_breakdown)
@@ -126,6 +131,22 @@ export function BulkSendJobDetailView({ channel = 'email', initialJob }: BulkSen
     [channel]
   );
 
+  const refreshJob = useCallback(async () => {
+    const result =
+      channel === 'whatsapp'
+        ? await getBulkLeadWhatsAppSendJobAction(job.id)
+        : await getBulkLeadEmailSendJobAction(job.id);
+    if (result.job) {
+      setJob(result.job);
+      setJobError(null);
+      return result.job;
+    }
+    if (result.error) {
+      setJobError(result.error);
+    }
+    return null;
+  }, [channel, job.id]);
+
   useEffect(() => {
     void loadSends(job.id, page);
   }, [job.id, page, loadSends]);
@@ -136,21 +157,31 @@ export function BulkSendJobDetailView({ channel = 'email', initialJob }: BulkSen
     }
 
     const timer = window.setInterval(() => {
-      const fetchJob =
-        channel === 'whatsapp' ? getBulkLeadWhatsAppSendJobAction(job.id) : getBulkLeadEmailSendJobAction(job.id);
-      void fetchJob.then((result) => {
-        if (result.job) {
-          setJob(result.job);
-          setJobError(null);
-        } else if (result.error) {
-          setJobError(result.error);
-        }
-      });
+      void refreshJob();
       void loadSends(job.id, page, { silent: true });
     }, 2500);
 
     return () => window.clearInterval(timer);
-  }, [isActive, job.id, page, loadSends, channel]);
+  }, [isActive, job.id, page, loadSends, refreshJob]);
+
+  async function handleRetryFailures() {
+    if (!canRetryFailures || retrying) {
+      return;
+    }
+    setRetrying(true);
+    setRetryMessage(null);
+    const result = await retryBulkLeadEmailSendFailuresAction(job.id);
+    if (result.error) {
+      setRetryMessage(result.error);
+      setRetrying(false);
+      return;
+    }
+    setRetryMessage(`Requeued ${result.requeued.toLocaleString('en-IN')} failed sends.`);
+    await refreshJob();
+    setPage(0);
+    await loadSends(job.id, 0);
+    setRetrying(false);
+  }
 
   const pageCount = Math.max(1, Math.ceil(sendTotal / PAGE_SIZE));
   const canPrev = page > 0;
@@ -181,6 +212,11 @@ export function BulkSendJobDetailView({ channel = 'email', initialJob }: BulkSen
             >
               View template
             </Link>
+          ) : null}
+          {canRetryFailures ? (
+            <Button variant="primary" size="sm" disabled={retrying} onClick={() => void handleRetryFailures()}>
+              {retrying ? 'Retrying…' : `Retry ${job.failed.toLocaleString('en-IN')} failures`}
+            </Button>
           ) : null}
         </div>
 
@@ -220,6 +256,7 @@ export function BulkSendJobDetailView({ channel = 'email', initialJob }: BulkSen
 
         {job.error_message ? <p className="mt-3 text-sm font-medium text-danger-press">{job.error_message}</p> : null}
         {jobError ? <p className="mt-3 text-sm font-medium text-danger-press">{jobError}</p> : null}
+        {retryMessage ? <p className="mt-3 text-sm font-medium text-slate-700">{retryMessage}</p> : null}
       </Card>
 
       <Card>

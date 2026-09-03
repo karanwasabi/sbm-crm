@@ -22,6 +22,7 @@ import {
   getBulkLeadEmailSendJob,
   listBulkLeadEmailSendJobs,
   listBulkLeadEmailSendJobSends,
+  retryBulkLeadEmailSendFailures,
   getBulkLeadWhatsAppSendJob,
   listBulkLeadWhatsAppSendJobs,
   listBulkLeadWhatsAppSendJobSends,
@@ -215,6 +216,18 @@ export async function listBulkLeadEmailSendJobSendsAction(
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load bulk send recipients.';
     return { data: null, error: message };
+  }
+}
+
+export async function retryBulkLeadEmailSendFailuresAction(
+  jobId: string
+): Promise<{ requeued: number; error: string | null }> {
+  try {
+    const result = await retryBulkLeadEmailSendFailures(jobId);
+    return { requeued: result.requeued_failures, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to retry bulk send failures.';
+    return { requeued: 0, error: message };
   }
 }
 

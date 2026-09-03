@@ -4116,6 +4116,19 @@ export async function listBulkLeadEmailSendJobSends(
   return (await response.json()) as BulkLeadEmailSendList;
 }
 
+export async function retryBulkLeadEmailSendFailures(
+  jobId: string
+): Promise<{ job_id: string; status: string; requeued_failures: number }> {
+  const response = await requireApiFetch(`/admin/comms/bulk-send/${encodeURIComponent(jobId)}/retry-failures`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to retry bulk send failures.', response.status);
+  }
+  return (await response.json()) as { job_id: string; status: string; requeued_failures: number };
+}
+
 export type WhatsAppTemplate = {
   id: string;
   convoniteId?: string;
