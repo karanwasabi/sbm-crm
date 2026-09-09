@@ -15,14 +15,14 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { SectionHead } from '@/components/ui/section-head';
-import { getSurveyResults, listSurveyOtherAnswers } from '@/utils/api';
+import { getSurveyResultsAction, listSurveyOtherAnswersAction } from '@/app/(crm)/feedback/actions';
 import type {
   SurveyDetail,
   SurveyOtherAnswer,
   SurveyOtherAnswersList,
   SurveyQuestionResult,
   SurveyResults,
-} from '@/utils/api';
+} from '@/lib/survey-types';
 
 const OTHER_PAGE_SIZE = 50;
 
@@ -70,14 +70,13 @@ export function SurveyResultsView({ survey, initialResults, initialOtherAnswers 
     async (nextCohortIds: string[]) => {
       setResultsLoading(true);
       setError(null);
-      try {
-        const next = await getSurveyResults(survey.id, nextCohortIds);
-        setResults(next);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load results.');
-      } finally {
-        setResultsLoading(false);
+      const result = await getSurveyResultsAction(survey.id, nextCohortIds);
+      if (result.error || !result.data) {
+        setError(result.error ?? 'Failed to load results.');
+      } else {
+        setResults(result.data);
       }
+      setResultsLoading(false);
     },
     [survey.id]
   );
@@ -86,20 +85,19 @@ export function SurveyResultsView({ survey, initialResults, initialOtherAnswers 
     async (opts: { cohortIds: string[]; dayIndex: number | ''; questionId: string; page: number }) => {
       setOthersLoading(true);
       setError(null);
-      try {
-        const next = await listSurveyOtherAnswers(survey.id, {
-          cohortIds: opts.cohortIds,
-          dayIndex: opts.dayIndex === '' ? undefined : opts.dayIndex,
-          questionId: opts.questionId || undefined,
-          limit: OTHER_PAGE_SIZE,
-          offset: opts.page * OTHER_PAGE_SIZE,
-        });
-        setOtherAnswers(next);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load Other answers.');
-      } finally {
-        setOthersLoading(false);
+      const result = await listSurveyOtherAnswersAction(survey.id, {
+        cohortIds: opts.cohortIds,
+        dayIndex: opts.dayIndex === '' ? undefined : opts.dayIndex,
+        questionId: opts.questionId || undefined,
+        limit: OTHER_PAGE_SIZE,
+        offset: opts.page * OTHER_PAGE_SIZE,
+      });
+      if (result.error || !result.data) {
+        setError(result.error ?? 'Failed to load Other answers.');
+      } else {
+        setOtherAnswers(result.data);
       }
+      setOthersLoading(false);
     },
     [survey.id]
   );
