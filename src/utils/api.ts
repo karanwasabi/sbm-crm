@@ -6207,3 +6207,138 @@ export async function resolveCheckInSyncIssue(userId: string, localDate: string)
     await parseApiError(response, 'Failed to resolve sync issue.');
   }
 }
+
+export type SurveyListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  status: string;
+  starts_on: string;
+  ends_on: string;
+  day_count: number;
+  respondent_count: number;
+  answer_count: number;
+  other_text_count: number;
+  fully_completed_count: number;
+};
+
+export type SurveyOption = {
+  id: string;
+  label: string;
+  allows_other?: boolean;
+};
+
+export type SurveyQuestion = {
+  id: string;
+  day_index: number;
+  day_title: string;
+  sort_order: number;
+  prompt: string;
+  helper_text?: string | null;
+  type: string;
+  allows_na: boolean;
+  na_label?: string | null;
+  options: SurveyOption[];
+  min_select: number;
+  max_select?: number | null;
+};
+
+export type SurveyDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  status: string;
+  starts_on: string;
+  ends_on: string;
+  days: { id: string; day_index: number; title: string }[];
+  questions: SurveyQuestion[];
+  cohorts: { id: string; name: string; starts_on?: string | null; is_demo: boolean }[];
+};
+
+export type SurveyOptionCount = {
+  option_id: string;
+  label: string;
+  count: number;
+};
+
+export type SurveyQuestionResult = {
+  question_id: string;
+  day_index: number;
+  day_title: string;
+  sort_order: number;
+  prompt: string;
+  type: string;
+  allows_na: boolean;
+  na_label?: string | null;
+  option_counts: SurveyOptionCount[];
+  na_count: number;
+  other_text_count: number;
+  response_count: number;
+};
+
+export type SurveyResults = {
+  survey_id: string;
+  respondent_count: number;
+  answer_count: number;
+  other_text_count: number;
+  day_completions: { day_index: number; title: string; completion_count: number }[];
+  questions: SurveyQuestionResult[];
+};
+
+export type SurveyOtherAnswer = {
+  user_id: string;
+  lead_id?: string | null;
+  member_name: string;
+  member_email: string;
+  question_id: string;
+  question_prompt: string;
+  day_index: number;
+  day_title: string;
+  other_text: string;
+  selected_option_ids: string[];
+  answered_on: string;
+};
+
+export type SurveyOtherAnswersList = {
+  items: SurveyOtherAnswer[];
+  total: number;
+};
+
+export async function listSurveys(): Promise<SurveyListItem[]> {
+  const response = await requireApiFetch('/admin/surveys');
+  if (!response.ok) await parseApiError(response, 'Failed to load surveys.');
+  return (await response.json()) as SurveyListItem[];
+}
+
+export async function getSurvey(id: string): Promise<SurveyDetail> {
+  const response = await requireApiFetch(`/admin/surveys/${encodeURIComponent(id)}`);
+  if (!response.ok) await parseApiError(response, 'Failed to load survey.');
+  return (await response.json()) as SurveyDetail;
+}
+
+export async function getSurveyResults(id: string, cohortIds: string[] = []): Promise<SurveyResults> {
+  const params = new URLSearchParams();
+  if (cohortIds.length > 0) params.set('cohort_ids', cohortIds.join(','));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await requireApiFetch(`/admin/surveys/${encodeURIComponent(id)}/results${query}`);
+  if (!response.ok) await parseApiError(response, 'Failed to load survey results.');
+  return (await response.json()) as SurveyResults;
+}
+
+export async function listSurveyOtherAnswers(
+  id: string,
+  options?: { cohortIds?: string[]; dayIndex?: number; questionId?: string; limit?: number; offset?: number }
+): Promise<SurveyOtherAnswersList> {
+  const params = new URLSearchParams();
+  if (options?.cohortIds && options.cohortIds.length > 0) {
+    params.set('cohort_ids', options.cohortIds.join(','));
+  }
+  if (options?.dayIndex != null) params.set('day_index', String(options.dayIndex));
+  if (options?.questionId) params.set('question_id', options.questionId);
+  if (options?.limit != null) params.set('limit', String(options.limit));
+  if (options?.offset != null) params.set('offset', String(options.offset));
+  const query = params.toString() ? `?${params.toString()}` : '';
+  const response = await requireApiFetch(`/admin/surveys/${encodeURIComponent(id)}/other-answers${query}`);
+  if (!response.ok) await parseApiError(response, 'Failed to load Other answers.');
+  return (await response.json()) as SurveyOtherAnswersList;
+}

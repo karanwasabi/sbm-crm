@@ -1,6 +1,7 @@
 import {
   Bell,
   Calendar,
+  ClipboardList,
   CloudOff,
   Database,
   FileText,
@@ -39,6 +40,7 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
       { id: 'communications', href: '/communications', label: 'Communications', icon: MessageSquare },
       { id: 'renewals', href: '/renewals', label: 'Renewals', icon: RefreshCw },
       { id: 'reports', href: '/reports', label: 'Reports', icon: FileText },
+      { id: 'feedback', href: '/feedback', label: 'Feedback', icon: ClipboardList },
     ],
   },
   {
@@ -79,6 +81,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals', subtitle: 'Membership expiry queue' },
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
+  '/feedback': { title: 'Feedback', subtitle: 'In-app survey results & Other free-text' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
   '/push-notifications': {
@@ -98,6 +101,9 @@ export const SETTINGS_PROFILE_HREF = '/settings?tab=Profile';
 export function getPageMeta(pathname: string): CrmPageMeta {
   if (pathname.startsWith('/reports/')) {
     return CRM_PAGES['/reports'];
+  }
+  if (pathname.startsWith('/feedback/')) {
+    return { title: 'Survey results', subtitle: 'Distributions & Other free-text answers' };
   }
   if (pathname.startsWith('/communications/')) {
     return CRM_PAGES['/communications'];
