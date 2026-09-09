@@ -66,8 +66,8 @@ export default async function FeedbackPage() {
                     </div>
                     <p className="mt-2 text-xs font-medium text-slate-500">
                       {survey.respondent_count.toLocaleString('en-IN')} respondents ·{' '}
-                      {survey.fully_completed_count.toLocaleString('en-IN')} finished all {survey.day_count} days ·{' '}
-                      {survey.other_text_count.toLocaleString('en-IN')} Other answers
+                      {survey.fully_completed_count.toLocaleString('en-IN')} completed all {survey.day_count} days ·{' '}
+                      {survey.other_text_count.toLocaleString('en-IN')} written responses
                     </p>
                   </div>
                 </div>
@@ -76,7 +76,7 @@ export default async function FeedbackPage() {
                   href={`/feedback/${survey.id}`}
                   className="inline-flex min-w-[112px] shrink-0 items-center justify-center rounded-full bg-brand px-5 py-2 text-xs font-bold text-white shadow-[0_6px_12px_-4px_rgba(79,70,229,0.35)] transition hover:bg-brand-press"
                 >
-                  Open
+                  View results
                 </Link>
               </div>
             </Card>

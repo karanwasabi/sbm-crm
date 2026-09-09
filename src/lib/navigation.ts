@@ -81,7 +81,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals', subtitle: 'Membership expiry queue' },
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
-  '/feedback': { title: 'Feedback', subtitle: 'In-app survey results & Other free-text' },
+  '/feedback': { title: 'Feedback', subtitle: 'In-app survey results' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
   '/push-notifications': {
@@ -103,7 +103,7 @@ export function getPageMeta(pathname: string): CrmPageMeta {
     return CRM_PAGES['/reports'];
   }
   if (pathname.startsWith('/feedback/')) {
-    return { title: 'Survey results', subtitle: 'Distributions & Other free-text answers' };
+    return { title: 'Survey results', subtitle: 'Response breakdown and written answers' };
   }
   if (pathname.startsWith('/communications/')) {
     return CRM_PAGES['/communications'];
