@@ -2,14 +2,16 @@ import Link from 'next/link';
 import { AutomationBuilder } from '@/components/comms/automation-builder';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
-import { listEmailTemplates, listTagSuggestions, listWhatsAppTemplates } from '@/utils/api';
+import { listEmailTemplates, listStaff, listTagSuggestions, listWhatsAppTemplates } from '@/utils/api';
 
 export default async function NewAutomationPage() {
-  const [emailTemplates, whatsappTemplates, tagSuggestions] = await Promise.all([
+  const [emailTemplates, whatsappTemplates, tagSuggestions, staff] = await Promise.all([
     listEmailTemplates().catch(() => []),
     listWhatsAppTemplates().catch(() => []),
     listTagSuggestions().catch(() => []),
+    listStaff().catch(() => ({ active: [], inactive: [] })),
   ]);
+  const coaches = staff.active.filter((row) => row.roles.includes('coach'));
 
   return (
     <CrmPageLayout className="gap-4">
@@ -27,6 +29,7 @@ export default async function NewAutomationPage() {
         emailTemplates={emailTemplates}
         whatsappTemplates={whatsappTemplates}
         tagSuggestions={tagSuggestions}
+        coaches={coaches}
       />
     </CrmPageLayout>
   );

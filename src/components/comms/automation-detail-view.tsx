@@ -2,7 +2,7 @@
 
 import { AutomationBuilder } from '@/components/comms/automation-builder';
 import { AutomationEnrollmentsPanel } from '@/components/comms/automation-enrollments-panel';
-import type { Automation, EmailTemplate, WhatsAppTemplate } from '@/utils/api';
+import type { Automation, EmailTemplate, StaffMember, WhatsAppTemplate } from '@/utils/api';
 import type { TagSuggestion } from '@/types/crm';
 
 type AutomationDetailViewProps = {
@@ -10,6 +10,7 @@ type AutomationDetailViewProps = {
   emailTemplates: EmailTemplate[];
   whatsappTemplates?: WhatsAppTemplate[];
   tagSuggestions: TagSuggestion[];
+  coaches?: StaffMember[];
 };
 
 export function AutomationDetailView({
@@ -17,6 +18,7 @@ export function AutomationDetailView({
   emailTemplates,
   whatsappTemplates = [],
   tagSuggestions,
+  coaches = [],
 }: AutomationDetailViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -25,6 +27,7 @@ export function AutomationDetailView({
         emailTemplates={emailTemplates}
         whatsappTemplates={whatsappTemplates}
         tagSuggestions={tagSuggestions}
+        coaches={coaches}
       />
       <AutomationEnrollmentsPanel automationId={automation.id} graphJson={automation.graphJson} />
     </div>

@@ -8,7 +8,8 @@ export type AutomationTriggerType =
   | 'checkout_started'
   | 'renewal_payment_received'
   | 'referral_submitted'
-  | 'referrer_referral_submitted';
+  | 'referrer_referral_submitted'
+  | 'coach_assigned';
 
 export type AutomationChannel = 'email' | 'whatsapp';
 
@@ -164,6 +165,7 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   renewal_payment_received: 'Renewal payment received',
   referral_submitted: 'Referral submitted',
   referrer_referral_submitted: 'Referrer referral submitted',
+  coach_assigned: 'Coach assigned or changed',
 };
 
 export type AutomationRenewalTriggerConfig = {
@@ -289,6 +291,20 @@ export function normalizeTagTriggerConfig(
   const tag = raw?.tag;
   return {
     tag: tag != null && String(tag).trim() !== '' ? String(tag).trim() : '',
+  };
+}
+
+export type AutomationCoachTriggerConfig = {
+  coach_user_id?: string;
+};
+
+/** Parse saved coach_assigned trigger config. Empty coach_user_id = "Any coach". */
+export function normalizeCoachTriggerConfig(
+  raw?: Record<string, unknown> | AutomationCoachTriggerConfig | null
+): Record<string, string> {
+  const coachUserId = raw?.coach_user_id;
+  return {
+    coach_user_id: coachUserId != null && String(coachUserId).trim() !== '' ? String(coachUserId).trim() : '',
   };
 }
 

@@ -4,6 +4,7 @@ import {
   addMonthsUTC,
   exclusiveBoundaryDateOnly,
   inclusiveAccessEndDateOnly,
+  inclusiveMonthsFromCohortStart,
   shiftUtcDateOnly,
 } from '@/lib/access-until-display';
 
@@ -33,5 +34,18 @@ describe('access-until-display', () => {
     const inclusivePreset = shiftUtcDateOnly(boundary, -1);
     expect(inclusivePreset).toBe('2025-10-19');
     expect(exclusiveBoundaryDateOnly(inclusivePreset)).toBe('2025-10-20');
+  });
+
+  it('1-month preset matches trial_1m for Aug 2026 (no off-by-one)', () => {
+    // TrialAccessUntil(2026-08-17, 1) = 2026-09-17 exclusive → last day 16 Sep.
+    const inclusive = inclusiveMonthsFromCohortStart('2026-08-17', 1);
+    expect(inclusive).toBe('2026-09-16');
+    expect(exclusiveBoundaryDateOnly(inclusive)).toBe('2026-09-17');
+  });
+
+  it('1-month preset matches trial_1m for Sep 2026', () => {
+    const inclusive = inclusiveMonthsFromCohortStart('2026-09-14', 1);
+    expect(inclusive).toBe('2026-10-13');
+    expect(exclusiveBoundaryDateOnly(inclusive)).toBe('2026-10-14');
   });
 });

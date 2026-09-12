@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { AutomationDetailView } from '@/components/comms/automation-detail-view';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
-import { getAutomation, listEmailTemplates, listTagSuggestions, listWhatsAppTemplates } from '@/utils/api';
+import { getAutomation, listEmailTemplates, listStaff, listTagSuggestions, listWhatsAppTemplates } from '@/utils/api';
 
 export default async function EditAutomationPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,13 +11,20 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
   let emailTemplates;
   let whatsappTemplates;
   let tagSuggestions;
+  let coaches: Awaited<ReturnType<typeof listStaff>>['active'] = [];
   try {
-    [automation, emailTemplates, whatsappTemplates, tagSuggestions] = await Promise.all([
+    const [automationResult, emailResult, whatsappResult, tagsResult, staff] = await Promise.all([
       getAutomation(id),
       listEmailTemplates(),
       listWhatsAppTemplates().catch(() => []),
       listTagSuggestions().catch(() => []),
+      listStaff().catch(() => ({ active: [], inactive: [] })),
     ]);
+    automation = automationResult;
+    emailTemplates = emailResult;
+    whatsappTemplates = whatsappResult;
+    tagSuggestions = tagsResult;
+    coaches = staff.active.filter((row) => row.roles.includes('coach'));
   } catch {
     notFound();
   }
@@ -38,6 +45,7 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
         emailTemplates={emailTemplates}
         whatsappTemplates={whatsappTemplates}
         tagSuggestions={tagSuggestions}
+        coaches={coaches}
       />
     </CrmPageLayout>
   );

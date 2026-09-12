@@ -17,11 +17,10 @@ import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
 import {
-  addMonthsUTC,
   cohortStartDateOnly,
   exclusiveBoundaryDateOnly,
   inclusiveAccessEndDateOnly,
-  shiftUtcDateOnly,
+  inclusiveMonthsFromCohortStart,
 } from '@/lib/access-until-display';
 import type { ProgramHistoryItem } from '@/types/crm';
 
@@ -32,6 +31,8 @@ type EditMembershipAccessDialogProps = {
   onOpenChange: (open: boolean) => void;
 };
 
+const PRESET_MONTHS = [1, 3] as const;
+
 export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }: EditMembershipAccessDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -39,18 +40,24 @@ export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }:
   const [accessUntil, setAccessUntil] = useState('');
 
   const cohortStart = useMemo(() => cohortStartDateOnly(item?.startsOn ?? null), [item?.startsOn]);
-  const inclusiveThreeMonthsFromStart = useMemo(
-    () => (cohortStart ? shiftUtcDateOnly(addMonthsUTC(cohortStart, 3), -1) : ''),
-    [cohortStart]
-  );
+  const inclusivePresets = useMemo(() => {
+    if (!cohortStart) return [] as { months: number; inclusive: string }[];
+    return PRESET_MONTHS.map((months) => ({
+      months,
+      inclusive: inclusiveMonthsFromCohortStart(cohortStart, months),
+    })).filter((p) => Boolean(p.inclusive));
+  }, [cohortStart]);
+  const inclusiveOneMonthFromStart = inclusivePresets.find((p) => p.months === 1)?.inclusive ?? '';
 
   useEffect(() => {
     if (!open || !item) return;
-    setAccessUntil(inclusiveAccessEndDateOnly(item.accessUntil) || inclusiveThreeMonthsFromStart || '');
-  }, [open, item, inclusiveThreeMonthsFromStart]);
+    // Default to current inclusive end, else 1-month trial window (same as trial_1m).
+    setAccessUntil(inclusiveAccessEndDateOnly(item.accessUntil) || inclusiveOneMonthFromStart || '');
+  }, [open, item, inclusiveOneMonthFromStart]);
 
   const submit = () => {
     if (!item || !accessUntil) return;
+    // Date picker is inclusive last day; API stores exclusive midnight UTC (+1 day).
     const apiDate = exclusiveBoundaryDateOnly(accessUntil);
     if (!apiDate) {
       toast({ message: 'Enter a valid access end date.', variant: 'error' });
@@ -92,17 +99,22 @@ export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }:
           <Field label="Active until" hint="Last day of access (UTC calendar day)">
             <TextInput type="date" value={accessUntil} onChange={setAccessUntil} disabled={pending} />
           </Field>
-          {inclusiveThreeMonthsFromStart ? (
-            <Button
-              type="button"
-              variant="light"
-              size="sm"
-              leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
-              disabled={pending}
-              onClick={() => setAccessUntil(inclusiveThreeMonthsFromStart)}
-            >
-              Set to 3 months from start ({inclusiveThreeMonthsFromStart})
-            </Button>
+          {inclusivePresets.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {inclusivePresets.map(({ months, inclusive }) => (
+                <Button
+                  key={months}
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  leftIcon={<CalendarRange className="h-3.5 w-3.5" />}
+                  disabled={pending}
+                  onClick={() => setAccessUntil(inclusive)}
+                >
+                  Set to {months} month{months === 1 ? '' : 's'} from start ({inclusive})
+                </Button>
+              ))}
+            </div>
           ) : null}
         </div>
 

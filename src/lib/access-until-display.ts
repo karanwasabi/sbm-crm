@@ -78,6 +78,17 @@ export function addMonthsUTC(startYYYYMMDD: string, months: number): string {
   return `${yy}-${mm}-${dd}`;
 }
 
+/**
+ * Inclusive last access day for a cohort start + N months.
+ * Mirrors Go `billing.TrialAccessUntil` (exclusive = start + N months) minus one day.
+ * Always convert with `exclusiveBoundaryDateOnly` before calling the access-until API.
+ */
+export function inclusiveMonthsFromCohortStart(cohortStartYYYYMMDD: string, months: number): string {
+  if (!cohortStartYYYYMMDD?.trim() || months < 1) return '';
+  const exclusive = addMonthsUTC(cohortStartYYYYMMDD.trim(), months);
+  return shiftUtcDateOnly(exclusive, -1);
+}
+
 export function cohortStartDateOnly(value: string | null | undefined): string {
   if (!value?.trim()) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;

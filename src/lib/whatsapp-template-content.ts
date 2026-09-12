@@ -17,7 +17,12 @@ export type WhatsAppLeadField =
   | 'cohort_starts_on'
   | 'enrollment_status'
   | 'portal'
-  | 'website';
+  | 'website'
+  | 'coach_first_name'
+  | 'coach_last_name'
+  | 'coach_full_name'
+  | 'coach_email'
+  | 'coach_whatsapp';
 
 export type WhatsAppTemplateVariable = {
   name: string;
@@ -79,6 +84,31 @@ export const WHATSAPP_VARIABLE_CATALOG: {
   },
   { field: 'portal', token: '{{portal}}', label: 'Link — portal', insertLabel: 'Portal link' },
   { field: 'website', token: '{{website}}', label: 'Link — website', insertLabel: 'Website link' },
+  {
+    field: 'coach_first_name',
+    token: '{{coach_first_name}}',
+    label: 'Coach — first name',
+    insertLabel: 'Coach first name',
+  },
+  {
+    field: 'coach_last_name',
+    token: '{{coach_last_name}}',
+    label: 'Coach — last name',
+    insertLabel: 'Coach last name',
+  },
+  {
+    field: 'coach_full_name',
+    token: '{{coach_full_name}}',
+    label: 'Coach — full name',
+    insertLabel: 'Coach full name',
+  },
+  { field: 'coach_email', token: '{{coach_email}}', label: 'Coach — email', insertLabel: 'Coach email' },
+  {
+    field: 'coach_whatsapp',
+    token: '{{coach_whatsapp}}',
+    label: 'Coach — WhatsApp',
+    insertLabel: 'Coach WhatsApp',
+  },
 ];
 
 export const WHATSAPP_LEAD_FIELD_OPTIONS: { value: WhatsAppLeadField; label: string }[] = [

@@ -16,7 +16,7 @@ import {
 import { Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { EmailTemplate, Automation, WhatsAppTemplate } from '@/utils/api';
+import type { EmailTemplate, Automation, StaffMember, WhatsAppTemplate } from '@/utils/api';
 import type {
   AutomationCondition,
   AutomationConditionGroupData,
@@ -40,6 +40,7 @@ import {
   deriveAutomationChannel,
   normalizeStageTriggerConfig,
   normalizeTagTriggerConfig,
+  normalizeCoachTriggerConfig,
   normalizeRenewalTriggerConfig,
   buildRenewalTriggerConfig,
   parseRenewalTriggerCategories,
@@ -149,6 +150,7 @@ type AutomationBuilderProps = {
   emailTemplates: EmailTemplate[];
   whatsappTemplates?: WhatsAppTemplate[];
   tagSuggestions?: TagSuggestion[];
+  coaches?: StaffMember[];
 };
 
 const SUPPORTED_TAG_OPERATORS = new Set<string>(TAG_CONDITION_OPERATORS.map((op) => op.value));
@@ -216,11 +218,32 @@ function buildLeadSourceSelectOptions(value: string) {
   return options;
 }
 
+function buildCoachSelectOptions(coaches: StaffMember[], value: string) {
+  const options = coaches.map((coach) => {
+    const name = [coach.first_name, coach.last_name].filter(Boolean).join(' ').trim();
+    const label = name ? `${name} · ${coach.email}` : coach.email;
+    return {
+      value: coach.user_id,
+      label,
+      searchText: `${name} ${coach.email}`.trim().toLowerCase(),
+    };
+  });
+  if (value && !options.some((option) => option.value === value)) {
+    options.unshift({
+      value,
+      label: value,
+      searchText: value.toLowerCase(),
+    });
+  }
+  return options;
+}
+
 export function AutomationBuilder({
   automation,
   emailTemplates,
   whatsappTemplates = [],
   tagSuggestions = [],
+  coaches = [],
 }: AutomationBuilderProps) {
   const router = useRouter();
   const allTemplates: BuilderTemplate[] = useMemo(
@@ -263,6 +286,12 @@ export function AutomationBuilder({
     }
     if (automation?.triggerType === 'renewal_payment_received') {
       return normalizeRenewalTriggerConfig(automation.triggerConfig);
+    }
+    if (automation?.triggerType === 'tag_added') {
+      return normalizeTagTriggerConfig(automation.triggerConfig);
+    }
+    if (automation?.triggerType === 'coach_assigned') {
+      return normalizeCoachTriggerConfig(automation.triggerConfig);
     }
     if (!automation) {
       return normalizeStageTriggerConfig(undefined, { applyDefaults: true });
@@ -369,6 +398,14 @@ export function AutomationBuilder({
       ...buildTagSelectOptions(tagSuggestions, triggerConfigString(triggerConfig.tag)),
     ],
     [tagSuggestions, triggerConfig.tag]
+  );
+
+  const coachTriggerSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'Any coach', searchText: 'any coach' },
+      ...buildCoachSelectOptions(coaches, triggerConfigString(triggerConfig.coach_user_id)),
+    ],
+    [coaches, triggerConfig.coach_user_id]
   );
 
   const onConnect = useCallback(
@@ -480,6 +517,9 @@ export function AutomationBuilder({
     if (triggerType === 'tag_added') {
       return { tag: triggerConfigString(triggerConfig.tag).trim() };
     }
+    if (triggerType === 'coach_assigned') {
+      return { coach_user_id: triggerConfigString(triggerConfig.coach_user_id).trim() };
+    }
     if (triggerType === 'renewal_payment_received') {
       return buildRenewalTriggerConfig(parseRenewalTriggerCategories(triggerConfig));
     }
@@ -492,6 +532,8 @@ export function AutomationBuilder({
       setTriggerConfig(normalizeStageTriggerConfig(saved.triggerConfig));
     } else if (saved.triggerType === 'tag_added') {
       setTriggerConfig(normalizeTagTriggerConfig(saved.triggerConfig));
+    } else if (saved.triggerType === 'coach_assigned') {
+      setTriggerConfig(normalizeCoachTriggerConfig(saved.triggerConfig));
     } else if (saved.triggerType === 'renewal_payment_received') {
       setTriggerConfig(normalizeRenewalTriggerConfig(saved.triggerConfig));
     }
@@ -788,6 +830,22 @@ export function AutomationBuilder({
                       return normalizeRenewalTriggerConfig(undefined);
                     });
                   }
+                  if (value === 'coach_assigned') {
+                    setTriggerConfig((current) => {
+                      if ('coach_user_id' in current) {
+                        return current;
+                      }
+                      return normalizeCoachTriggerConfig(undefined);
+                    });
+                  }
+                  if (value === 'tag_added') {
+                    setTriggerConfig((current) => {
+                      if ('tag' in current) {
+                        return current;
+                      }
+                      return normalizeTagTriggerConfig(undefined);
+                    });
+                  }
                 }}
                 options={triggerSelectOptions}
                 disabled={isGraphLocked}
@@ -831,6 +889,23 @@ export function AutomationBuilder({
                   placeholder="Any tag"
                   searchPlaceholder="Search tags…"
                   emptyMessage="No tags found."
+                  disabled={isGraphLocked}
+                  className="w-full text-sm"
+                  popoverClassName="w-[var(--anchor-width)]"
+                />
+              </Field>
+            ) : null}
+            {triggerType === 'coach_assigned' ? (
+              <Field label="Coach" className="min-w-[220px]">
+                <SearchableSelect
+                  value={triggerConfigString(triggerConfig.coach_user_id)}
+                  onChange={(coachUserId) =>
+                    setTriggerConfig((current) => ({ ...current, coach_user_id: coachUserId }))
+                  }
+                  options={coachTriggerSelectOptions}
+                  placeholder="Any coach"
+                  searchPlaceholder="Search coaches…"
+                  emptyMessage="No coaches found."
                   disabled={isGraphLocked}
                   className="w-full text-sm"
                   popoverClassName="w-[var(--anchor-width)]"
