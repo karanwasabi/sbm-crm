@@ -148,6 +148,7 @@ export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: Memb
               {inclusiveAccessEndDateOnly(item?.accessUntil) ? (
                 <span className="text-slate-400"> (last day)</span>
               ) : null}
+              . Pause start can be a past day, as long as it falls within this membership window.
             </p>
           ) : null}
 
@@ -158,7 +159,7 @@ export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: Memb
           ) : null}
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Pause starts" hint="UTC calendar day">
+            <Field label="Pause starts" hint="UTC day within paid access (past OK)">
               <TextInput type="date" value={pauseStartsOn} onChange={setPauseStartsOn} disabled={pending} />
             </Field>
             <Field label="Pause ends" hint="Inclusive last paused day">
