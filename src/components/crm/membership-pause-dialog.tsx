@@ -19,6 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { formatInclusiveAccessEndDate, inclusiveAccessEndDateOnly } from '@/lib/access-until-display';
 import { autoRenewInfo } from '@/lib/program-history-auto-renew';
+import { canDeferAutoRenewForPause } from '@/lib/membership-pause-billing';
 import type { ProgramHistoryItem } from '@/types/crm';
 
 type MembershipPauseDialogProps = {
@@ -54,6 +55,14 @@ function todayUtcDateOnly(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'UTC' }).format(now);
 }
 
+function addUtcDays(isoAccessUntil: string, days: number): Date | null {
+  const base = new Date(isoAccessUntil);
+  if (Number.isNaN(base.getTime()) || days <= 0) return null;
+  const next = new Date(base.getTime());
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
 export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: MembershipPauseDialogProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -63,7 +72,18 @@ export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: Memb
   const [reason, setReason] = useState('');
 
   const autoRenew = useMemo(() => (item ? autoRenewInfo(item) : null), [item]);
-  const autoRenewBlocking = Boolean(item?.autoRenewEnabled && autoRenew?.label === 'On');
+  const autoRenewOn = Boolean(item?.autoRenewEnabled && autoRenew?.label === 'On');
+  const canDeferAutoRenew = useMemo(
+    () =>
+      canDeferAutoRenewForPause({
+        autoRenewEnabled: item?.autoRenewEnabled,
+        cancelAtPeriodEnd: item?.cancelAtPeriodEnd,
+        subscriptionStatus: item?.subscriptionStatus,
+        paymentMethodSummary: item?.paymentMethodSummary,
+      }),
+    [item]
+  );
+  const autoRenewBlocking = autoRenewOn && !canDeferAutoRenew;
 
   useEffect(() => {
     if (!open || !item) return;
@@ -75,6 +95,12 @@ export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: Memb
   const pauseDays = useMemo(() => inclusivePauseDays(pauseStartsOn, pauseEndsOn), [pauseStartsOn, pauseEndsOn]);
 
   const accessUntilLabel = item?.accessUntil ? formatInclusiveAccessEndDate(item.accessUntil) : null;
+  const deferredChargeLabel = useMemo(() => {
+    if (!item?.accessUntil || pauseDays <= 0) return null;
+    const next = addUtcDays(item.accessUntil, pauseDays);
+    if (!next) return null;
+    return formatInclusiveAccessEndDate(next.toISOString());
+  }, [item?.accessUntil, pauseDays]);
 
   const previewMessage = useMemo(() => {
     if (!item || !pauseStartsOn || !pauseEndsOn || pauseDays <= 0) {
@@ -90,7 +116,8 @@ export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: Memb
     if (!item) return;
     if (autoRenewBlocking) {
       toast({
-        message: 'Turn off auto-renew before scheduling a pause.',
+        message:
+          'Auto-renew cannot be deferred in place for this payment method. Turn off auto-renew before scheduling a pause.',
         variant: 'error',
       });
       return;
@@ -154,7 +181,21 @@ export function MembershipPauseDialog({ leadId, item, open, onOpenChange }: Memb
 
           {autoRenewBlocking ? (
             <div className="rounded-xl border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm font-semibold text-rose-800">
-              Auto-renew is still on. Turn off auto-renew before scheduling a pause.
+              Auto-renew is on, but this mandate cannot be deferred in place (typical for UPI before the first charge).
+              Turn off auto-renew before scheduling a pause.
+            </div>
+          ) : null}
+
+          {autoRenewOn && canDeferAutoRenew ? (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 text-sm text-emerald-900">
+              Auto-renew stays on. The next Razorpay charge will move with the extended access end
+              {deferredChargeLabel ? (
+                <>
+                  {' '}
+                  (about <span className="font-semibold">{deferredChargeLabel}</span>)
+                </>
+              ) : null}
+              . Same mandate — no re-setup.
             </div>
           ) : null}
 
