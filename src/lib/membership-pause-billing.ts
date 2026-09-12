@@ -22,7 +22,7 @@ export function canDeferAutoRenewForPause(input: {
     return true;
   }
   const status = (input.subscriptionStatus ?? '').trim().toLowerCase();
-  if (status === 'active') {
+  if (status === 'active' || status === 'paused') {
     return true;
   }
   if (status === 'authenticated') {
