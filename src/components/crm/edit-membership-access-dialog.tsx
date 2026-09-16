@@ -70,7 +70,7 @@ export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }:
         return;
       }
       toast({
-        message: `Access until updated to ${accessUntil}. Grace follows (+7 days).`,
+        message: `Access until updated to ${accessUntil}. Grace follows (+3 days).`,
         variant: 'success',
       });
       onOpenChange(false);
@@ -85,7 +85,7 @@ export function EditMembershipAccessDialog({ leadId, item, open, onOpenChange }:
           <DialogTitle>Edit membership access</DialogTitle>
           <DialogDescription>
             {item
-              ? `Update Active until for ${item.program} · ${item.batch}. Last day of access (UTC). Grace until is access + 7 days.`
+              ? `Update Active until for ${item.program} · ${item.batch}. Last day of access (UTC). Grace until is access + 3 days.`
               : 'Update Active until for this enrollment.'}
           </DialogDescription>
         </DialogHeader>
