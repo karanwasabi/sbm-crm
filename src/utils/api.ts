@@ -1562,6 +1562,9 @@ export type MemberProfile = {
   activeWeekStartDate: string | null;
   activeWeekServings: MemberServingsSnapshot | null;
   activeWeekGoals: HabitGoalsSnapshot | null;
+  mealPlanWeightBracketOverride: string | null;
+  derivedWeightBracket: string;
+  effectiveWeightBracket: string;
 };
 
 export type NutritionRecalcResult = {
@@ -1672,6 +1675,9 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
       sleep_hours_weekly: number;
       nutrition_points_weekly: number;
     } | null;
+    meal_plan_weight_bracket_override?: string | null;
+    derived_weight_bracket?: string;
+    effective_weight_bracket?: string;
   };
   return {
     userId: row.user_id,
@@ -1736,6 +1742,9 @@ export async function getLeadMemberProfile(leadId: string): Promise<MemberProfil
           nutritionPointsWeekly: row.active_week_goals.nutrition_points_weekly,
         }
       : null,
+    mealPlanWeightBracketOverride: row.meal_plan_weight_bracket_override ?? null,
+    derivedWeightBracket: row.derived_weight_bracket ?? '',
+    effectiveWeightBracket: row.effective_weight_bracket ?? '',
   };
 }
 
@@ -1781,6 +1790,70 @@ export type ServingAddonsResult = {
   servings: MemberServingsSnapshot | null;
   mealPlansCleared: boolean;
 };
+
+export type MealPlanBracketOverrideResult = {
+  userId: string;
+  mealPlanWeightBracketOverride: string | null;
+  derivedWeightBracket: string;
+  effectiveWeightBracket: string;
+  weekStartDate: string;
+  servings: MemberServingsSnapshot | null;
+  mealPlansCleared: boolean;
+};
+
+export async function putLeadMealPlanBracketOverride(
+  leadId: string,
+  weightBracket: string
+): Promise<MealPlanBracketOverrideResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/meal-plan-bracket-override`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ weight_bracket: weightBracket }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to save meal-plan bracket override.', response.status);
+  }
+  return mapMealPlanBracketOverrideResult(await response.json());
+}
+
+export async function clearLeadMealPlanBracketOverride(leadId: string): Promise<MealPlanBracketOverrideResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/meal-plan-bracket-override`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to clear meal-plan bracket override.', response.status);
+  }
+  return mapMealPlanBracketOverrideResult(await response.json());
+}
+
+function mapMealPlanBracketOverrideResult(row: {
+  user_id: string;
+  meal_plan_weight_bracket_override: string | null;
+  derived_weight_bracket: string;
+  effective_weight_bracket: string;
+  week_start_date: string;
+  servings: {
+    protein: number;
+    fiber: number;
+    starch: number;
+    dairy: number;
+    fun: number;
+    weight_kg_used: number;
+  } | null;
+  meal_plans_cleared: boolean;
+}): MealPlanBracketOverrideResult {
+  return {
+    userId: row.user_id,
+    mealPlanWeightBracketOverride: row.meal_plan_weight_bracket_override,
+    derivedWeightBracket: row.derived_weight_bracket,
+    effectiveWeightBracket: row.effective_weight_bracket,
+    weekStartDate: row.week_start_date,
+    servings: mapServings(row.servings),
+    mealPlansCleared: row.meal_plans_cleared,
+  };
+}
 
 export type HabitGoalAddonsResult = {
   userId: string;

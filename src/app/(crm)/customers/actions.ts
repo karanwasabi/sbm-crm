@@ -34,6 +34,8 @@ import {
   getLeadMemberProfile,
   forceLeadNutritionRecalc,
   putLeadServingAddons,
+  putLeadMealPlanBracketOverride,
+  clearLeadMealPlanBracketOverride,
   putLeadHabitGoalAddons,
   putLeadHabitGoalCaps,
   correctLeadWeights,
@@ -72,6 +74,7 @@ import type {
   CorrectTimezoneResult,
   ServingAddons,
   ServingAddonsResult,
+  MealPlanBracketOverrideResult,
   HabitGoalAddons,
   HabitGoalAddonsResult,
   HabitGoalCaps,
@@ -490,6 +493,31 @@ export async function putLeadServingAddonsAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to save serving addons.';
+    return { result: null, error: message };
+  }
+}
+
+export async function putLeadMealPlanBracketOverrideAction(
+  leadId: string,
+  weightBracket: string
+): Promise<{ result: MealPlanBracketOverrideResult | null; error: string | null }> {
+  try {
+    const result = await putLeadMealPlanBracketOverride(leadId, weightBracket);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save meal-plan bracket override.';
+    return { result: null, error: message };
+  }
+}
+
+export async function clearLeadMealPlanBracketOverrideAction(
+  leadId: string
+): Promise<{ result: MealPlanBracketOverrideResult | null; error: string | null }> {
+  try {
+    const result = await clearLeadMealPlanBracketOverride(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to clear meal-plan bracket override.';
     return { result: null, error: message };
   }
 }

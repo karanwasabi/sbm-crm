@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { getLeadMemberProfileAction } from '@/app/(crm)/customers/actions';
 import { HabitGoalAddonsDialog } from '@/components/crm/habit-goal-addons-dialog';
 import { HabitGoalCapsDialog } from '@/components/crm/habit-goal-caps-dialog';
+import { MealPlanBracketOverrideDialog } from '@/components/crm/meal-plan-bracket-override-dialog';
 import { ServingAddonsDialog } from '@/components/crm/serving-addons-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { mealPlanWeightBracketLabel } from '@/lib/meal-plan-weight-brackets';
 import type { MemberProfile } from '@/utils/api';
 
 type MemberAppProfileCardProps = {
@@ -58,6 +60,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [addonsOpen, setAddonsOpen] = useState(false);
+  const [bracketOpen, setBracketOpen] = useState(false);
   const [habitAddonsOpen, setHabitAddonsOpen] = useState(false);
   const [habitCapsOpen, setHabitCapsOpen] = useState(false);
 
@@ -85,6 +88,7 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
   const habitAddons = profile?.habitGoalAddons;
   const habitCaps = profile?.habitGoalCaps;
   const goals = profile?.activeWeekGoals;
+  const overrideSet = Boolean(profile?.mealPlanWeightBracketOverride);
 
   return (
     <>
@@ -101,6 +105,15 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
                 onClick={() => setAddonsOpen(true)}
               >
                 Edit serving addons
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2 text-xs"
+                onClick={() => setBracketOpen(true)}
+              >
+                Edit meal-plan bracket
               </Button>
               <Button
                 type="button"
@@ -145,6 +158,14 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
                 profile.latestWeightLocalDate
                   ? `${profile.latestWeightLocalDate}${profile.latestWeightSource ? ` · ${profile.latestWeightSource}` : ''}`
                   : '—'
+              }
+            />
+            <Row
+              label="Weight bracket"
+              value={
+                overrideSet
+                  ? `${mealPlanWeightBracketLabel(profile.effectiveWeightBracket)} (override · derived ${mealPlanWeightBracketLabel(profile.derivedWeightBracket)})`
+                  : mealPlanWeightBracketLabel(profile.effectiveWeightBracket || profile.derivedWeightBracket)
               }
             />
             <Row label="Onboarding" value={profile.onboardingCompletedAt ? 'Complete' : 'Incomplete'} />
@@ -200,6 +221,12 @@ export function MemberAppProfileCard({ leadId, refreshKey = 0, onProfileChanged 
         ) : null}
       </Card>
       <ServingAddonsDialog leadId={leadId} open={addonsOpen} onOpenChange={setAddonsOpen} onDone={onProfileChanged} />
+      <MealPlanBracketOverrideDialog
+        leadId={leadId}
+        open={bracketOpen}
+        onOpenChange={setBracketOpen}
+        onDone={onProfileChanged}
+      />
       <HabitGoalAddonsDialog
         leadId={leadId}
         open={habitAddonsOpen}
