@@ -62,6 +62,7 @@ type TabId = (typeof TABS)[number];
 const RESOURCE_CATEGORIES: { id: ResourceCategory; label: string }[] = [
   { id: 'plans', label: 'Plans' },
   { id: 'webinars', label: 'Webinars' },
+  { id: 'worksheets', label: 'Worksheets' },
   { id: 'exercise', label: 'Exercise Videos' },
   { id: 'guides', label: 'Guides' },
   { id: 'recipes', label: 'Recipes' },
@@ -94,6 +95,7 @@ type ResourceFormState = {
   kind: ResourceKind;
   title: string;
   tag: string;
+  slug: string;
   summary: string;
   thumbnailUrl: string;
   thumbnailCustom: boolean;
@@ -104,7 +106,17 @@ type ResourceFormState = {
   published: boolean;
   pdfFile: File | null;
   citations: ResourceCitation[];
+  relatedResourceIds: string[];
 };
+
+function suggestSlugFromTitle(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 70);
+}
 
 function emptyCitation(): ResourceCitation {
   return { text: '', url: '' };
@@ -147,6 +159,7 @@ function defaultFormState(category: ResourceCategory = 'plans'): ResourceFormSta
     kind: 'pdf',
     title: '',
     tag: '',
+    slug: '',
     summary: '',
     thumbnailUrl: '',
     thumbnailCustom: false,
@@ -157,6 +170,7 @@ function defaultFormState(category: ResourceCategory = 'plans'): ResourceFormSta
     published: true,
     pdfFile: null,
     citations: [],
+    relatedResourceIds: [],
   };
 }
 
@@ -170,6 +184,7 @@ function formStateFromResource(resource: AdminResource): ResourceFormState {
     kind: resource.kind === 'youtube' ? 'youtube' : 'pdf',
     title: resource.title,
     tag: resource.tag,
+    slug: resource.slug,
     summary: resource.summary,
     thumbnailUrl: existingThumb,
     thumbnailCustom: Boolean(existingThumb) && !isYoutubeAuto,
@@ -180,6 +195,7 @@ function formStateFromResource(resource: AdminResource): ResourceFormState {
     published: resource.published,
     pdfFile: null,
     citations: resource.citations.length > 0 ? resource.citations.map((c) => ({ text: c.text, url: c.url ?? '' })) : [],
+    relatedResourceIds: resource.relatedResources.map((r) => r.id),
   };
 }
 
@@ -323,23 +339,44 @@ type ResourceFormDialogProps = {
   onOpenChange: (open: boolean) => void;
   mode: 'create' | 'edit';
   resource: AdminResource | null;
+  allResources: AdminResource[];
   defaultCategory?: ResourceCategory;
   onSaved: () => void;
 };
 
-function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategory, onSaved }: ResourceFormDialogProps) {
+function ResourceFormDialog({
+  open,
+  onOpenChange,
+  mode,
+  resource,
+  allResources,
+  defaultCategory,
+  onSaved,
+}: ResourceFormDialogProps) {
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState<ResourceFormState>(() => defaultFormState(defaultCategory));
+  const [slugTouched, setSlugTouched] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     if (mode === 'edit' && resource) {
       setForm(formStateFromResource(resource));
+      setSlugTouched(true);
     } else {
       setForm(defaultFormState(defaultCategory));
+      setSlugTouched(false);
     }
   }, [open, mode, resource, defaultCategory]);
+
+  const linkableResources = useMemo(
+    () =>
+      allResources
+        .filter((item) => item.id !== resource?.id)
+        .slice()
+        .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: 'base' })),
+    [allResources, resource?.id]
+  );
 
   const thumbnailPreview = useMemo(() => {
     if (form.thumbnailFile) {
@@ -401,17 +438,20 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
           thumbnailUrl = youtubeThumbnailFromInput(form.youtubeUrl) || thumbnailUrl;
         }
 
+        const slug = form.slug.trim() || suggestSlugFromTitle(title);
         const payload: CreateAdminResourceInput = {
           category: form.category,
           kind: form.kind,
           title,
           tag,
+          slug: slug || null,
           summary: form.summary.trim() || null,
           // Empty string clears an existing thumbnail on update; null/omit leaves it alone on backend create.
           thumbnail_url: thumbnailUrl || (mode === 'edit' ? '' : null),
           speaker: form.speaker.trim() || null,
           duration: form.duration.trim() || null,
           citations: normalizeCitationRows(form.citations),
+          related_resource_ids: form.relatedResourceIds,
           published: form.published,
         };
 
@@ -490,10 +530,32 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
           </div>
 
           <Field label="Title">
-            <TextInput value={form.title} onChange={(value) => setForm((prev) => ({ ...prev, title: value }))} />
+            <TextInput
+              value={form.title}
+              onChange={(value) =>
+                setForm((prev) => ({
+                  ...prev,
+                  title: value,
+                  slug: slugTouched ? prev.slug : suggestSlugFromTitle(value),
+                }))
+              }
+            />
           </Field>
           <Field label="Tag">
             <TextInput value={form.tag} onChange={(value) => setForm((prev) => ({ ...prev, tag: value }))} />
+          </Field>
+          <Field label="Slug (share URL)">
+            <TextInput
+              value={form.slug}
+              onChange={(value) => {
+                setSlugTouched(true);
+                setForm((prev) => ({ ...prev, slug: suggestSlugFromTitle(value) }));
+              }}
+              placeholder="aug-protein-worksheet"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              WhatsApp link: https://resources.slowburnmethod.in/{form.slug.trim() || '…'}
+            </p>
           </Field>
           <Field label="Summary">
             <Textarea
@@ -501,6 +563,32 @@ function ResourceFormDialog({ open, onOpenChange, mode, resource, defaultCategor
               onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))}
               rows={3}
             />
+          </Field>
+          <Field label="Linked resources (optional)">
+            <div className="max-h-48 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+              {linkableResources.length === 0 ? (
+                <p className="text-xs text-slate-500">No other resources to link yet.</p>
+              ) : (
+                linkableResources.map((item) => {
+                  const checked = form.relatedResourceIds.includes(item.id);
+                  return (
+                    <Checkbox
+                      key={item.id}
+                      checked={checked}
+                      onChange={(nextChecked) =>
+                        setForm((prev) => ({
+                          ...prev,
+                          relatedResourceIds: nextChecked
+                            ? [...prev.relatedResourceIds, item.id]
+                            : prev.relatedResourceIds.filter((id) => id !== item.id),
+                        }))
+                      }
+                      label={`${item.title} (${CATEGORY_LABELS[item.category] ?? item.category})`}
+                    />
+                  );
+                })
+              )}
+            </div>
           </Field>
 
           <Field label="Citations / sources (optional)">
@@ -695,6 +783,23 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
 
   const refresh = useCallback(() => router.refresh(), [router]);
 
+  const copyDeepLink = useCallback(
+    async (resource: AdminResource) => {
+      const link = resource.deepLink || (resource.slug ? `https://resources.slowburnmethod.in/${resource.slug}` : '');
+      if (!link) {
+        toast({ message: 'No share link available for this resource.', variant: 'error' });
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(link);
+        toast({ message: 'Share link copied.', variant: 'success' });
+      } catch {
+        toast({ message: 'Could not copy link.', variant: 'error' });
+      }
+    },
+    [toast]
+  );
+
   const handleDelete = () => {
     if (!deleteResource) return;
     startDeleteTransition(async () => {
@@ -864,6 +969,15 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
                             type="button"
                             variant="ghost"
                             size="sm"
+                            aria-label="Copy share link"
+                            onClick={() => void copyDeepLink(resource)}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
                             aria-label="Edit resource"
                             onClick={() => setEditResource(resource)}
                           >
@@ -897,6 +1011,7 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
           onOpenChange={setCreateOpen}
           mode="create"
           resource={null}
+          allResources={resources}
           defaultCategory={categoryFilter === 'all' ? 'plans' : categoryFilter}
           onSaved={refresh}
         />
@@ -910,6 +1025,7 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
           }}
           mode="edit"
           resource={editResource}
+          allResources={resources}
           onSaved={refresh}
         />
       ) : null}

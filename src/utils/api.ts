@@ -5353,7 +5353,7 @@ export async function getAutomationEnrollmentLog(
   }));
 }
 
-export type ResourceCategory = 'plans' | 'webinars' | 'exercise' | 'guides' | 'recipes' | 'faqs';
+export type ResourceCategory = 'plans' | 'webinars' | 'worksheets' | 'exercise' | 'guides' | 'recipes' | 'faqs';
 export type ResourceKind = 'pdf' | 'youtube';
 
 export type ResourceCitation = {
@@ -5361,8 +5361,18 @@ export type ResourceCitation = {
   url?: string | null;
 };
 
+export type RelatedAdminResource = {
+  id: string;
+  slug: string;
+  title: string;
+  category: ResourceCategory;
+  kind: string;
+  thumbnailUrl: string | null;
+};
+
 export type AdminResource = {
   id: string;
+  slug: string;
   category: ResourceCategory;
   kind: ResourceKind | string;
   title: string;
@@ -5376,6 +5386,9 @@ export type AdminResource = {
   youtubeVideoId: string | null;
   pdfStoragePath: string | null;
   citations: ResourceCitation[];
+  relatedResources: RelatedAdminResource[];
+  deepLink: string;
+  deepLinkId: string;
   published: boolean;
   isFeatured?: boolean;
   sortOrder?: number;
@@ -5390,6 +5403,7 @@ export type CohortResourceCategory = {
 };
 
 export type CreateAdminResourceInput = {
+  slug?: string | null;
   category: ResourceCategory;
   kind: ResourceKind;
   title: string;
@@ -5402,6 +5416,7 @@ export type CreateAdminResourceInput = {
   youtube_video_id?: string | null;
   pdf_storage_path?: string | null;
   citations?: ResourceCitation[];
+  related_resource_ids?: string[];
   published?: boolean;
 };
 
@@ -5425,6 +5440,7 @@ export type CohortResourceAssignmentInput = {
 
 type ApiResourceResponse = {
   id: string;
+  slug?: string;
   category: string;
   kind: string;
   title: string;
@@ -5438,6 +5454,16 @@ type ApiResourceResponse = {
   youtube_video_id?: string | null;
   pdf_storage_path?: string | null;
   citations?: Array<{ text?: string; url?: string | null }> | null;
+  related_resources?: Array<{
+    id?: string;
+    slug?: string;
+    title?: string;
+    category?: string;
+    kind?: string;
+    thumbnail_url?: string | null;
+  }> | null;
+  deep_link?: string | null;
+  deep_link_id?: string | null;
   published?: boolean | null;
   is_featured?: boolean | null;
   sort_order?: number | null;
@@ -5448,6 +5474,7 @@ type ApiResourceResponse = {
 function mapAdminResource(row: ApiResourceResponse): AdminResource {
   return {
     id: row.id,
+    slug: row.slug ?? '',
     category: row.category as ResourceCategory,
     kind: row.kind,
     title: row.title,
@@ -5466,6 +5493,18 @@ function mapAdminResource(row: ApiResourceResponse): AdminResource {
         url: c.url?.trim() || null,
       }))
       .filter((c) => c.text.length > 0),
+    relatedResources: (row.related_resources ?? [])
+      .filter((r) => Boolean(r.id))
+      .map((r) => ({
+        id: r.id!,
+        slug: r.slug ?? '',
+        title: r.title ?? '',
+        category: (r.category ?? 'guides') as ResourceCategory,
+        kind: r.kind ?? '',
+        thumbnailUrl: r.thumbnail_url ?? null,
+      })),
+    deepLink: row.deep_link ?? '',
+    deepLinkId: row.deep_link_id ?? '',
     published: row.published ?? true,
     isFeatured: row.is_featured ?? undefined,
     sortOrder: row.sort_order ?? undefined,
