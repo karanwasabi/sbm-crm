@@ -13,16 +13,20 @@ import { WhatsAppIcon } from '@/components/icons/whatsapp-icon';
 import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
+import { WhatsAppAccountSelect } from '@/components/comms/whatsapp-account-select';
 import { bulkWhatsAppSkipTotal, formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
 import { commsBulkSendHref } from '@/lib/comms-channel';
+import { fetchWhatsAppAccountsClient, fetchWhatsAppTemplatesClient } from '@/lib/comms-templates-client';
+import { resolveWhatsAppAccountId } from '@/lib/whatsapp-account';
 import { parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
-import type { BulkLeadWhatsAppPreview, BulkLeadWhatsAppSendJob, WhatsAppTemplate } from '@/utils/api';
+import type { BulkLeadWhatsAppPreview, BulkLeadWhatsAppSendJob, WhatsAppAccount, WhatsAppTemplate } from '@/utils/api';
 
 type BulkSendWhatsAppDialogProps = {
   open: boolean;
   onClose: () => void;
   leadIds: string[];
-  templates: WhatsAppTemplate[];
+  templates?: WhatsAppTemplate[];
+  defaultAccountId?: string;
 };
 
 function formatSkipSummary(preview: BulkLeadWhatsAppPreview): string[] {
@@ -40,8 +44,20 @@ function customParamDefaults(template: WhatsAppTemplate | undefined): Record<str
   return out;
 }
 
-export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: BulkSendWhatsAppDialogProps) {
-  const [templateId, setTemplateId] = useState(templates[0]?.id ?? '');
+export function BulkSendWhatsAppDialog({
+  open,
+  onClose,
+  leadIds,
+  templates: initialTemplates = [],
+  defaultAccountId,
+}: BulkSendWhatsAppDialogProps) {
+  const [accounts, setAccounts] = useState<WhatsAppAccount[]>([]);
+  const [accountLocked, setAccountLocked] = useState(false);
+  const [resolvedDefaultAccountId, setResolvedDefaultAccountId] = useState(defaultAccountId ?? '');
+  const [accountId, setAccountId] = useState('');
+  const [templates, setTemplates] = useState<WhatsAppTemplate[]>(initialTemplates);
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [templateId, setTemplateId] = useState('');
   const [preview, setPreview] = useState<BulkLeadWhatsAppPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [confirmDuplicates, setConfirmDuplicates] = useState(false);
@@ -56,12 +72,63 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
 
   useEffect(() => {
     if (!open) {
+      return;
+    }
+
+    let cancelled = false;
+    void fetchWhatsAppAccountsClient()
+      .then((payload) => {
+        if (cancelled) return;
+        setAccounts(payload.accounts);
+        setAccountLocked(payload.accountLocked);
+        const defaultId = resolveWhatsAppAccountId(defaultAccountId, payload.accounts, payload.defaultAccountId);
+        setResolvedDefaultAccountId(defaultId);
+        setAccountId(defaultId);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : 'Failed to load WhatsApp accounts.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, defaultAccountId]);
+
+  useEffect(() => {
+    if (!open || !accountId) {
+      return;
+    }
+
+    let cancelled = false;
+    setTemplatesLoading(true);
+    void fetchWhatsAppTemplatesClient(accountId)
+      .then((rows) => {
+        if (cancelled) return;
+        setTemplates(rows);
+        setTemplateId(rows[0]?.id ?? '');
+        setTemplatesLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setTemplates([]);
+        setTemplateId('');
+        setTemplatesLoading(false);
+        setError(err instanceof Error ? err.message : 'Failed to load templates.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, accountId]);
+
+  useEffect(() => {
+    if (!open) {
       setPreview(null);
       setPreviewLoading(false);
       setConfirmDuplicates(false);
       setJob(null);
       setError(null);
-      setTemplateId(templates[0]?.id ?? '');
       setParamOverrides({});
       return;
     }
@@ -95,7 +162,7 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
     return () => {
       cancelled = true;
     };
-  }, [open, templateId, leadIds, templates, customDefaults]);
+  }, [open, templateId, leadIds, customDefaults]);
 
   useEffect(() => {
     if (!job || job.status === 'completed' || job.status === 'failed') {
@@ -153,14 +220,26 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
           <>
             {!confirmDuplicates ? (
               <>
+                {accounts.length > 0 ? (
+                  <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
+                    WhatsApp account
+                    <WhatsAppAccountSelect
+                      accounts={accounts}
+                      value={accountId || resolvedDefaultAccountId}
+                      onChange={setAccountId}
+                      accountLocked={accountLocked}
+                      disabled={previewLoading || isSending || sending || templatesLoading}
+                    />
+                  </label>
+                ) : null}
                 <label className="mt-4 flex flex-col gap-1.5 text-sm font-semibold text-slate-700">
                   Template
                   <WhatsAppTemplateSelect
                     templates={templates}
                     value={templateId}
                     onChange={setTemplateId}
-                    disabled={previewLoading || isSending || sending}
-                    emptyMessage="No active templates"
+                    disabled={previewLoading || isSending || sending || templatesLoading}
+                    emptyMessage={templatesLoading ? 'Loading templates…' : 'No active templates'}
                   />
                 </label>
 
@@ -309,7 +388,13 @@ export function BulkSendWhatsAppDialog({ open, onClose, leadIds, templates }: Bu
               loading={isSending}
               loadingLabel="Starting…"
               disabled={
-                previewLoading || isSending || !templateId || !preview || preview.will_send === 0 || customMissing
+                previewLoading ||
+                isSending ||
+                templatesLoading ||
+                !templateId ||
+                !preview ||
+                preview.will_send === 0 ||
+                customMissing
               }
               onClick={() => {
                 if (preview && preview.already_sent > 0) {

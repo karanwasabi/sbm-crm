@@ -1,7 +1,7 @@
 'use client';
 
 import { createClient } from '@/utils/supabase/client';
-import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
+import type { EmailTemplate, WhatsAppAccountsPayload, WhatsAppTemplate } from '@/utils/api';
 
 function getBackendUrl(): string {
   return process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080';
@@ -56,8 +56,35 @@ function mapEmailTemplate(row: {
   };
 }
 
+function mapWhatsAppAccount(row: {
+  id: string;
+  slug: string;
+  display_name: string;
+  phone_e164?: string;
+  kind: string;
+  is_default: boolean;
+  active: boolean;
+  linked_user_id?: string;
+  channels_group_id: string;
+  channel_id: string;
+}) {
+  return {
+    id: row.id,
+    slug: row.slug,
+    displayName: row.display_name,
+    phoneE164: row.phone_e164,
+    kind: row.kind,
+    isDefault: row.is_default,
+    active: row.active,
+    linkedUserId: row.linked_user_id,
+    channelsGroupId: row.channels_group_id,
+    channelId: row.channel_id,
+  };
+}
+
 function mapWhatsAppTemplate(row: {
   id: string;
+  account_id?: string;
   convonite_id?: string;
   name: string;
   status: string;
@@ -74,6 +101,7 @@ function mapWhatsAppTemplate(row: {
 }): WhatsAppTemplate {
   return {
     id: row.id,
+    accountId: row.account_id,
     convoniteId: row.convonite_id,
     name: row.name,
     status: row.status as WhatsAppTemplate['status'],
@@ -103,9 +131,35 @@ export async function fetchEmailTemplatesClient(): Promise<EmailTemplate[]> {
   return rows.map(mapEmailTemplate);
 }
 
-export async function fetchWhatsAppTemplatesClient(): Promise<WhatsAppTemplate[]> {
+export async function fetchWhatsAppAccountsClient(): Promise<WhatsAppAccountsPayload> {
   const token = await getAccessToken();
-  const response = await fetch(`${getBackendUrl()}/admin/comms/whatsapp/templates`, {
+  const response = await fetch(`${getBackendUrl()}/admin/comms/whatsapp/accounts`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to load WhatsApp accounts.');
+  }
+  const row = (await response.json()) as {
+    accounts: Parameters<typeof mapWhatsAppAccount>[0][];
+    default_account_id: string;
+    account_locked: boolean;
+  };
+  return {
+    accounts: row.accounts.map(mapWhatsAppAccount),
+    defaultAccountId: row.default_account_id ?? '',
+    accountLocked: row.account_locked ?? false,
+  };
+}
+
+export async function fetchWhatsAppTemplatesClient(accountId?: string): Promise<WhatsAppTemplate[]> {
+  const token = await getAccessToken();
+  const params = new URLSearchParams();
+  if (accountId) {
+    params.set('account_id', accountId);
+  }
+  const query = params.toString();
+  const response = await fetch(`${getBackendUrl()}/admin/comms/whatsapp/templates${query ? `?${query}` : ''}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   });

@@ -48,6 +48,7 @@ import type { WhatsAppTemplate } from '@/utils/api';
 
 type WhatsAppTemplateEditorProps = {
   template?: WhatsAppTemplate | null;
+  createAccountId?: string;
   managementEnabled?: boolean;
 };
 
@@ -83,7 +84,11 @@ function insertAtCursor(
   });
 }
 
-export function WhatsAppTemplateEditor({ template = null, managementEnabled = true }: WhatsAppTemplateEditorProps) {
+export function WhatsAppTemplateEditor({
+  template = null,
+  createAccountId,
+  managementEnabled = true,
+}: WhatsAppTemplateEditorProps) {
   const router = useRouter();
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -186,6 +191,7 @@ export function WhatsAppTemplateEditor({ template = null, managementEnabled = tr
           purpose,
           runtimeParams,
           content,
+          accountId: template?.id ? undefined : createAccountId,
         });
         setStatus(saved.status);
         setMessage('Template saved.');

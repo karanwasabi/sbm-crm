@@ -224,10 +224,11 @@ export async function previewEmailTemplateAction(
 export async function sendLeadWhatsAppAction(
   leadId: string,
   templateId: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  accountId?: string
 ): Promise<{ error: string | null }> {
   try {
-    await sendLeadWhatsApp(leadId, templateId, params);
+    await sendLeadWhatsApp(leadId, templateId, params, accountId);
     return { error: null };
   } catch (error) {
     const { formatWhatsAppSendError } = await import('@/lib/whatsapp-send-errors');

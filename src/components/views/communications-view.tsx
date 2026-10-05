@@ -3,9 +3,10 @@
 import type { LucideIcon } from 'lucide-react';
 import { Mail, MessageCircle, Plus, RefreshCw, Send, Workflow } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
-import { syncWhatsAppTemplatesAction } from '@/app/(crm)/communications/actions';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useTransition } from 'react';
+import { listWhatsAppTemplatesAction, syncWhatsAppTemplatesAction } from '@/app/(crm)/communications/actions';
+import { WhatsAppAccountSelect } from '@/components/comms/whatsapp-account-select';
 import { BulkSendListRow } from '@/components/comms/bulk-send-list-row';
 import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
@@ -35,6 +36,7 @@ import {
   whatsAppTemplateStatusLabel,
   whatsAppTemplateStatusTone,
 } from '@/lib/whatsapp-template-types';
+import { resolveWhatsAppAccountId, WA_ACCOUNT_SEARCH_PARAM } from '@/lib/whatsapp-account';
 import type {
   Automation,
   BulkLeadEmailSendJob,
@@ -43,6 +45,7 @@ import type {
   CommsAnalyticsSummary,
   EmailTemplate,
   MarketingContactsSummary,
+  WhatsAppAccount,
   WhatsAppFlags,
   WhatsAppTemplate,
   WhatsAppCommsAnalytics,
@@ -63,6 +66,10 @@ type CommunicationsViewProps = {
   whatsAppSends?: WhatsAppSend[];
   whatsAppSendsError?: string | null;
   whatsappFlags?: WhatsAppFlags;
+  whatsAppAccounts?: WhatsAppAccount[];
+  whatsAppDefaultAccountId?: string;
+  whatsAppAccountLocked?: boolean;
+  selectedWhatsAppAccountId?: string;
 };
 
 type CommsNavTone = 'violet' | 'indigo' | 'green';
@@ -151,10 +158,27 @@ export function CommunicationsView({
   whatsAppSends = [],
   whatsAppSendsError,
   whatsappFlags,
+  whatsAppAccounts = [],
+  whatsAppDefaultAccountId = '',
+  whatsAppAccountLocked = false,
+  selectedWhatsAppAccountId: initialWhatsAppAccountId = '',
 }: CommunicationsViewProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [isSyncing, startSync] = useTransition();
+  const [whatsappTemplates, setWhatsappTemplates] = useState<WhatsAppTemplate[]>(
+    () => (templates as WhatsAppTemplate[]) ?? []
+  );
+  const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [selectedWhatsAppAccountId, setSelectedWhatsAppAccountId] = useState(() =>
+    resolveWhatsAppAccountId(
+      searchParams.get(WA_ACCOUNT_SEARCH_PARAM) ?? initialWhatsAppAccountId,
+      whatsAppAccounts,
+      whatsAppDefaultAccountId
+    )
+  );
   const activeAutomationCount = analyticsSummary?.activeAutomations ?? 0;
   const isAutomations = section === 'automations';
   const channel = isAutomations ? 'email' : section;
@@ -162,8 +186,54 @@ export function CommunicationsView({
   const canSyncWhatsAppTemplates = whatsappFlags?.sendsEnabled ?? false;
   const canManageWhatsAppTemplates = whatsappFlags?.templatesEnabled ?? false;
 
+  useEffect(() => {
+    if (!isWhatsApp || tab !== 'templates') {
+      return;
+    }
+    setWhatsappTemplates((templates as WhatsAppTemplate[]) ?? []);
+  }, [templates, isWhatsApp, tab]);
+
+  useEffect(() => {
+    if (!isWhatsApp) {
+      return;
+    }
+    const fromUrl = searchParams.get(WA_ACCOUNT_SEARCH_PARAM);
+    setSelectedWhatsAppAccountId(
+      resolveWhatsAppAccountId(fromUrl ?? initialWhatsAppAccountId, whatsAppAccounts, whatsAppDefaultAccountId)
+    );
+  }, [searchParams, isWhatsApp, whatsAppAccounts, whatsAppDefaultAccountId, initialWhatsAppAccountId]);
+
+  const withWhatsAppAccountQuery = (href: string, forWhatsApp = isWhatsApp): string => {
+    if (!forWhatsApp || !selectedWhatsAppAccountId) {
+      return href;
+    }
+    const separator = href.includes('?') ? '&' : '?';
+    return `${href}${separator}${WA_ACCOUNT_SEARCH_PARAM}=${encodeURIComponent(selectedWhatsAppAccountId)}`;
+  };
+
   const selectChannelTab = (nextChannel: CommsChannel, nextTab: CommsChannelTab) => {
-    router.push(commsTabHref(nextChannel, nextTab));
+    router.push(withWhatsAppAccountQuery(commsTabHref(nextChannel, nextTab), nextChannel === 'whatsapp'));
+  };
+
+  const handleWhatsAppAccountChange = (accountId: string) => {
+    setSelectedWhatsAppAccountId(accountId);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(WA_ACCOUNT_SEARCH_PARAM, accountId);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+
+    if (tab !== 'templates') {
+      return;
+    }
+
+    setTemplatesLoading(true);
+    void listWhatsAppTemplatesAction({ accountId }).then((result) => {
+      setTemplatesLoading(false);
+      if (result.error) {
+        setSyncMessage(result.error);
+        return;
+      }
+      setWhatsappTemplates(result.templates);
+    });
   };
 
   const handleSyncTemplates = () => {
@@ -172,6 +242,12 @@ export function CommunicationsView({
       try {
         const result = await syncWhatsAppTemplatesAction();
         setSyncMessage(`Synced ${result.synced} template${result.synced === 1 ? '' : 's'} from Convonite.`);
+        if (selectedWhatsAppAccountId) {
+          const refreshed = await listWhatsAppTemplatesAction({ accountId: selectedWhatsAppAccountId });
+          if (!refreshed.error) {
+            setWhatsappTemplates(refreshed.templates);
+          }
+        }
         router.refresh();
       } catch (error) {
         setSyncMessage(error instanceof Error ? error.message : 'Failed to sync templates.');
@@ -302,7 +378,7 @@ export function CommunicationsView({
                       variant="primary"
                       size="sm"
                       leftIcon={<Plus className="h-3.5 w-3.5" />}
-                      onClick={() => router.push(commsTemplateHref(channel, 'new'))}
+                      onClick={() => router.push(withWhatsAppAccountQuery(commsTemplateHref(channel, 'new')))}
                     >
                       New template
                     </Button>
@@ -341,9 +417,23 @@ export function CommunicationsView({
 
           {!isAutomations && tab === 'templates' ? (
             <>
+              {isWhatsApp && whatsAppAccounts.length > 0 ? (
+                <label className="mb-4 flex max-w-md flex-col gap-1.5 text-sm font-semibold text-slate-700">
+                  WhatsApp account
+                  <WhatsAppAccountSelect
+                    accounts={whatsAppAccounts}
+                    value={selectedWhatsAppAccountId}
+                    onChange={handleWhatsAppAccountChange}
+                    accountLocked={whatsAppAccountLocked}
+                    disabled={templatesLoading || isSyncing}
+                  />
+                </label>
+              ) : null}
               {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
               <div className="flex flex-col gap-2">
-                {templates.length === 0 ? (
+                {templatesLoading ? (
+                  <p className="text-sm text-slate-500">Loading templates…</p>
+                ) : (isWhatsApp ? whatsappTemplates : templates).length === 0 ? (
                   <p className="text-sm text-slate-500">
                     No templates yet.
                     {isWhatsApp && !canSyncWhatsAppTemplates
@@ -353,10 +443,10 @@ export function CommunicationsView({
                         : ' Create your first email template.'}
                   </p>
                 ) : isWhatsApp ? (
-                  (templates as WhatsAppTemplate[]).map((template) => (
+                  whatsappTemplates.map((template) => (
                     <Link
                       key={template.id}
-                      href={commsTemplateHref(channel, template.id)}
+                      href={withWhatsAppAccountQuery(commsTemplateHref(channel, template.id))}
                       className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
                     >
                       <div className="flex min-w-0 items-center gap-3">

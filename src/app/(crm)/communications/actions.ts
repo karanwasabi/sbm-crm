@@ -27,6 +27,8 @@ import {
   listBulkLeadWhatsAppSendJobs,
   listBulkLeadWhatsAppSendJobSends,
   listWhatsAppSends,
+  listWhatsAppAccounts,
+  listWhatsAppTemplates,
   ApiError,
   type EmailTemplate,
   type WhatsAppTemplate,
@@ -36,6 +38,7 @@ import {
   type BulkLeadWhatsAppSendJob,
   type BulkLeadWhatsAppSendList,
   type WhatsAppSend,
+  type WhatsAppAccountsPayload,
 } from '@/utils/api';
 import type {
   AutomationGraph,
@@ -82,6 +85,7 @@ export type SaveWhatsAppTemplateInput = {
   purpose: WhatsAppTemplatePurpose;
   runtimeParams: unknown;
   content: unknown;
+  accountId?: string;
 };
 
 export async function saveWhatsAppTemplateAction(
@@ -91,7 +95,15 @@ export async function saveWhatsAppTemplateAction(
   if (templateId) {
     return updateWhatsAppTemplate(templateId, input);
   }
-  return createWhatsAppTemplate(input);
+  return createWhatsAppTemplate({
+    name: input.name,
+    category: input.category,
+    language: input.language,
+    purpose: input.purpose,
+    runtimeParams: input.runtimeParams,
+    content: input.content,
+    accountId: input.accountId,
+  });
 }
 
 export async function submitWhatsAppTemplateAction(
@@ -130,6 +142,31 @@ export async function sendWhatsAppTemplateTestAction(
 
 export async function syncWhatsAppTemplatesAction(): Promise<{ synced: number }> {
   return syncWhatsAppTemplates();
+}
+
+export async function listWhatsAppAccountsAction(): Promise<{
+  payload: WhatsAppAccountsPayload | null;
+  error: string | null;
+}> {
+  try {
+    const payload = await listWhatsAppAccounts();
+    return { payload, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load WhatsApp accounts.';
+    return { payload: null, error: message };
+  }
+}
+
+export async function listWhatsAppTemplatesAction(options?: {
+  accountId?: string;
+}): Promise<{ templates: WhatsAppTemplate[]; error: string | null }> {
+  try {
+    const templates = await listWhatsAppTemplates(options);
+    return { templates, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load WhatsApp templates.';
+    return { templates: [], error: message };
+  }
 }
 
 export type SaveAutomationInput = {

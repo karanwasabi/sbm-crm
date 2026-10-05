@@ -10,6 +10,7 @@ import {
   listBulkLeadWhatsAppSendJobs,
   listEmailTemplates,
   listWhatsAppSends,
+  listWhatsAppAccounts,
   listWhatsAppTemplates,
   type CommsAnalyticsSummary,
   type MarketingContactsSummary,
@@ -17,6 +18,8 @@ import {
   type WhatsAppFlags,
 } from '@/utils/api';
 import type { CommsChannel } from '@/lib/comms-channel';
+import { resolveWhatsAppAccountId } from '@/lib/whatsapp-account';
+import type { WhatsAppAccount } from '@/utils/api';
 
 function rejectedErrorMessage(reason: unknown, fallback: string): string {
   if (reason instanceof ApiError) {
@@ -58,14 +61,38 @@ async function loadCommsHeaderData(): Promise<CommsHeaderData> {
   };
 }
 
-export async function loadCommsTemplatesTab(channel: CommsChannel = 'email') {
-  const [header, templatesResult, flagsResult] = await Promise.all([
+export async function loadCommsTemplatesTab(channel: CommsChannel = 'email', options?: { accountId?: string }) {
+  const [header, flagsResult, accountsResult] = await Promise.all([
     loadCommsHeaderData(),
-    Promise.allSettled([channel === 'whatsapp' ? listWhatsAppTemplates() : listEmailTemplates()]).then(([r]) => r),
     channel === 'whatsapp'
       ? Promise.allSettled([getWhatsAppFlags()]).then(([r]) => r)
       : Promise.resolve({ status: 'fulfilled' as const, value: DEFAULT_WHATSAPP_FLAGS }),
+    channel === 'whatsapp'
+      ? Promise.allSettled([listWhatsAppAccounts()]).then(([r]) => r)
+      : Promise.resolve({ status: 'fulfilled' as const, value: null }),
   ]);
+
+  let whatsAppAccounts: WhatsAppAccount[] = [];
+  let whatsAppDefaultAccountId = '';
+  let whatsAppAccountLocked = false;
+  let selectedWhatsAppAccountId = '';
+
+  if (channel === 'whatsapp' && accountsResult.status === 'fulfilled' && accountsResult.value) {
+    whatsAppAccounts = accountsResult.value.accounts;
+    whatsAppDefaultAccountId = accountsResult.value.defaultAccountId;
+    whatsAppAccountLocked = accountsResult.value.accountLocked;
+    selectedWhatsAppAccountId = resolveWhatsAppAccountId(
+      options?.accountId,
+      whatsAppAccounts,
+      whatsAppDefaultAccountId
+    );
+  }
+
+  const templatesResult = await Promise.allSettled([
+    channel === 'whatsapp'
+      ? listWhatsAppTemplates(selectedWhatsAppAccountId ? { accountId: selectedWhatsAppAccountId } : undefined)
+      : listEmailTemplates(),
+  ]).then(([r]) => r);
 
   return {
     section: channel as CommsChannel,
@@ -73,6 +100,10 @@ export async function loadCommsTemplatesTab(channel: CommsChannel = 'email') {
     ...header,
     templates: templatesResult.status === 'fulfilled' ? templatesResult.value : [],
     whatsappFlags: flagsResult.status === 'fulfilled' ? flagsResult.value : DEFAULT_WHATSAPP_FLAGS,
+    whatsAppAccounts,
+    whatsAppDefaultAccountId,
+    whatsAppAccountLocked,
+    selectedWhatsAppAccountId,
   };
 }
 

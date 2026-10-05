@@ -4202,8 +4202,28 @@ export async function retryBulkLeadEmailSendFailures(
   return (await response.json()) as { job_id: string; status: string; requeued_failures: number };
 }
 
+export type WhatsAppAccount = {
+  id: string;
+  slug: string;
+  displayName: string;
+  phoneE164?: string;
+  kind: string;
+  isDefault: boolean;
+  active: boolean;
+  linkedUserId?: string;
+  channelsGroupId: string;
+  channelId: string;
+};
+
+export type WhatsAppAccountsPayload = {
+  accounts: WhatsAppAccount[];
+  defaultAccountId: string;
+  accountLocked: boolean;
+};
+
 export type WhatsAppTemplate = {
   id: string;
+  accountId?: string;
   convoniteId?: string;
   name: string;
   status: import('@/lib/whatsapp-template-types').WhatsAppTemplateStatus;
@@ -4219,8 +4239,35 @@ export type WhatsAppTemplate = {
   updatedAt: string;
 };
 
+function mapWhatsAppAccount(row: {
+  id: string;
+  slug: string;
+  display_name: string;
+  phone_e164?: string;
+  kind: string;
+  is_default: boolean;
+  active: boolean;
+  linked_user_id?: string;
+  channels_group_id: string;
+  channel_id: string;
+}): WhatsAppAccount {
+  return {
+    id: row.id,
+    slug: row.slug,
+    displayName: row.display_name,
+    phoneE164: row.phone_e164,
+    kind: row.kind,
+    isDefault: row.is_default,
+    active: row.active,
+    linkedUserId: row.linked_user_id,
+    channelsGroupId: row.channels_group_id,
+    channelId: row.channel_id,
+  };
+}
+
 function mapWhatsAppTemplate(row: {
   id: string;
+  account_id?: string;
   convonite_id?: string;
   name: string;
   status: string;
@@ -4237,6 +4284,7 @@ function mapWhatsAppTemplate(row: {
 }): WhatsAppTemplate {
   return {
     id: row.id,
+    accountId: row.account_id,
     convoniteId: row.convonite_id,
     name: row.name,
     status: row.status as WhatsAppTemplate['status'],
@@ -4270,8 +4318,40 @@ export const getWhatsAppFlags = cache(async (): Promise<WhatsAppFlags> => {
   };
 });
 
-export async function listWhatsAppTemplates(): Promise<WhatsAppTemplate[]> {
-  const response = await requireApiFetch('/admin/comms/whatsapp/templates');
+export async function listWhatsAppAccounts(): Promise<WhatsAppAccountsPayload> {
+  const response = await requireApiFetch('/admin/comms/whatsapp/accounts');
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp accounts.', response.status);
+  }
+  const row = (await response.json()) as {
+    accounts: Parameters<typeof mapWhatsAppAccount>[0][];
+    default_account_id: string;
+    account_locked: boolean;
+  };
+  return {
+    accounts: row.accounts.map(mapWhatsAppAccount),
+    defaultAccountId: row.default_account_id ?? '',
+    accountLocked: row.account_locked ?? false,
+  };
+}
+
+export async function listWhatsAppTemplates(options?: {
+  accountId?: string;
+  status?: WhatsAppTemplate['status'];
+  purpose?: WhatsAppTemplate['purpose'];
+}): Promise<WhatsAppTemplate[]> {
+  const params = new URLSearchParams();
+  if (options?.accountId) {
+    params.set('account_id', options.accountId);
+  }
+  if (options?.status) {
+    params.set('status', options.status);
+  }
+  if (options?.purpose) {
+    params.set('purpose', options.purpose);
+  }
+  const query = params.toString();
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates${query ? `?${query}` : ''}`);
   if (!response.ok) {
     throw new ApiError('Failed to load WhatsApp templates.', response.status);
   }
@@ -4294,10 +4374,12 @@ export async function createWhatsAppTemplate(input: {
   purpose: WhatsAppTemplate['purpose'];
   runtimeParams: unknown;
   content: unknown;
+  accountId?: string;
 }): Promise<WhatsAppTemplate> {
   const response = await requireApiFetch('/admin/comms/whatsapp/templates', {
     method: 'POST',
     body: JSON.stringify({
+      account_id: input.accountId,
       name: input.name,
       category: input.category,
       language: input.language,
@@ -4393,11 +4475,16 @@ export async function sendWhatsAppTemplateTest(id: string, toPhone: string): Pro
 export async function sendLeadWhatsApp(
   leadId: string,
   templateId: string,
-  params?: Record<string, string>
+  params?: Record<string, string>,
+  accountId?: string
 ): Promise<void> {
   const response = await requireApiFetch(`/admin/comms/leads/${leadId}/whatsapp/send`, {
     method: 'POST',
-    body: JSON.stringify({ template_id: templateId, params: params ?? undefined }),
+    body: JSON.stringify({
+      template_id: templateId,
+      params: params ?? undefined,
+      account_id: accountId,
+    }),
   });
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
