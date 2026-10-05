@@ -140,7 +140,7 @@ export async function sendWhatsAppTemplateTestAction(
   }
 }
 
-export async function syncWhatsAppTemplatesAction(): Promise<{ synced: number }> {
+export async function syncWhatsAppTemplatesAction(): Promise<Awaited<ReturnType<typeof syncWhatsAppTemplates>>> {
   return syncWhatsAppTemplates();
 }
 

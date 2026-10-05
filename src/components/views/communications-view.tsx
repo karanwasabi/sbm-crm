@@ -241,7 +241,16 @@ export function CommunicationsView({
     startSync(async () => {
       try {
         const result = await syncWhatsAppTemplatesAction();
-        setSyncMessage(`Synced ${result.synced} template${result.synced === 1 ? '' : 's'} from Convonite.`);
+        const accountRows = result.accounts ?? [];
+        const failed = accountRows.filter((row) => row.error);
+        const zeroSync = accountRows.filter((row) => !row.error && row.synced === 0);
+        let message = `Synced ${result.synced} template${result.synced === 1 ? '' : 's'} from Convonite.`;
+        if (failed.length > 0) {
+          message += ` Failed: ${failed.map((row) => `${row.slug} (${row.error})`).join('; ')}.`;
+        } else if (zeroSync.length > 0) {
+          message += ` No templates returned for: ${zeroSync.map((row) => row.slug).join(', ')} (check Convonite channel/group IDs).`;
+        }
+        setSyncMessage(message);
         if (selectedWhatsAppAccountId) {
           const refreshed = await listWhatsAppTemplatesAction({ accountId: selectedWhatsAppAccountId });
           if (!refreshed.error) {

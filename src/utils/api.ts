@@ -4450,7 +4450,16 @@ export function deactivateWhatsAppTemplate(id: string): Promise<WhatsAppTemplate
   return postWhatsAppTemplateAction(id, 'deactivate');
 }
 
-export async function syncWhatsAppTemplates(): Promise<{ synced: number }> {
+export type WhatsAppTemplateSyncAccountResult = {
+  slug: string;
+  synced: number;
+  error?: string;
+};
+
+export async function syncWhatsAppTemplates(): Promise<{
+  synced: number;
+  accounts?: WhatsAppTemplateSyncAccountResult[];
+}> {
   const response = await requireApiFetch('/admin/comms/whatsapp/templates/sync', {
     method: 'POST',
   });
@@ -4458,7 +4467,18 @@ export async function syncWhatsAppTemplates(): Promise<{ synced: number }> {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to sync WhatsApp templates.', response.status);
   }
-  return (await response.json()) as { synced: number };
+  const row = (await response.json()) as {
+    synced: number;
+    accounts?: { slug: string; synced: number; error?: string }[];
+  };
+  return {
+    synced: row.synced,
+    accounts: row.accounts?.map((account) => ({
+      slug: account.slug,
+      synced: account.synced,
+      error: account.error,
+    })),
+  };
 }
 
 export async function sendWhatsAppTemplateTest(id: string, toPhone: string): Promise<void> {
