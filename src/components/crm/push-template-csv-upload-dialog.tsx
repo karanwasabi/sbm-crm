@@ -230,7 +230,7 @@ export function PushTemplateCsvUploadDialog({
           ) : null}
         </div>
 
-        <DialogFooter className="shrink-0">
+        <DialogFooter className="mx-0 mb-0 shrink-0 gap-2 border-t border-slate-100 bg-slate-50/80 px-5 py-4 sm:justify-end">
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancel
           </Button>
