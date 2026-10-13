@@ -469,32 +469,176 @@ export function renderWhatsAppPreviewText(
   };
 }
 
+/** Meta/Convonite template names: lowercase letters, digits, underscores only. */
+const WHATSAPP_TEMPLATE_NAME_PATTERN = /^[a-z0-9_]+$/;
+/** Named params (first_name) or Meta positional indexes (1, 2, …). */
+const WHATSAPP_VARIABLE_NAME_PATTERN = /^([a-z][a-z0-9_]*|[1-9]\d*)$/;
+const URL_SHORTENER_HOSTS = new Set([
+  'bit.ly',
+  'bitly.com',
+  'tinyurl.com',
+  't.co',
+  'goo.gl',
+  'ow.ly',
+  'is.gd',
+  'buff.ly',
+  'cutt.ly',
+  'rebrand.ly',
+  'rb.gy',
+  'shorturl.at',
+]);
+
+/**
+ * Normalize a template name as the user types: lowercase, spaces/hyphens → `_`,
+ * strip anything that is not a-z / 0-9 / `_`, collapse repeated underscores.
+ * Trailing underscore is kept while typing so `foo_` can become `foo_bar`.
+ */
+export function normalizeWhatsAppTemplateName(raw: string): string {
+  return raw
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_')
+    .replace(/[^a-z0-9_]/g, '')
+    .replace(/_+/g, '_')
+    .replace(/^_+/, '');
+}
+
+/** Final name written to the API (no leading/trailing underscores). */
+export function finalizeWhatsAppTemplateName(raw: string): string {
+  return normalizeWhatsAppTemplateName(raw).replace(/_+$/g, '');
+}
+
+export function validateWhatsAppTemplateName(name: string): string | null {
+  const normalized = finalizeWhatsAppTemplateName(name);
+  if (!normalized) {
+    return 'Template name is required (lowercase letters, numbers, and underscores only).';
+  }
+  if (!WHATSAPP_TEMPLATE_NAME_PATTERN.test(normalized)) {
+    return 'Template name must use only lowercase letters, numbers, and underscores (e.g. reset_3days_missed).';
+  }
+  if (normalized.length > 512) {
+    return 'Template name must be 512 characters or fewer.';
+  }
+  return null;
+}
+
+function isBlockedUrlShortener(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, '');
+    return URL_SHORTENER_HOSTS.has(host);
+  } catch {
+    return false;
+  }
+}
+
+function validateHttpsUrl(url: string, label: string): string | null {
+  const trimmed = url.trim();
+  if (!trimmed) return `${label} needs a URL.`;
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return `${label} needs a valid https:// URL.`;
+  }
+  if (parsed.protocol !== 'https:') {
+    return `${label} must use https:// (not ${parsed.protocol}//).`;
+  }
+  if (isBlockedUrlShortener(trimmed)) {
+    return `${label} cannot use a URL shortener. Use a full branded https link.`;
+  }
+  return null;
+}
+
+function validatePhoneNumber(phone: string, label: string): string | null {
+  const digits = phone.replace(/[^\d+]/g, '');
+  if (!/^\+?\d{7,15}$/.test(digits)) {
+    return `${label} needs a phone number with country code (7–15 digits, e.g. +919876543210).`;
+  }
+  return null;
+}
+
 export function validateWhatsAppTemplateForm(form: WhatsAppTemplateFormContent): string | null {
-  if (!form.body.trim()) {
+  const body = form.body;
+  if (!body.trim()) {
     return 'Message body is required.';
+  }
+  if (body.length > 1024) {
+    return 'Message body must be 1024 characters or fewer.';
+  }
+  if (/ {4,}/.test(body)) {
+    return 'Message body cannot contain 4 or more consecutive spaces (Meta rejects this).';
+  }
+  if (/\n{3,}/.test(body)) {
+    return 'Message body cannot contain more than two consecutive line breaks.';
+  }
+
+  const trimmedBody = body.trim();
+  if (/^\{\{/.test(trimmedBody)) {
+    return 'Message body cannot start with a variable. Add text before {{…}}.';
+  }
+  if (/\}\}$/.test(trimmedBody)) {
+    return 'Message body cannot end with a variable. Add text after {{…}}.';
+  }
+  if (/\{\{[^}]+\}\}\s*\{\{/.test(body)) {
+    return 'Variables cannot be adjacent. Add text between {{…}} placeholders.';
+  }
+
+  if (form.headerFormat === 'text') {
+    const header = form.headerText.trim();
+    if (!header) {
+      return 'Header text is required when a text header is enabled.';
+    }
+    if (header.length > 60) {
+      return 'Header text must be 60 characters or fewer.';
+    }
+    const headerVars = extractVariableNames(header);
+    if (headerVars.length > 1) {
+      return 'Header text can include at most one variable.';
+    }
+  }
+
+  if (form.footer.trim().length > 60) {
+    return 'Footer must be 60 characters or fewer.';
+  }
+  if (extractVariableNames(form.footer).length > 0) {
+    return 'Footer cannot include variables.';
   }
 
   for (const variable of form.variables) {
+    const varName = variable.name.trim();
+    if (!WHATSAPP_VARIABLE_NAME_PATTERN.test(varName)) {
+      return `Variable {{${varName}}} must be a lowercase name (e.g. first_name) or a positional index (e.g. 1).`;
+    }
     if (!variable.example.trim()) {
-      return `Add a sample value for {{${variable.name}}}. Meta requires examples for approval.`;
+      return `Add a sample value for {{${varName}}}. Meta requires examples for approval.`;
     }
   }
 
-  for (const button of form.buttons) {
-    if (!button.text.trim()) continue;
-    if (button.type === 'url' && !button.url?.trim()) {
-      return `Button "${button.text}" needs a URL.`;
-    }
-    if (button.type === 'phone' && !button.phone?.trim()) {
-      return `Button "${button.text}" needs a phone number.`;
-    }
-  }
-
-  if (form.buttons.filter((button) => button.text.trim()).length > 3) {
+  const activeButtons = form.buttons.filter((button) => button.text.trim());
+  if (activeButtons.length > 3) {
     return 'WhatsApp allows up to 3 buttons per template.';
   }
 
+  for (const button of activeButtons) {
+    const label = `Button "${button.text.trim()}"`;
+    if (button.text.trim().length > 25) {
+      return `${label} text must be 25 characters or fewer.`;
+    }
+    if (button.type === 'url') {
+      const urlError = validateHttpsUrl(button.url ?? '', label);
+      if (urlError) return urlError;
+    }
+    if (button.type === 'phone') {
+      const phoneError = validatePhoneNumber(button.phone ?? '', label);
+      if (phoneError) return phoneError;
+    }
+  }
+
   return null;
+}
+
+/** Validates name + content before save/submit to Convonite. */
+export function validateWhatsAppTemplate(name: string, form: WhatsAppTemplateFormContent): string | null {
+  return validateWhatsAppTemplateName(name) ?? validateWhatsAppTemplateForm(form);
 }
 
 export function newWhatsAppButtonId(): string {

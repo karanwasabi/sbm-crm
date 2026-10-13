@@ -26,10 +26,12 @@ import {
   WHATSAPP_LEAD_FIELD_OPTIONS,
   buildWhatsAppRuntimeParams,
   buildWhatsAppTemplateContent,
+  finalizeWhatsAppTemplateName,
   mergeVariablesFromText,
   newWhatsAppButtonId,
+  normalizeWhatsAppTemplateName,
   parseWhatsAppTemplateContent,
-  validateWhatsAppTemplateForm,
+  validateWhatsAppTemplate,
   type WhatsAppButtonType,
   type WhatsAppHeaderFormat,
   type WhatsAppTemplateButton,
@@ -92,7 +94,7 @@ export function WhatsAppTemplateEditor({
   const router = useRouter();
   const bodyRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const [name, setName] = useState(template?.name ?? '');
+  const [name, setName] = useState(() => normalizeWhatsAppTemplateName(template?.name ?? ''));
   const [category, setCategory] = useState<WhatsAppTemplateCategory>(template?.category ?? 'marketing');
   const [language, setLanguage] = useState(template?.language ?? 'en');
   const [purpose, setPurpose] = useState<WhatsAppTemplatePurpose>(template?.purpose ?? 'individual');
@@ -107,6 +109,11 @@ export function WhatsAppTemplateEditor({
 
   const readOnly = !managementEnabled;
   const canEditContent = !readOnly && (status === 'draft' || status === 'rejected');
+  const canEditName = !readOnly && (status === 'draft' || status === 'rejected' || !template?.id);
+
+  const setTemplateName = (value: string) => {
+    setName(normalizeWhatsAppTemplateName(value));
+  };
 
   const advancedJson = useMemo(
     () =>
@@ -164,36 +171,37 @@ export function WhatsAppTemplateEditor({
     updateForm({ buttons: form.buttons.filter((button) => button.id !== id) });
   };
 
+  const persistTemplate = async (): Promise<WhatsAppTemplate | null> => {
+    const finalizedName = finalizeWhatsAppTemplateName(name);
+    const validationError = validateWhatsAppTemplate(finalizedName, form);
+    if (validationError) {
+      setError(validationError);
+      return null;
+    }
+
+    setName(finalizedName);
+    const content = buildWhatsAppTemplateContent(form);
+    const runtimeParams = buildWhatsAppRuntimeParams(form);
+    const saved = await saveWhatsAppTemplateAction(template?.id ?? null, {
+      name: finalizedName,
+      category,
+      language,
+      purpose,
+      runtimeParams,
+      content,
+      accountId: template?.id ? undefined : createAccountId,
+    });
+    setStatus(saved.status);
+    return saved;
+  };
+
   const save = () =>
     startTransition(async () => {
       setError(null);
       setMessage(null);
-
-      if (!name.trim()) {
-        setError('Template name is required.');
-        return;
-      }
-
-      const validationError = validateWhatsAppTemplateForm(form);
-      if (validationError) {
-        setError(validationError);
-        return;
-      }
-
-      const content = buildWhatsAppTemplateContent(form);
-      const runtimeParams = buildWhatsAppRuntimeParams(form);
-
       try {
-        const saved = await saveWhatsAppTemplateAction(template?.id ?? null, {
-          name: name.trim(),
-          category,
-          language,
-          purpose,
-          runtimeParams,
-          content,
-          accountId: template?.id ? undefined : createAccountId,
-        });
-        setStatus(saved.status);
+        const saved = await persistTemplate();
+        if (!saved) return;
         setMessage('Template saved.');
         if (!template?.id) {
           router.replace(`/communications/whatsapp/templates/${saved.id}`);
@@ -212,6 +220,11 @@ export function WhatsAppTemplateEditor({
       setMessage(null);
       try {
         if (action === 'submit') {
+          // Persist latest name/content first so Convonite never sees an invalid draft name.
+          if (canEditContent || canEditName) {
+            const saved = await persistTemplate();
+            if (!saved) return;
+          }
           const result = await submitWhatsAppTemplateAction(template.id);
           if (result.error) {
             setError(result.error);
@@ -277,8 +290,19 @@ export function WhatsAppTemplateEditor({
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Field label="Template name">
-              <TextInput value={name} onChange={setName} placeholder="e.g. join_th_group" disabled={readOnly} />
+            <Field
+              label="Template name"
+              hint="Auto-lowercased. Letters, numbers, and underscores only (e.g. reset_3days_missed)."
+            >
+              <TextInput
+                value={name}
+                onChange={setTemplateName}
+                placeholder="e.g. reset_3days_missed"
+                disabled={!canEditName}
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
             </Field>
             <Field label="Language">
               <AutomationBuilderSelect
