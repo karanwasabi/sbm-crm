@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useMemo, useState, useTransition } from 'react';
-import { ArrowLeft, Clock3, Plus, Save, Trash2 } from 'lucide-react';
+import { useMemo, useRef, useState, useTransition } from 'react';
+import { ArrowLeft, Clock3, Plus, Save, Trash2, Upload } from 'lucide-react';
 import {
   addPushTemplateWeekAction,
   deletePushTemplateAction,
@@ -11,6 +11,7 @@ import {
   putPushTemplateEntriesAction,
   removePushTemplateLastWeekAction,
 } from '@/app/(crm)/push-notifications/actions';
+import { PushTemplateCsvUploadDialog } from '@/components/crm/push-template-csv-upload-dialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -21,6 +22,17 @@ import { TextInput } from '@/components/ui/text-input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/toast';
 import { cn } from '@/lib/cn';
+import {
+  applyPushCsvSelection,
+  collectPushEntriesFromMap,
+  diffPushTemplateCsv,
+  maxWeekFromMap,
+  parsePushTemplateCsv,
+  pushEntryKey,
+  slotsForDay,
+  type PushCsvDiff,
+  type PushCsvParseError,
+} from '@/lib/push-template-csv';
 import type { PushSlot, PushTemplateDetail, PushTemplateEntry, PushTemplateStatus } from '@/utils/api';
 
 const SLOT_META: Record<PushSlot, { label: string; time: string; accent: string; defaultTitle: string }> = {
@@ -37,17 +49,6 @@ const SLOT_META: Record<PushSlot, { label: string; time: string; accent: string;
   },
 };
 
-/** Cohort-relative day (1–7): days 5–6 use 6pm instead of 9pm; day 7 uses noon instead of 3pm. */
-function slotsForDay(day: number): PushSlot[] {
-  if (day === 5 || day === 6) {
-    return ['am_9', 'pm_3', 'pm_6', 'pm_8'];
-  }
-  if (day === 7) {
-    return ['am_9', 'noon', 'pm_8', 'pm_9'];
-  }
-  return ['am_9', 'pm_3', 'pm_8', 'pm_9'];
-}
-
 function slotDefsForDay(day: number) {
   return slotsForDay(day).map((slot) => ({ slot, ...SLOT_META[slot] }));
 }
@@ -59,14 +60,10 @@ type PushTemplateEditorViewProps = {
   template: PushTemplateDetail;
 };
 
-function entryKey(week: number, day: number, slot: PushSlot) {
-  return `${week}:${day}:${slot}`;
-}
-
 function buildMap(entries: PushTemplateEntry[]) {
   const map = new Map<string, { title: string; body: string }>();
   for (const entry of entries) {
-    map.set(entryKey(entry.weekIndex, entry.dayIndex, entry.slot), {
+    map.set(pushEntryKey(entry.weekIndex, entry.dayIndex, entry.slot), {
       title: entry.title,
       body: entry.body,
     });
@@ -88,20 +85,18 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
   const [status, setStatus] = useState<PushTemplateStatus>(template.status);
   const [week, setWeek] = useState(1);
   const [map, setMap] = useState(() => buildMap(template.entries));
-  const maxWeek = useMemo(() => {
-    let max = 1;
-    for (const key of map.keys()) {
-      const w = Number(key.split(':')[0]);
-      if (w > max) max = w;
-    }
-    return Math.max(max, template.maxWeek || 1);
-  }, [map, template.maxWeek]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [csvDialogOpen, setCsvDialogOpen] = useState(false);
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvDiff, setCsvDiff] = useState<PushCsvDiff | null>(null);
+  const [csvParseErrors, setCsvParseErrors] = useState<PushCsvParseError[]>([]);
+  const maxWeek = useMemo(() => maxWeekFromMap(map, template.maxWeek || 1), [map, template.maxWeek]);
 
   const filledSlots = useMemo(() => {
     let filled = 0;
     for (let day = 1; day <= 7; day++) {
       for (const slot of slotsForDay(day)) {
-        const cell = map.get(entryKey(week, day, slot));
+        const cell = map.get(pushEntryKey(week, day, slot));
         if (cell && cell.title.trim() && cell.body.trim()) filled += 1;
       }
     }
@@ -109,7 +104,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
   }, [map, week]);
 
   const setCell = (day: number, slot: PushSlot, field: 'title' | 'body', value: string) => {
-    const key = entryKey(week, day, slot);
+    const key = pushEntryKey(week, day, slot);
     setMap((prev) => {
       const next = new Map(prev);
       const current = next.get(key) ?? { title: '', body: '' };
@@ -119,7 +114,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
   };
 
   const trimCell = (day: number, slot: PushSlot, field: 'title' | 'body') => {
-    const key = entryKey(week, day, slot);
+    const key = pushEntryKey(week, day, slot);
     setMap((prev) => {
       const current = prev.get(key);
       if (!current) return prev;
@@ -131,23 +126,67 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
     });
   };
 
-  const collectEntries = (): PushTemplateEntry[] => {
-    const entries: PushTemplateEntry[] = [];
-    for (let w = 1; w <= maxWeek; w++) {
-      for (let day = 1; day <= 7; day++) {
-        for (const slot of slotsForDay(day)) {
-          const cell = map.get(entryKey(w, day, slot)) ?? { title: '', body: '' };
-          entries.push({
-            weekIndex: w,
-            dayIndex: day,
-            slot,
-            title: cell.title.trim(),
-            body: cell.body.trim(),
-          });
-        }
+  const collectEntries = (): PushTemplateEntry[] => collectPushEntriesFromMap(map, maxWeek);
+
+  const onPickCsv = () => {
+    fileInputRef.current?.click();
+  };
+
+  const onCsvFileChange = async (file: File | null) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = parsePushTemplateCsv(text);
+      setCsvFileName(file.name);
+      setCsvParseErrors(parsed.errors);
+      if (parsed.errors.length > 0) {
+        setCsvDiff(null);
+        setCsvDialogOpen(true);
+        return;
       }
+      setCsvDiff(diffPushTemplateCsv(parsed.rows, map));
+      setCsvDialogOpen(true);
+    } catch (error) {
+      toast({
+        message: error instanceof Error ? error.message : 'Failed to read CSV.',
+        variant: 'error',
+      });
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
-    return entries;
+  };
+
+  const applyCsvImport = (keepEditKeys: Set<string>) => {
+    if (!csvDiff) return;
+    startTransition(async () => {
+      try {
+        const nextMap = applyPushCsvSelection({
+          current: map,
+          additions: csvDiff.additions,
+          edits: csvDiff.edits,
+          keepEditKeys,
+        });
+        const nextMaxWeek = maxWeekFromMap(nextMap, maxWeek);
+        const entries = collectPushEntriesFromMap(nextMap, nextMaxWeek);
+        const updated = await putPushTemplateEntriesAction(template.id, entries);
+        setMap(buildMap(updated.entries));
+        setWeek((current) => Math.min(current, updated.maxWeek || 1));
+        setCsvDialogOpen(false);
+        setCsvDiff(null);
+        const appliedEdits = csvDiff.edits.filter((e) => keepEditKeys.has(e.key)).length;
+        const ignoredEdits = csvDiff.edits.length - appliedEdits;
+        toast({
+          message: `CSV applied: ${appliedEdits} overwrite${appliedEdits === 1 ? '' : 's'}, ${csvDiff.additions.length} addition${csvDiff.additions.length === 1 ? '' : 's'}${ignoredEdits > 0 ? `, ${ignoredEdits} kept current` : ''}.`,
+          variant: 'success',
+        });
+        router.refresh();
+      } catch (error) {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to apply CSV.',
+          variant: 'error',
+        });
+      }
+    });
   };
 
   const saveMeta = () => {
@@ -326,10 +365,26 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-linear-to-r from-brand/[0.06] via-white to-white px-5 py-4">
           <SectionHead
             title="Notification copy"
-            subtitle={`Editing week ${week}. Empty title or body skips that send.`}
+            subtitle={`Editing week ${week}. Empty title or body skips that send. CSV columns: week, day, slot, title, body.`}
             className="mb-0"
           />
           <div className="flex flex-wrap gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(event) => void onCsvFileChange(event.target.files?.[0] ?? null)}
+            />
+            <Button
+              variant="light"
+              size="sm"
+              onClick={onPickCsv}
+              disabled={pending}
+              leftIcon={<Upload className="h-3.5 w-3.5" />}
+            >
+              Upload CSV
+            </Button>
             <Button
               variant="light"
               size="sm"
@@ -380,7 +435,7 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
               </div>
               <div className="grid gap-3 p-4 lg:grid-cols-2">
                 {slotDefsForDay(day).map(({ slot, label, time, accent, defaultTitle }) => {
-                  const cell = map.get(entryKey(week, day, slot)) ?? { title: '', body: '' };
+                  const cell = map.get(pushEntryKey(week, day, slot)) ?? { title: '', body: '' };
                   const ready = Boolean(cell.title.trim() && cell.body.trim());
                   return (
                     <div
@@ -438,6 +493,16 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
           ))}
         </div>
       </Card>
+
+      <PushTemplateCsvUploadDialog
+        open={csvDialogOpen}
+        onOpenChange={setCsvDialogOpen}
+        fileName={csvFileName}
+        diff={csvDiff}
+        parseErrors={csvParseErrors}
+        pending={pending}
+        onApply={applyCsvImport}
+      />
     </div>
   );
 }
