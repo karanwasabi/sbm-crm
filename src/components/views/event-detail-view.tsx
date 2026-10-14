@@ -289,7 +289,7 @@ export function EventDetailView({ event, registrations }: EventDetailViewProps) 
                 <DataTableRow key={registration.id}>
                   <DataTableCell>
                     <Link
-                      href={`/leads/${registration.leadId}`}
+                      href={`/customers/${registration.leadId}`}
                       className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
                     >
                       {registration.leadName || registration.leadEmail}

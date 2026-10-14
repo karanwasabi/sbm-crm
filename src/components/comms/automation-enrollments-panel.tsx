@@ -142,7 +142,7 @@ export function AutomationEnrollmentsPanel({ automationId, graphJson }: Automati
                       <DataTableCell>
                         <div className="min-w-0">
                           <Link
-                            href={`/leads/${enrollment.leadId}`}
+                            href={`/customers/${enrollment.leadId}`}
                             className="truncate text-sm font-semibold text-slate-800 hover:text-brand"
                           >
                             {enrollment.leadName || 'Unnamed lead'}
