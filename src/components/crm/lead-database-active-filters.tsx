@@ -36,7 +36,10 @@ function eventChipLabel(value: string, eventOptions?: EventOption[]): string {
 function eventSlotChipLabel(value: string, eventOptions?: EventOption[]): string {
   for (const event of eventOptions ?? []) {
     const slot = event.slots.find((item) => item.id === value);
-    if (slot) return `${event.name} · ${slot.label}`;
+    if (!slot) continue;
+    // Prefer the readable slot time; append event name only when multiple events exist.
+    if ((eventOptions?.length ?? 0) > 1) return `${slot.label} · ${event.name}`;
+    return slot.label;
   }
   return value;
 }

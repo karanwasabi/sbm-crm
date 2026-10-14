@@ -18,19 +18,23 @@ type MultiSelectField =
   | 'sources'
   | 'coaches'
   | 'referrerCoaches'
-  | 'renewalDurations'
-  | 'eventIds'
-  | 'eventSlotIds';
+  | 'renewalDurations';
+
+type MultiSelectOption = {
+  value: string;
+  label?: string;
+  count?: number;
+};
 
 type LeadDatabaseMultiSelectPopoverProps = {
   label: string;
   icon: LucideIcon;
   field: MultiSelectField;
   filters: LeadDatabaseFilters;
-  options: { value: string; label?: string; count?: number }[];
+  options: MultiSelectOption[];
 };
 
-function optionLabel(field: MultiSelectField, option: { value: string; label?: string }): string {
+function optionLabel(field: MultiSelectField, option: MultiSelectOption): string {
   if (option.label) return option.label;
   if (field === 'sources') return leadSourceLabel(option.value) || option.value;
   if (field === 'coaches' && option.value === 'unassigned') return 'Unassigned';

@@ -3,7 +3,6 @@
 import {
   CalendarClock,
   CalendarPlus,
-  CalendarDays,
   CreditCard,
   Globe,
   GraduationCap,
@@ -15,6 +14,7 @@ import {
 } from 'lucide-react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
+import { EventSlotFilterSheet } from '@/components/crm/event-slot-filter-sheet';
 import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-date-range-popover';
 import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-multi-select-popover';
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
@@ -69,11 +69,6 @@ export function FilterBar({
   unseenUpdatesCount,
   restrictToCreatedByMe = false,
 }: FilterBarProps) {
-  const eventFilterOptions = eventOptions.map((event) => ({ value: event.id, label: event.name }));
-  const eventSlotFilterOptions = eventOptions.flatMap((event) =>
-    event.slots.map((slot) => ({ value: slot.id, label: `${event.name} · ${slot.label}` }))
-  );
-
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
@@ -129,26 +124,7 @@ export function FilterBar({
             filters={filters}
             options={mergeRenewalDurationFilterOptions(filterOptions.renewalDurations)}
           />
-          {eventFilterOptions.length > 0 ? (
-            <>
-              <LeadDatabaseMultiSelectPopover
-                label="Event"
-                icon={CalendarDays}
-                field="eventIds"
-                filters={filters}
-                options={eventFilterOptions}
-              />
-              {eventSlotFilterOptions.length > 0 ? (
-                <LeadDatabaseMultiSelectPopover
-                  label="Event slot"
-                  icon={CalendarClock}
-                  field="eventSlotIds"
-                  filters={filters}
-                  options={eventSlotFilterOptions}
-                />
-              ) : null}
-            </>
-          ) : null}
+          <EventSlotFilterSheet filters={filters} eventOptions={eventOptions} />
           <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
