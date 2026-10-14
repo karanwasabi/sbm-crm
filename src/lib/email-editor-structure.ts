@@ -112,18 +112,11 @@ export function moveComponentBy(component: Component, delta: number): Component 
 
   const nextIndex = index + delta;
   if (nextIndex >= 0 && nextIndex < siblings.length) {
-    // Prefer collection.move so indices stay correct when shifting within the same parent.
-    const collection = siblings as unknown as {
-      move?: (cmp: Component, opts: { at: number }) => void;
-    };
-    if (typeof collection.move === 'function') {
-      collection.move(component, { at: nextIndex });
-    } else {
-      siblings.remove(component, { temporary: true } as never);
-      // After remove, targets above the old index shift down by one.
-      const adjusted = nextIndex > index ? nextIndex - 1 : nextIndex;
-      siblings.add(component, { at: adjusted });
-    }
+    // `nextIndex` is the desired final index. Remove first, then insert at that
+    // index in the shortened collection — do not adjust like Grapes Component.move,
+    // whose `at` means "pre-remove insert slot" and treats `at === index + 1` as a no-op.
+    siblings.remove(component, { temporary: true } as never);
+    siblings.add(component, { at: nextIndex });
     return component;
   }
 
