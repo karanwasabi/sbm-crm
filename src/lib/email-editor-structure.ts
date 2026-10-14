@@ -112,8 +112,18 @@ export function moveComponentBy(component: Component, delta: number): Component 
 
   const nextIndex = index + delta;
   if (nextIndex >= 0 && nextIndex < siblings.length) {
-    siblings.remove(component, { temporary: true } as never);
-    siblings.add(component, { at: nextIndex });
+    // Prefer collection.move so indices stay correct when shifting within the same parent.
+    const collection = siblings as unknown as {
+      move?: (cmp: Component, opts: { at: number }) => void;
+    };
+    if (typeof collection.move === 'function') {
+      collection.move(component, { at: nextIndex });
+    } else {
+      siblings.remove(component, { temporary: true } as never);
+      // After remove, targets above the old index shift down by one.
+      const adjusted = nextIndex > index ? nextIndex - 1 : nextIndex;
+      siblings.add(component, { at: adjusted });
+    }
     return component;
   }
 

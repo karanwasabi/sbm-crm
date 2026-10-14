@@ -6,7 +6,6 @@ const STRUCTURE_TYPES = new Set(['mj-section', 'mj-column', 'mj-group', 'mj-wrap
 function componentFromElement(editor: Editor, el: Element | null): Component | null {
   if (!el) return null;
   try {
-    const all = editor.Components.getComponents();
     // Walk up DOM to find a grapes component element
     let node: Element | null = el;
     while (node) {
@@ -116,10 +115,13 @@ function applyPointerEventsModel(editor: Editor) {
   const style = doc.createElement('style');
   style.id = styleId;
   style.textContent = `
-    [data-gjs-type="mj-section"],
+    /* Let leaf content win hit-testing over section/column chrome. */
+    [data-gjs-type="mj-section"] {
+      pointer-events: none;
+    }
     [data-gjs-type="mj-column"],
     [data-gjs-type="mj-group"],
-    [data-gjs-type="mj-wrapper"] {
+    [data-gjs-type="mj-hero"] {
       pointer-events: auto;
     }
     [data-gjs-type="mj-text"],
@@ -131,7 +133,7 @@ function applyPointerEventsModel(editor: Editor) {
     [data-gjs-type="mj-navbar"] {
       pointer-events: all !important;
       position: relative;
-      z-index: 1;
+      z-index: 2;
     }
   `;
   doc.head.appendChild(style);
@@ -209,14 +211,23 @@ export function installEmailEditorSelectionHitTesting(editor: Editor): () => voi
     }
   };
 
-  // Attach after frame exists
+  // Attach after frame exists — always detach first so frame reloads don't stack handlers.
+  let clickDoc: Document | null = null;
   const attachClick = () => {
+    if (clickDoc) {
+      clickDoc.removeEventListener('click', onCanvasClick, true);
+      clickDoc = null;
+    }
     const doc = editor.Canvas.getDocument();
-    doc?.addEventListener('click', onCanvasClick, true);
+    if (!doc) return;
+    doc.addEventListener('click', onCanvasClick, true);
+    clickDoc = doc;
   };
   const detachClick = () => {
-    const doc = editor.Canvas.getDocument();
-    doc?.removeEventListener('click', onCanvasClick, true);
+    if (clickDoc) {
+      clickDoc.removeEventListener('click', onCanvasClick, true);
+      clickDoc = null;
+    }
   };
 
   editor.on('canvas:frame:load', attachClick);

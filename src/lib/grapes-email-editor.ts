@@ -624,8 +624,10 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
       }
     }
 
-    // Flush-then-guard: commit RTE DOM into the model first so a later render
-    // cannot wipe unsynced text. Keep a short focus-steal guard only after that.
+    // Guard immediately so concurrent Grapes disableEditing cannot sync an empty RTE.
+    // Then flush (temporarily clears the guard, commits DOM → model) and keep a short
+    // post-flush guard for picker/toolbar focus steal.
+    state.toolbarGuard = true;
     void flushActiveTextEditing(editor).finally(() => {
       state.toolbarGuard = true;
       window.setTimeout(() => {

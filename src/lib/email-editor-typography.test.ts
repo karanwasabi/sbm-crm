@@ -32,6 +32,12 @@ describe('sanitizeEmailRichHtml', () => {
     expect(out).not.toContain('<strong>');
     expect(out).not.toContain('<em>');
   });
+
+  it('unwraps nested font wrappers and keeps inner bold', () => {
+    const out = sanitizeEmailRichHtml('<font face="Arial"><b>Hi</b></font>');
+    expect(out).toContain('<b>Hi</b>');
+    expect(out.toLowerCase()).not.toContain('<font');
+  });
 });
 
 describe('clearEmailRichFormatting', () => {

@@ -21,7 +21,8 @@ type ToolbarButton = {
 
 function toolbarButton(command: string, label: string, title: string): ToolbarButton {
   return {
-    attributes: { class: 'fa', title, 'data-sbm-toolbar': command },
+    // Avoid bare `.fa` (empty glyph). Plain label buttons are clearer for ↑↓/T+/B+.
+    attributes: { class: 'sbm-email-tlb', title, 'data-sbm-toolbar': command },
     label,
     command,
   };

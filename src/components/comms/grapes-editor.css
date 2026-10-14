@@ -494,3 +494,12 @@
   background: rgba(244, 94, 67, 0.12);
   color: #c2410c;
 }
+
+/* Structure toolbar ↑↓ / T+ / B+ labels */
+.sbm-grapes-editor .gjs-toolbar .sbm-email-tlb {
+  min-width: 28px;
+  font-family: Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}

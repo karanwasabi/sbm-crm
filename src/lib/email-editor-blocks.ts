@@ -1,11 +1,5 @@
 import type { Editor } from 'grapesjs';
-import {
-  getComponentType,
-  insertContentBelowSelection,
-  isMjmlContentComponent,
-  revealComponent,
-  type InsertContentKind,
-} from '@/lib/email-editor-structure';
+import { getComponentType, isMjmlContentComponent, revealComponent } from '@/lib/email-editor-structure';
 
 const BODY_TEXT =
   '<mj-text color="#475569" font-size="16px" line-height="1.6" padding-top="8px" padding-bottom="8px">Write your message here.</mj-text>';
@@ -65,16 +59,10 @@ export function grapesMjmlBlockOptions(blockId: string): Record<string, unknown>
   }
 }
 
-function blockIdToInsertKind(blockId: string): InsertContentKind | null {
-  if (blockId === 'mj-text') return 'text';
-  if (blockId === 'mj-button') return 'button';
-  if (blockId === 'mj-divider') return 'divider';
-  if (blockId === 'mj-1-column') return 'section-1-col';
-  return null;
-}
-
 /**
- * Curate blocks and prefer click-to-insert below the current selection for content blocks.
+ * Curate blocks and flash/select after a canvas drop.
+ * Intentional inserts use toolbar T+/B+ (not block-tile click) — click handlers race with drag-start
+ * and can insert a duplicate before the user finishes dragging.
  */
 export function installEmailEditorBlocks(editor: Editor): () => void {
   // Relabel / restyle existing plugin blocks after they are registered.
@@ -84,31 +72,6 @@ export function installEmailEditorBlocks(editor: Editor): () => void {
     if (Object.keys(opts).length === 0) continue;
     block.set(opts);
   }
-
-  // Click on a block tile → insert below selection when we have a content target.
-  const onBlockClick = (block: { get?: (k: string) => unknown; id?: string }) => {
-    const id = String(block.get?.('id') ?? block.id ?? '');
-    const kind = blockIdToInsertKind(id);
-    if (!kind) return;
-
-    // Only intercept when something useful is selected (column/content/section).
-    const selected = editor.getSelected();
-    if (!selected || selected.is('wrapper')) return;
-
-    const type = getComponentType(selected);
-    const canRelativeInsert =
-      type === 'mj-column' || type === 'mj-section' || type === 'mj-hero' || isMjmlContentComponent(selected);
-    if (!canRelativeInsert) return;
-
-    const inserted = insertContentBelowSelection(editor, kind);
-    if (inserted) {
-      // Prevent default drop-on-canvas for this click path when possible.
-      revealComponent(editor, inserted);
-    }
-  };
-
-  // Grapes block manager: `block:click` may not exist in all versions — also flash after canvas drop.
-  editor.on('block:click', onBlockClick as never);
 
   const onBlockDragStop = (component?: Parameters<typeof revealComponent>[1]) => {
     if (!component) {
@@ -129,7 +92,6 @@ export function installEmailEditorBlocks(editor: Editor): () => void {
   editor.on('block:drag:stop', onBlockDragStop as never);
 
   return () => {
-    editor.off('block:click', onBlockClick as never);
     editor.off('block:drag:stop', onBlockDragStop as never);
   };
 }

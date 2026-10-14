@@ -53,14 +53,18 @@ export function sanitizeEmailRichHtml(raw: string): string {
     const el = node as HTMLElement;
     const tag = el.tagName;
 
-    // Unwrap disallowed tags, keep children.
+    // Unwrap disallowed tags, keep children, then sanitize those children.
     if (!ALLOWED_TAGS.has(tag)) {
       const parent = el.parentNode;
       if (!parent) return;
+      const moved: Node[] = [];
       while (el.firstChild) {
-        parent.insertBefore(el.firstChild, el);
+        const child = el.firstChild;
+        parent.insertBefore(child, el);
+        moved.push(child);
       }
       parent.removeChild(el);
+      moved.forEach(walk);
       return;
     }
 
@@ -286,13 +290,22 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     }
   };
 
+  let pasteDoc: Document | null = null;
   const attachPaste = () => {
+    if (pasteDoc) {
+      pasteDoc.removeEventListener('paste', onPaste, true);
+      pasteDoc = null;
+    }
     const doc = editor.Canvas.getDocument();
-    doc?.addEventListener('paste', onPaste, true);
+    if (!doc) return;
+    doc.addEventListener('paste', onPaste, true);
+    pasteDoc = doc;
   };
   const detachPaste = () => {
-    const doc = editor.Canvas.getDocument();
-    doc?.removeEventListener('paste', onPaste, true);
+    if (pasteDoc) {
+      pasteDoc.removeEventListener('paste', onPaste, true);
+      pasteDoc = null;
+    }
   };
 
   const onRteDisable = (view?: { model?: Component } | Component) => {
