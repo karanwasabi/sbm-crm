@@ -85,6 +85,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
   const [editIpAllowlist, setEditIpAllowlist] = useState('');
 
   const [secrets, setSecrets] = useState<SecretReveal | null>(null);
+  const [refreshAfterSecrets, setRefreshAfterSecrets] = useState(false);
 
   const { active, inactive } = useMemo(() => {
     const activeClients: PartnerAPIClient[] = [];
@@ -104,13 +105,26 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
     setEditIpAllowlist(formatAllowlist(client.ip_allowlist));
   };
 
-  const showSecrets = (title: string, client: PartnerAPIClient) => {
-    if (!client.api_key && !client.webhook_secret) return;
+  /** Show one-time secrets first; refresh only after the dialog closes so remount cannot wipe them. */
+  const revealSecretsThenRefresh = (title: string, client: PartnerAPIClient) => {
+    if (!client.api_key && !client.webhook_secret) {
+      router.refresh();
+      return;
+    }
     setSecrets({
       title,
       apiKey: client.api_key,
       webhookSecret: client.webhook_secret,
     });
+    setRefreshAfterSecrets(true);
+  };
+
+  const closeSecretsDialog = () => {
+    setSecrets(null);
+    if (refreshAfterSecrets) {
+      setRefreshAfterSecrets(false);
+      router.refresh();
+    }
   };
 
   const handleCreate = () => {
@@ -138,8 +152,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
         setRateLimitRPM('120');
         setIpAllowlist('');
         toast({ message: `Created ${result.name}`, variant: 'success' });
-        showSecrets('Partner created — copy secrets now', result);
-        router.refresh();
+        revealSecretsThenRefresh('Partner created — copy secrets now', result);
       } catch (error) {
         toast({
           message: error instanceof Error ? error.message : 'Failed to create partner.',
@@ -176,8 +189,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
         });
         setEditing(null);
         toast({ message: `Updated ${result.name}`, variant: 'success' });
-        showSecrets('Webhook secret created — copy now', result);
-        router.refresh();
+        revealSecretsThenRefresh('Webhook secret created — copy now', result);
       } catch (error) {
         toast({
           message: error instanceof Error ? error.message : 'Failed to update partner.',
@@ -215,8 +227,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
       try {
         const result = await rotatePartnerAPIClientKeyAction(client.id);
         toast({ message: 'API key rotated', variant: 'success' });
-        showSecrets('New API key — copy now', result);
-        router.refresh();
+        revealSecretsThenRefresh('New API key — copy now', result);
       } catch (error) {
         toast({
           message: error instanceof Error ? error.message : 'Failed to rotate API key.',
@@ -238,8 +249,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
       try {
         const result = await rotatePartnerWebhookSecretAction(client.id);
         toast({ message: 'Webhook secret rotated', variant: 'success' });
-        showSecrets('New webhook secret — copy now', result);
-        router.refresh();
+        revealSecretsThenRefresh('New webhook secret — copy now', result);
       } catch (error) {
         toast({
           message: error instanceof Error ? error.message : 'Failed to rotate webhook secret.',
@@ -375,7 +385,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={secrets !== null} onOpenChange={(open) => !open && setSecrets(null)}>
+      <Dialog open={secrets !== null} onOpenChange={(open) => !open && closeSecretsDialog()}>
         <DialogContent showCloseButton className="gap-0 overflow-hidden rounded-xl p-0 sm:max-w-lg">
           <DialogHeader className="gap-0 border-b border-slate-100 px-6 py-5 pr-12">
             <DialogTitle className="text-lg font-bold text-slate-900">{secrets?.title ?? 'Secrets'}</DialogTitle>
@@ -400,7 +410,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
             ) : null}
           </div>
           <DialogFooter className="border-t border-slate-100 bg-canvas-cool/60 px-6 py-4 sm:justify-end">
-            <Button onClick={() => setSecrets(null)}>Done</Button>
+            <Button onClick={closeSecretsDialog}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
