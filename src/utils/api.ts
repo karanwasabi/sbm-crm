@@ -6478,3 +6478,91 @@ export async function listSurveyOtherAnswers(
   if (!response.ok) await parseApiError(response, 'Failed to load Other answers.');
   return (await response.json()) as SurveyOtherAnswersList;
 }
+
+export type PartnerAPIClient = {
+  id: string;
+  name: string;
+  key_prefix: string;
+  scopes: string[];
+  webhook_url?: string | null;
+  has_webhook: boolean;
+  ip_allowlist: string[];
+  rate_limit_rpm: number;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+  api_key?: string;
+  webhook_secret?: string;
+};
+
+export type CreatePartnerAPIClientInput = {
+  name: string;
+  webhook_url?: string;
+  ip_allowlist?: string[];
+  rate_limit_rpm?: number;
+};
+
+export type PatchPartnerAPIClientInput = {
+  name?: string;
+  webhook_url?: string;
+  clear_webhook?: boolean;
+  ip_allowlist?: string[];
+  rate_limit_rpm?: number;
+};
+
+export async function listPartnerAPIClients(): Promise<PartnerAPIClient[]> {
+  const response = await requireApiFetch('/admin/partner-api-clients');
+  if (!response.ok) await parseApiError(response, 'Failed to load partner API clients.');
+  const payload = (await response.json()) as { items?: PartnerAPIClient[] };
+  return payload.items ?? [];
+}
+
+export async function createPartnerAPIClient(input: CreatePartnerAPIClientInput): Promise<PartnerAPIClient> {
+  const response = await requireApiFetch('/admin/partner-api-clients', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to create partner API client.');
+  return (await response.json()) as PartnerAPIClient;
+}
+
+export async function patchPartnerAPIClient(id: string, input: PatchPartnerAPIClientInput): Promise<PartnerAPIClient> {
+  const response = await requireApiFetch(`/admin/partner-api-clients/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to update partner API client.');
+  return (await response.json()) as PartnerAPIClient;
+}
+
+export async function activatePartnerAPIClient(id: string): Promise<PartnerAPIClient> {
+  const response = await requireApiFetch(`/admin/partner-api-clients/${encodeURIComponent(id)}/activate`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to activate partner API client.');
+  return (await response.json()) as PartnerAPIClient;
+}
+
+export async function deactivatePartnerAPIClient(id: string): Promise<PartnerAPIClient> {
+  const response = await requireApiFetch(`/admin/partner-api-clients/${encodeURIComponent(id)}/deactivate`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to deactivate partner API client.');
+  return (await response.json()) as PartnerAPIClient;
+}
+
+export async function rotatePartnerAPIClientKey(id: string): Promise<PartnerAPIClient> {
+  const response = await requireApiFetch(`/admin/partner-api-clients/${encodeURIComponent(id)}/rotate-api-key`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to rotate API key.');
+  return (await response.json()) as PartnerAPIClient;
+}
+
+export async function rotatePartnerWebhookSecret(id: string): Promise<PartnerAPIClient> {
+  const response = await requireApiFetch(`/admin/partner-api-clients/${encodeURIComponent(id)}/rotate-webhook-secret`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to rotate webhook secret.');
+  return (await response.json()) as PartnerAPIClient;
+}

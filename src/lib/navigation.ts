@@ -5,6 +5,7 @@ import {
   CloudOff,
   Database,
   FileText,
+  KeyRound,
   LayoutDashboard,
   Library,
   MessageSquare,
@@ -55,6 +56,13 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
         superadminOnly: true,
       },
       {
+        id: 'partners',
+        href: '/partners',
+        label: 'Partner API',
+        icon: KeyRound,
+        superadminOnly: true,
+      },
+      {
         id: 'push-notifications',
         href: '/push-notifications',
         label: 'Push notifications',
@@ -84,6 +92,10 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/feedback': { title: 'Feedback', subtitle: 'In-app survey results' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
+  '/partners': {
+    title: 'Partner API',
+    subtitle: 'External marketing API keys and purchase webhooks',
+  },
   '/push-notifications': {
     title: 'Push notifications',
     subtitle: 'Habit nudge templates & cohort assignment',
