@@ -193,6 +193,9 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const subjectInputRef = useRef<HTMLInputElement | null>(null);
   const applyLinkTargetsRef = useRef<(() => void) | null>(null);
+  /** User explicitly chose Styles/Settings — don't snap sidebar back to Blocks on deselect. */
+  const sidebarPinnedRef = useRef(false);
+  const canvasDeviceRef = useRef<CanvasDeviceId>('desktop');
   const [editorReady, setEditorReady] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -203,6 +206,8 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [sidebarTab, setSidebarTab] = useState<SidebarPanelId>('open-blocks');
+
+  canvasDeviceRef.current = canvasDevice;
 
   const [name, setName] = useState(template?.name ?? 'New email template');
   const [classification, setClassification] = useState<EmailTemplateClassification>(
@@ -270,6 +275,9 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       storageManager: false,
       noticeOnUnload: false,
       showOffsets: true,
+      // Critical: Open Style Manager recreates the devices panel when this is true,
+      // which re-renders DeviceManager and snaps the canvas back to Desktop.
+      showDevices: false,
       richTextEditor: {
         // Keep a simple formatting bar (users aren't expected to know Cmd+B / Cmd+I).
         // clear-format is added in installEmailEditorTypography after init.
@@ -352,6 +360,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       getEditorContainerEl: () => containerRef.current,
       isInteractive: () => editorReadyRef.current,
       keepBlocksSticky: true,
+      shouldAutoShowBlocksOnDeselect: () => !sidebarPinnedRef.current,
       onComponentSelected: () => {
         if (!editorReadyRef.current) {
           return;
@@ -359,16 +368,21 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
         // Mirror Grapes sidebar: stay on Blocks while browsing/inserting blocks.
         const blocksActive = Boolean(editor.Panels.getButton('views', 'open-blocks')?.get('active'));
         if (blocksActive) {
+          sidebarPinnedRef.current = false;
           setSidebarTab('open-blocks');
+          return;
+        }
+        if (sidebarPinnedRef.current) {
+          // Keep the panel the user chose (Styles/Settings).
           return;
         }
         const selected = editor.getSelected();
         setSidebarTab(selected && shouldOpenTraitsPanel(selected) ? 'open-tm' : 'open-sm');
       },
       onComponentDeselected: () => {
-        if (editorReadyRef.current) {
-          setSidebarTab('open-blocks');
-        }
+        if (!editorReadyRef.current) return;
+        if (sidebarPinnedRef.current) return;
+        setSidebarTab('open-blocks');
       },
     });
 
@@ -393,7 +407,16 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     window.addEventListener('resize', onWindowResize);
 
     for (const panelId of ['open-blocks', 'open-sm', 'open-tm'] as const) {
-      editor.on(`run:${panelId}`, () => setSidebarTab(panelId));
+      editor.on(`run:${panelId}`, () => {
+        setSidebarTab(panelId);
+        // Re-assert device after panel swaps — OpenStyleManager used to recreate devices-c.
+        setEditorCanvasDevice(editor, canvasDeviceRef.current);
+        window.requestAnimationFrame(() => {
+          if (editorRef.current === editor) {
+            setEditorCanvasDevice(editor, canvasDeviceRef.current);
+          }
+        });
+      });
     }
 
     void (async () => {
@@ -473,13 +496,17 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
   function openSidebarTab(tab: SidebarPanelId) {
     const editor = editorRef.current;
     if (!editor) return;
+    sidebarPinnedRef.current = tab !== 'open-blocks';
     setSidebarTab(tab);
     runEditorPanelCommand(editor, tab);
+    // Keep canvas device stable across Blocks ↔ Styles swaps.
+    setEditorCanvasDevice(editor, canvasDeviceRef.current);
   }
 
   function handleCanvasDevice(device: CanvasDeviceId) {
     const editor = editorRef.current;
     if (!editor) return;
+    canvasDeviceRef.current = device;
     setEditorCanvasDevice(editor, device);
     setCanvasDevice(device);
   }

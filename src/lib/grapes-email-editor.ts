@@ -1080,6 +1080,11 @@ type EditorSelectionUxCallbacks = {
   isInteractive?: () => boolean;
   /** When true (default), keep Blocks open on select if Blocks is already the active sidebar. */
   keepBlocksSticky?: boolean;
+  /**
+   * When false, deselection will not force the Blocks panel open.
+   * Used after the user manually picks Styles/Settings so the sidebar doesn't snap back.
+   */
+  shouldAutoShowBlocksOnDeselect?: () => boolean;
 };
 
 function showBlocksSidebar(editor: Editor, onComponentDeselected?: () => void) {
@@ -1105,6 +1110,7 @@ export function configureEditorSelectionUx(editor: Editor, callbacks: EditorSele
     getEditorContainerEl,
     isInteractive,
     keepBlocksSticky = true,
+    shouldAutoShowBlocksOnDeselect,
   } = callbacks;
 
   editor.on('component:selected', (component: Component) => {
@@ -1134,6 +1140,11 @@ export function configureEditorSelectionUx(editor: Editor, callbacks: EditorSele
       return;
     }
     if (!editor.getSelected()) {
+      // Don't yank back to Blocks when the user explicitly opened Styles/Settings.
+      if (shouldAutoShowBlocksOnDeselect && !shouldAutoShowBlocksOnDeselect()) {
+        onComponentDeselected?.();
+        return;
+      }
       showBlocksSidebar(editor, onComponentDeselected);
     }
   });
