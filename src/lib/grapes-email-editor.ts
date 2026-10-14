@@ -624,10 +624,14 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
       }
     }
 
-    state.toolbarGuard = true;
-    window.setTimeout(() => {
-      state.toolbarGuard = false;
-    }, 1500);
+    // Flush-then-guard: commit RTE DOM into the model first so a later render
+    // cannot wipe unsynced text. Keep a short focus-steal guard only after that.
+    void flushActiveTextEditing(editor).finally(() => {
+      state.toolbarGuard = true;
+      window.setTimeout(() => {
+        state.toolbarGuard = false;
+      }, 400);
+    });
   };
 
   document.addEventListener('mousedown', guardToolbarInteraction, true);
@@ -669,6 +673,8 @@ export function installMergeTokenEditorSupport(editor: Editor): () => void {
         state.contentByComponentId.set(component.getId(), restore);
       } else if (after.trim()) {
         state.contentByComponentId.set(component.getId(), after);
+        // Normalize dual content+children export after a real RTE exit.
+        reconcileMjmlTextComponent(component);
       }
     }
 
@@ -1070,6 +1076,8 @@ type EditorSelectionUxCallbacks = {
   getEditorShellEl?: () => HTMLElement | null;
   getEditorContainerEl?: () => HTMLElement | null;
   isInteractive?: () => boolean;
+  /** When true (default), keep Blocks open on select if Blocks is already the active sidebar. */
+  keepBlocksSticky?: boolean;
 };
 
 function showBlocksSidebar(editor: Editor, onComponentDeselected?: () => void) {
@@ -1082,10 +1090,20 @@ function showStylesSidebar(editor: Editor, onComponentSelected?: () => void) {
   onComponentSelected?.();
 }
 
-/** Style manager on select, blocks on deselect; click-outside and canvas backdrop clear selection. */
+function isSidebarPanelActive(editor: Editor, id: SidebarPanelId): boolean {
+  return Boolean(editor.Panels.getButton('views', id)?.get('active'));
+}
+
+/** Style/traits on select only when not browsing Blocks; Blocks on deselect; click-outside clears selection. */
 export function configureEditorSelectionUx(editor: Editor, callbacks: EditorSelectionUxCallbacks = {}) {
-  const { onComponentSelected, onComponentDeselected, getEditorShellEl, getEditorContainerEl, isInteractive } =
-    callbacks;
+  const {
+    onComponentSelected,
+    onComponentDeselected,
+    getEditorShellEl,
+    getEditorContainerEl,
+    isInteractive,
+    keepBlocksSticky = true,
+  } = callbacks;
 
   editor.on('component:selected', (component: Component) => {
     if (isInteractive && !isInteractive()) {
@@ -1095,6 +1113,13 @@ export function configureEditorSelectionUx(editor: Editor, callbacks: EditorSele
       editor.select();
       return;
     }
+
+    // Stay on Blocks while inserting/browsing blocks — yanking to Styles hides new drops.
+    if (keepBlocksSticky && isSidebarPanelActive(editor, 'open-blocks')) {
+      onComponentSelected?.();
+      return;
+    }
+
     if (shouldOpenTraitsPanel(component)) {
       showTraitsSidebar(editor, onComponentSelected);
       return;

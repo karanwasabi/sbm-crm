@@ -18,6 +18,11 @@ import { SectionHead } from '@/components/ui/section-head';
 import { Skeleton } from '@/components/loading/skeleton';
 import { saveEmailTemplateAction } from '@/app/(crm)/communications/actions';
 import { commsTemplateHref } from '@/lib/comms-channel';
+import { installEmailEditorBlocks, grapesMjmlBlockOptions } from '@/lib/email-editor-blocks';
+import { installEmailEditorPlacementUx } from '@/lib/email-editor-placement';
+import { installEmailEditorSelectionHitTesting } from '@/lib/email-editor-selection';
+import { installEmailEditorStructureGuards } from '@/lib/email-editor-structure';
+import { installEmailEditorTypography } from '@/lib/email-editor-typography';
 import {
   compileEditorHtml,
   cacheAllMergeTargetContent,
@@ -264,9 +269,10 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       fromElement: false,
       storageManager: false,
       noticeOnUnload: false,
-      showOffsets: false,
+      showOffsets: true,
       richTextEditor: {
         // Keep a simple formatting bar (users aren't expected to know Cmd+B / Cmd+I).
+        // clear-format is added in installEmailEditorTypography after init.
         actions: ['bold', 'italic', 'underline', 'link'],
       },
       undoManager: {
@@ -284,6 +290,9 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
           resetBlocks: true,
           resetStyleManager: true,
           useCustomTheme: false,
+          // Slightly tighter than default so column chrome steals fewer content hovers.
+          columnsPadding: '6px 0',
+          block: grapesMjmlBlockOptions,
         },
         'grapesjs-tui-image-editor': {
           upload: true,
@@ -328,7 +337,12 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
 
     editorRef.current = editor;
     editor.UndoManager.stop();
+    const teardownStructureGuards = installEmailEditorStructureGuards(editor);
+    const teardownSelectionHitTesting = installEmailEditorSelectionHitTesting(editor);
+    const teardownTypography = installEmailEditorTypography(editor);
+    const teardownPlacementUx = installEmailEditorPlacementUx(editor);
     registerSbmBlocks(editor);
+    const teardownBlocks = installEmailEditorBlocks(editor);
     protectLogoFromImageEditor(editor);
     const linkTargetSupport = installDefaultLinkTargetSupport(editor);
     applyLinkTargetsRef.current = () => linkTargetSupport.applyAll();
@@ -337,8 +351,15 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       getEditorShellEl: () => editorShellRef.current,
       getEditorContainerEl: () => containerRef.current,
       isInteractive: () => editorReadyRef.current,
+      keepBlocksSticky: true,
       onComponentSelected: () => {
         if (!editorReadyRef.current) {
+          return;
+        }
+        // Mirror Grapes sidebar: stay on Blocks while browsing/inserting blocks.
+        const blocksActive = Boolean(editor.Panels.getButton('views', 'open-blocks')?.get('active'));
+        if (blocksActive) {
+          setSidebarTab('open-blocks');
           return;
         }
         const selected = editor.getSelected();
@@ -425,6 +446,11 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       teardownMergeTokens();
       linkTargetSupport.teardown();
       teardownSelectionUx();
+      teardownBlocks();
+      teardownPlacementUx();
+      teardownTypography();
+      teardownSelectionHitTesting();
+      teardownStructureGuards();
       editor.destroy();
       editorRef.current = null;
     };

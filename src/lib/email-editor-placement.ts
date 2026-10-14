@@ -1,0 +1,99 @@
+import type { Component, Editor } from 'grapesjs';
+import {
+  insertContentBelowSelection,
+  installEmailEditorDragFlush,
+  moveComponentBy,
+  revealComponent,
+} from '@/lib/email-editor-structure';
+
+const STRUCTURE_TOOLBAR_COMMANDS = {
+  moveUp: 'sbm-email-move-up',
+  moveDown: 'sbm-email-move-down',
+  insertText: 'sbm-email-insert-text',
+  insertButton: 'sbm-email-insert-button',
+} as const;
+
+type ToolbarButton = {
+  attributes?: Record<string, string>;
+  label?: string;
+  command: string;
+};
+
+function toolbarButton(command: string, label: string, title: string): ToolbarButton {
+  return {
+    attributes: { class: 'fa', title, 'data-sbm-toolbar': command },
+    label,
+    command,
+  };
+}
+
+function withStructureToolbar(component: Component) {
+  const existing = (component.get('toolbar') as ToolbarButton[] | undefined) ?? [];
+  const filtered = existing.filter((btn) => !String(btn.command ?? '').startsWith('sbm-email-'));
+
+  const toolbar: ToolbarButton[] = [
+    toolbarButton(STRUCTURE_TOOLBAR_COMMANDS.moveUp, '↑', 'Move up'),
+    toolbarButton(STRUCTURE_TOOLBAR_COMMANDS.moveDown, '↓', 'Move down'),
+    toolbarButton(STRUCTURE_TOOLBAR_COMMANDS.insertText, 'T+', 'Insert text below'),
+    toolbarButton(STRUCTURE_TOOLBAR_COMMANDS.insertButton, 'B+', 'Insert button below'),
+    ...filtered,
+  ];
+
+  component.set('toolbar', toolbar);
+}
+
+/**
+ * Toolbar move/insert actions, drag RTE flush, and post-op reveal.
+ */
+export function installEmailEditorPlacementUx(editor: Editor): () => void {
+  const teardownDragFlush = installEmailEditorDragFlush(editor);
+
+  editor.Commands.add(STRUCTURE_TOOLBAR_COMMANDS.moveUp, {
+    run(ed) {
+      const selected = ed.getSelected();
+      if (!selected) return;
+      const moved = moveComponentBy(selected, -1);
+      if (moved) revealComponent(ed, moved);
+    },
+  });
+
+  editor.Commands.add(STRUCTURE_TOOLBAR_COMMANDS.moveDown, {
+    run(ed) {
+      const selected = ed.getSelected();
+      if (!selected) return;
+      const moved = moveComponentBy(selected, 1);
+      if (moved) revealComponent(ed, moved);
+    },
+  });
+
+  editor.Commands.add(STRUCTURE_TOOLBAR_COMMANDS.insertText, {
+    run(ed) {
+      const inserted = insertContentBelowSelection(ed, 'text');
+      if (inserted) revealComponent(ed, inserted);
+    },
+  });
+
+  editor.Commands.add(STRUCTURE_TOOLBAR_COMMANDS.insertButton, {
+    run(ed) {
+      const inserted = insertContentBelowSelection(ed, 'button');
+      if (inserted) revealComponent(ed, inserted);
+    },
+  });
+
+  const onSelected = (component: Component) => {
+    if (!component || component.is('wrapper')) return;
+    const type = String(component.get('type') ?? '');
+    if (!type.startsWith('mj-') || type === 'mj-body' || type === 'mj-head') return;
+    withStructureToolbar(component);
+  };
+
+  editor.on('component:selected', onSelected);
+
+  return () => {
+    teardownDragFlush();
+    editor.off('component:selected', onSelected);
+    for (const cmd of Object.values(STRUCTURE_TOOLBAR_COMMANDS)) {
+      editor.Commands.remove(cmd);
+    }
+  };
+}

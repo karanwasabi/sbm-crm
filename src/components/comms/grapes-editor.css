@@ -432,6 +432,37 @@
   margin-left: auto;
 }
 
+/* Drop / hover targeting — stronger contrast so placement is obvious */
+.sbm-grapes-editor .gjs-highlighter,
+.sbm-grapes-editor .gjs-highlighter-sel {
+  outline: 2px solid #f45e43 !important;
+  outline-offset: 1px;
+}
+
+.sbm-grapes-editor .gjs-placeholder {
+  border: 2px dashed #f45e43 !important;
+  background: rgba(244, 94, 67, 0.08) !important;
+}
+
+/* Flash newly inserted / moved blocks so they are findable */
+.sbm-grapes-editor .sbm-email-flash,
+.gjs-frame .sbm-email-flash {
+  animation: sbm-email-flash-outline 1.4s ease-out;
+}
+
+@keyframes sbm-email-flash-outline {
+  0% {
+    outline: 3px solid rgba(244, 94, 67, 0.95);
+    outline-offset: 2px;
+    background-color: rgba(244, 94, 67, 0.12);
+  }
+  100% {
+    outline: 3px solid rgba(244, 94, 67, 0);
+    outline-offset: 2px;
+    background-color: transparent;
+  }
+}
+
 /* Floating text-format bar (Bold / Italic / Underline / Link) — only while editing text */
 .gjs-rte-toolbar {
   z-index: 20;
