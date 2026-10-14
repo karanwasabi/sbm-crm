@@ -31,6 +31,7 @@ import { PointAAssessmentCard } from '@/components/crm/point-a-assessment-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
 import { IntakeAnswersCard } from '@/components/leads/intake-answers-card';
+import { LeadEventRegistrationsCard } from '@/components/leads/lead-event-registrations-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
 import { ManualIntakeRecordsCard } from '@/components/crm/manual-intake-records-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
@@ -49,6 +50,7 @@ import { useDisplayTimezone } from '@/hooks/use-display-timezone';
 import { cn } from '@/lib/cn';
 import type { EmailTemplate, WhatsAppFlags, WhatsAppTemplate } from '@/utils/api';
 import type { LeadDetail, ProgramHistoryItem, TagSuggestion } from '@/types/crm';
+import type { LeadEventRegistration } from '@/types/events';
 import type { Country } from '@/types/reference';
 
 const CallLogModal = dynamic(
@@ -64,6 +66,7 @@ type Customer360ViewProps = {
   whatsappFlags: WhatsAppFlags;
   tagSuggestions: TagSuggestion[];
   countries: Country[];
+  eventRegistrations?: LeadEventRegistration[];
   canSyncPayment?: boolean;
 };
 
@@ -112,6 +115,7 @@ export function Customer360View({
   whatsappFlags,
   tagSuggestions,
   countries,
+  eventRegistrations = [],
   canSyncPayment = false,
 }: Customer360ViewProps) {
   const router = useRouter();
@@ -419,6 +423,7 @@ export function Customer360View({
       >
         <ActivityTimeline events={lead.timeline} />
         <div className="flex w-full flex-col items-start gap-4">
+          <LeadEventRegistrationsCard registrations={eventRegistrations} canLinkToEvents={canSyncPayment} />
           <IntakeAnswersCard customFields={lead.customFields ?? {}} />
           {canMutate ? (
             <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />

@@ -14,6 +14,7 @@ import type {
   EventRegistration,
   EventSlot,
   EventStatus,
+  LeadEventRegistration,
   UpdateEventInput,
   UpdateEventSlotInput,
 } from '@/types/events';
@@ -6642,6 +6643,19 @@ type ApiEventRegistration = {
   updated_at: string;
 };
 
+type ApiLeadEventRegistration = {
+  id: string;
+  event_id: string;
+  event_name: string;
+  event_slug: string;
+  event_status: string;
+  slot_id: string;
+  slot_label: string;
+  slot_starts_at: string;
+  created_at: string;
+  updated_at: string;
+};
+
 type ApiEventOption = {
   id: string;
   name: string;
@@ -6767,6 +6781,24 @@ export async function listEventRegistrations(eventId: string): Promise<EventRegi
   if (!response.ok) await parseApiError(response, 'Failed to load registrations.');
   const payload = (await response.json()) as ApiEventRegistration[] | null;
   return (payload ?? []).map(mapEventRegistration);
+}
+
+export async function listLeadEventRegistrations(leadId: string): Promise<LeadEventRegistration[]> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/event-registrations`);
+  if (!response.ok) await parseApiError(response, 'Failed to load event registrations.');
+  const payload = (await response.json()) as ApiLeadEventRegistration[] | null;
+  return (payload ?? []).map((row) => ({
+    id: row.id,
+    eventId: row.event_id,
+    eventName: row.event_name,
+    eventSlug: row.event_slug,
+    eventStatus: row.event_status,
+    slotId: row.slot_id,
+    slotLabel: row.slot_label,
+    slotStartsAt: row.slot_starts_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  }));
 }
 
 export const listEventOptions = cache(async (): Promise<EventOption[]> => {

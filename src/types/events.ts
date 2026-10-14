@@ -42,6 +42,19 @@ export type EventRegistration = {
   updatedAt: string;
 };
 
+export type LeadEventRegistration = {
+  id: string;
+  eventId: string;
+  eventName: string;
+  eventSlug: string;
+  eventStatus: EventStatus | string;
+  slotId: string;
+  slotLabel: string;
+  slotStartsAt: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type EventOptionSlot = {
   id: string;
   label: string;

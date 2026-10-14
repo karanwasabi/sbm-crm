@@ -8,6 +8,7 @@ import {
   getMyAccess,
   getWhatsAppFlags,
   listEmailTemplates,
+  listLeadEventRegistrations,
   listTagSuggestions,
   listWhatsAppTemplates,
   fetchCountries,
@@ -28,13 +29,15 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
   try {
     const [lead, access] = await Promise.all([getLead(id), getMyAccess()]);
     const whatsappFlags = await getWhatsAppFlags().catch(() => DEFAULT_WHATSAPP_FLAGS);
-    const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions, countries] = await Promise.all([
-      lead.memberUserId != null ? getMemberEnrollments(lead.memberUserId).catch(() => []) : Promise.resolve([]),
-      listEmailTemplates().catch(() => []),
-      whatsappFlags.sendsEnabled ? listWhatsAppTemplates().catch(() => []) : Promise.resolve([]),
-      listTagSuggestions().catch(() => []),
-      fetchCountries().catch(() => []),
-    ]);
+    const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions, countries, eventRegistrations] =
+      await Promise.all([
+        lead.memberUserId != null ? getMemberEnrollments(lead.memberUserId).catch(() => []) : Promise.resolve([]),
+        listEmailTemplates().catch(() => []),
+        whatsappFlags.sendsEnabled ? listWhatsAppTemplates().catch(() => []) : Promise.resolve([]),
+        listTagSuggestions().catch(() => []),
+        fetchCountries().catch(() => []),
+        listLeadEventRegistrations(id).catch(() => []),
+      ]);
     return (
       <Customer360View
         lead={lead}
@@ -44,6 +47,7 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
         whatsappFlags={whatsappFlags}
         tagSuggestions={tagSuggestions}
         countries={countries}
+        eventRegistrations={eventRegistrations}
         canSyncPayment={isSuperadmin(access.roles)}
       />
     );
