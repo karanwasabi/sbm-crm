@@ -292,6 +292,7 @@ export class EmailCanvasLayer {
   private readonly editor: Editor;
   private readonly state: CanvasLayerState;
   private originalRteDisable: Editor['RichTextEditor']['disable'] | null = null;
+  private preserveClearTimer: number | null = null;
 
   constructor(editor: Editor) {
     this.editor = editor;
@@ -401,7 +402,12 @@ export class EmailCanvasLayer {
     }
     if (kind === 'sbm-chrome') {
       this.captureCaretFromSelection();
-      this.state.preserveEditing = true;
+      // Only hold RTE open when a text session is actually active. Setting this while idle
+      // left preserveEditing stuck true and blocked later double-click / structure toolbar.
+      if (this.isActivelyEditing()) {
+        this.state.preserveEditing = true;
+        this.scheduleClearPreserveEditing();
+      }
       return;
     }
     if (kind === 'structure-toolbar') {
@@ -415,7 +421,58 @@ export class EmailCanvasLayer {
   }
 
   endChromeInteraction() {
+    this.clearPreserveEditing();
+  }
+
+  private isActivelyEditing(): boolean {
+    const currentView = this.editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
+    if (currentView?.rteEnabled) return true;
+    return this.state.phase === 'editing';
+  }
+
+  private clearPreserveEditing() {
+    if (this.preserveClearTimer != null) {
+      window.clearTimeout(this.preserveClearTimer);
+      this.preserveClearTimer = null;
+    }
     this.state.preserveEditing = false;
+  }
+
+  private scheduleClearPreserveEditing() {
+    if (this.preserveClearTimer != null) {
+      window.clearTimeout(this.preserveClearTimer);
+    }
+    // Clear after the chrome click finishes so format/variable pickers can keep focus briefly,
+    // but never leave the flag stuck across the next canvas interaction.
+    this.preserveClearTimer = window.setTimeout(() => {
+      this.preserveClearTimer = null;
+      this.state.preserveEditing = false;
+    }, 0);
+  }
+
+  /** Recover if Grapes still thinks a view is editing after paste / chrome interactions. */
+  private healStaleEditing() {
+    this.clearPreserveEditing();
+    const currentView = this.editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
+    // A live RTE session must not be torn down — only orphaned rteEnabled flags.
+    if (currentView?.rteEnabled) return;
+
+    const candidates = new Set<TextComponentView>();
+    const selectedView = this.editor.getSelected()?.view as TextComponentView | undefined;
+    if (selectedView) candidates.add(selectedView);
+    const last = findComponentById(this.editor, this.state.lastEditableComponentId);
+    const lastView = last?.view as TextComponentView | undefined;
+    if (lastView) candidates.add(lastView);
+
+    for (const view of candidates) {
+      if (view.rteEnabled && view.disableEditing) {
+        void view.disableEditing();
+      }
+    }
+
+    if (this.state.phase === 'editing') {
+      this.state.phase = this.editor.getSelected() ? 'selected' : 'idle';
+    }
   }
 
   private captureCaretFromSelection() {
@@ -450,14 +507,17 @@ export class EmailCanvasLayer {
     this.rememberContent(component);
     if (wasEditing) this.saveCaret(component);
 
-    const previousPreserve = this.state.preserveEditing;
-    this.state.preserveEditing = false;
+    this.clearPreserveEditing();
     try {
       if (view?.rteEnabled && view.disableEditing) {
         await view.disableEditing();
       }
     } finally {
-      this.state.preserveEditing = options.resume ? false : previousPreserve;
+      // Never restore a stale preserveEditing=true after a flush — that is what
+      // left the canvas unable to leave text-edit mode after chrome clicks / paste.
+      if (!options.resume) {
+        this.clearPreserveEditing();
+      }
     }
 
     this.rememberContent(component);
@@ -658,12 +718,38 @@ export class EmailCanvasLayer {
       this.saveCaret(target);
       this.rememberContent(target);
     };
+    const onFramePointerDown = (event: Event) => {
+      const wasPreserving = this.state.preserveEditing;
+      // Clear a leftover preserveEditing from chrome clicks so disableEditing can run.
+      if (wasPreserving) {
+        this.clearPreserveEditing();
+      }
+
+      const currentView = this.editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
+      if (!currentView) {
+        this.healStaleEditing();
+        return;
+      }
+
+      // If preserveEditing was stuck, clicks outside the active editable must force-exit RTE
+      // so double-click / structure toolbar work again.
+      if (!wasPreserving || !currentView.rteEnabled) return;
+      const editable = getEditableElement(currentView.model);
+      const target = event.target;
+      if (editable && target instanceof Node && editable.contains(target)) return;
+      if (currentView.disableEditing) {
+        void currentView.disableEditing();
+      }
+      this.state.phase = this.editor.getSelected() ? 'selected' : 'idle';
+    };
 
     doc.addEventListener('mousemove', onPointerMove, true);
     doc.addEventListener('mouseleave', onPointerLeave, true);
     doc.addEventListener('selectionchange', onSelectionChange);
     doc.addEventListener('keyup', onSelectionChange);
     doc.addEventListener('mouseup', onSelectionChange);
+    doc.addEventListener('mousedown', onFramePointerDown, true);
+    doc.addEventListener('dblclick', onFramePointerDown, true);
     doc.defaultView?.addEventListener('blur', onFrameBlur);
 
     this.state.teardownFrame = () => {
@@ -672,6 +758,8 @@ export class EmailCanvasLayer {
       doc.removeEventListener('selectionchange', onSelectionChange);
       doc.removeEventListener('keyup', onSelectionChange);
       doc.removeEventListener('mouseup', onSelectionChange);
+      doc.removeEventListener('mousedown', onFramePointerDown, true);
+      doc.removeEventListener('dblclick', onFramePointerDown, true);
       doc.defaultView?.removeEventListener('blur', onFrameBlur);
     };
   }
@@ -683,6 +771,11 @@ export class EmailCanvasLayer {
     if (kind === 'rte-toolbar' || kind === 'sbm-chrome' || kind === 'structure-toolbar' || kind === 'outside') {
       this.beginChromeInteraction(kind);
     }
+  };
+
+  private onParentPointerUp = () => {
+    if (!this.state.preserveEditing) return;
+    this.scheduleClearPreserveEditing();
   };
 
   private onHoverBefore = (component: Component, opts: { abort?: boolean }) => {
@@ -723,15 +816,23 @@ export class EmailCanvasLayer {
     }
   };
 
-  private onRteEnable = () => {
-    const currentView = this.editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
+  private onRteEnable = (...args: unknown[]) => {
+    // Grapes fires rte:enable before currentView is set; prefer the view from the event.
+    const eventView = args[0] as TextComponentView | undefined;
+    const currentView =
+      eventView?.model != null
+        ? eventView
+        : ((this.editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined) ?? undefined);
+    this.clearPreserveEditing();
     this.patchDisableEditing(currentView);
     this.state.phase = 'editing';
     if (currentView?.model) {
       this.state.lastEditableComponentId = currentView.model.getId();
     }
     window.setTimeout(() => {
-      if (!this.editor.RichTextEditor.model.get('currentView')) return;
+      const live = this.editor.RichTextEditor.model.get('currentView') as TextComponentView | undefined;
+      if (live) this.patchDisableEditing(live);
+      if (!live) return;
       const toolbar = this.editor.RichTextEditor.getToolbarEl();
       if (toolbar) toolbar.style.display = '';
       this.editor.RichTextEditor.updatePosition();
@@ -804,6 +905,8 @@ export class EmailCanvasLayer {
 
     document.addEventListener('mousedown', this.onParentPointerDown, true);
     document.addEventListener('pointerdown', this.onParentPointerDown, true);
+    document.addEventListener('mouseup', this.onParentPointerUp, true);
+    document.addEventListener('pointerup', this.onParentPointerUp, true);
 
     this.editor.on('canvas:frame:load', this.onFrameLoad);
     this.editor.on('canvas:frame:unload', this.onFrameUnload);
@@ -811,7 +914,7 @@ export class EmailCanvasLayer {
     this.editor.on('component:hover:before', this.onHoverBefore as never);
     this.editor.on('component:select:before', this.onSelectBefore as never);
     this.editor.on('component:selected', this.onComponentSelected);
-    this.editor.on('rte:enable', this.onRteEnable);
+    this.editor.on('rte:enable', this.onRteEnable as never);
     this.editor.on('rte:disable', this.onRteDisable);
 
     this.bindFrame();
@@ -820,16 +923,19 @@ export class EmailCanvasLayer {
   }
 
   teardown() {
+    this.clearPreserveEditing();
     this.state.teardownFrame?.();
     document.removeEventListener('mousedown', this.onParentPointerDown, true);
     document.removeEventListener('pointerdown', this.onParentPointerDown, true);
+    document.removeEventListener('mouseup', this.onParentPointerUp, true);
+    document.removeEventListener('pointerup', this.onParentPointerUp, true);
     this.editor.off('canvas:frame:load', this.onFrameLoad);
     this.editor.off('canvas:frame:unload', this.onFrameUnload);
     this.editor.off('load', this.onFrameLoad);
     this.editor.off('component:hover:before', this.onHoverBefore as never);
     this.editor.off('component:select:before', this.onSelectBefore as never);
     this.editor.off('component:selected', this.onComponentSelected);
-    this.editor.off('rte:enable', this.onRteEnable);
+    this.editor.off('rte:enable', this.onRteEnable as never);
     this.editor.off('rte:disable', this.onRteDisable);
     if (this.originalRteDisable) {
       this.editor.RichTextEditor.disable = this.originalRteDisable;

@@ -32,6 +32,20 @@ const BUTTON_STYLE_DEFAULT = {
 } as const;
 
 const ALLOWED_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'A', 'BR', 'P', 'DIV', 'SPAN']);
+const DROP_WITH_CONTENT = new Set([
+  'STYLE',
+  'SCRIPT',
+  'META',
+  'LINK',
+  'TITLE',
+  'XML',
+  'HEAD',
+  'IMG',
+  'NOSCRIPT',
+  'IFRAME',
+  'OBJECT',
+  'EMBED',
+]);
 
 /** Sanitize pasted / RTE HTML down to email-safe inline formatting. */
 export function sanitizeEmailRichHtml(raw: string): string {
@@ -46,6 +60,19 @@ export function sanitizeEmailRichHtml(raw: string): string {
   const root = doc.getElementById('sbm-root');
   if (!root) return sanitizeEmailRichHtmlFallback(raw);
 
+  const unwrapKeepingChildren = (el: HTMLElement): Node[] => {
+    const parent = el.parentNode;
+    if (!parent) return [];
+    const moved: Node[] = [];
+    while (el.firstChild) {
+      const child = el.firstChild;
+      parent.insertBefore(child, el);
+      moved.push(child);
+    }
+    parent.removeChild(el);
+    return moved;
+  };
+
   const walk = (node: Node) => {
     if (node.nodeType === Node.COMMENT_NODE) {
       node.parentNode?.removeChild(node);
@@ -56,27 +83,27 @@ export function sanitizeEmailRichHtml(raw: string): string {
     const el = node as HTMLElement;
     const tag = el.tagName;
 
+    if (DROP_WITH_CONTENT.has(tag) || tag.includes(':')) {
+      el.parentNode?.removeChild(el);
+      return;
+    }
+
     // Unwrap disallowed tags, keep children, then sanitize those children.
     if (!ALLOWED_TAGS.has(tag)) {
-      const parent = el.parentNode;
-      if (!parent) return;
-      const moved: Node[] = [];
-      while (el.firstChild) {
-        const child = el.firstChild;
-        parent.insertBefore(child, el);
-        moved.push(child);
-      }
-      parent.removeChild(el);
-      moved.forEach(walk);
+      unwrapKeepingChildren(el).forEach(walk);
       return;
     }
 
     // Normalize semantic tags
     if (tag === 'STRONG') {
-      renameElement(el, 'b');
-    } else if (tag === 'EM') {
-      renameElement(el, 'i');
-    } else if (tag === 'SPAN') {
+      walk(renameElement(el, 'b'));
+      return;
+    }
+    if (tag === 'EM') {
+      walk(renameElement(el, 'i'));
+      return;
+    }
+    if (tag === 'SPAN') {
       const weight = el.style.fontWeight;
       const isBold = weight === 'bold' || Number(weight) >= 600;
       const isItalic = el.style.fontStyle === 'italic';
@@ -86,32 +113,29 @@ export function sanitizeEmailRichHtml(raw: string): string {
         if (isBold) current = wrapWith(current, 'b');
         if (isItalic) current = wrapWith(current, 'i');
         if (isUnderline) current = wrapWith(current, 'u');
-        // unwrap span
-        const parent = el.parentNode;
-        if (parent) {
-          while (el.firstChild) parent.insertBefore(el.firstChild, el);
-          parent.removeChild(el);
-        }
+        unwrapKeepingChildren(el).forEach(walk);
         return;
       }
-      // plain span → unwrap
-      const parent = el.parentNode;
-      if (parent) {
-        while (el.firstChild) parent.insertBefore(el.firstChild, el);
-        parent.removeChild(el);
-      }
+      unwrapKeepingChildren(el).forEach(walk);
       return;
-    } else if (tag === 'P' || tag === 'DIV') {
-      // Convert block wrappers to line breaks between content
+    }
+    if (tag === 'P' || tag === 'DIV') {
       const parent = el.parentNode;
-      if (parent) {
-        if (el.previousSibling) {
-          parent.insertBefore(doc.createElement('br'), el);
-        }
-        while (el.firstChild) parent.insertBefore(el.firstChild, el);
-        parent.removeChild(el);
+      if (parent && el.previousSibling) {
+        parent.insertBefore(doc.createElement('br'), el);
       }
+      unwrapKeepingChildren(el).forEach(walk);
       return;
+    }
+
+    // Google Docs wraps the paste in <b style="font-weight:normal" id="docs-internal-guid-…">
+    if (tag === 'B') {
+      const id = el.getAttribute('id') || '';
+      const weight = (el.style.fontWeight || '').toLowerCase();
+      if (id.startsWith('docs-internal-guid') || weight === 'normal' || weight === '400') {
+        unwrapKeepingChildren(el).forEach(walk);
+        return;
+      }
     }
 
     // Strip all attributes except href/target/rel on anchors
@@ -134,11 +158,12 @@ export function sanitizeEmailRichHtml(raw: string): string {
   return ensureEmailLinksOpenInNewTab(html);
 }
 
-function renameElement(el: HTMLElement, tagName: string) {
+function renameElement(el: HTMLElement, tagName: string): HTMLElement {
   const doc = el.ownerDocument;
   const next = doc.createElement(tagName);
   while (el.firstChild) next.appendChild(el.firstChild);
   el.parentNode?.replaceChild(next, el);
+  return next;
 }
 
 function wrapWith(el: HTMLElement, tagName: string): HTMLElement {
@@ -193,10 +218,31 @@ export function clearEmailRichFormatting(raw: string): string {
     .replace(/<\/span>/gi, '');
 }
 
-function insertSanitizedHtmlAtSelection(doc: Document, html: string) {
+function escapePlainTextForHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function insertSanitizedHtmlAtSelection(doc: Document, html: string, editable: HTMLElement) {
   const selection = doc.getSelection();
-  if (!selection || !selection.rangeCount) return;
+  if (!selection || !selection.rangeCount) return false;
   const range = selection.getRangeAt(0);
+  if (!editable.contains(range.commonAncestorContainer)) return false;
+
+  // Prefer execCommand so the browser fires `input` and Grapes' RTE onInput/undo hooks run.
+  try {
+    if (doc.execCommand('insertHTML', false, html)) {
+      editable.dispatchEvent(new Event('input', { bubbles: true }));
+      return true;
+    }
+  } catch {
+    // fall through to manual insert
+  }
+
   range.deleteContents();
   const template = doc.createElement('template');
   template.innerHTML = html;
@@ -209,6 +255,23 @@ function insertSanitizedHtmlAtSelection(doc: Document, html: string) {
     selection.removeAllRanges();
     selection.addRange(range);
   }
+  editable.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
+}
+
+function getActiveEditableElement(editor: Editor): HTMLElement | null {
+  const currentView = editor.RichTextEditor.model.get('currentView') as
+    | { model?: Component; getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean }
+    | undefined;
+  if (!currentView?.rteEnabled || !currentView.model || !isMjmlTextComponent(currentView.model)) {
+    return null;
+  }
+  return (
+    currentView.getChildrenContainer?.() ??
+    (currentView.el?.querySelector?.('[contenteditable="true"]') as HTMLElement | null) ??
+    currentView.el ??
+    null
+  );
 }
 
 export function installEmailEditorTypography(editor: Editor): () => void {
@@ -266,6 +329,13 @@ export function installEmailEditorTypography(editor: Editor): () => void {
   });
 
   const onPaste = (event: ClipboardEvent) => {
+    // Only sanitize when a text component is actively being edited. Otherwise let Grapes
+    // handle component paste / ignore the event — preventingDefault while idle locked the canvas.
+    const editable = getActiveEditableElement(editor);
+    if (!editable) return;
+    const target = event.target;
+    if (!(target instanceof Node) || !editable.contains(target)) return;
+
     const html = event.clipboardData?.getData('text/html');
     const text = event.clipboardData?.getData('text/plain') ?? '';
     if (!html && !text) return;
@@ -276,21 +346,10 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     const doc = editor.Canvas.getDocument();
     if (!doc) return;
 
-    const sanitized = html ? sanitizeEmailRichHtml(html) : text.replace(/\r\n|\r|\n/g, '<br>');
+    const sanitized = html ? sanitizeEmailRichHtml(html) : escapePlainTextForHtml(text).replace(/\r\n|\r|\n/g, '<br>');
+    if (!sanitized) return;
 
-    insertSanitizedHtmlAtSelection(doc, sanitized);
-
-    const component = editor.getSelected();
-    if (component && isMjmlTextComponent(component)) {
-      const el =
-        (component.view as { getChildrenContainer?: () => HTMLElement } | undefined)?.getChildrenContainer?.() ??
-        component.getEl?.();
-      const live = el?.innerHTML?.trim();
-      if (live) {
-        // Keep model roughly in sync without freezing RTE mid-edit
-        component.set('content', '', { silent: true } as never);
-      }
-    }
+    insertSanitizedHtmlAtSelection(doc, sanitized, editable);
   };
 
   let pasteDoc: Document | null = null;
