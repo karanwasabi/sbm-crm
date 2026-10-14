@@ -195,6 +195,26 @@ export type IntakeDuplicateCheckResult = {
   mergeOptions?: IntakeMergeOptions;
 };
 
+export type IntakeFormFieldOption = {
+  value: string;
+  label: string;
+  tags?: string[];
+};
+
+export type IntakeFormField = {
+  id: string;
+  type: 'radio';
+  label: string;
+  required: boolean;
+  options: IntakeFormFieldOption[];
+};
+
+export type IntakeCustomAnswer = {
+  label: string;
+  value: string;
+  display: string;
+};
+
 export type IntakeForm = {
   id: string;
   slug: string;
@@ -206,6 +226,9 @@ export type IntakeForm = {
   showCountry: boolean;
   showCity: boolean;
   showNotes: boolean;
+  fields: IntakeFormField[];
+  thankYouTitle?: string;
+  thankYouBody?: string;
   status: 'active' | 'archived';
   publicUrl: string;
   createdAt: string;
@@ -222,6 +245,9 @@ export type UpsertIntakeFormInput = {
   show_country: boolean;
   show_city: boolean;
   show_notes: boolean;
+  fields?: IntakeFormField[];
+  thank_you_title?: string;
+  thank_you_body?: string;
 };
 
 export type TagSuggestion = {
@@ -259,6 +285,7 @@ export type LeadReferredBy = {
 export type LeadDetail = Lead & {
   manualSource: ManualLeadSource;
   notes: string;
+  customFields: Record<string, IntakeCustomAnswer>;
   memberUserId: string | null;
   memberKind: 'renewal' | 'returnee' | null;
   canMutate: boolean;

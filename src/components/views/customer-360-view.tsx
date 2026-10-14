@@ -30,6 +30,7 @@ import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
 import { PointAAssessmentCard } from '@/components/crm/point-a-assessment-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
 import { DuplicateContactCard } from '@/components/leads/duplicate-contact-card';
+import { IntakeAnswersCard } from '@/components/leads/intake-answers-card';
 import { LeadTagsCard } from '@/components/leads/lead-tags-card';
 import { ManualIntakeRecordsCard } from '@/components/crm/manual-intake-records-card';
 import { ActivityTimeline } from '@/components/crm/activity-timeline';
@@ -418,6 +419,7 @@ export function Customer360View({
       >
         <ActivityTimeline events={lead.timeline} />
         <div className="flex w-full flex-col items-start gap-4">
+          <IntakeAnswersCard customFields={lead.customFields ?? {}} />
           {canMutate ? (
             <LeadDataSuggestionsCard leadId={lead.id} suggestions={lead.fieldSuggestions} onUpdated={refresh} />
           ) : null}

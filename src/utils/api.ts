@@ -238,6 +238,7 @@ type ApiLeadResponse = {
   source_label?: string;
   manual_source?: import('@/types/crm').ManualLeadSource;
   notes?: string | null;
+  custom_fields?: Record<string, { label: string; value: string; display: string }> | null;
   member_user_id?: string | null;
   member_kind?: 'renewal' | 'returnee' | null;
   latest_renewal_plan_key?: string | null;
@@ -392,6 +393,14 @@ export async function createLead(input: import('@/types/crm').CreateLeadInput): 
   return mapLead(row);
 }
 
+type ApiIntakeFormField = {
+  id: string;
+  type: 'radio';
+  label: string;
+  required: boolean;
+  options?: Array<{ value: string; label: string; tags?: string[] }>;
+};
+
 type ApiIntakeFormResponse = {
   id: string;
   slug: string;
@@ -403,6 +412,9 @@ type ApiIntakeFormResponse = {
   show_country: boolean;
   show_city: boolean;
   show_notes: boolean;
+  fields?: ApiIntakeFormField[];
+  thank_you_title?: string | null;
+  thank_you_body?: string | null;
   status: 'active' | 'archived';
   public_url: string;
   created_at: string;
@@ -423,6 +435,19 @@ function mapIntakeForm(row: ApiIntakeFormResponse): import('@/types/crm').Intake
     showCountry: row.show_country,
     showCity: row.show_city,
     showNotes: row.show_notes,
+    fields: (row.fields ?? []).map((field) => ({
+      id: field.id,
+      type: 'radio',
+      label: field.label,
+      required: Boolean(field.required),
+      options: (field.options ?? []).map((option) => ({
+        value: option.value,
+        label: option.label,
+        tags: option.tags ?? [],
+      })),
+    })),
+    thankYouTitle: row.thank_you_title ?? undefined,
+    thankYouBody: row.thank_you_body ?? undefined,
     status: row.status,
     publicUrl: row.public_url,
     createdAt: row.created_at,
@@ -857,6 +882,7 @@ function mapLeadDetail(row: ApiLeadResponse): import('@/types/crm').LeadDetail {
     ...base,
     manualSource: manualSource as import('@/types/crm').ManualLeadSource,
     notes: row.notes ?? '',
+    customFields: row.custom_fields ?? {},
     memberUserId: row.member_user_id ?? null,
     memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
     canMutate: row.can_mutate ?? true,

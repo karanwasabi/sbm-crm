@@ -40,6 +40,8 @@ export const EMAIL_PREVIEW_SAMPLE_VARS: Record<string, string> = {
   '{{links.unsubscribe}}': 'https://portal.slowburnmethod.in/unsubscribe?token=preview',
 };
 
+const LEAD_CUSTOM_PREVIEW_PATTERN = /\{\{lead\.custom\.([a-z][a-z0-9_]{0,63})\}\}/g;
+
 export function substitutePreviewVariables(
   input: string,
   vars: Record<string, string> = EMAIL_PREVIEW_SAMPLE_VARS
@@ -48,5 +50,10 @@ export function substitutePreviewVariables(
   for (const [token, value] of Object.entries(vars)) {
     out = out.split(token).join(value);
   }
+  // Unknown custom fields preview as empty (matches backend render).
+  out = out.replace(LEAD_CUSTOM_PREVIEW_PATTERN, (_, fieldId: string) => {
+    const key = `{{lead.custom.${fieldId}}}`;
+    return vars[key] ?? '';
+  });
   return out;
 }

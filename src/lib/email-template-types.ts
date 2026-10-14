@@ -20,6 +20,10 @@ export const EMAIL_VARIABLES: EmailVariable[] = [
   { token: '{{lead.country}}', label: 'Country' },
   { token: '{{lead.program_interest}}', label: 'Program interest' },
   { token: '{{lead.batch}}', label: 'Batch (e.g. Aug 2026)' },
+  {
+    token: '{{lead.custom.field_id}}',
+    label: 'Custom field (replace field_id with the intake field id)',
+  },
   { token: '{{referrer.first_name}}', label: 'Referrer first name' },
   { token: '{{referrer.last_name}}', label: 'Referrer last name' },
   { token: '{{referrer.full_name}}', label: 'Referrer full name' },
