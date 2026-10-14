@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
-import { Pill } from '@/components/ui/pill';
 import { formatDateTimeIST } from '@/lib/ist-datetime';
-import { eventStatusLabel, eventStatusTone, type LeadEventRegistration } from '@/types/events';
+import type { LeadEventRegistration } from '@/types/events';
 
 type LeadEventRegistrationsCardProps = {
   registrations: LeadEventRegistration[];
@@ -15,7 +14,6 @@ type LeadEventRegistrationsCardProps = {
 type EventGroup = {
   eventId: string;
   eventName: string;
-  eventStatus: string;
   slots: LeadEventRegistration[];
 };
 
@@ -34,7 +32,6 @@ export function LeadEventRegistrationsCard({
       byEvent.set(registration.eventId, {
         eventId: registration.eventId,
         eventName: registration.eventName,
-        eventStatus: registration.eventStatus,
         slots: [registration],
       });
     }
@@ -54,22 +51,17 @@ export function LeadEventRegistrationsCard({
       <div className="space-y-4">
         {groups.map((group) => (
           <section key={group.eventId} className="space-y-2">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                {canLinkToEvents ? (
-                  <Link
-                    href={`/events/${group.eventId}`}
-                    className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
-                  >
-                    {group.eventName}
-                  </Link>
-                ) : (
-                  <p className="text-[13px] font-semibold text-slate-800">{group.eventName}</p>
-                )}
-              </div>
-              <Pill tone={eventStatusTone(group.eventStatus)} className="shrink-0">
-                {eventStatusLabel(group.eventStatus)}
-              </Pill>
+            <div className="min-w-0">
+              {canLinkToEvents ? (
+                <Link
+                  href={`/events/${group.eventId}`}
+                  className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
+                >
+                  {group.eventName}
+                </Link>
+              ) : (
+                <p className="text-[13px] font-semibold text-slate-800">{group.eventName}</p>
+              )}
             </div>
             <ul className="space-y-1.5 rounded-xl border border-slate-100 bg-slate-50/60 p-2">
               {group.slots.map((slot) => (
