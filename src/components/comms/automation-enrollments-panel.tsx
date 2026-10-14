@@ -151,9 +151,16 @@ export function AutomationEnrollmentsPanel({ automationId, graphJson }: Automati
                         </div>
                       </DataTableCell>
                       <DataTableCell>
-                        <Pill tone={enrollmentStatusTone(enrollment.status)}>
-                          {automationEnrollmentStatusLabel(enrollment.status)}
-                        </Pill>
+                        <div className="min-w-0 space-y-1">
+                          <Pill tone={enrollmentStatusTone(enrollment.status)}>
+                            {automationEnrollmentStatusLabel(enrollment.status)}
+                          </Pill>
+                          {enrollment.status === 'failed' && enrollment.failureReason ? (
+                            <p className="max-w-[18rem] text-xs leading-snug text-rose-600">
+                              {enrollment.failureReason}
+                            </p>
+                          ) : null}
+                        </div>
                       </DataTableCell>
                       <DataTableCell>
                         <span className="text-xs text-slate-600">

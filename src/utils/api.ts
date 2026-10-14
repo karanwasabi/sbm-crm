@@ -5250,6 +5250,7 @@ export async function listAutomationEnrollments(
     next_run_at?: string;
     enrolled_at: string;
     completed_at?: string;
+    failure_reason?: string;
   }>;
   return rows.map((row) => ({
     id: row.id,
@@ -5263,6 +5264,7 @@ export async function listAutomationEnrollments(
     nextRunAt: row.next_run_at,
     enrolledAt: row.enrolled_at,
     completedAt: row.completed_at,
+    failureReason: row.failure_reason,
   }));
 }
 

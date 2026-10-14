@@ -25,7 +25,15 @@ export function AutomationRunLogList({ entries, emptyMessage = 'No steps logged 
                 <p className="text-xs font-bold text-slate-800">
                   {index + 1}. {stepLabel} · {automationRunOutcomeLabel(entry.outcome)}
                 </p>
-                {detail ? <p className="mt-0.5 text-xs text-slate-600">{detail}</p> : null}
+                {detail ? (
+                  <p
+                    className={`mt-0.5 text-xs ${
+                      entry.outcome === 'send_failed' || entry.outcome === 'failed' ? 'text-rose-600' : 'text-slate-600'
+                    }`}
+                  >
+                    {detail}
+                  </p>
+                ) : null}
               </div>
               <time className="shrink-0 text-[10px] font-medium text-slate-400">
                 {new Date(entry.createdAt).toLocaleTimeString()}

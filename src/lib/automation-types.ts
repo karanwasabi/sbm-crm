@@ -97,6 +97,7 @@ export type AutomationEnrollment = {
   nextRunAt?: string;
   enrolledAt: string;
   completedAt?: string;
+  failureReason?: string;
 };
 
 export type AutomationRunLogEntry = {
@@ -508,6 +509,9 @@ export function automationRunOutcomeLabel(outcome: string): string {
 }
 
 export function formatAutomationRunDetails(details: Record<string, unknown>): string | null {
+  if (typeof details.error === 'string' && details.error.trim()) {
+    return details.error.trim();
+  }
   if (typeof details.skip_reason === 'string' && details.skip_reason) {
     return `Skipped: ${details.skip_reason}`;
   }
@@ -521,7 +525,7 @@ export function formatAutomationRunDetails(details: Record<string, unknown>): st
     return `Continues after ${new Date(details.until).toLocaleString()}`;
   }
   if (typeof details.template_id === 'string' && details.template_id) {
-    return 'Email template selected';
+    return 'Template selected';
   }
   return null;
 }
