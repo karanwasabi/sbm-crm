@@ -1,12 +1,15 @@
 import type { Component, Editor } from 'grapesjs';
 import { ensureEmailLinksOpenInNewTab } from '@/lib/email-mjml-starters';
 import { isMjmlTextComponent, reconcileMjmlTextComponent } from '@/lib/email-mjml-compile';
+import { EMAIL_BODY_TEXT_MJML_ATTRS, EMAIL_BODY_TYPOGRAPHY } from '@/lib/email-typography-tokens';
+
+export { EMAIL_BODY_TEXT_MJML_ATTRS, EMAIL_BODY_TYPOGRAPHY };
 
 const BODY_STYLE_DEFAULT = {
-  'font-size': '16px',
-  color: '#475569',
-  'line-height': '1.6',
-  'font-family': 'Helvetica, Arial, sans-serif',
+  'font-size': EMAIL_BODY_TYPOGRAPHY.fontSize,
+  color: EMAIL_BODY_TYPOGRAPHY.color,
+  'line-height': EMAIL_BODY_TYPOGRAPHY.lineHeight,
+  'font-family': EMAIL_BODY_TYPOGRAPHY.fontFamily,
   'padding-top': '8px',
   'padding-bottom': '8px',
   'padding-left': '25px',

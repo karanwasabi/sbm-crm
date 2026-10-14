@@ -1,11 +1,13 @@
 import type { Editor } from 'grapesjs';
 import { getComponentType, isMjmlContentComponent, revealComponent } from '@/lib/email-editor-structure';
+import { EMAIL_BODY_TEXT_MJML_ATTRS, EMAIL_BODY_TYPOGRAPHY } from '@/lib/email-typography-tokens';
 
-const BODY_TEXT =
-  '<mj-text color="#475569" font-size="16px" line-height="1.6" padding-top="8px" padding-bottom="8px">Write your message here.</mj-text>';
+const BODY_TEXT = `<mj-text ${EMAIL_BODY_TEXT_MJML_ATTRS} padding-top="8px" padding-bottom="8px">Write your message here.</mj-text>`;
 
-const BODY_BUTTON =
-  '<mj-button background-color="#0f766e" color="#ffffff" href="https://slowburnmethod.in" target="_blank" rel="noopener noreferrer" border-radius="999px">Watch the full episode</mj-button>';
+const BODY_BUTTON = `<mj-button font-family="${EMAIL_BODY_TYPOGRAPHY.fontFamily}" background-color="#0f766e" color="#ffffff" href="https://slowburnmethod.in" target="_blank" rel="noopener noreferrer" border-radius="999px">Watch the full episode</mj-button>`;
+
+const COLUMN_TEXT = (n: number) =>
+  `<mj-text ${EMAIL_BODY_TEXT_MJML_ATTRS} padding-top="8px" padding-bottom="8px">Content ${n}</mj-text>`;
 
 /** Plugin options helper for grapesjs-mjml `block(id)` curation. */
 export function grapesMjmlBlockOptions(blockId: string): Record<string, unknown> {
@@ -45,9 +47,17 @@ export function grapesMjmlBlockOptions(blockId: string): Record<string, unknown>
         select: true,
       };
     case 'mj-2-columns':
-      return { label: '2 columns', select: true };
+      return {
+        label: '2 columns',
+        select: true,
+        content: `<mj-section padding="8px 0"><mj-column>${COLUMN_TEXT(1)}</mj-column><mj-column>${COLUMN_TEXT(2)}</mj-column></mj-section>`,
+      };
     case 'mj-3-columns':
-      return { label: '3 columns', select: true };
+      return {
+        label: '3 columns',
+        select: true,
+        content: `<mj-section padding="8px 0"><mj-column>${COLUMN_TEXT(1)}</mj-column><mj-column>${COLUMN_TEXT(2)}</mj-column><mj-column>${COLUMN_TEXT(3)}</mj-column></mj-section>`,
+      };
     case 'mj-navbar':
       return { label: 'Navbar', category: 'Advanced' };
     case 'mj-social-group':

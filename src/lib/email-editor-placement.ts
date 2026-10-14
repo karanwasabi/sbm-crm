@@ -85,14 +85,34 @@ export function installEmailEditorPlacementUx(editor: Editor): () => void {
     if (!component || component.is('wrapper')) return;
     const type = String(component.get('type') ?? '');
     if (!type.startsWith('mj-') || type === 'mj-body' || type === 'mj-head') return;
+    const view = component.view as { rteEnabled?: boolean } | undefined;
+    if (view?.rteEnabled) {
+      // While editing text, keep Grapes' format bar only — hide structure ↑↓/T+/B+.
+      component.set('toolbar', []);
+      return;
+    }
     withStructureToolbar(component);
   };
 
+  const onRteEnable = () => {
+    const selected = editor.getSelected();
+    if (selected) selected.set('toolbar', []);
+  };
+
+  const onRteDisable = () => {
+    const selected = editor.getSelected();
+    if (selected) onSelected(selected);
+  };
+
   editor.on('component:selected', onSelected);
+  editor.on('rte:enable', onRteEnable);
+  editor.on('rte:disable', onRteDisable);
 
   return () => {
     teardownDragFlush();
     editor.off('component:selected', onSelected);
+    editor.off('rte:enable', onRteEnable);
+    editor.off('rte:disable', onRteDisable);
     for (const cmd of Object.values(STRUCTURE_TOOLBAR_COMMANDS)) {
       editor.Commands.remove(cmd);
     }

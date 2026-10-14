@@ -1,7 +1,18 @@
 import { EMAIL_BRAND_NAME, EMAIL_LOGO_URL, EMAIL_WEBSITE_URL } from '@/lib/email-branding';
+import { EMAIL_BODY_TYPOGRAPHY } from '@/lib/email-typography-tokens';
 import type { EmailTemplateClassification } from '@/lib/email-template-types';
 
 const LINK_TARGET = 'target="_blank" rel="noopener noreferrer"';
+
+const MJ_HEAD = `
+  <mj-head>
+    <mj-attributes>
+      <mj-all font-family="${EMAIL_BODY_TYPOGRAPHY.fontFamily}" />
+      <mj-text font-family="${EMAIL_BODY_TYPOGRAPHY.fontFamily}" font-size="${EMAIL_BODY_TYPOGRAPHY.fontSize}" line-height="${EMAIL_BODY_TYPOGRAPHY.lineHeight}" color="${EMAIL_BODY_TYPOGRAPHY.color}" />
+      <mj-button font-family="${EMAIL_BODY_TYPOGRAPHY.fontFamily}" />
+    </mj-attributes>
+  </mj-head>
+`;
 
 function logoSection(): string {
   return `
@@ -65,12 +76,13 @@ function marketingFooter(): string {
 
 const letterMjml = `
 <mjml>
+  ${MJ_HEAD}
   <mj-body background-color="#ffffff">
     ${logoSection()}
     <mj-section padding="8px 0">
       <mj-column>
         <mj-text font-size="22px" font-weight="700" color="#1e293b">Hello {{lead.first_name}},</mj-text>
-        <mj-text color="#475569" line-height="1.6">
+        <mj-text>
           Write your message here. Keep it personal and clear.
         </mj-text>
         <mj-button background-color="#0f766e" color="#ffffff" href="{{links.portal}}" ${LINK_TARGET} border-radius="999px">
@@ -85,6 +97,7 @@ const letterMjml = `
 
 const announcementMjml = `
 <mjml>
+  ${MJ_HEAD}
   <mj-body background-color="#ffffff">
     ${logoSection()}
     <mj-section padding="8px 0 0">
@@ -92,7 +105,7 @@ const announcementMjml = `
         <mj-text font-size="28px" font-weight="800" color="#0f172a" align="center">
           Something new at ${EMAIL_BRAND_NAME}
         </mj-text>
-        <mj-text color="#475569" line-height="1.6" align="center">
+        <mj-text align="center">
           Hi {{lead.first_name}}, share your announcement here.
         </mj-text>
       </mj-column>
@@ -111,12 +124,13 @@ const announcementMjml = `
 
 const newsletterMjml = `
 <mjml>
+  ${MJ_HEAD}
   <mj-body background-color="#ffffff">
     ${logoSection()}
     <mj-section padding="8px 0 0">
       <mj-column>
         <mj-text font-size="26px" font-weight="800" color="#0f172a">This week at ${EMAIL_BRAND_NAME}</mj-text>
-        <mj-text color="#475569" line-height="1.6">
+        <mj-text>
           Hi {{lead.first_name}}, introduce your update here.
         </mj-text>
       </mj-column>
@@ -125,14 +139,14 @@ const newsletterMjml = `
       <mj-column>
         <mj-divider border-color="#e2e8f0" />
         <mj-text font-size="18px" font-weight="700" color="#1e293b">Section one</mj-text>
-        <mj-text color="#475569" line-height="1.6">Add your first topic.</mj-text>
+        <mj-text>Add your first topic.</mj-text>
       </mj-column>
     </mj-section>
     <mj-section padding="8px 0">
       <mj-column>
         <mj-divider border-color="#e2e8f0" />
         <mj-text font-size="18px" font-weight="700" color="#1e293b">Section two</mj-text>
-        <mj-text color="#475569" line-height="1.6">Add another topic or CTA below.</mj-text>
+        <mj-text>Add another topic or CTA below.</mj-text>
         <mj-button background-color="#0f766e" color="#ffffff" href="{{links.portal}}" ${LINK_TARGET} border-radius="999px">
           Take action
         </mj-button>

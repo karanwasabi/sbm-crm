@@ -35,11 +35,12 @@ import {
   initializeEditorSidebar,
   insertMergeToken,
   installDefaultLinkTargetSupport,
+  installEmailCanvasLayer,
   installEmailLinkEditingSupport,
-  installMergeTokenEditorSupport,
   loadStarterMjml,
   protectLogoFromImageEditor,
   redoEditorChange,
+  refreshEditorCanvas,
   registerSbmBlocks,
   resetEditorHistoryBaseline,
   runEditorPanelCommand,
@@ -345,6 +346,8 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
 
     editorRef.current = editor;
     editor.UndoManager.stop();
+    // Canvas layer owns iframe↔parent focus, scroll, selection, and RTE session.
+    const canvasLayer = installEmailCanvasLayer(editor);
     const teardownStructureGuards = installEmailEditorStructureGuards(editor);
     const teardownSelectionHitTesting = installEmailEditorSelectionHitTesting(editor);
     const teardownTypography = installEmailEditorTypography(editor);
@@ -354,7 +357,6 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
     protectLogoFromImageEditor(editor);
     const linkTargetSupport = installDefaultLinkTargetSupport(editor);
     applyLinkTargetsRef.current = () => linkTargetSupport.applyAll();
-    const teardownMergeTokens = installMergeTokenEditorSupport(editor);
     const teardownSelectionUx = configureEditorSelectionUx(editor, {
       getEditorShellEl: () => editorShellRef.current,
       getEditorContainerEl: () => containerRef.current,
@@ -398,24 +400,18 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       enableEditorComponentOutlines(editor);
       refreshPreview(editor);
       refreshHistoryState(editor);
-      // Recalculate highlighter positions after layout settles.
-      window.requestAnimationFrame(() => editor.refresh());
+      window.requestAnimationFrame(() => refreshEditorCanvas(editor));
     });
     const onWindowResize = () => {
-      editor.refresh();
+      refreshEditorCanvas(editor);
     };
     window.addEventListener('resize', onWindowResize);
 
     for (const panelId of ['open-blocks', 'open-sm', 'open-tm'] as const) {
       editor.on(`run:${panelId}`, () => {
         setSidebarTab(panelId);
-        // Re-assert device after panel swaps — OpenStyleManager used to recreate devices-c.
+        // Device is owned by the canvas layer; re-assert only if Grapes drifted.
         setEditorCanvasDevice(editor, canvasDeviceRef.current);
-        window.requestAnimationFrame(() => {
-          if (editorRef.current === editor) {
-            setEditorCanvasDevice(editor, canvasDeviceRef.current);
-          }
-        });
       });
     }
 
@@ -466,7 +462,6 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       applyLinkTargetsRef.current = null;
       setEditorReady(false);
       window.removeEventListener('resize', onWindowResize);
-      teardownMergeTokens();
       linkTargetSupport.teardown();
       teardownSelectionUx();
       teardownBlocks();
@@ -474,6 +469,7 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
       teardownTypography();
       teardownSelectionHitTesting();
       teardownStructureGuards();
+      canvasLayer.teardown();
       editor.destroy();
       editorRef.current = null;
     };
@@ -753,6 +749,9 @@ export function GrapesMjmlEditor({ template }: GrapesMjmlEditorProps) {
             </div>
           </div>
 
+          <p className="border-b border-slate-100 bg-slate-50/80 px-4 py-1.5 text-[11px] font-medium text-slate-500">
+            Double-click text to edit · Drag blocks to add · Use Bold on the floating format bar while editing
+          </p>
           <div className="relative">
             <div ref={containerRef} className="sbm-grapes-editor" />
             {!editorReady ? (

@@ -1,5 +1,6 @@
 import type { Component, Editor } from 'grapesjs';
 import { flushActiveTextEditing } from '@/lib/grapes-email-editor';
+import { EMAIL_BODY_TEXT_MJML_ATTRS, EMAIL_BODY_TYPOGRAPHY } from '@/lib/email-typography-tokens';
 
 export const MJML_CONTENT_TYPES = new Set([
   'mj-text',
@@ -18,11 +19,9 @@ export const MJML_LEAF_TYPES = new Set(['mj-text', 'mj-button', 'mj-image', 'mj-
 
 export type InsertContentKind = 'text' | 'button' | 'divider' | 'section-1-col';
 
-const BODY_TEXT_HTML =
-  '<mj-text color="#475569" font-size="16px" line-height="1.6" padding-top="8px" padding-bottom="8px">Write your message here.</mj-text>';
+const BODY_TEXT_HTML = `<mj-text ${EMAIL_BODY_TEXT_MJML_ATTRS} padding-top="8px" padding-bottom="8px">Write your message here.</mj-text>`;
 
-const BODY_BUTTON_HTML =
-  '<mj-button background-color="#0f766e" color="#ffffff" href="https://slowburnmethod.in" target="_blank" rel="noopener noreferrer" border-radius="999px">Watch the full episode</mj-button>';
+const BODY_BUTTON_HTML = `<mj-button font-family="${EMAIL_BODY_TYPOGRAPHY.fontFamily}" background-color="#0f766e" color="#ffffff" href="https://slowburnmethod.in" target="_blank" rel="noopener noreferrer" border-radius="999px">Watch the full episode</mj-button>`;
 
 const FLASH_CLASS = 'sbm-email-flash';
 const FLASH_MS = 1500;
