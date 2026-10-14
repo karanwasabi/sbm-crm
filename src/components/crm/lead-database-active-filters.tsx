@@ -46,16 +46,16 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       href: buildLeadDatabaseHref(filters, { q: '' }),
     });
   }
-  if (filters.marketing !== 'all') {
-    const label =
-      MARKETING_FILTER_OPTIONS.find((option) => option.id === filters.marketing)?.label ?? filters.marketing;
+  filters.marketing.forEach((status) => {
     chips.push({
-      key: 'marketing',
+      key: `marketing-${status}`,
       label: 'Marketing',
-      value: label,
-      href: buildLeadDatabaseHref(filters, { marketing: 'all' }),
+      value: MARKETING_FILTER_OPTIONS.find((option) => option.id === status)?.label ?? status,
+      href: buildLeadDatabaseHref(filters, {
+        marketing: filters.marketing.filter((item) => item !== status),
+      }),
     });
-  }
+  });
   if (filters.hasUnseenSuggestions) {
     chips.push({
       key: 'has-unseen-suggestions',
@@ -236,7 +236,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
         href={buildLeadDatabaseHref(filters, {
           stages: [],
           q: '',
-          marketing: 'all',
+          marketing: [],
           tags: [],
           excludeTags: [],
           tagMode: 'and',

@@ -7,7 +7,7 @@ export type LeadDatabaseSortOrder = 'asc' | 'desc';
 
 export type LeadDatabaseFilters = {
   stages: string[];
-  marketing: string;
+  marketing: string[];
   tags: string[];
   tagMode: TagFilterMode;
   excludeTags: string[];
@@ -42,7 +42,7 @@ export type LeadDatabaseFilters = {
 
 export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   stages: [],
-  marketing: 'all',
+  marketing: [],
   tags: [],
   tagMode: 'and',
   excludeTags: [],
@@ -75,13 +75,20 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   pageSize: 50,
 };
 
-export const MARKETING_FILTER_OPTIONS: Array<{ id: MarketingContactStatus | 'all'; label: string }> = [
-  { id: 'all', label: 'All contacts' },
+export const MARKETING_FILTER_OPTIONS: Array<{ id: MarketingContactStatus; label: string }> = [
   { id: 'active', label: MARKETING_CONTACT_STATUS_LABELS.active },
   { id: 'eligible', label: MARKETING_CONTACT_STATUS_LABELS.eligible },
   { id: 'no_consent', label: MARKETING_CONTACT_STATUS_LABELS.no_consent },
   { id: 'unsubscribed', label: MARKETING_CONTACT_STATUS_LABELS.unsubscribed },
 ];
+
+const MARKETING_FILTER_IDS = new Set(MARKETING_FILTER_OPTIONS.map((option) => option.id));
+
+function parseMarketingList(raw?: string): string[] {
+  return parseCommaList(raw).filter(
+    (status) => status !== 'all' && MARKETING_FILTER_IDS.has(status as MarketingContactStatus)
+  );
+}
 
 function parseCommaList(raw?: string): string[] {
   if (!raw?.trim()) return [];
@@ -147,7 +154,7 @@ export function parseLeadDatabaseFilters(
 
   return {
     stages: parseStageList(get('stage')),
-    marketing: get('marketing')?.trim() || 'all',
+    marketing: parseMarketingList(get('marketing')),
     tags: parseTagSlugsParam(get('tags')),
     tagMode: get('tag_mode')?.trim() === 'or' ? 'or' : 'and',
     excludeTags: parseTagSlugsParam(get('exclude_tags')),
@@ -202,7 +209,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   const params = new URLSearchParams();
 
   if (merged.stages.length > 0) params.set('stage', merged.stages.join(','));
-  if (merged.marketing !== 'all') params.set('marketing', merged.marketing);
+  if (merged.marketing.length > 0) params.set('marketing', merged.marketing.join(','));
   if (merged.tags.length > 0) {
     params.set('tags', formatTagSlugsParam(merged.tags));
     if (merged.tagMode === 'or') params.set('tag_mode', 'or');

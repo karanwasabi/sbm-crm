@@ -11,8 +11,8 @@ export function buildLeadListSearchParams(
   const params = new URLSearchParams();
 
   if (filters.stages.length > 0) params.set('stage', filters.stages.join(','));
-  if (filters.marketing && filters.marketing !== 'all') {
-    params.set('marketing_contact_status', filters.marketing);
+  if (filters.marketing.length > 0) {
+    params.set('marketing_contact_status', filters.marketing.join(','));
   }
   if (filters.tags.length > 0) {
     params.set('tags', filters.tags.join(','));
