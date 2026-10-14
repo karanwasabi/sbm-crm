@@ -46,6 +46,8 @@ export function buildLeadListSearchParams(
   if (filters.offlineCrmPaid) params.set('offline_crm_paid', 'true');
   if (filters.purchaseKind) params.set('purchase_kind', filters.purchaseKind);
   if (filters.renewalDurations.length > 0) params.set('renewal_durations', filters.renewalDurations.join(','));
+  if (filters.eventIds.length > 0) params.set('event_ids', filters.eventIds.join(','));
+  if (filters.eventSlotIds.length > 0) params.set('event_slot_ids', filters.eventSlotIds.join(','));
   if (page > 1) params.set('page', String(page));
   if (pageSize !== 50) params.set('page_size', String(pageSize));
 

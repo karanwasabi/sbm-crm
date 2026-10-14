@@ -10,11 +10,13 @@ import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { buildStageFilterOptions } from '@/lib/lead-display';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary, TagSuggestion } from '@/types/crm';
+import type { EventOption } from '@/types/events';
 
 type LeadDatabaseViewProps = {
   filters: LeadDatabaseFilters;
   summary: LeadSummary;
   filterOptions: LeadFilterOptions;
+  eventOptions?: EventOption[];
   tagSuggestions?: TagSuggestion[];
   emailTemplates?: EmailTemplate[];
   whatsappTemplates?: WhatsAppTemplate[];
@@ -27,6 +29,7 @@ export function LeadDatabaseView({
   filters,
   summary,
   filterOptions,
+  eventOptions = [],
   tagSuggestions = [],
   emailTemplates = [],
   whatsappTemplates = [],
@@ -49,6 +52,7 @@ export function LeadDatabaseView({
           filters={filters}
           stageOptions={stageOptions}
           filterOptions={filterOptions}
+          eventOptions={eventOptions}
           tagSuggestions={tagSuggestions}
           emailTemplates={emailTemplates}
           whatsappTemplates={whatsappTemplates}
@@ -57,7 +61,7 @@ export function LeadDatabaseView({
           restrictToCreatedByMe={restrictToCreatedByMe}
         />
 
-        <LeadDatabaseActiveFilters filters={filters} filterOptions={filterOptions} />
+        <LeadDatabaseActiveFilters filters={filters} filterOptions={filterOptions} eventOptions={eventOptions} />
 
         {children}
       </CrmPageLayout>

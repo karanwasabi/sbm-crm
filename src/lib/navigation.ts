@@ -48,6 +48,7 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
     label: 'Setup',
     items: [
       { id: 'promos', href: '/promos', label: 'Promo Codes', icon: Tag },
+      { id: 'events', href: '/events', label: 'Events', icon: Calendar, superadminOnly: true },
       {
         id: 'resources',
         href: '/resources',
@@ -91,6 +92,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
   '/feedback': { title: 'Feedback', subtitle: 'In-app survey results' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
+  '/events': { title: 'Events', subtitle: 'Public sign-up events, slots & registrations' },
   '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
   '/partners': {
     title: 'Partner API',
@@ -128,6 +130,9 @@ export function getPageMeta(pathname: string): CrmPageMeta {
   }
   if (pathname.startsWith('/promos/')) {
     return { title: 'Promo Detail', subtitle: 'Terms, history & usage' };
+  }
+  if (pathname.startsWith('/events/')) {
+    return { title: 'Event Detail', subtitle: 'Details, slots & registrations' };
   }
   if (pathname.startsWith('/push-notifications/')) {
     return { title: 'Push template', subtitle: 'Week × day × slot copy' };

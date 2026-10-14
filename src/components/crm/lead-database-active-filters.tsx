@@ -9,10 +9,12 @@ import { leadSourceLabel, perfSourceLabel } from '@/lib/lead-sources';
 import { renewalDurationFilterLabel } from '@/lib/renewal-duration';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { LeadFilterOptions } from '@/types/crm';
+import type { EventOption } from '@/types/events';
 
 type LeadDatabaseActiveFiltersProps = {
   filters: LeadDatabaseFilters;
   filterOptions?: LeadFilterOptions;
+  eventOptions?: EventOption[];
 };
 
 function coachChipLabel(value: string, filterOptions?: LeadFilterOptions): string {
@@ -27,7 +29,19 @@ function referrerCoachChipLabel(value: string, filterOptions?: LeadFilterOptions
   return match?.label || value;
 }
 
-export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDatabaseActiveFiltersProps) {
+function eventChipLabel(value: string, eventOptions?: EventOption[]): string {
+  return eventOptions?.find((event) => event.id === value)?.name || value;
+}
+
+function eventSlotChipLabel(value: string, eventOptions?: EventOption[]): string {
+  for (const event of eventOptions ?? []) {
+    const slot = event.slots.find((item) => item.id === value);
+    if (slot) return `${event.name} · ${slot.label}`;
+  }
+  return value;
+}
+
+export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions }: LeadDatabaseActiveFiltersProps) {
   const chips: Array<{ key: string; label: string; value: string; href: string }> = [];
 
   filters.stages.forEach((stage) => {
@@ -214,6 +228,24 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
       }),
     });
   });
+  filters.eventIds.forEach((eventId) => {
+    chips.push({
+      key: `event-${eventId}`,
+      label: 'Event',
+      value: eventChipLabel(eventId, eventOptions),
+      href: buildLeadDatabaseHref(filters, { eventIds: filters.eventIds.filter((item) => item !== eventId) }),
+    });
+  });
+  filters.eventSlotIds.forEach((slotId) => {
+    chips.push({
+      key: `event-slot-${slotId}`,
+      label: 'Event slot',
+      value: eventSlotChipLabel(slotId, eventOptions),
+      href: buildLeadDatabaseHref(filters, {
+        eventSlotIds: filters.eventSlotIds.filter((item) => item !== slotId),
+      }),
+    });
+  });
   if (filters.updatedFrom || filters.updatedTo) {
     chips.push({
       key: 'updated',
@@ -253,6 +285,8 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions }: LeadDataba
           offlineCrmPaid: false,
           purchaseKind: '',
           renewalDurations: [],
+          eventIds: [],
+          eventSlotIds: [],
           perfSource: '',
           metaCampaignId: '',
           metaCampaignUnattributed: false,

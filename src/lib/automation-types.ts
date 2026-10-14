@@ -9,7 +9,8 @@ export type AutomationTriggerType =
   | 'renewal_payment_received'
   | 'referral_submitted'
   | 'referrer_referral_submitted'
-  | 'coach_assigned';
+  | 'coach_assigned'
+  | 'event_signup';
 
 export type AutomationChannel = 'email' | 'whatsapp';
 
@@ -167,6 +168,7 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   referral_submitted: 'Referral submitted',
   referrer_referral_submitted: 'Referrer referral submitted',
   coach_assigned: 'Coach assigned or changed',
+  event_signup: 'Event sign-up',
 };
 
 export type AutomationRenewalTriggerConfig = {
@@ -307,6 +309,35 @@ export function normalizeCoachTriggerConfig(
   return {
     coach_user_id: coachUserId != null && String(coachUserId).trim() !== '' ? String(coachUserId).trim() : '',
   };
+}
+
+export type AutomationEventTriggerConfig = {
+  event_id?: string;
+  slot_id?: string;
+};
+
+/** Parse saved event_signup trigger config. Empty event_id = "Any event"; empty slot_id = "Any slot". */
+export function normalizeEventTriggerConfig(
+  raw?: Record<string, unknown> | AutomationEventTriggerConfig | null
+): Record<string, string> {
+  const eventId = raw?.event_id;
+  const slotId = raw?.slot_id;
+  return {
+    event_id: eventId != null && String(eventId).trim() !== '' ? String(eventId).trim() : '',
+    slot_id: slotId != null && String(slotId).trim() !== '' ? String(slotId).trim() : '',
+  };
+}
+
+/** Build the saved trigger config; omits empty keys so the backend sees { event_id?, slot_id? }. */
+export function buildEventTriggerConfig(eventId: string, slotId: string): Record<string, string> {
+  const config: Record<string, string> = {};
+  const event = eventId.trim();
+  const slot = slotId.trim();
+  if (event) {
+    config.event_id = event;
+    if (slot) config.slot_id = slot;
+  }
+  return config;
 }
 
 export function lifecycleStageLabel(slug: string): string {

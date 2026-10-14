@@ -31,6 +31,8 @@ export type LeadDatabaseFilters = {
   offlineCrmPaid: boolean;
   purchaseKind: string;
   renewalDurations: string[];
+  eventIds: string[];
+  eventSlotIds: string[];
   sort: LeadDatabaseSort;
   order: LeadDatabaseSortOrder;
   hasUnseenSuggestions: boolean;
@@ -66,6 +68,8 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   offlineCrmPaid: false,
   purchaseKind: '',
   renewalDurations: [],
+  eventIds: [],
+  eventSlotIds: [],
   sort: 'created_at',
   order: 'desc',
   hasUnseenSuggestions: false,
@@ -183,6 +187,8 @@ export function parseLeadDatabaseFilters(
     offlineCrmPaid: get('offline_crm_paid') === 'true',
     purchaseKind: get('purchase_kind')?.trim() || '',
     renewalDurations: parseCommaList(get('renewal_durations')),
+    eventIds: parseCommaList(get('event_ids')),
+    eventSlotIds: parseCommaList(get('event_slot_ids')),
     page: parsePositiveInt(get('page'), 1),
     pageSize: parsePositiveInt(get('page_size'), 50),
   };
@@ -242,6 +248,8 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.offlineCrmPaid) params.set('offline_crm_paid', 'true');
   if (merged.purchaseKind) params.set('purchase_kind', merged.purchaseKind);
   if (merged.renewalDurations.length > 0) params.set('renewal_durations', merged.renewalDurations.join(','));
+  if (merged.eventIds.length > 0) params.set('event_ids', merged.eventIds.join(','));
+  if (merged.eventSlotIds.length > 0) params.set('event_slot_ids', merged.eventSlotIds.join(','));
   if (merged.page > 1) params.set('page', String(merged.page));
   if (merged.pageSize !== 50) params.set('page_size', String(merged.pageSize));
 

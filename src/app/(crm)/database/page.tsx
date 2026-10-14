@@ -3,8 +3,9 @@ import { LeadDatabaseView } from '@/components/views/lead-database-view';
 import { LeadDatabaseTableFallback } from '@/components/loading/lead-database-table-fallback';
 import { buildLeadDatabaseHref, parseLeadDatabaseFilters } from '@/lib/lead-database-url';
 import { isMarketingFamily } from '@/lib/access';
-import { getLeadFilterOptions, getLeadSummary, getMyAccess, getWhatsAppFlags } from '@/utils/api';
+import { getLeadFilterOptions, getLeadSummary, getMyAccess, getWhatsAppFlags, listEventOptions } from '@/utils/api';
 import type { LeadFilterOptions, LeadSummary } from '@/types/crm';
+import type { EventOption } from '@/types/events';
 import { LeadDatabaseTableLoader } from './lead-database-table-loader';
 
 const EMPTY_SUMMARY: LeadSummary = {
@@ -54,12 +55,14 @@ export default async function DatabasePage({
 
   let summary = EMPTY_SUMMARY;
   let filterOptions = EMPTY_FILTER_OPTIONS;
+  let eventOptions: EventOption[] = [];
   let whatsappSendsEnabled = false;
 
-  const [summaryResult, filterOptionsResult, flagsResult] = await Promise.allSettled([
+  const [summaryResult, filterOptionsResult, flagsResult, eventOptionsResult] = await Promise.allSettled([
     getLeadSummary(filters.createdByMe),
     getLeadFilterOptions(includeReferrerCoaches),
     getWhatsAppFlags(),
+    listEventOptions(),
   ]);
 
   if (summaryResult.status === 'fulfilled') {
@@ -67,6 +70,9 @@ export default async function DatabasePage({
   }
   if (filterOptionsResult.status === 'fulfilled') {
     filterOptions = filterOptionsResult.value;
+  }
+  if (eventOptionsResult.status === 'fulfilled') {
+    eventOptions = eventOptionsResult.value;
   }
   if (flagsResult.status === 'fulfilled') {
     whatsappSendsEnabled = flagsResult.value.sendsEnabled;
@@ -77,6 +83,7 @@ export default async function DatabasePage({
       filters={filters}
       summary={summary}
       filterOptions={filterOptions}
+      eventOptions={eventOptions}
       tagSuggestions={[]}
       emailTemplates={[]}
       whatsappTemplates={[]}

@@ -41,6 +41,8 @@ import {
   normalizeStageTriggerConfig,
   normalizeTagTriggerConfig,
   normalizeCoachTriggerConfig,
+  normalizeEventTriggerConfig,
+  buildEventTriggerConfig,
   normalizeRenewalTriggerConfig,
   buildRenewalTriggerConfig,
   parseRenewalTriggerCategories,
@@ -79,6 +81,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { TagSuggestion } from '@/types/crm';
 import { MANUAL_LEAD_SOURCE_OPTIONS } from '@/types/crm';
+import type { EventOption } from '@/types/events';
 import { automationStatusLabel, automationStatusPillTone } from '@/lib/automation-types';
 import { commsAutomationHref, COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
 
@@ -151,6 +154,7 @@ type AutomationBuilderProps = {
   whatsappTemplates?: WhatsAppTemplate[];
   tagSuggestions?: TagSuggestion[];
   coaches?: StaffMember[];
+  events?: EventOption[];
 };
 
 const SUPPORTED_TAG_OPERATORS = new Set<string>(TAG_CONDITION_OPERATORS.map((op) => op.value));
@@ -218,6 +222,31 @@ function buildLeadSourceSelectOptions(value: string) {
   return options;
 }
 
+function buildEventSelectOptions(events: EventOption[], value: string) {
+  const options = events.map((event) => ({
+    value: event.id,
+    label: event.name,
+    searchText: `${event.name} ${event.slug}`.toLowerCase(),
+  }));
+  if (value && !options.some((option) => option.value === value)) {
+    options.unshift({ value, label: value, searchText: value.toLowerCase() });
+  }
+  return options;
+}
+
+function buildEventSlotSelectOptions(events: EventOption[], eventId: string, value: string) {
+  const event = events.find((item) => item.id === eventId);
+  const options = (event?.slots ?? []).map((slot) => ({
+    value: slot.id,
+    label: slot.label,
+    searchText: slot.label.toLowerCase(),
+  }));
+  if (value && !options.some((option) => option.value === value)) {
+    options.unshift({ value, label: value, searchText: value.toLowerCase() });
+  }
+  return options;
+}
+
 function buildCoachSelectOptions(coaches: StaffMember[], value: string) {
   const options = coaches.map((coach) => {
     const name = [coach.first_name, coach.last_name].filter(Boolean).join(' ').trim();
@@ -244,6 +273,7 @@ export function AutomationBuilder({
   whatsappTemplates = [],
   tagSuggestions = [],
   coaches = [],
+  events = [],
 }: AutomationBuilderProps) {
   const router = useRouter();
   const allTemplates: BuilderTemplate[] = useMemo(
@@ -292,6 +322,9 @@ export function AutomationBuilder({
     }
     if (automation?.triggerType === 'coach_assigned') {
       return normalizeCoachTriggerConfig(automation.triggerConfig);
+    }
+    if (automation?.triggerType === 'event_signup') {
+      return normalizeEventTriggerConfig(automation.triggerConfig);
     }
     if (!automation) {
       return normalizeStageTriggerConfig(undefined, { applyDefaults: true });
@@ -408,6 +441,26 @@ export function AutomationBuilder({
     [coaches, triggerConfig.coach_user_id]
   );
 
+  const eventTriggerSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'Any event', searchText: 'any event' },
+      ...buildEventSelectOptions(events, triggerConfigString(triggerConfig.event_id)),
+    ],
+    [events, triggerConfig.event_id]
+  );
+
+  const eventSlotTriggerSelectOptions = useMemo(
+    () => [
+      { value: '', label: 'Any slot', searchText: 'any slot' },
+      ...buildEventSlotSelectOptions(
+        events,
+        triggerConfigString(triggerConfig.event_id),
+        triggerConfigString(triggerConfig.slot_id)
+      ),
+    ],
+    [events, triggerConfig.event_id, triggerConfig.slot_id]
+  );
+
   const onConnect = useCallback(
     (connection: Connection) => {
       if (isGraphLocked) return;
@@ -520,6 +573,12 @@ export function AutomationBuilder({
     if (triggerType === 'coach_assigned') {
       return { coach_user_id: triggerConfigString(triggerConfig.coach_user_id).trim() };
     }
+    if (triggerType === 'event_signup') {
+      return buildEventTriggerConfig(
+        triggerConfigString(triggerConfig.event_id),
+        triggerConfigString(triggerConfig.slot_id)
+      );
+    }
     if (triggerType === 'renewal_payment_received') {
       return buildRenewalTriggerConfig(parseRenewalTriggerCategories(triggerConfig));
     }
@@ -534,6 +593,8 @@ export function AutomationBuilder({
       setTriggerConfig(normalizeTagTriggerConfig(saved.triggerConfig));
     } else if (saved.triggerType === 'coach_assigned') {
       setTriggerConfig(normalizeCoachTriggerConfig(saved.triggerConfig));
+    } else if (saved.triggerType === 'event_signup') {
+      setTriggerConfig(normalizeEventTriggerConfig(saved.triggerConfig));
     } else if (saved.triggerType === 'renewal_payment_received') {
       setTriggerConfig(normalizeRenewalTriggerConfig(saved.triggerConfig));
     }
@@ -838,6 +899,14 @@ export function AutomationBuilder({
                       return normalizeCoachTriggerConfig(undefined);
                     });
                   }
+                  if (value === 'event_signup') {
+                    setTriggerConfig((current) => {
+                      if ('event_id' in current) {
+                        return current;
+                      }
+                      return normalizeEventTriggerConfig(undefined);
+                    });
+                  }
                   if (value === 'tag_added') {
                     setTriggerConfig((current) => {
                       if ('tag' in current) {
@@ -894,6 +963,38 @@ export function AutomationBuilder({
                   popoverClassName="w-[var(--anchor-width)]"
                 />
               </Field>
+            ) : null}
+            {triggerType === 'event_signup' ? (
+              <>
+                <Field label="Event" className="min-w-[220px]">
+                  <SearchableSelect
+                    value={triggerConfigString(triggerConfig.event_id)}
+                    onChange={(eventId) => setTriggerConfig({ event_id: eventId, slot_id: '' })}
+                    options={eventTriggerSelectOptions}
+                    placeholder="Any event"
+                    searchPlaceholder="Search events…"
+                    emptyMessage="No events found."
+                    disabled={isGraphLocked}
+                    className="w-full text-sm"
+                    popoverClassName="w-[var(--anchor-width)]"
+                  />
+                </Field>
+                {triggerConfigString(triggerConfig.event_id) ? (
+                  <Field label="Slot (optional)" className="min-w-[200px]">
+                    <SearchableSelect
+                      value={triggerConfigString(triggerConfig.slot_id)}
+                      onChange={(slotId) => setTriggerConfig((current) => ({ ...current, slot_id: slotId }))}
+                      options={eventSlotTriggerSelectOptions}
+                      placeholder="Any slot"
+                      searchPlaceholder="Search slots…"
+                      emptyMessage="No slots found."
+                      disabled={isGraphLocked}
+                      className="w-full text-sm"
+                      popoverClassName="w-[var(--anchor-width)]"
+                    />
+                  </Field>
+                ) : null}
+              </>
             ) : null}
             {triggerType === 'coach_assigned' ? (
               <Field label="Coach" className="min-w-[220px]">

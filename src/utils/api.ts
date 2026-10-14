@@ -6,6 +6,17 @@ import { performanceWindowQueryParam, type PerformanceWindowPreset } from '@/lib
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import type { Profile, ProfilePatch } from '@/types/profile';
 import type { Country, CountryCity } from '@/types/reference';
+import type {
+  CreateEventInput,
+  CreateEventSlotInput,
+  CrmEvent,
+  EventOption,
+  EventRegistration,
+  EventSlot,
+  EventStatus,
+  UpdateEventInput,
+  UpdateEventSlotInput,
+} from '@/types/events';
 import { createClient } from '@/utils/supabase/server';
 
 export class ApiError extends Error {
@@ -6594,3 +6605,179 @@ export async function rotatePartnerWebhookSecret(id: string): Promise<PartnerAPI
   if (!response.ok) await parseApiError(response, 'Failed to rotate webhook secret.');
   return (await response.json()) as PartnerAPIClient;
 }
+
+type ApiEventSlot = {
+  id: string;
+  event_id: string;
+  label: string;
+  starts_at: string;
+  sort_order?: number;
+  is_active?: boolean;
+  registration_count?: number;
+};
+
+type ApiEvent = {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  status: EventStatus;
+  public_url?: string;
+  registration_count?: number;
+  slots?: ApiEventSlot[];
+  created_at: string;
+  updated_at: string;
+};
+
+type ApiEventRegistration = {
+  id: string;
+  event_id: string;
+  slot_id: string;
+  slot_label: string;
+  lead_id: string;
+  lead_name: string;
+  lead_email: string;
+  lifecycle_stage: string;
+  created_at: string;
+  updated_at: string;
+};
+
+type ApiEventOption = {
+  id: string;
+  name: string;
+  slug: string;
+  status: EventStatus;
+  slots?: { id: string; label: string; starts_at: string }[];
+};
+
+function mapEventSlot(row: ApiEventSlot): EventSlot {
+  return {
+    id: row.id,
+    eventId: row.event_id,
+    label: row.label,
+    startsAt: row.starts_at,
+    sortOrder: row.sort_order ?? 0,
+    isActive: row.is_active ?? true,
+    registrationCount: row.registration_count ?? 0,
+  };
+}
+
+function mapEvent(row: ApiEvent): CrmEvent {
+  return {
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    description: row.description ?? '',
+    status: row.status,
+    publicUrl: row.public_url ?? '',
+    registrationCount: row.registration_count ?? 0,
+    slots: (row.slots ?? []).map(mapEventSlot),
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapEventRegistration(row: ApiEventRegistration): EventRegistration {
+  return {
+    id: row.id,
+    eventId: row.event_id,
+    slotId: row.slot_id,
+    slotLabel: row.slot_label,
+    leadId: row.lead_id,
+    leadName: row.lead_name,
+    leadEmail: row.lead_email,
+    lifecycleStage: row.lifecycle_stage,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function eventSlotRequestBody(input: UpdateEventSlotInput): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  if (input.label !== undefined) body.label = input.label;
+  if (input.startsAt !== undefined) body.starts_at = input.startsAt;
+  if (input.sortOrder !== undefined) body.sort_order = input.sortOrder;
+  if (input.isActive !== undefined) body.is_active = input.isActive;
+  return body;
+}
+
+export async function listEvents(): Promise<CrmEvent[]> {
+  const response = await requireApiFetch('/admin/events');
+  if (!response.ok) await parseApiError(response, 'Failed to load events.');
+  const payload = (await response.json()) as ApiEvent[] | null;
+  return (payload ?? []).map(mapEvent);
+}
+
+export async function getEvent(id: string): Promise<CrmEvent> {
+  const response = await requireApiFetch(`/admin/events/${encodeURIComponent(id)}`);
+  if (!response.ok) await parseApiError(response, 'Failed to load event.');
+  return mapEvent((await response.json()) as ApiEvent);
+}
+
+export async function createEvent(input: CreateEventInput): Promise<CrmEvent> {
+  const response = await requireApiFetch('/admin/events', {
+    method: 'POST',
+    body: JSON.stringify({
+      name: input.name,
+      slug: input.slug || undefined,
+      description: input.description,
+      status: input.status,
+    }),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to create event.');
+  return mapEvent((await response.json()) as ApiEvent);
+}
+
+export async function updateEvent(id: string, input: UpdateEventInput): Promise<CrmEvent> {
+  const response = await requireApiFetch(`/admin/events/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to update event.');
+  return mapEvent((await response.json()) as ApiEvent);
+}
+
+export async function createEventSlot(eventId: string, input: CreateEventSlotInput): Promise<EventSlot> {
+  const response = await requireApiFetch(`/admin/events/${encodeURIComponent(eventId)}/slots`, {
+    method: 'POST',
+    body: JSON.stringify(eventSlotRequestBody(input)),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to create slot.');
+  return mapEventSlot((await response.json()) as ApiEventSlot);
+}
+
+export async function updateEventSlot(
+  eventId: string,
+  slotId: string,
+  input: UpdateEventSlotInput
+): Promise<EventSlot> {
+  const response = await requireApiFetch(
+    `/admin/events/${encodeURIComponent(eventId)}/slots/${encodeURIComponent(slotId)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(eventSlotRequestBody(input)),
+    }
+  );
+  if (!response.ok) await parseApiError(response, 'Failed to update slot.');
+  return mapEventSlot((await response.json()) as ApiEventSlot);
+}
+
+export async function listEventRegistrations(eventId: string): Promise<EventRegistration[]> {
+  const response = await requireApiFetch(`/admin/events/${encodeURIComponent(eventId)}/registrations`);
+  if (!response.ok) await parseApiError(response, 'Failed to load registrations.');
+  const payload = (await response.json()) as ApiEventRegistration[] | null;
+  return (payload ?? []).map(mapEventRegistration);
+}
+
+export const listEventOptions = cache(async (): Promise<EventOption[]> => {
+  const response = await requireApiFetch('/admin/events/options');
+  if (!response.ok) await parseApiError(response, 'Failed to load events.');
+  const payload = (await response.json()) as ApiEventOption[] | null;
+  return (payload ?? []).map((row) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+    status: row.status,
+    slots: (row.slots ?? []).map((slot) => ({ id: slot.id, label: slot.label, startsAt: slot.starts_at })),
+  }));
+});

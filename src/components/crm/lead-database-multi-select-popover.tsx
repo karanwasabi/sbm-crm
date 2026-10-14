@@ -18,14 +18,16 @@ type MultiSelectField =
   | 'sources'
   | 'coaches'
   | 'referrerCoaches'
-  | 'renewalDurations';
+  | 'renewalDurations'
+  | 'eventIds'
+  | 'eventSlotIds';
 
 type LeadDatabaseMultiSelectPopoverProps = {
   label: string;
   icon: LucideIcon;
   field: MultiSelectField;
   filters: LeadDatabaseFilters;
-  options: { value: string; label?: string; count: number }[];
+  options: { value: string; label?: string; count?: number }[];
 };
 
 function optionLabel(field: MultiSelectField, option: { value: string; label?: string }): string {
@@ -149,7 +151,9 @@ export function LeadDatabaseMultiSelectPopover({
                   }
                 >
                   <span className="truncate pr-2">{optionLabel(field, option)}</span>
-                  <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
+                  {option.count != null ? (
+                    <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
+                  ) : null}
                 </button>
               );
             })
