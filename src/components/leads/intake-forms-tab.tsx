@@ -215,6 +215,7 @@ export function IntakeFormsTab({
   const [view, setView] = useState<ViewMode>(initialFormId ? 'detail' : 'list');
   const [selectedId, setSelectedId] = useState<string | null>(initialFormId ?? null);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [lockedFieldIds, setLockedFieldIds] = useState<Set<string>>(() => new Set());
   const [tagError, setTagError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -224,12 +225,6 @@ export function IntakeFormsTab({
   }, [forms, statusFilter]);
 
   const selectedForm = useMemo(() => forms.find((form) => form.id === selectedId) ?? null, [forms, selectedId]);
-
-  /** Field ids already saved on the form; these cannot be renamed while editing. */
-  const lockedIds = useMemo(
-    () => new Set(view === 'edit' && selectedForm ? selectedForm.fields.map((field) => field.id) : []),
-    [view, selectedForm]
-  );
 
   const canManageForm = (form: IntakeForm) =>
     !isMarketing || (form.createdBy != null && form.createdBy === currentUserId);
@@ -249,6 +244,7 @@ export function IntakeFormsTab({
 
   const openCreate = () => {
     setDraft(EMPTY_DRAFT);
+    setLockedFieldIds(new Set());
     setError(null);
     setTagError(null);
     setSelectedId(null);
@@ -269,6 +265,7 @@ export function IntakeFormsTab({
       thankYouTitle: form.thankYouTitle ?? '',
       thankYouBody: form.thankYouBody ?? '',
     });
+    setLockedFieldIds(new Set(form.fields.map((field) => field.id)));
     setSelectedId(form.id);
     setError(null);
     setTagError(null);
@@ -292,12 +289,23 @@ export function IntakeFormsTab({
   };
 
   const removeField = (key: string) => {
-    setDraft((current) => ({ ...current, fields: current.fields.filter((field) => field.key !== key) }));
+    setDraft((current) => {
+      const removed = current.fields.find((field) => field.key === key);
+      if (removed?.id) {
+        setLockedFieldIds((ids) => {
+          if (!ids.has(removed.id)) return ids;
+          const next = new Set(ids);
+          next.delete(removed.id);
+          return next;
+        });
+      }
+      return { ...current, fields: current.fields.filter((field) => field.key !== key) };
+    });
   };
 
   const updateFieldLabel = (key: string, label: string) => {
     updateField(key, (field) => {
-      const locked = lockedIds.has(field.id);
+      const locked = lockedFieldIds.has(field.id);
       return {
         ...field,
         label,
@@ -308,7 +316,7 @@ export function IntakeFormsTab({
 
   const updateFieldId = (key: string, value: string) => {
     updateField(key, (field) => {
-      if (lockedIds.has(field.id)) return field;
+      if (lockedFieldIds.has(field.id)) return field;
       const id = sanitizeFieldIdInput(value);
       // Clearing the box hands control back to the label-based auto-slug.
       return { ...field, id, idEdited: id !== '' };
@@ -502,7 +510,7 @@ export function IntakeFormsTab({
             ) : (
               <div className="mt-3 flex flex-col gap-3">
                 {draft.fields.map((field, fieldIndex) => {
-                  const idLocked = lockedIds.has(field.id);
+                  const idLocked = lockedFieldIds.has(field.id);
                   return (
                     <div key={field.key} className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
                       <div className="flex items-center justify-between gap-2">
