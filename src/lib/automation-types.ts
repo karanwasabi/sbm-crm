@@ -10,7 +10,8 @@ export type AutomationTriggerType =
   | 'referral_submitted'
   | 'referrer_referral_submitted'
   | 'coach_assigned'
-  | 'event_signup';
+  | 'event_signup'
+  | 'star_cashback_completed';
 
 export type AutomationChannel = 'email' | 'whatsapp';
 
@@ -169,6 +170,7 @@ export const TRIGGER_LABELS: Record<AutomationTriggerType, string> = {
   referrer_referral_submitted: 'Referrer referral submitted',
   coach_assigned: 'Coach assigned or changed',
   event_signup: 'Event sign-up',
+  star_cashback_completed: 'Star cashback reward processed',
 };
 
 export type AutomationRenewalTriggerConfig = {
