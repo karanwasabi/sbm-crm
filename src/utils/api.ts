@@ -3422,6 +3422,7 @@ type ApiRenewalSummaryResponse = {
     member_kinds?: ApiRenewalFacetOption[];
     access?: ApiRenewalFacetOption[];
     buckets?: ApiRenewalFacetOption[];
+    batches?: ApiRenewalFacetOption[];
   };
 };
 
@@ -3462,6 +3463,7 @@ function mapRenewalFacets(facets: ApiRenewalSummaryResponse['facets']): import('
     memberKinds: mapOpts(facets?.member_kinds),
     access: mapOpts(facets?.access),
     buckets: mapOpts(facets?.buckets),
+    batches: mapOpts(facets?.batches),
   };
 }
 

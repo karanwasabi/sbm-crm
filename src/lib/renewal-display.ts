@@ -44,18 +44,8 @@ export function renewalMemberStatusId(row: Pick<RenewalRow, 'memberKind' | 'life
   return 'member';
 }
 
-export function statusToRenewalFilters(status: string): { stage: string; memberKind: string } {
-  if (status === 'renewal' || status === 'returnee') {
-    return { stage: '', memberKind: status };
-  }
-  if (status === 'newbie' || status === 'member') {
-    return { stage: status, memberKind: '' };
-  }
-  return { stage: '', memberKind: '' };
-}
-
-export function renewalStatusFromFilters(stage: string, memberKind: string): string {
-  return memberKind || stage;
+export function statusLabel(status: string): string {
+  return RENEWAL_STATUS_FILTERS.find((option) => option.id === status)?.label ?? status;
 }
 
 export const RENEWAL_EXPIRY_FILTERS: { id: string; label: string }[] = [

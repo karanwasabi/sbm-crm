@@ -189,7 +189,7 @@ export function RenewalsView({
         <button
           type="button"
           className="cursor-pointer text-left"
-          onClick={() => navigate(buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { expiry: '7d' }))}
+          onClick={() => navigate(buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { expiries: ['7d'] }))}
         >
           <KpiCard
             label="Expiring in 7 days"
@@ -201,7 +201,7 @@ export function RenewalsView({
         <button
           type="button"
           className="cursor-pointer text-left"
-          onClick={() => navigate(buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { expiry: '30d' }))}
+          onClick={() => navigate(buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { expiries: ['30d'] }))}
         >
           <KpiCard
             label="Expiring in 30 days"
@@ -213,7 +213,7 @@ export function RenewalsView({
         <button
           type="button"
           className="cursor-pointer text-left"
-          onClick={() => navigate(buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { access: 'grace' }))}
+          onClick={() => navigate(buildRenewalsHref(DEFAULT_RENEWAL_FILTERS, { access: ['grace'] }))}
         >
           <KpiCard label="In grace" value={String(summary.inGrace)} sub="Access ended, grace open" accent="#F97316" />
         </button>

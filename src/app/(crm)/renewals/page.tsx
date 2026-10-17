@@ -22,7 +22,7 @@ const EMPTY_SUMMARY: RenewalSummary = {
   churnedThisMonth: 0,
   autoRenewedThisMonth: 0,
   healthyCount: 0,
-  facets: { products: [], stages: [], memberKinds: [], access: [], buckets: [] },
+  facets: { products: [], stages: [], memberKinds: [], access: [], buckets: [], batches: [] },
 };
 
 export default async function RenewalsPage({

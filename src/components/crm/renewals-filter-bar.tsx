@@ -1,7 +1,7 @@
 'use client';
 
-import { CalendarClock, Layers, Shield, Tags } from 'lucide-react';
-import { useState } from 'react';
+import { CalendarClock, Layers, Shield, Tags, Users } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,7 @@ import {
   RENEWAL_PRODUCT_FILTERS,
   RENEWAL_STATUS_FILTERS,
   filterCount,
-  renewalStatusFromFilters,
-  statusToRenewalFilters,
+  statusLabel,
   type RenewalBucketFilter,
 } from '@/lib/renewal-display';
 import { DEFAULT_RENEWAL_FILTERS, buildRenewalsHref, type RenewalFilters } from '@/lib/renewal-query';
@@ -28,6 +27,8 @@ import type { RenewalRow, RenewalSummary } from '@/types/crm';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 
 type FacetCount = { value: string; count: number };
+
+type FilterOption = { id: string; label: string; count?: number };
 
 type RenewalsFilterBarProps = {
   filters: RenewalFilters;
@@ -65,44 +66,51 @@ export function RenewalsFilterBar({
   const displayedBucket = (filters.bucket || 'all') as RenewalBucketFilter;
   const secondaryActive =
     Boolean(filters.q) ||
-    Boolean(filters.product) ||
-    Boolean(filters.stage) ||
-    Boolean(filters.memberKind) ||
-    Boolean(filters.access) ||
-    Boolean(filters.expiry);
+    filters.products.length > 0 ||
+    filters.statuses.length > 0 ||
+    filters.access.length > 0 ||
+    filters.expiries.length > 0 ||
+    filters.batches.length > 0;
 
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
         <RenewalsSearch filters={filters} onNavigate={onNavigate} className="w-full max-w-96 flex-1" />
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <RenewalSelectPopover
+          <RenewalMultiSelectPopover
             label="Product"
             icon={Layers}
-            value={filters.product}
+            values={filters.products}
             options={withCounts(RENEWAL_PRODUCT_FILTERS, summary.facets.products)}
-            onSelect={(product) => onNavigate(buildRenewalsHref(filters, { product }))}
+            onApply={(products) => onNavigate(buildRenewalsHref(filters, { products }))}
           />
-          <RenewalSelectPopover
+          <RenewalMultiSelectPopover
             label="Status"
             icon={Tags}
-            value={renewalStatusFromFilters(filters.stage, filters.memberKind)}
+            values={filters.statuses}
             options={statusOptions(summary)}
-            onSelect={(status) => onNavigate(buildRenewalsHref(filters, statusToRenewalFilters(status)))}
+            onApply={(statuses) => onNavigate(buildRenewalsHref(filters, { statuses }))}
           />
-          <RenewalSelectPopover
+          <RenewalMultiSelectPopover
+            label="Batch"
+            icon={Users}
+            values={filters.batches}
+            options={batchOptions(summary)}
+            onApply={(batches) => onNavigate(buildRenewalsHref(filters, { batches }))}
+          />
+          <RenewalMultiSelectPopover
             label="Access"
             icon={Shield}
-            value={filters.access}
+            values={filters.access}
             options={withCounts(RENEWAL_ACCESS_FILTERS, summary.facets.access)}
-            onSelect={(access) => onNavigate(buildRenewalsHref(filters, { access }))}
+            onApply={(access) => onNavigate(buildRenewalsHref(filters, { access }))}
           />
-          <RenewalSelectPopover
+          <RenewalMultiSelectPopover
             label="Expires"
             icon={CalendarClock}
-            value={filters.expiry}
+            values={filters.expiries}
             options={RENEWAL_EXPIRY_FILTERS}
-            onSelect={(expiry) => onNavigate(buildRenewalsHref(filters, { expiry }))}
+            onApply={(expiries) => onNavigate(buildRenewalsHref(filters, { expiries }))}
           />
         </div>
       </div>
@@ -154,34 +162,76 @@ export function RenewalsFilterBar({
               onDismiss={() => onNavigate(buildRenewalsHref(filters, { q: '' }))}
             />
           ) : null}
-          {filters.product ? (
+          {filters.products.map((product) => (
             <ActiveFilterTag
+              key={`product-${product}`}
               label="Product"
-              value={labelFor(RENEWAL_PRODUCT_FILTERS, filters.product)}
-              onDismiss={() => onNavigate(buildRenewalsHref(filters, { product: '' }))}
+              value={labelFor(RENEWAL_PRODUCT_FILTERS, product)}
+              onDismiss={() =>
+                onNavigate(
+                  buildRenewalsHref(filters, {
+                    products: filters.products.filter((item) => item !== product),
+                  })
+                )
+              }
             />
-          ) : null}
-          {filters.stage || filters.memberKind ? (
+          ))}
+          {filters.statuses.map((status) => (
             <ActiveFilterTag
+              key={`status-${status}`}
               label="Status"
-              value={labelFor(RENEWAL_STATUS_FILTERS, renewalStatusFromFilters(filters.stage, filters.memberKind))}
-              onDismiss={() => onNavigate(buildRenewalsHref(filters, { stage: '', memberKind: '' }))}
+              value={statusLabel(status)}
+              onDismiss={() =>
+                onNavigate(
+                  buildRenewalsHref(filters, {
+                    statuses: filters.statuses.filter((item) => item !== status),
+                  })
+                )
+              }
             />
-          ) : null}
-          {filters.access ? (
+          ))}
+          {filters.batches.map((batch) => (
             <ActiveFilterTag
+              key={`batch-${batch}`}
+              label="Batch"
+              value={batch}
+              onDismiss={() =>
+                onNavigate(
+                  buildRenewalsHref(filters, {
+                    batches: filters.batches.filter((item) => item !== batch),
+                  })
+                )
+              }
+            />
+          ))}
+          {filters.access.map((access) => (
+            <ActiveFilterTag
+              key={`access-${access}`}
               label="Access"
-              value={labelFor(RENEWAL_ACCESS_FILTERS, filters.access)}
-              onDismiss={() => onNavigate(buildRenewalsHref(filters, { access: '' }))}
+              value={labelFor(RENEWAL_ACCESS_FILTERS, access)}
+              onDismiss={() =>
+                onNavigate(
+                  buildRenewalsHref(filters, {
+                    access: filters.access.filter((item) => item !== access),
+                  })
+                )
+              }
             />
-          ) : null}
-          {filters.expiry ? (
+          ))}
+          {filters.expiries.map((expiry) => (
             <ActiveFilterTag
+              key={`expiry-${expiry}`}
               label="Expires"
-              value={labelFor(RENEWAL_EXPIRY_FILTERS, filters.expiry)}
-              onDismiss={() => onNavigate(buildRenewalsHref(filters, { expiry: '' }))}
+              value={labelFor(RENEWAL_EXPIRY_FILTERS, expiry)}
+              onDismiss={() =>
+                onNavigate(
+                  buildRenewalsHref(filters, {
+                    expiries: filters.expiries.filter((item) => item !== expiry),
+                  })
+                )
+              }
             />
-          ) : null}
+          ))}
           <button
             type="button"
             className="text-xs font-semibold text-brand"
@@ -195,17 +245,14 @@ export function RenewalsFilterBar({
   );
 }
 
-function withCounts(
-  options: { id: string; label: string }[],
-  facets: FacetCount[]
-): { id: string; label: string; count?: number }[] {
+function withCounts(options: { id: string; label: string }[], facets: FacetCount[]): FilterOption[] {
   return options.map((option) => ({
     ...option,
     count: facets.find((facet) => facet.value === option.id)?.count,
   }));
 }
 
-function statusOptions(summary: RenewalSummary): { id: string; label: string; count?: number }[] {
+function statusOptions(summary: RenewalSummary): FilterOption[] {
   return RENEWAL_STATUS_FILTERS.map((option) => {
     const facets =
       option.id === 'renewal' || option.id === 'returnee' ? summary.facets.memberKinds : summary.facets.stages;
@@ -213,72 +260,104 @@ function statusOptions(summary: RenewalSummary): { id: string; label: string; co
   });
 }
 
+function batchOptions(summary: RenewalSummary): FilterOption[] {
+  return (summary.facets.batches ?? []).map((facet) => ({
+    id: facet.value,
+    label: facet.value,
+    count: facet.count,
+  }));
+}
+
 function labelFor(options: { id: string; label: string }[], value: string): string {
   return options.find((option) => option.id === value)?.label ?? value;
 }
 
-function RenewalSelectPopover({
+function RenewalMultiSelectPopover({
   label,
   icon: Icon,
-  value,
+  values,
   options,
-  onSelect,
+  onApply,
 }: {
   label: string;
   icon: typeof Layers;
-  value: string;
-  options: { id: string; label: string; count?: number }[];
-  onSelect: (next: string) => void;
+  values: string[];
+  options: FilterOption[];
+  onApply: (next: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const selectedLabel = value ? labelFor(options, value) : null;
+  const [draft, setDraft] = useState<string[]>(values);
+  const selectedSet = useMemo(() => new Set(draft), [draft]);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger type="button" className={filterPopoverTriggerClass(Boolean(value))}>
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (next) setDraft(values);
+      }}
+    >
+      <PopoverTrigger type="button" className={filterPopoverTriggerClass(values.length > 0)}>
         <Icon className="h-3.5 w-3.5" />
-        {selectedLabel ? `${label}: ${selectedLabel}` : label}
+        {label}
+        {values.length > 0 ? ` (${values.length})` : ''}
       </PopoverTrigger>
       <PopoverContent className="w-72 p-4" align="start">
         <p className="text-sm font-semibold text-slate-800">Filter by {label.toLowerCase()}</p>
         <div className="mt-3 max-h-56 space-y-1 overflow-y-auto">
-          {options.map((option) => {
-            const active = value === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                className={cn(
-                  'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm',
-                  active ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
-                )}
-                onClick={() => {
-                  onSelect(active ? '' : option.id);
-                  setOpen(false);
-                }}
-              >
-                <span className="truncate pr-2">{option.label}</span>
-                {option.count != null ? (
-                  <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
-                ) : null}
-              </button>
-            );
-          })}
+          {options.length === 0 ? (
+            <p className="px-3 py-2 text-xs text-slate-500">No values yet.</p>
+          ) : (
+            options.map((option) => {
+              const active = selectedSet.has(option.id);
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  className={cn(
+                    'flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm',
+                    active ? 'bg-brand/10 font-semibold text-brand' : 'text-slate-700 hover:bg-slate-50'
+                  )}
+                  onClick={() =>
+                    setDraft((current) =>
+                      active ? current.filter((value) => value !== option.id) : [...current, option.id]
+                    )
+                  }
+                >
+                  <span className="truncate pr-2">{option.label}</span>
+                  {option.count != null ? (
+                    <span className="shrink-0 text-[10px] text-slate-400">{option.count.toLocaleString('en-IN')}</span>
+                  ) : null}
+                </button>
+              );
+            })
+          )}
         </div>
-        {value ? (
-          <div className="mt-4">
+        <div className="mt-4 flex items-center gap-2">
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              onApply(draft);
+              setOpen(false);
+            }}
+          >
+            Apply
+          </Button>
+          {values.length > 0 || draft.length > 0 ? (
             <Button
               variant="light"
               size="sm"
               onClick={() => {
-                onSelect('');
+                setDraft([]);
+                onApply([]);
                 setOpen(false);
               }}
             >
               Clear
             </Button>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </PopoverContent>
     </Popover>
   );

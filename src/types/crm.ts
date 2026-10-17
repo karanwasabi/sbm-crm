@@ -810,6 +810,7 @@ export type RenewalFacets = {
   memberKinds: RenewalFacetOption[];
   access: RenewalFacetOption[];
   buckets: RenewalFacetOption[];
+  batches: RenewalFacetOption[];
 };
 
 export type RenewalSummary = {
