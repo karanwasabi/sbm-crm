@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpDown, Layers, Megaphone, Search, Tags } from 'lucide-react';
+import { Layers, Megaphone, Search, Tags } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState, useTransition, type ReactNode } from 'react';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
@@ -9,15 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { SearchableSelect } from '@/components/ui/searchable-select';
 import { useDebouncedSearchInput } from '@/hooks/use-debounced-search-input';
 import { cn } from '@/lib/cn';
 import {
   buildCommsTemplatesHref,
-  COMMS_TEMPLATE_SORT_OPTIONS,
   DEFAULT_COMMS_TEMPLATE_FILTERS,
   type CommsTemplateFilters,
-  type CommsTemplateSortKey,
 } from '@/lib/comms-templates-query';
 
 type ChipOption = { value: string; label: string };
@@ -211,21 +208,6 @@ export function CommsTemplatesToolbar({
               value={filters.purpose}
               options={purposeOptions}
               onSelect={(purpose) => pushPatch({ purpose })}
-            />
-          ) : null}
-          {filters.channel === 'email' ? (
-            <SearchableSelect
-              value={filters.sort}
-              onChange={(sort) => pushPatch({ sort: sort as CommsTemplateSortKey })}
-              options={COMMS_TEMPLATE_SORT_OPTIONS.map((option) => ({
-                value: option.value,
-                label: option.label,
-              }))}
-              placeholder="Sort"
-              searchable={false}
-              leftIcon={<ArrowUpDown className="h-3.5 w-3.5" />}
-              className="h-9 w-[12.5rem] shrink-0 rounded-2xl border-slate-200/90 text-xs shadow-sm"
-              popoverClassName="w-[12.5rem]"
             />
           ) : null}
         </div>

@@ -12,13 +12,13 @@ import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
 import { CommsTemplatesPagination } from '@/components/comms/comms-templates-pagination';
 import { CommsTemplatesToolbar } from '@/components/comms/comms-templates-toolbar';
+import { EmailTemplatesTable } from '@/components/comms/email-templates-table';
 import { WhatsAppTemplatesTable } from '@/components/comms/whatsapp-templates-table';
 import { WhatsAppCommsPerformancePanel } from '@/components/comms/whatsapp-comms-performance-panel';
 import { WhatsAppSendsPanel } from '@/components/comms/whatsapp-sends-panel';
 import { AutomationListRow } from '@/components/comms/automation-list-row';
 import { Card } from '@/components/ui/card';
 import { SectionHead } from '@/components/ui/section-head';
-import { Pill } from '@/components/ui/pill';
 import { Button } from '@/components/ui/button';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { cn } from '@/lib/cn';
@@ -66,12 +66,6 @@ const EMAIL_TEMPLATE_CLASSIFICATION_OPTIONS = [
   { value: 'transactional', label: 'Transactional' },
   { value: 'marketing', label: 'Marketing' },
 ];
-
-function formatTemplateUpdatedAt(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 function hasActiveTemplateFilters(filters: CommsTemplateFilters): boolean {
   return Boolean(filters.q || filters.status || filters.classification || filters.category || filters.purpose);
@@ -489,46 +483,11 @@ export function CommunicationsView({
                     templateHref={(templateId) => withWhatsAppAccountQuery(commsTemplateHref(channel, templateId))}
                   />
                 ) : (
-                  emailTemplates.map((template) => (
-                    <Link
-                      key={template.id}
-                      href={commsTemplateHref(channel, template.id)}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand/10 text-brand">
-                          <Mail className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
-                          <p className="truncate text-xs font-medium text-slate-500">
-                            {template.subject || 'No subject yet'}
-                            {template.createdAt ? ` · Created ${formatTemplateUpdatedAt(template.createdAt)}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Pill tone={template.classification === 'marketing' ? 'brand' : 'neutral'}>
-                          {template.classification === 'marketing' ? 'Marketing' : 'Transactional'}
-                        </Pill>
-                        <Pill
-                          tone={
-                            template.status === 'active'
-                              ? 'success'
-                              : template.status === 'archived'
-                                ? 'neutral'
-                                : 'warn'
-                          }
-                        >
-                          {template.status === 'active'
-                            ? 'Active'
-                            : template.status === 'archived'
-                              ? 'Archived'
-                              : 'Unpublished'}
-                        </Pill>
-                      </div>
-                    </Link>
-                  ))
+                  <EmailTemplatesTable
+                    templates={emailTemplates}
+                    filters={filters}
+                    templateHref={(templateId) => commsTemplateHref(channel, templateId)}
+                  />
                 )}
               </div>
               <CommsTemplatesPagination filters={filters} total={templatesTotal} />
