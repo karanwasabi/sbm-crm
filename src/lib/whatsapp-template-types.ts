@@ -1,4 +1,4 @@
-export type WhatsAppTemplateStatus = 'draft' | 'submitted' | 'active' | 'rejected' | 'paused' | 'deleted';
+export type WhatsAppTemplateStatus = 'draft' | 'submitted' | 'active' | 'rejected' | 'paused' | 'deleted' | 'inactive';
 
 export type WhatsAppTemplateCategory = 'marketing' | 'utility' | 'authentication';
 
@@ -13,6 +13,16 @@ export const WHATSAPP_TEMPLATE_CATEGORY_OPTIONS: { value: WhatsAppTemplateCatego
 export const WHATSAPP_TEMPLATE_PURPOSE_OPTIONS: { value: WhatsAppTemplatePurpose; label: string }[] = [
   { value: 'individual', label: 'Individual' },
   { value: 'broadcast', label: 'Broadcast' },
+];
+
+export const WHATSAPP_TEMPLATE_STATUS_FILTER_OPTIONS: { value: WhatsAppTemplateStatus; label: string }[] = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'submitted', label: 'Submitted' },
+  { value: 'active', label: 'Active' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'paused', label: 'Paused' },
+  { value: 'deleted', label: 'Deleted' },
+  { value: 'inactive', label: 'Inactive' },
 ];
 
 export const WHATSAPP_TEMPLATE_LANGUAGE_OPTIONS = [
@@ -34,6 +44,8 @@ export function whatsAppTemplateStatusLabel(status: WhatsAppTemplateStatus): str
       return 'Paused';
     case 'deleted':
       return 'Deleted';
+    case 'inactive':
+      return 'Inactive';
     default:
       return status;
   }
@@ -51,6 +63,7 @@ export function whatsAppTemplateStatusTone(
     case 'deleted':
       return 'danger';
     case 'paused':
+    case 'inactive':
       return 'warn';
     default:
       return 'neutral';

@@ -5,11 +5,13 @@ import { Mail, MessageCircle, Plus, RefreshCw, Send, Workflow } from 'lucide-rea
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, useTransition } from 'react';
-import { listWhatsAppTemplatesAction, syncWhatsAppTemplatesAction } from '@/app/(crm)/communications/actions';
+import { syncWhatsAppTemplatesAction } from '@/app/(crm)/communications/actions';
 import { WhatsAppAccountSelect } from '@/components/comms/whatsapp-account-select';
 import { BulkSendListRow } from '@/components/comms/bulk-send-list-row';
 import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
+import { CommsTemplatesPagination } from '@/components/comms/comms-templates-pagination';
+import { CommsTemplatesToolbar } from '@/components/comms/comms-templates-toolbar';
 import { WhatsAppCommsPerformancePanel } from '@/components/comms/whatsapp-comms-performance-panel';
 import { WhatsAppSendsPanel } from '@/components/comms/whatsapp-sends-panel';
 import { AutomationListRow } from '@/components/comms/automation-list-row';
@@ -31,7 +33,11 @@ import {
   type CommsChannelTab,
   type CommsSection,
 } from '@/lib/comms-channel';
+import { DEFAULT_COMMS_TEMPLATE_FILTERS, type CommsTemplateFilters } from '@/lib/comms-templates-query';
 import {
+  WHATSAPP_TEMPLATE_CATEGORY_OPTIONS,
+  WHATSAPP_TEMPLATE_PURPOSE_OPTIONS,
+  WHATSAPP_TEMPLATE_STATUS_FILTER_OPTIONS,
   whatsAppTemplateCategoryLabel,
   whatsAppTemplateStatusLabel,
   whatsAppTemplateStatusTone,
@@ -52,10 +58,33 @@ import type {
   WhatsAppSend,
 } from '@/utils/api';
 
+const EMAIL_TEMPLATE_STATUS_OPTIONS = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'active', label: 'Active' },
+  { value: 'archived', label: 'Archived' },
+];
+
+const EMAIL_TEMPLATE_CLASSIFICATION_OPTIONS = [
+  { value: 'transactional', label: 'Transactional' },
+  { value: 'marketing', label: 'Marketing' },
+];
+
+function formatTemplateUpdatedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+function hasActiveTemplateFilters(filters: CommsTemplateFilters): boolean {
+  return Boolean(filters.q || filters.status || filters.classification || filters.category || filters.purpose);
+}
+
 type CommunicationsViewProps = {
   section: CommsSection;
   tab?: CommsChannelTab;
   templates?: EmailTemplate[] | WhatsAppTemplate[];
+  templatesTotal?: number;
+  templateFilters?: CommsTemplateFilters;
   automations?: Automation[];
   bulkSendJobs?: BulkLeadEmailSendJob[] | BulkLeadWhatsAppSendJob[];
   bulkSendJobsError?: string | null;
@@ -148,6 +177,8 @@ export function CommunicationsView({
   section,
   tab = 'templates',
   templates = [],
+  templatesTotal = 0,
+  templateFilters,
   automations = [],
   bulkSendJobs = [],
   bulkSendJobsError,
@@ -168,10 +199,6 @@ export function CommunicationsView({
   const searchParams = useSearchParams();
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [isSyncing, startSync] = useTransition();
-  const [whatsappTemplates, setWhatsappTemplates] = useState<WhatsAppTemplate[]>(
-    () => (templates as WhatsAppTemplate[]) ?? []
-  );
-  const [templatesLoading, setTemplatesLoading] = useState(false);
   const [selectedWhatsAppAccountId, setSelectedWhatsAppAccountId] = useState(() =>
     resolveWhatsAppAccountId(
       searchParams.get(WA_ACCOUNT_SEARCH_PARAM) ?? initialWhatsAppAccountId,
@@ -185,13 +212,14 @@ export function CommunicationsView({
   const isWhatsApp = channel === 'whatsapp';
   const canSyncWhatsAppTemplates = whatsappFlags?.sendsEnabled ?? false;
   const canManageWhatsAppTemplates = whatsappFlags?.templatesEnabled ?? false;
-
-  useEffect(() => {
-    if (!isWhatsApp || tab !== 'templates') {
-      return;
-    }
-    setWhatsappTemplates((templates as WhatsAppTemplate[]) ?? []);
-  }, [templates, isWhatsApp, tab]);
+  const filters: CommsTemplateFilters = templateFilters ?? {
+    ...DEFAULT_COMMS_TEMPLATE_FILTERS,
+    channel,
+    accountId: selectedWhatsAppAccountId,
+  };
+  const emailTemplates = templates as EmailTemplate[];
+  const whatsappTemplates = templates as WhatsAppTemplate[];
+  const filtersActive = hasActiveTemplateFilters(filters);
 
   useEffect(() => {
     if (!isWhatsApp) {
@@ -219,21 +247,9 @@ export function CommunicationsView({
     setSelectedWhatsAppAccountId(accountId);
     const params = new URLSearchParams(searchParams.toString());
     params.set(WA_ACCOUNT_SEARCH_PARAM, accountId);
-    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-
-    if (tab !== 'templates') {
-      return;
-    }
-
-    setTemplatesLoading(true);
-    void listWhatsAppTemplatesAction({ accountId }).then((result) => {
-      setTemplatesLoading(false);
-      if (result.error) {
-        setSyncMessage(result.error);
-        return;
-      }
-      setWhatsappTemplates(result.templates);
-    });
+    params.delete('page');
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
   };
 
   const handleSyncTemplates = () => {
@@ -251,12 +267,6 @@ export function CommunicationsView({
           message += ` No templates returned for: ${zeroSync.map((row) => row.slug).join(', ')} (check Convonite channel/group IDs).`;
         }
         setSyncMessage(message);
-        if (selectedWhatsAppAccountId) {
-          const refreshed = await listWhatsAppTemplatesAction({ accountId: selectedWhatsAppAccountId });
-          if (!refreshed.error) {
-            setWhatsappTemplates(refreshed.templates);
-          }
-        }
         router.refresh();
       } catch (error) {
         setSyncMessage(error instanceof Error ? error.message : 'Failed to sync templates.');
@@ -434,22 +444,34 @@ export function CommunicationsView({
                     value={selectedWhatsAppAccountId}
                     onChange={handleWhatsAppAccountChange}
                     accountLocked={whatsAppAccountLocked}
-                    disabled={templatesLoading || isSyncing}
+                    disabled={isSyncing}
                   />
                 </label>
               ) : null}
               {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
+              <CommsTemplatesToolbar
+                filters={filters}
+                statusOptions={isWhatsApp ? WHATSAPP_TEMPLATE_STATUS_FILTER_OPTIONS : EMAIL_TEMPLATE_STATUS_OPTIONS}
+                classificationOptions={isWhatsApp ? undefined : EMAIL_TEMPLATE_CLASSIFICATION_OPTIONS}
+                categoryOptions={isWhatsApp ? WHATSAPP_TEMPLATE_CATEGORY_OPTIONS : undefined}
+                purposeOptions={isWhatsApp ? WHATSAPP_TEMPLATE_PURPOSE_OPTIONS : undefined}
+                total={templatesTotal}
+              />
               <div className="flex flex-col gap-2">
-                {templatesLoading ? (
-                  <p className="text-sm text-slate-500">Loading templates…</p>
-                ) : (isWhatsApp ? whatsappTemplates : templates).length === 0 ? (
+                {templates.length === 0 ? (
                   <p className="text-sm text-slate-500">
-                    No templates yet.
-                    {isWhatsApp && !canSyncWhatsAppTemplates
-                      ? ' Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'
-                      : isWhatsApp
-                        ? ' Use Sync from Convonite to import templates.'
-                        : ' Create your first email template.'}
+                    {filtersActive ? (
+                      'No templates match these filters.'
+                    ) : (
+                      <>
+                        No templates yet.
+                        {isWhatsApp && !canSyncWhatsAppTemplates
+                          ? ' Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'
+                          : isWhatsApp
+                            ? ' Use Sync from Convonite to import templates.'
+                            : ' Create your first email template.'}
+                      </>
+                    )}
                   </p>
                 ) : isWhatsApp ? (
                   whatsappTemplates.map((template) => (
@@ -466,6 +488,7 @@ export function CommunicationsView({
                           <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
                           <p className="truncate text-xs font-medium text-slate-500">
                             {template.language} · {whatsAppTemplateCategoryLabel(template.category)}
+                            {template.updatedAt ? ` · Updated ${formatTemplateUpdatedAt(template.updatedAt)}` : ''}
                           </p>
                         </div>
                       </div>
@@ -478,7 +501,7 @@ export function CommunicationsView({
                     </Link>
                   ))
                 ) : (
-                  (templates as EmailTemplate[]).map((template) => (
+                  emailTemplates.map((template) => (
                     <Link
                       key={template.id}
                       href={commsTemplateHref(channel, template.id)}
@@ -492,6 +515,7 @@ export function CommunicationsView({
                           <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
                           <p className="truncate text-xs font-medium text-slate-500">
                             {template.subject || 'No subject yet'}
+                            {template.updatedAt ? ` · Updated ${formatTemplateUpdatedAt(template.updatedAt)}` : ''}
                           </p>
                         </div>
                       </div>
@@ -519,6 +543,7 @@ export function CommunicationsView({
                   ))
                 )}
               </div>
+              <CommsTemplatesPagination filters={filters} total={templatesTotal} />
             </>
           ) : null}
 

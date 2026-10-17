@@ -3924,9 +3924,9 @@ function mapEmailTemplate(row: {
   subject: string;
   from_name?: string | null;
   from_local_part?: string | null;
-  content_json: unknown;
-  html_compiled: string;
-  text_compiled: string;
+  content_json?: unknown;
+  html_compiled?: string;
+  text_compiled?: string;
   status: string;
   created_at: string;
   updated_at: string;
@@ -3945,13 +3945,20 @@ function mapEmailTemplate(row: {
     fromName: row.from_name ?? null,
     fromLocalPart: row.from_local_part ?? null,
     contentJson,
-    htmlCompiled: row.html_compiled,
-    textCompiled: row.text_compiled,
+    htmlCompiled: row.html_compiled ?? '',
+    textCompiled: row.text_compiled ?? '',
     status: row.status as EmailTemplate['status'],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
+
+export type EmailTemplatesPage = {
+  items: EmailTemplate[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 export async function listEmailTemplates(): Promise<EmailTemplate[]> {
   const response = await requireApiFetch('/admin/comms/templates');
@@ -3960,6 +3967,25 @@ export async function listEmailTemplates(): Promise<EmailTemplate[]> {
   }
   const rows = (await response.json()) as Parameters<typeof mapEmailTemplate>[0][];
   return rows.map(mapEmailTemplate);
+}
+
+export async function listEmailTemplatesPaged(query: URLSearchParams): Promise<EmailTemplatesPage> {
+  const response = await requireApiFetch(`/admin/comms/templates?${query.toString()}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load email templates.', response.status);
+  }
+  const payload = (await response.json()) as {
+    items: Parameters<typeof mapEmailTemplate>[0][];
+    total: number;
+    page: number;
+    page_size: number;
+  };
+  return {
+    items: (payload.items ?? []).map(mapEmailTemplate),
+    total: payload.total ?? 0,
+    page: payload.page ?? 1,
+    pageSize: payload.page_size ?? 25,
+  };
 }
 
 export async function getEmailTemplate(id: string): Promise<EmailTemplate> {
@@ -4312,8 +4338,8 @@ function mapWhatsAppTemplate(row: {
   category: string;
   language: string;
   purpose: string;
-  runtime_params: unknown;
-  content: unknown;
+  runtime_params?: unknown;
+  content?: unknown;
   live_content?: unknown;
   rating?: string;
   last_synced_at?: string | null;
@@ -4338,6 +4364,13 @@ function mapWhatsAppTemplate(row: {
     updatedAt: row.updated_at,
   };
 }
+
+export type WhatsAppTemplatesPage = {
+  items: WhatsAppTemplate[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
 
 export type WhatsAppFlags = {
   templatesEnabled: boolean;
@@ -4395,6 +4428,25 @@ export async function listWhatsAppTemplates(options?: {
   }
   const rows = (await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0][];
   return rows.map(mapWhatsAppTemplate);
+}
+
+export async function listWhatsAppTemplatesPaged(query: URLSearchParams): Promise<WhatsAppTemplatesPage> {
+  const response = await requireApiFetch(`/admin/comms/whatsapp/templates?${query.toString()}`);
+  if (!response.ok) {
+    throw new ApiError('Failed to load WhatsApp templates.', response.status);
+  }
+  const payload = (await response.json()) as {
+    items: Parameters<typeof mapWhatsAppTemplate>[0][];
+    total: number;
+    page: number;
+    page_size: number;
+  };
+  return {
+    items: (payload.items ?? []).map(mapWhatsAppTemplate),
+    total: payload.total ?? 0,
+    page: payload.page ?? 1,
+    pageSize: payload.page_size ?? 25,
+  };
 }
 
 export async function getWhatsAppTemplate(id: string): Promise<WhatsAppTemplate> {
