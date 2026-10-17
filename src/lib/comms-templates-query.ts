@@ -126,3 +126,17 @@ export function buildCommsTemplatesApiQuery(filters: CommsTemplateFilters): URLS
   if (filters.sort) params.set('sort', filters.sort);
   return params;
 }
+
+/** Last valid page for a result set (always ≥ 1). */
+export function commsTemplateTotalPages(total: number, pageSize: number): number {
+  const size = pageSize > 0 ? pageSize : COMMS_TEMPLATE_PAGE_SIZE;
+  return Math.max(1, Math.ceil(Math.max(total, 0) / size));
+}
+
+/** Clamp a requested page into [1, last page]. */
+export function clampCommsTemplatePage(page: number, total: number, pageSize: number): number {
+  const maxPage = commsTemplateTotalPages(total, pageSize);
+  if (!Number.isFinite(page) || page < 1) return 1;
+  if (page > maxPage) return maxPage;
+  return page;
+}

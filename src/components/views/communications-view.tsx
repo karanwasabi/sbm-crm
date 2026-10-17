@@ -85,6 +85,7 @@ type CommunicationsViewProps = {
   templates?: EmailTemplate[] | WhatsAppTemplate[];
   templatesTotal?: number;
   templateFilters?: CommsTemplateFilters;
+  templatesError?: string | null;
   automations?: Automation[];
   bulkSendJobs?: BulkLeadEmailSendJob[] | BulkLeadWhatsAppSendJob[];
   bulkSendJobsError?: string | null;
@@ -179,6 +180,7 @@ export function CommunicationsView({
   templates = [],
   templatesTotal = 0,
   templateFilters,
+  templatesError = null,
   automations = [],
   bulkSendJobs = [],
   bulkSendJobsError,
@@ -458,10 +460,19 @@ export function CommunicationsView({
                 total={templatesTotal}
               />
               <div className="flex flex-col gap-2">
-                {templates.length === 0 ? (
+                {templatesError ? (
+                  <p className="text-sm font-medium text-danger-press">{templatesError}</p>
+                ) : templates.length === 0 ? (
                   <p className="text-sm text-slate-500">
                     {filtersActive ? (
                       'No templates match these filters.'
+                    ) : isWhatsApp && !filters.status ? (
+                      <>
+                        No templates to show (inactive are hidden by default). Try the Inactive status filter
+                        {canSyncWhatsAppTemplates
+                          ? ', or sync from Convonite.'
+                          : '. Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'}
+                      </>
                     ) : (
                       <>
                         No templates yet.

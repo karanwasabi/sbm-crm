@@ -1,6 +1,11 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { buildCommsTemplatesHref, type CommsTemplateFilters } from '@/lib/comms-templates-query';
+import {
+  buildCommsTemplatesHref,
+  clampCommsTemplatePage,
+  commsTemplateTotalPages,
+  type CommsTemplateFilters,
+} from '@/lib/comms-templates-query';
 
 type CommsTemplatesPaginationProps = {
   filters: CommsTemplateFilters;
@@ -8,14 +13,14 @@ type CommsTemplatesPaginationProps = {
 };
 
 export function CommsTemplatesPagination({ filters, total }: CommsTemplatesPaginationProps) {
-  const page = filters.page;
   const pageSize = filters.pageSize;
-  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const totalPages = commsTemplateTotalPages(total, pageSize);
+  const page = clampCommsTemplatePage(filters.page, total, pageSize);
   if (totalPages <= 1) return null;
 
   const prevHref = page > 1 ? buildCommsTemplatesHref(filters, { page: page - 1 }) : null;
   const nextHref = page < totalPages ? buildCommsTemplatesHref(filters, { page: page + 1 }) : null;
-  const from = (page - 1) * pageSize + 1;
+  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
 
   return (

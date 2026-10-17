@@ -105,10 +105,24 @@ export async function loadCommsTemplatesTab(
     channel === 'whatsapp' ? listWhatsAppTemplatesPaged(apiQuery) : listEmailTemplatesPaged(apiQuery),
   ]).then(([r]) => r);
 
-  const page =
-    templatesResult.status === 'fulfilled'
-      ? templatesResult.value
-      : { items: [], total: 0, page: resolvedFilters.page, pageSize: resolvedFilters.pageSize };
+  if (templatesResult.status === 'rejected') {
+    return {
+      section: channel as CommsChannel,
+      tab: 'templates' as const,
+      ...header,
+      templates: [],
+      templatesTotal: 0,
+      templateFilters: resolvedFilters,
+      templatesError: rejectedErrorMessage(templatesResult.reason, 'Failed to load templates.'),
+      whatsappFlags: flagsResult.status === 'fulfilled' ? flagsResult.value : DEFAULT_WHATSAPP_FLAGS,
+      whatsAppAccounts,
+      whatsAppDefaultAccountId,
+      whatsAppAccountLocked,
+      selectedWhatsAppAccountId,
+    };
+  }
+
+  const page = templatesResult.value;
 
   return {
     section: channel as CommsChannel,
@@ -117,6 +131,7 @@ export async function loadCommsTemplatesTab(
     templates: page.items,
     templatesTotal: page.total,
     templateFilters: resolvedFilters,
+    templatesError: null as string | null,
     whatsappFlags: flagsResult.status === 'fulfilled' ? flagsResult.value : DEFAULT_WHATSAPP_FLAGS,
     whatsAppAccounts,
     whatsAppDefaultAccountId,
