@@ -2,7 +2,15 @@ import type { CommsChannel } from '@/lib/comms-channel';
 import { commsTabHref } from '@/lib/comms-channel';
 import { WA_ACCOUNT_SEARCH_PARAM } from '@/lib/whatsapp-account';
 
-export type CommsTemplateSortKey = 'updated_at_desc' | 'updated_at_asc' | 'name_asc' | 'name_desc';
+export type CommsTemplateSortKey =
+  | 'created_at_desc'
+  | 'created_at_asc'
+  | 'updated_at_desc'
+  | 'updated_at_asc'
+  | 'name_asc'
+  | 'name_desc';
+
+export type CommsTemplateSortColumn = 'name' | 'created_at' | 'updated_at';
 
 export type CommsTemplateFilters = {
   channel: CommsChannel;
@@ -20,8 +28,10 @@ export type CommsTemplateFilters = {
 export const COMMS_TEMPLATE_PAGE_SIZE = 25;
 
 export const COMMS_TEMPLATE_SORT_OPTIONS: { value: CommsTemplateSortKey; label: string }[] = [
-  { value: 'updated_at_desc', label: 'Recently updated' },
-  { value: 'updated_at_asc', label: 'Oldest updated' },
+  { value: 'created_at_desc', label: 'Newest first' },
+  { value: 'created_at_asc', label: 'Oldest first' },
+  { value: 'updated_at_desc', label: 'Recently edited' },
+  { value: 'updated_at_asc', label: 'Least recently edited' },
   { value: 'name_asc', label: 'Name A–Z' },
   { value: 'name_desc', label: 'Name Z–A' },
 ];
@@ -32,13 +42,20 @@ export const DEFAULT_COMMS_TEMPLATE_FILTERS: Omit<CommsTemplateFilters, 'channel
   classification: '',
   category: '',
   purpose: '',
-  sort: 'updated_at_desc',
+  sort: 'created_at_desc',
   page: 1,
   pageSize: COMMS_TEMPLATE_PAGE_SIZE,
   accountId: '',
 };
 
-const SORT_KEYS: CommsTemplateSortKey[] = ['updated_at_desc', 'updated_at_asc', 'name_asc', 'name_desc'];
+const SORT_KEYS: CommsTemplateSortKey[] = [
+  'created_at_desc',
+  'created_at_asc',
+  'updated_at_desc',
+  'updated_at_asc',
+  'name_asc',
+  'name_desc',
+];
 
 function one(searchParams: Record<string, string | string[] | undefined>, key: string): string {
   const value = searchParams[key];
@@ -47,12 +64,37 @@ function one(searchParams: Record<string, string | string[] | undefined>, key: s
 }
 
 function parseSort(raw: string): CommsTemplateSortKey {
-  return SORT_KEYS.includes(raw as CommsTemplateSortKey) ? (raw as CommsTemplateSortKey) : 'updated_at_desc';
+  return SORT_KEYS.includes(raw as CommsTemplateSortKey) ? (raw as CommsTemplateSortKey) : 'created_at_desc';
 }
 
 function parsePage(raw: string): number {
   const value = Number.parseInt(raw, 10);
   return Number.isFinite(value) && value > 0 ? value : 1;
+}
+
+export function parseCommsTemplateSort(sort: CommsTemplateSortKey): {
+  column: CommsTemplateSortColumn;
+  order: 'asc' | 'desc';
+} {
+  if (sort.startsWith('name_')) {
+    return { column: 'name', order: sort.endsWith('_asc') ? 'asc' : 'desc' };
+  }
+  if (sort.startsWith('updated_at_')) {
+    return { column: 'updated_at', order: sort.endsWith('_asc') ? 'asc' : 'desc' };
+  }
+  return { column: 'created_at', order: sort.endsWith('_asc') ? 'asc' : 'desc' };
+}
+
+export function nextCommsTemplateSort(
+  current: CommsTemplateSortKey,
+  column: CommsTemplateSortColumn
+): CommsTemplateSortKey {
+  const active = parseCommsTemplateSort(current);
+  if (active.column === column) {
+    return `${column}_${active.order === 'desc' ? 'asc' : 'desc'}` as CommsTemplateSortKey;
+  }
+  const defaultOrder = column === 'name' ? 'asc' : 'desc';
+  return `${column}_${defaultOrder}` as CommsTemplateSortKey;
 }
 
 export function parseCommsTemplateFilters(
@@ -97,7 +139,7 @@ export function buildCommsTemplatesSearchParams(filters: CommsTemplateFilters): 
     if (filters.purpose) params.set('purpose', filters.purpose);
     if (filters.accountId) params.set(WA_ACCOUNT_SEARCH_PARAM, filters.accountId);
   }
-  if (filters.sort !== 'updated_at_desc') params.set('sort', filters.sort);
+  if (filters.sort !== 'created_at_desc') params.set('sort', filters.sort);
   if (filters.page > 1) params.set('page', String(filters.page));
   return params;
 }

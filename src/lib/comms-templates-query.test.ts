@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   clampCommsTemplatePage,
   commsTemplateTotalPages,
+  nextCommsTemplateSort,
   parseCommsTemplateFilters,
 } from '@/lib/comms-templates-query';
 
@@ -42,5 +43,20 @@ describe('parseCommsTemplateFilters', () => {
       sort: 'name_asc',
       page: 2,
     });
+  });
+
+  it('defaults sort to newest created', () => {
+    expect(parseCommsTemplateFilters('whatsapp', {}).sort).toBe('created_at_desc');
+  });
+});
+
+describe('nextCommsTemplateSort', () => {
+  it('toggles order on the active column', () => {
+    expect(nextCommsTemplateSort('created_at_desc', 'created_at')).toBe('created_at_asc');
+  });
+
+  it('defaults name to ascending and dates to descending', () => {
+    expect(nextCommsTemplateSort('created_at_desc', 'name')).toBe('name_asc');
+    expect(nextCommsTemplateSort('name_asc', 'updated_at')).toBe('updated_at_desc');
   });
 });

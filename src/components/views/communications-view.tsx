@@ -12,6 +12,7 @@ import { CommsHeaderStats } from '@/components/comms/comms-header-stats';
 import { CommsPerformancePanel } from '@/components/comms/comms-performance-panel';
 import { CommsTemplatesPagination } from '@/components/comms/comms-templates-pagination';
 import { CommsTemplatesToolbar } from '@/components/comms/comms-templates-toolbar';
+import { WhatsAppTemplatesTable } from '@/components/comms/whatsapp-templates-table';
 import { WhatsAppCommsPerformancePanel } from '@/components/comms/whatsapp-comms-performance-panel';
 import { WhatsAppSendsPanel } from '@/components/comms/whatsapp-sends-panel';
 import { AutomationListRow } from '@/components/comms/automation-list-row';
@@ -38,9 +39,6 @@ import {
   WHATSAPP_TEMPLATE_CATEGORY_OPTIONS,
   WHATSAPP_TEMPLATE_PURPOSE_OPTIONS,
   WHATSAPP_TEMPLATE_STATUS_FILTER_OPTIONS,
-  whatsAppTemplateCategoryLabel,
-  whatsAppTemplateStatusLabel,
-  whatsAppTemplateStatusTone,
 } from '@/lib/whatsapp-template-types';
 import { resolveWhatsAppAccountId, WA_ACCOUNT_SEARCH_PARAM } from '@/lib/whatsapp-account';
 import type {
@@ -485,32 +483,11 @@ export function CommunicationsView({
                     )}
                   </p>
                 ) : isWhatsApp ? (
-                  whatsappTemplates.map((template) => (
-                    <Link
-                      key={template.id}
-                      href={withWhatsAppAccountQuery(commsTemplateHref(channel, template.id))}
-                      className="flex items-center justify-between rounded-2xl border border-slate-100 bg-canvas-cool px-4 py-3 transition hover:border-brand/30"
-                    >
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                          <MessageCircle className="h-4 w-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
-                          <p className="truncate text-xs font-medium text-slate-500">
-                            {template.language} · {whatsAppTemplateCategoryLabel(template.category)}
-                            {template.updatedAt ? ` · Updated ${formatTemplateUpdatedAt(template.updatedAt)}` : ''}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <Pill tone="neutral">{template.purpose === 'broadcast' ? 'Broadcast' : 'Individual'}</Pill>
-                        <Pill tone={whatsAppTemplateStatusTone(template.status)}>
-                          {whatsAppTemplateStatusLabel(template.status)}
-                        </Pill>
-                      </div>
-                    </Link>
-                  ))
+                  <WhatsAppTemplatesTable
+                    templates={whatsappTemplates}
+                    filters={filters}
+                    templateHref={(templateId) => withWhatsAppAccountQuery(commsTemplateHref(channel, templateId))}
+                  />
                 ) : (
                   emailTemplates.map((template) => (
                     <Link
@@ -526,7 +503,7 @@ export function CommunicationsView({
                           <p className="truncate text-sm font-bold text-slate-800">{template.name}</p>
                           <p className="truncate text-xs font-medium text-slate-500">
                             {template.subject || 'No subject yet'}
-                            {template.updatedAt ? ` · Updated ${formatTemplateUpdatedAt(template.updatedAt)}` : ''}
+                            {template.createdAt ? ` · Created ${formatTemplateUpdatedAt(template.createdAt)}` : ''}
                           </p>
                         </div>
                       </div>

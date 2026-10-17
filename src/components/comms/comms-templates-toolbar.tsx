@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpDown, Layers, Search, Send, Tags } from 'lucide-react';
+import { ArrowUpDown, Layers, Megaphone, Search, Tags } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef, useState, useTransition, type ReactNode } from 'react';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
@@ -207,25 +207,27 @@ export function CommsTemplatesToolbar({
           {filters.channel === 'whatsapp' && purposeOptions ? (
             <TemplateFilterPopover
               label="Purpose"
-              icon={Send}
+              icon={Megaphone}
               value={filters.purpose}
               options={purposeOptions}
               onSelect={(purpose) => pushPatch({ purpose })}
             />
           ) : null}
-          <SearchableSelect
-            value={filters.sort}
-            onChange={(sort) => pushPatch({ sort: sort as CommsTemplateSortKey })}
-            options={COMMS_TEMPLATE_SORT_OPTIONS.map((option) => ({
-              value: option.value,
-              label: option.label,
-            }))}
-            placeholder="Sort"
-            searchable={false}
-            leftIcon={<ArrowUpDown className="h-3.5 w-3.5" />}
-            className="h-9 w-[12.5rem] shrink-0 rounded-2xl border-slate-200/90 text-xs shadow-sm"
-            popoverClassName="w-[12.5rem]"
-          />
+          {filters.channel === 'email' ? (
+            <SearchableSelect
+              value={filters.sort}
+              onChange={(sort) => pushPatch({ sort: sort as CommsTemplateSortKey })}
+              options={COMMS_TEMPLATE_SORT_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
+              }))}
+              placeholder="Sort"
+              searchable={false}
+              leftIcon={<ArrowUpDown className="h-3.5 w-3.5" />}
+              className="h-9 w-[12.5rem] shrink-0 rounded-2xl border-slate-200/90 text-xs shadow-sm"
+              popoverClassName="w-[12.5rem]"
+            />
+          ) : null}
         </div>
 
         <p className="ml-auto shrink-0 text-xs font-semibold text-slate-500">
