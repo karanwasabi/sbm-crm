@@ -438,18 +438,6 @@ export function CommunicationsView({
 
           {!isAutomations && tab === 'templates' ? (
             <>
-              {isWhatsApp && whatsAppAccounts.length > 0 ? (
-                <label className="mb-4 flex max-w-md flex-col gap-1.5 text-sm font-semibold text-slate-700">
-                  WhatsApp account
-                  <WhatsAppAccountSelect
-                    accounts={whatsAppAccounts}
-                    value={selectedWhatsAppAccountId}
-                    onChange={handleWhatsAppAccountChange}
-                    accountLocked={whatsAppAccountLocked}
-                    disabled={isSyncing}
-                  />
-                </label>
-              ) : null}
               {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
               <CommsTemplatesToolbar
                 filters={filters}
@@ -458,6 +446,18 @@ export function CommunicationsView({
                 categoryOptions={isWhatsApp ? WHATSAPP_TEMPLATE_CATEGORY_OPTIONS : undefined}
                 purposeOptions={isWhatsApp ? WHATSAPP_TEMPLATE_PURPOSE_OPTIONS : undefined}
                 total={templatesTotal}
+                accountSelect={
+                  isWhatsApp && whatsAppAccounts.length > 0 ? (
+                    <WhatsAppAccountSelect
+                      accounts={whatsAppAccounts}
+                      value={selectedWhatsAppAccountId}
+                      onChange={handleWhatsAppAccountChange}
+                      accountLocked={whatsAppAccountLocked}
+                      disabled={isSyncing}
+                      className="h-9 rounded-2xl border-slate-200/90 text-xs shadow-sm"
+                    />
+                  ) : undefined
+                }
               />
               <div className="flex flex-col gap-2">
                 {templatesError ? (
