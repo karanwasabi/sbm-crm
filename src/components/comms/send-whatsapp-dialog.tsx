@@ -10,7 +10,7 @@ import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { fetchWhatsAppAccountsClient, fetchWhatsAppTemplatesClient } from '@/lib/comms-templates-client';
 import { resolveWhatsAppAccountId } from '@/lib/whatsapp-account';
-import { parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
+import { guessLeadField, parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
 import type { WhatsAppAccount, WhatsAppTemplate, WhatsAppTemplateParamsPreview } from '@/utils/api';
 
 type SendWhatsAppDialogProps = {
@@ -28,6 +28,7 @@ function customParamDefaults(template: WhatsAppTemplate | undefined): Record<str
   const out: Record<string, string> = {};
   for (const variable of form.variables) {
     if (variable.leadField) continue;
+    if (guessLeadField(variable.name)) continue;
     out[variable.name] = variable.example;
   }
   return out;

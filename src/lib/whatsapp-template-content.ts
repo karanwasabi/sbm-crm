@@ -135,13 +135,16 @@ export function extractVariableNames(text: string): string[] {
 
 export function guessLeadField(variableName: string): WhatsAppLeadField {
   const normalized = variableName.toLowerCase().replace(/[\s-]/g, '_');
+  // Bare {{name}} in greetings is almost always first name; full name uses {{full_name}}.
+  // Check before the catalog — catalog maps the `name` field token to full name.
+  if (normalized === 'name' || normalized === 'fullname') return 'first_name';
+  if (normalized === 'full_name') return 'name';
   const catalogMatch = WHATSAPP_VARIABLE_CATALOG.find(
     (item) => item.field === normalized || item.token === `{{${normalized}}}`
   );
   if (catalogMatch) return catalogMatch.field;
   if (normalized === 'firstname' || normalized === 'fname') return 'first_name';
   if (normalized === 'lastname' || normalized === 'lname') return 'last_name';
-  if (normalized === 'full_name' || normalized === 'fullname') return 'name';
   if (normalized === 'program') return 'program_interest';
   if (normalized === 'cohort') return 'cohort_name';
   if (normalized === 'starts_on' || normalized === 'start_date') return 'cohort_starts_on';

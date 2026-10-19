@@ -18,7 +18,7 @@ import { bulkWhatsAppSkipTotal, formatBulkWhatsAppSkipSummary } from '@/lib/bulk
 import { commsBulkSendHref } from '@/lib/comms-channel';
 import { fetchWhatsAppAccountsClient, fetchWhatsAppTemplatesClient } from '@/lib/comms-templates-client';
 import { resolveWhatsAppAccountId } from '@/lib/whatsapp-account';
-import { parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
+import { guessLeadField, parseWhatsAppTemplateContent } from '@/lib/whatsapp-template-content';
 import type { BulkLeadWhatsAppPreview, BulkLeadWhatsAppSendJob, WhatsAppAccount, WhatsAppTemplate } from '@/utils/api';
 
 type BulkSendWhatsAppDialogProps = {
@@ -39,6 +39,8 @@ function customParamDefaults(template: WhatsAppTemplate | undefined): Record<str
   const out: Record<string, string> = {};
   for (const variable of form.variables) {
     if (variable.leadField) continue;
+    // Heuristic lead fields (e.g. {{name}} → first_name) resolve per recipient on the server.
+    if (guessLeadField(variable.name)) continue;
     out[variable.name] = variable.example;
   }
   return out;
