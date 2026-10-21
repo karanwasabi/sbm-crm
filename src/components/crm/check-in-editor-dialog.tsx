@@ -71,10 +71,11 @@ type DraftState = {
 };
 
 const SERVING_IDS = ['protein', 'fiber', 'starch', 'fun', 'dairy'] as const;
+const QUANTITY_IDS = [...SERVING_IDS, 'water'] as const;
 
 function withoutMismatchedServings(answers: Record<string, string>, style: AnswerStyle) {
   const next = { ...answers };
-  for (const id of SERVING_IDS) {
+  for (const id of QUANTITY_IDS) {
     const value = next[id];
     if (!value) continue;
     const exact = parseExactServing(value) != null;
@@ -123,7 +124,7 @@ function draftFromCheckIn(day: CheckInDay): DraftState {
     exerciseOutcome,
     exerciseType: day.exerciseType ?? 'strength',
     exerciseIntensity: day.exerciseIntensity ?? 'moderate',
-    nutritionAnswers: { ...(day.nutritionAnswers ?? {}) },
+    nutritionAnswers: withoutMismatchedServings({ ...(day.nutritionAnswers ?? {}) }, answerStyle),
     answerStyle,
   };
 }
@@ -289,7 +290,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
     }
     for (const q of nutritionQuestions) {
       const target = servingTargetForQuestion(q.id, servings);
-      if (exact && target != null) {
+      if (exact && (target != null || q.id === 'water')) {
         if (parseExactServing(draft.nutritionAnswers[q.id]) == null) return false;
       } else if (!draft.nutritionAnswers[q.id]) return false;
     }
@@ -330,6 +331,7 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
   const viewNutritionLabel = (questionId: string, answerId: string | undefined): string => {
     if (!answerId) return '—';
     const exact = parseExactServing(answerId);
+    if (exact != null && questionId === 'water') return `${exact} litres`;
     if (exact != null && servingTargetForQuestion(questionId, servings) != null) {
       return `${exact} servings`;
     }
@@ -548,9 +550,15 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
                     ) : null}
                     {nutritionQuestions.map((q) => {
                       const target = servingTargetForQuestion(q.id, servings);
-                      if (draft.answerStyle === 'exact' && target != null) {
+                      const exactWater = draft.answerStyle === 'exact' && q.id === 'water';
+                      if (exactWater || (draft.answerStyle === 'exact' && target != null)) {
                         return (
-                          <Field key={q.id} label={`${q.question} Target ${target}.`}>
+                          <Field
+                            key={q.id}
+                            label={
+                              exactWater ? `${q.question} Target 2 litres or more.` : `${q.question} Target ${target}.`
+                            }
+                          >
                             <TextInput
                               type="number"
                               inputMode="decimal"
