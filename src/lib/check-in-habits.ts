@@ -166,6 +166,55 @@ export function buildDailyNutritionMcqQuestions(
 
 const SERVING_CATEGORY_IDS = ['protein', 'fiber', 'starch', 'fun', 'dairy'] as const;
 
+export const EXACT_CHECK_IN_FROM = '2026-10-26';
+
+/** Numeric serving answers only. Option ids such as "1to2" stay legacy. */
+export function parseExactServing(raw: string | undefined | null): number | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!/^\d+(\.\d+)?$/.test(trimmed)) return null;
+  const value = Number(trimmed);
+  if (!Number.isFinite(value) || value < 0 || value > 30) return null;
+  return value;
+}
+
+export function servingTargetForQuestion(id: string, servings: RecommendedNutritionServings): number | null {
+  switch (id) {
+    case 'protein':
+      return servings.protein;
+    case 'fiber':
+      return servings.fiber;
+    case 'starch':
+      return servings.starch;
+    case 'fun':
+      return servings.fun;
+    case 'dairy':
+      return servings.dairy;
+    default:
+      return null;
+  }
+}
+
+/** True when saved serving answers are numbers, false when they are option ids, null when none are set. */
+export function savedServingAnswerStyle(answers: Record<string, string> | undefined): 'exact' | 'legacy' | null {
+  if (!answers) return null;
+  let exact = false;
+  let legacy = false;
+  for (const id of SERVING_CATEGORY_IDS) {
+    const value = answers[id];
+    if (!value) continue;
+    if (parseExactServing(value) != null) exact = true;
+    else legacy = true;
+  }
+  if (exact && !legacy) return 'exact';
+  if (legacy) return 'legacy';
+  return null;
+}
+
+export function defaultCheckInAnswerStyle(localDate: string, answers: Record<string, string> | undefined) {
+  return savedServingAnswerStyle(answers) ?? (localDate >= EXACT_CHECK_IN_FROM ? 'exact' : 'legacy');
+}
+
 export function isServingCategoryActive(id: string, servings: RecommendedNutritionServings): boolean {
   switch (id) {
     case 'protein':

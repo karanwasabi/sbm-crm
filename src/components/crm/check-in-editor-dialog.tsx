@@ -29,8 +29,11 @@ import {
   formatSleepDuration,
   formatSteps,
   hoursMinutesToSleepHours,
+  defaultCheckInAnswerStyle,
   mergeZeroServingNutritionAnswers,
   nutritionOptionsForQuestion,
+  parseExactServing,
+  servingTargetForQuestion,
   sleepHoursToHoursMinutes,
   snapSleepHours,
   snapSteps,
@@ -52,15 +55,33 @@ type CheckInEditorDialogProps = {
   initialLocalDate?: string;
 };
 
+type AnswerStyle = 'legacy' | 'exact';
+type ExerciseOutcome = 'yes' | 'missed' | 'rest';
+
 type DraftState = {
   sleepHours: number;
   sleepMinutes: number;
   steps: string;
   exercised: boolean;
+  exerciseOutcome: ExerciseOutcome;
   exerciseType: string;
   exerciseIntensity: string;
   nutritionAnswers: Record<string, string>;
+  answerStyle: AnswerStyle;
 };
+
+const SERVING_IDS = ['protein', 'fiber', 'starch', 'fun', 'dairy'] as const;
+
+function withoutMismatchedServings(answers: Record<string, string>, style: AnswerStyle) {
+  const next = { ...answers };
+  for (const id of SERVING_IDS) {
+    const value = next[id];
+    if (!value) continue;
+    const exact = parseExactServing(value) != null;
+    if ((style === 'exact' && !exact) || (style === 'legacy' && exact)) delete next[id];
+  }
+  return next;
+}
 
 function dayStatusLabel(status: string): string {
   switch (status) {
@@ -81,23 +102,29 @@ function emptyDraft(): DraftState {
     sleepMinutes: 0,
     steps: '',
     exercised: false,
+    exerciseOutcome: 'missed',
     exerciseType: 'strength',
     exerciseIntensity: 'moderate',
     nutritionAnswers: {},
+    answerStyle: 'legacy',
   };
 }
 
 function draftFromCheckIn(day: CheckInDay): DraftState {
   const sleep = day.sleepHours ?? 0;
   const { hours, minutes } = sleepHoursToHoursMinutes(sleep);
+  const answerStyle = defaultCheckInAnswerStyle(day.localDate, day.nutritionAnswers);
+  const exerciseOutcome: ExerciseOutcome = day.exerciseOutcome ?? (day.exercised ? 'yes' : 'missed');
   return {
     sleepHours: hours,
     sleepMinutes: minutes,
     steps: day.steps != null ? String(day.steps) : '',
-    exercised: day.exercised ?? false,
+    exercised: answerStyle === 'exact' ? exerciseOutcome === 'yes' : Boolean(day.exercised),
+    exerciseOutcome,
     exerciseType: day.exerciseType ?? 'strength',
     exerciseIntensity: day.exerciseIntensity ?? 'moderate',
     nutritionAnswers: { ...(day.nutritionAnswers ?? {}) },
+    answerStyle,
   };
 }
 
@@ -109,9 +136,11 @@ function draftFromServerDraft(draft: CheckInServerDraft): DraftState {
     sleepMinutes: minutes,
     steps: draft.steps != null ? String(draft.steps) : '',
     exercised: draft.exercised ?? false,
+    exerciseOutcome: 'yes',
     exerciseType: draft.exerciseType ?? 'strength',
     exerciseIntensity: draft.exerciseIntensity ?? 'moderate',
     nutritionAnswers: { ...(draft.nutritionAnswers ?? {}) },
+    answerStyle: 'legacy',
   };
 }
 
@@ -252,25 +281,36 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
     const steps = snapSteps(Number.parseInt(draft.steps.replace(/\D/g, ''), 10) || 0);
     const sleepH = snapSleepHours(draft.sleepHours, draft.sleepMinutes);
     if (sleepH <= 0) return false;
-    if (draft.exercised && (!draft.exerciseType || !draft.exerciseIntensity)) return false;
+    const exact = draft.answerStyle === 'exact';
+    if (exact) {
+      if (draft.exerciseOutcome === 'yes' && (!draft.exerciseType || !draft.exerciseIntensity)) return false;
+    } else if (draft.exercised && (!draft.exerciseType || !draft.exerciseIntensity)) {
+      return false;
+    }
     for (const q of nutritionQuestions) {
-      if (!draft.nutritionAnswers[q.id]) return false;
+      const target = servingTargetForQuestion(q.id, servings);
+      if (exact && target != null) {
+        if (parseExactServing(draft.nutritionAnswers[q.id]) == null) return false;
+      } else if (!draft.nutritionAnswers[q.id]) return false;
     }
     return steps >= 0;
-  }, [draft, editing, nutritionQuestions, selectedDate]);
+  }, [draft, editing, nutritionQuestions, selectedDate, servings]);
 
   const save = () => {
     if (!canSave || !selectedDate) return;
     const steps = snapSteps(Number.parseInt(draft.steps.replace(/\D/g, ''), 10) || 0);
     const sleepHours = snapSleepHours(draft.sleepHours, draft.sleepMinutes);
+    const exact = draft.answerStyle === 'exact';
+    const exercised = exact ? draft.exerciseOutcome === 'yes' : draft.exercised;
     startTransition(async () => {
       const { result, error } = await putLeadCheckInAction(leadId, {
         localDate: selectedDate,
         steps,
         sleepHours,
-        exercised: draft.exercised,
-        exerciseType: draft.exercised ? draft.exerciseType : undefined,
-        exerciseIntensity: draft.exercised ? draft.exerciseIntensity : undefined,
+        exercised,
+        exerciseOutcome: exact ? draft.exerciseOutcome : undefined,
+        exerciseType: exercised ? draft.exerciseType : undefined,
+        exerciseIntensity: exercised ? draft.exerciseIntensity : undefined,
         nutritionAnswers: mergeZeroServingNutritionAnswers(draft.nutritionAnswers, servings),
       });
       if (error || !result) {
@@ -289,6 +329,10 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
 
   const viewNutritionLabel = (questionId: string, answerId: string | undefined): string => {
     if (!answerId) return '—';
+    const exact = parseExactServing(answerId);
+    if (exact != null && servingTargetForQuestion(questionId, servings) != null) {
+      return `${exact} servings`;
+    }
     const q = nutritionQuestions.find((item) => item.id === questionId);
     const opt = q ? nutritionOptionsForQuestion(q, answerId).find((o) => o.id === answerId) : undefined;
     return opt?.label ?? answerId;
@@ -397,23 +441,80 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
                         placeholder="e.g. 8000"
                       />
                     </Field>
-                    <Field label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}>
+                    <Field label="Answer style">
                       <div className="flex gap-3">
-                        {(['yes', 'no'] as const).map((v) => (
-                          <label key={v} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                        {(
+                          [
+                            ['legacy', 'Legacy choices'],
+                            ['exact', 'Exact servings'],
+                          ] as const
+                        ).map(([style, label]) => (
+                          <label key={style} className="flex cursor-pointer items-center gap-1.5 text-sm">
                             <input
                               type="radio"
-                              name="exercised"
-                              checked={(v === 'yes') === draft.exercised}
-                              onChange={() => setDraft((d) => ({ ...d, exercised: v === 'yes' }))}
+                              name="answer-style"
+                              checked={draft.answerStyle === style}
                               disabled={pending}
+                              onChange={() =>
+                                setDraft((d) => ({
+                                  ...d,
+                                  answerStyle: style,
+                                  nutritionAnswers: withoutMismatchedServings(d.nutritionAnswers, style),
+                                  exercised: style === 'exact' ? d.exerciseOutcome === 'yes' : d.exercised,
+                                }))
+                              }
                             />
-                            {v === 'yes' ? 'Yes' : 'No'}
+                            {label}
                           </label>
                         ))}
                       </div>
                     </Field>
-                    {draft.exercised ? (
+                    <Field label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}>
+                      {draft.answerStyle === 'exact' ? (
+                        <div className="flex flex-wrap gap-3">
+                          {(
+                            [
+                              ['yes', 'Yes'],
+                              ['missed', 'No, missed it'],
+                              ['rest', 'Took a rest day'],
+                            ] as const
+                          ).map(([outcome, label]) => (
+                            <label key={outcome} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                              <input
+                                type="radio"
+                                name="exercise-outcome"
+                                checked={draft.exerciseOutcome === outcome}
+                                disabled={pending}
+                                onChange={() =>
+                                  setDraft((d) => ({
+                                    ...d,
+                                    exerciseOutcome: outcome,
+                                    exercised: outcome === 'yes',
+                                  }))
+                                }
+                              />
+                              {label}
+                            </label>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          {(['yes', 'no'] as const).map((v) => (
+                            <label key={v} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                              <input
+                                type="radio"
+                                name="exercised"
+                                checked={(v === 'yes') === draft.exercised}
+                                onChange={() => setDraft((d) => ({ ...d, exercised: v === 'yes' }))}
+                                disabled={pending}
+                              />
+                              {v === 'yes' ? 'Yes' : 'No'}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </Field>
+                    {(draft.answerStyle === 'exact' ? draft.exerciseOutcome === 'yes' : draft.exercised) ? (
                       <>
                         <Field label="Exercise type">
                           <select
@@ -445,28 +546,61 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
                         </Field>
                       </>
                     ) : null}
-                    {nutritionQuestions.map((q) => (
-                      <Field key={q.id} label={q.question}>
-                        <select
-                          className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                          value={draft.nutritionAnswers[q.id] ?? ''}
-                          disabled={pending}
-                          onChange={(e) =>
-                            setDraft((d) => ({
-                              ...d,
-                              nutritionAnswers: { ...d.nutritionAnswers, [q.id]: e.target.value },
-                            }))
-                          }
-                        >
-                          <option value="">Select…</option>
-                          {nutritionOptionsForQuestion(q, draft.nutritionAnswers[q.id]).map((o) => (
-                            <option key={o.id} value={o.id}>
-                              {o.label}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                    ))}
+                    {nutritionQuestions.map((q) => {
+                      const target = servingTargetForQuestion(q.id, servings);
+                      if (draft.answerStyle === 'exact' && target != null) {
+                        return (
+                          <Field key={q.id} label={`${q.question} Target ${target}.`}>
+                            <TextInput
+                              type="number"
+                              inputMode="decimal"
+                              value={draft.nutritionAnswers[q.id] ?? ''}
+                              disabled={pending}
+                              placeholder="0"
+                              onChange={(v) =>
+                                setDraft((d) => ({
+                                  ...d,
+                                  nutritionAnswers: { ...d.nutritionAnswers, [q.id]: v },
+                                }))
+                              }
+                              onBlur={() =>
+                                setDraft((d) => {
+                                  const parsed = parseExactServing(d.nutritionAnswers[q.id]);
+                                  if (parsed == null) return d;
+                                  const snapped = Math.round(parsed * 2) / 2;
+                                  return {
+                                    ...d,
+                                    nutritionAnswers: { ...d.nutritionAnswers, [q.id]: String(snapped) },
+                                  };
+                                })
+                              }
+                            />
+                          </Field>
+                        );
+                      }
+                      return (
+                        <Field key={q.id} label={q.question}>
+                          <select
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                            value={draft.nutritionAnswers[q.id] ?? ''}
+                            disabled={pending}
+                            onChange={(e) =>
+                              setDraft((d) => ({
+                                ...d,
+                                nutritionAnswers: { ...d.nutritionAnswers, [q.id]: e.target.value },
+                              }))
+                            }
+                          >
+                            <option value="">Select…</option>
+                            {nutritionOptionsForQuestion(q, draft.nutritionAnswers[q.id]).map((o) => (
+                              <option key={o.id} value={o.id}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
+                        </Field>
+                      );
+                    })}
                   </>
                 ) : checkIn?.exists ? (
                   <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
@@ -481,9 +615,11 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
                     <Row
                       label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}
                       value={
-                        checkIn.exercised
-                          ? `${exerciseTypeLabel(checkIn.exerciseType)} · ${exerciseIntensityLabel(checkIn.exerciseIntensity)}`
-                          : 'No'
+                        checkIn.exerciseOutcome === 'missed'
+                          ? 'Missed it'
+                          : checkIn.exerciseOutcome === 'rest' || !checkIn.exercised
+                            ? 'Rest day'
+                            : `${exerciseTypeLabel(checkIn.exerciseType)} · ${exerciseIntensityLabel(checkIn.exerciseIntensity)}`
                       }
                     />
                     {nutritionQuestions.map((q) => (

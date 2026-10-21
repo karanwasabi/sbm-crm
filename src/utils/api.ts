@@ -6178,6 +6178,7 @@ export type CheckInDay = {
   steps?: number;
   sleepHours?: number;
   exercised?: boolean;
+  exerciseOutcome?: 'yes' | 'missed' | 'rest';
   exerciseType?: string;
   exerciseIntensity?: string;
   nutritionAnswers?: Record<string, string>;
@@ -6193,6 +6194,7 @@ export type PutCheckInInput = {
   steps: number;
   sleepHours: number;
   exercised: boolean;
+  exerciseOutcome?: 'yes' | 'missed' | 'rest';
   exerciseType?: string;
   exerciseIntensity?: string;
   nutritionAnswers: Record<string, string>;
@@ -6284,6 +6286,7 @@ export async function getLeadCheckIn(leadId: string, localDate: string): Promise
     steps?: number;
     sleep_hours?: number;
     exercised?: boolean;
+    exercise_outcome?: 'yes' | 'missed' | 'rest';
     exercise_type?: string;
     exercise_intensity?: string;
     nutrition_answers?: Record<string, string>;
@@ -6299,6 +6302,7 @@ export async function getLeadCheckIn(leadId: string, localDate: string): Promise
     steps: row.steps,
     sleepHours: row.sleep_hours,
     exercised: row.exercised,
+    exerciseOutcome: row.exercise_outcome,
     exerciseType: row.exercise_type,
     exerciseIntensity: row.exercise_intensity,
     nutritionAnswers: row.nutrition_answers,
@@ -6319,6 +6323,7 @@ export async function putLeadCheckIn(leadId: string, input: PutCheckInInput): Pr
       steps: input.steps,
       sleep_hours: input.sleepHours,
       exercised: input.exercised,
+      exercise_outcome: input.exerciseOutcome,
       exercise_type: input.exerciseType,
       exercise_intensity: input.exerciseIntensity,
       nutrition_answers: input.nutritionAnswers,
