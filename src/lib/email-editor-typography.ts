@@ -259,26 +259,106 @@ function insertSanitizedHtmlAtSelection(doc: Document, html: string, editable: H
   return true;
 }
 
-function getActiveEditableElement(editor: Editor): HTMLElement | null {
-  const currentView = editor.RichTextEditor.model.get('currentView') as
-    | { model?: Component; getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean }
-    | undefined;
-  if (!currentView?.rteEnabled || !currentView.model || !isMjmlTextComponent(currentView.model)) {
-    return null;
+const TYPOGRAPHY_ATTR_KEYS = ['font-family', 'font-size', 'color', 'line-height'] as const;
+
+export type MjmlTextTypography = Partial<Record<(typeof TYPOGRAPHY_ATTR_KEYS)[number], string>>;
+
+function readAttrOrStyle(component: Component, key: (typeof TYPOGRAPHY_ATTR_KEYS)[number]): string {
+  const attrs = component.getAttributes?.() ?? {};
+  const fromAttr = String(attrs[key] ?? '').trim();
+  if (fromAttr) return fromAttr;
+  const style = (component.getStyle?.() ?? {}) as Record<string, string>;
+  return String(style[key] ?? '').trim();
+}
+
+/**
+ * Resolve typography from existing mj-text attrs/styles only — never inject body defaults
+ * onto loaded templates (that is what made Georgia/Ubuntu blocks jump to Helvetica on select).
+ */
+export function readMjmlTextTypography(component: Component): MjmlTextTypography {
+  const out: MjmlTextTypography = {};
+  for (const key of TYPOGRAPHY_ATTR_KEYS) {
+    const value = readAttrOrStyle(component, key);
+    if (value) out[key] = value;
   }
+  return out;
+}
+
+/** Keep MJML attributes as the source of truth when style manager mirrored values onto style. */
+export function preserveMjmlTextTypographyAttrs(component: Component): MjmlTextTypography {
+  const typography = readMjmlTextTypography(component);
+  if (!isMjmlTextComponent(component) || Object.keys(typography).length === 0) {
+    return typography;
+  }
+
+  const attrs = { ...(component.getAttributes?.() ?? {}) };
+  let changed = false;
+  for (const key of TYPOGRAPHY_ATTR_KEYS) {
+    const value = typography[key];
+    if (!value) continue;
+    if (String(attrs[key] ?? '').trim() !== value) {
+      attrs[key] = value;
+      changed = true;
+    }
+  }
+  if (changed) {
+    component.setAttributes(attrs);
+  }
+  return typography;
+}
+
+/** Paint resolved typography onto the contenteditable host so RTE matches the block. */
+export function applyMjmlTextTypographyToEditable(
+  component: Component,
+  editable: HTMLElement | null | undefined
+): MjmlTextTypography {
+  const typography = preserveMjmlTextTypographyAttrs(component);
+  if (!editable) return typography;
+  if (typography['font-family']) editable.style.fontFamily = typography['font-family'];
+  if (typography['font-size']) editable.style.fontSize = typography['font-size'];
+  if (typography.color) editable.style.color = typography.color;
+  if (typography['line-height']) editable.style.lineHeight = typography['line-height'];
+  return typography;
+}
+
+function getEditableFromView(view: {
+  model?: Component;
+  getChildrenContainer?: () => HTMLElement | null;
+  el?: HTMLElement;
+  rteEnabled?: boolean;
+}): HTMLElement | null {
+  if (!view?.model || !isMjmlTextComponent(view.model)) return null;
   return (
-    currentView.getChildrenContainer?.() ??
-    (currentView.el?.querySelector?.('[contenteditable="true"]') as HTMLElement | null) ??
-    currentView.el ??
+    view.getChildrenContainer?.() ??
+    (view.el?.querySelector?.('[contenteditable="true"]') as HTMLElement | null) ??
+    (view.el?.querySelector?.('td > div, td div') as HTMLElement | null) ??
+    view.el ??
     null
   );
 }
 
+function getActiveEditableElement(editor: Editor): HTMLElement | null {
+  const currentView = editor.RichTextEditor.model.get('currentView') as
+    | { model?: Component; getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean }
+    | undefined;
+  if (!currentView?.rteEnabled) return null;
+  return getEditableFromView(currentView);
+}
+
 export function installEmailEditorTypography(editor: Editor): () => void {
+  // Padding/align only in style-default — never force Helvetica onto existing templates.
+  const textStyleDefault = {
+    'padding-top': BODY_STYLE_DEFAULT['padding-top'],
+    'padding-bottom': BODY_STYLE_DEFAULT['padding-bottom'],
+    'padding-left': BODY_STYLE_DEFAULT['padding-left'],
+    'padding-right': BODY_STYLE_DEFAULT['padding-right'],
+    align: BODY_STYLE_DEFAULT.align,
+  } as const;
+
   editor.Components.addType('mj-text', {
     model: {
       defaults: {
-        'style-default': { ...BODY_STYLE_DEFAULT },
+        'style-default': { ...textStyleDefault },
         highlightable: true,
       },
     },
@@ -370,22 +450,66 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     }
   };
 
+  const syncTypographyForComponent = (component: Component | undefined) => {
+    if (!component || !isMjmlTextComponent(component)) return;
+    const typography = preserveMjmlTextTypographyAttrs(component);
+    if (Object.keys(typography).length === 0) return;
+    const view = component.view as
+      | { getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean; model?: Component }
+      | undefined;
+    if (view?.rteEnabled) {
+      applyMjmlTextTypographyToEditable(component, getEditableFromView({ ...view, model: component }));
+    }
+  };
+
+  const onRteEnable = (...args: unknown[]) => {
+    const eventView = args[0] as
+      | { model?: Component; getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean }
+      | undefined;
+    const component =
+      eventView?.model ??
+      (editor.RichTextEditor.model.get('currentView') as { model?: Component } | undefined)?.model ??
+      editor.getSelected() ??
+      undefined;
+    if (!component || !isMjmlTextComponent(component)) return;
+
+    const apply = () => {
+      const live = editor.RichTextEditor.model.get('currentView') as
+        | { model?: Component; getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean }
+        | undefined;
+      const target = live?.model ?? component;
+      const editable = getEditableFromView(live ?? { model: target, ...eventView });
+      applyMjmlTextTypographyToEditable(target, editable);
+    };
+    apply();
+    window.setTimeout(apply, 0);
+  };
+
+  const onComponentSelected = (component: Component) => {
+    syncTypographyForComponent(component);
+  };
+
   const onRteDisable = (view?: { model?: Component } | Component) => {
     const component = view && 'model' in view ? view.model : ((view as Component | undefined) ?? editor.getSelected());
     if (component && isMjmlTextComponent(component)) {
+      preserveMjmlTextTypographyAttrs(component);
       reconcileMjmlTextComponent(component);
     }
   };
 
   editor.on('canvas:frame:load', attachPaste);
   editor.on('load', attachPaste);
+  editor.on('rte:enable', onRteEnable as never);
   editor.on('rte:disable', onRteDisable as never);
+  editor.on('component:selected', onComponentSelected);
   attachPaste();
 
   return () => {
     editor.off('canvas:frame:load', attachPaste);
     editor.off('load', attachPaste);
+    editor.off('rte:enable', onRteEnable as never);
     editor.off('rte:disable', onRteDisable as never);
+    editor.off('component:selected', onComponentSelected);
     detachPaste();
     try {
       rte.remove('clear-format');
