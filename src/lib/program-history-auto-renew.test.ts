@@ -41,6 +41,30 @@ describe('autoRenewInfo', () => {
     ).toEqual({ label: 'On', tone: 'success' });
   });
 
+  it('shows Paused when the Razorpay subscription is paused', () => {
+    expect(
+      autoRenewInfo(
+        item({
+          status: 'Active',
+          autoRenewEnabled: true,
+          subscriptionStatus: 'paused',
+        })
+      )
+    ).toEqual({ label: 'Paused', tone: 'warn' });
+  });
+
+  it('shows Off when the Razorpay subscription has expired', () => {
+    expect(
+      autoRenewInfo(
+        item({
+          status: 'Active',
+          autoRenewEnabled: true,
+          subscriptionStatus: 'expired',
+        })
+      )
+    ).toEqual({ label: 'Off', tone: 'danger' });
+  });
+
   it('shows Cancelling when cancel at period end is set', () => {
     expect(
       autoRenewInfo(

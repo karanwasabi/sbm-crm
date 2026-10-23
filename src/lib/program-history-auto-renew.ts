@@ -14,7 +14,10 @@ export function autoRenewInfo(item: ProgramHistoryItem): AutoRenewInfo | null {
   }
 
   const sub = (item.subscriptionStatus ?? '').trim().toLowerCase();
-  if (sub === 'cancelled' || sub === 'halted') {
+  if (sub === 'paused') {
+    return { label: 'Paused', tone: 'warn' };
+  }
+  if (sub === 'cancelled' || sub === 'halted' || sub === 'expired' || sub === 'completed') {
     return { label: 'Off', tone: 'danger' };
   }
 
