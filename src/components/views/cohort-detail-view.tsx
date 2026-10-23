@@ -19,7 +19,6 @@ import {
   MoreVertical,
   Pencil,
   Search,
-  Star,
   Tags,
   Trash2,
   UserRound,
@@ -39,8 +38,12 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
+import { StarBalanceFilterPopover } from '@/components/crm/lead-database-unredeemed-stars-filter';
 import { StarBalanceLines } from '@/components/crm/star-balance-lines';
-import { memberHasUnredeemedStars } from '@/lib/star-balance';
+import { accessExpiryLabel, matchesAccessExpiry } from '@/lib/access-expiry';
+import { cohortMembershipEndsExclusive } from '@/lib/cohort-membership-display';
+import { memberMatchesStarFilter, starBalanceFilterLabel } from '@/lib/star-balance';
+import { RENEWAL_EXPIRY_FILTERS } from '@/lib/renewal-display';
 import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coach-dialog';
 import { CohortAutoAssignCoachesDialog } from '@/components/programs/cohort-auto-assign-coaches-dialog';
@@ -1208,7 +1211,8 @@ export function CohortDetailView({
   const sexFilters = listQuery.sex;
   const countryFilters = listQuery.countries;
   const timezoneFilters = listQuery.timezones;
-  const unredeemedStars = listQuery.unredeemedStars;
+  const starFilter = listQuery.stars;
+  const accessExpiring = listQuery.accessExpiring;
   const showBodyMetrics = listQuery.showBodyMetrics;
   const sortKey = listQuery.sort;
   const sortOrder = listQuery.order;
@@ -1418,18 +1422,28 @@ export function CohortDetailView({
       if (onboardingFilters.length > 0) {
         if (!onboardingFilters.includes(onboardingFilterId(member))) return false;
       }
-      if (unredeemedStars && !memberHasUnredeemedStars(member.starsAvailable, member.starsSpent)) return false;
+      if (!memberMatchesStarFilter(starFilter, member.starsAvailable, member.starsSpent)) return false;
+      if (
+        !matchesAccessExpiry({
+          windows: accessExpiring,
+          endsAt: cohortMembershipEndsExclusive(member),
+          inGrace: member.subscriptionState === 'grace',
+        })
+      ) {
+        return false;
+      }
       return true;
     });
   }, [
+    accessExpiring,
     cityFilters,
     countryFilters,
     members,
     onboardingFilters,
     searchQuery,
     sexFilters,
+    starFilter,
     timezoneFilters,
-    unredeemedStars,
   ]);
 
   const activeMembers = useMemo(
@@ -1601,7 +1615,11 @@ export function CohortDetailView({
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
   const statusCoachFiltersActive =
-    statusFilters.length > 0 || coachFilters.length > 0 || onboardingFilters.length > 0 || unredeemedStars;
+    statusFilters.length > 0 ||
+    coachFilters.length > 0 ||
+    onboardingFilters.length > 0 ||
+    Boolean(starFilter) ||
+    accessExpiring.length > 0;
   const geoFiltersActive =
     cityFilters.length > 0 || sexFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
   const searchActive = searchQuery.trim().length > 0;
@@ -1642,6 +1660,20 @@ export function CohortDetailView({
       count: counts.get(option.id) ?? 0,
     }));
   }, [activeMembers]);
+
+  const accessFilterOptions = useMemo(() => {
+    return RENEWAL_EXPIRY_FILTERS.map((option) => ({
+      value: option.id,
+      label: option.label,
+      count: members.filter((member) =>
+        matchesAccessExpiry({
+          windows: [option.id],
+          endsAt: cohortMembershipEndsExclusive(member),
+          inGrace: member.subscriptionState === 'grace',
+        })
+      ).length,
+    }));
+  }, [members]);
 
   const onboardingFilterOptions = useMemo(() => {
     const counts = new Map<OnboardingFilterId, number>();
@@ -1700,16 +1732,15 @@ export function CohortDetailView({
           onChange={(onboarding) => commitQuery({ onboarding })}
           emptyLabel="No onboarding states yet."
         />
-        <button
-          type="button"
-          className={filterPopoverTriggerClass(unredeemedStars)}
-          aria-pressed={unredeemedStars}
-          title="Members who still have stars and have never redeemed them"
-          onClick={() => commitQuery({ unredeemedStars: !unredeemedStars })}
-        >
-          <Star className="h-3.5 w-3.5" />
-          Unredeemed stars
-        </button>
+        <StarBalanceFilterPopover value={starFilter} onChange={(stars) => commitQuery({ stars })} />
+        <CohortMultiFilterPopover
+          label="Access until"
+          icon={<CalendarDays className="h-3.5 w-3.5" />}
+          options={accessFilterOptions}
+          selected={accessExpiring}
+          onChange={(access) => commitQuery({ accessExpiring: access })}
+          emptyLabel="No access windows."
+        />
         <CohortMultiFilterPopover
           label="Coach"
           icon={<UserRound className="h-3.5 w-3.5" />}
@@ -1783,13 +1814,21 @@ export function CohortDetailView({
               onDismiss={() => commitQuery({ onboarding: onboardingFilters.filter((item) => item !== state) })}
             />
           ))}
-          {unredeemedStars ? (
+          {starFilter ? (
             <ActiveFilterTag
               label="Stars"
-              value="Can redeem, never redeemed"
-              onDismiss={() => commitQuery({ unredeemedStars: false })}
+              value={starBalanceFilterLabel(starFilter)}
+              onDismiss={() => commitQuery({ stars: '' })}
             />
           ) : null}
+          {accessExpiring.map((window) => (
+            <ActiveFilterTag
+              key={`access-${window}`}
+              label="Access until"
+              value={accessExpiryLabel(window)}
+              onDismiss={() => commitQuery({ accessExpiring: accessExpiring.filter((item) => item !== window) })}
+            />
+          ))}
           {coachFilters.map((coachId) => (
             <ActiveFilterTag
               key={`coach-${coachId}`}
@@ -1837,7 +1876,8 @@ export function CohortDetailView({
                 q: '',
                 statuses: [],
                 onboarding: [],
-                unredeemedStars: false,
+                stars: '',
+                accessExpiring: [],
                 coaches: [],
                 cities: [],
                 sex: [],

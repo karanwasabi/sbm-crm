@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
+import { accessExpiryLabel } from '@/lib/access-expiry';
 import { buildLeadDatabaseHref, MARKETING_FILTER_OPTIONS, type LeadDatabaseFilters } from '@/lib/lead-database-url';
+import { starBalanceFilterLabel } from '@/lib/star-balance';
 import { formatPaidRangeChip } from '@/lib/ist-datetime';
 import { LIFECYCLE_STAGES } from '@/lib/lifecycle-stages';
 import { leadSourceLabel, perfSourceLabel } from '@/lib/lead-sources';
@@ -89,14 +91,24 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions
       href: buildLeadDatabaseHref(filters, { phoneDuplicates: false }),
     });
   }
-  if (filters.starsUnredeemed) {
+  if (filters.stars) {
     chips.push({
-      key: 'stars-unredeemed',
+      key: 'stars',
       label: 'Stars',
-      value: 'Can redeem, never redeemed',
-      href: buildLeadDatabaseHref(filters, { starsUnredeemed: false }),
+      value: starBalanceFilterLabel(filters.stars),
+      href: buildLeadDatabaseHref(filters, { stars: '' }),
     });
   }
+  filters.accessExpiring.forEach((window) => {
+    chips.push({
+      key: `access-${window}`,
+      label: 'Access until',
+      value: accessExpiryLabel(window),
+      href: buildLeadDatabaseHref(filters, {
+        accessExpiring: filters.accessExpiring.filter((item) => item !== window),
+      }),
+    });
+  });
   filters.tags.forEach((tag) => {
     chips.push({
       key: `tag-${tag}`,
@@ -306,7 +318,8 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions
           updatedTo: '',
           hasUnseenSuggestions: false,
           phoneDuplicates: false,
-          starsUnredeemed: false,
+          stars: '',
+          accessExpiring: [],
           sort: 'created_at',
           order: 'desc',
         })}

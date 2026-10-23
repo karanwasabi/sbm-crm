@@ -58,6 +58,17 @@ export function formatInclusiveAccessEndDate(iso?: string | null, style: 'crm' |
   }).format(date);
 }
 
+export function formatAccessUntilCountdown(exclusiveIso?: string | null): string {
+  if (!exclusiveIso?.trim()) return '—';
+  const date = formatInclusiveAccessEndDate(exclusiveIso, 'short');
+  const days = daysUntilInclusiveAccessEnd(exclusiveIso);
+  if (days == null) return date;
+  if (days < 0) return `${date} · ended`;
+  if (days === 0) return `${date} · today`;
+  if (days === 1) return `${date} · in 1d`;
+  return `${date} · in ${days}d`;
+}
+
 export function daysUntilInclusiveAccessEnd(exclusiveIso?: string | null): number | null {
   const inclusive = inclusiveAccessEndDateOnly(exclusiveIso);
   if (!inclusive) return null;

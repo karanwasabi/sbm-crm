@@ -6,10 +6,13 @@ export function cohortMembershipDurationDisplay(member: CohortMember): string {
   return label && label !== '—' ? label : '—';
 }
 
+export function cohortMembershipEndsExclusive(member: CohortMember): string {
+  return member.membershipEndsAt?.trim() || member.accessUntil?.trim() || member.recurringStartAt?.trim() || '';
+}
+
 /** Inclusive membership end / next auto-renew date for cohort tables. */
 export function cohortMembershipEndsDisplay(member: CohortMember): string {
-  const exclusive =
-    member.membershipEndsAt?.trim() || member.accessUntil?.trim() || member.recurringStartAt?.trim() || '';
+  const exclusive = cohortMembershipEndsExclusive(member);
   if (exclusive) {
     const date = formatInclusiveAccessEndDate(exclusive);
     const days = daysUntilInclusiveAccessEnd(exclusive);

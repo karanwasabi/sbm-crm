@@ -262,6 +262,7 @@ type ApiLeadResponse = {
   stars_spent?: number | null;
   stars_available?: number | null;
   stars_value?: string | null;
+  membership_ends_at?: string | null;
   can_mutate?: boolean;
   can_mark_lost?: boolean;
   can_purge?: boolean;
@@ -395,6 +396,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     starsSpent: row.stars_spent ?? null,
     starsAvailable: row.stars_available ?? null,
     starsValue: row.stars_value ?? null,
+    membershipEndsAt: row.membership_ends_at ?? null,
   };
 }
 

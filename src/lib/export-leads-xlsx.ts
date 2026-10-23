@@ -1,4 +1,5 @@
 import type { Lead } from '@/types/crm';
+import { formatInclusiveAccessEndDate } from '@/lib/access-until-display';
 import { tagSlugToLabel } from '@/lib/lead-tags';
 import { formatStarRupees } from '@/lib/star-balance';
 
@@ -49,6 +50,13 @@ const EXPORT_COLUMNS: ExportColumn[] = [
     kind: 'text',
     value: (lead) =>
       lead.starsValue?.trim() || (lead.starsAvailable == null ? '' : formatStarRupees(lead.starsAvailable)),
+  },
+  {
+    header: 'Access until',
+    key: 'membershipEndsAt',
+    width: 18,
+    kind: 'text',
+    value: (lead) => (lead.membershipEndsAt ? formatInclusiveAccessEndDate(lead.membershipEndsAt) : ''),
   },
   { header: 'Geography', key: 'geography', width: 22, kind: 'text', value: (lead) => lead.location },
   { header: 'Source', key: 'source', width: 20, kind: 'text', value: (lead) => lead.sourceLabel },

@@ -77,6 +77,8 @@ export type Lead = {
   starsAvailable?: number | null;
   /** Rupee value of stars still available, at ₹2 per star. */
   starsValue?: string | null;
+  /** Exclusive end of the latest paid membership (access until, or the next renewal date). */
+  membershipEndsAt?: string | null;
 };
 
 export type LeadSummary = {

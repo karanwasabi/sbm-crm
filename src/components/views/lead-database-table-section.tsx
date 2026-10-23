@@ -22,6 +22,7 @@ import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
 import { StagePill } from '@/components/ui/stage-pill';
+import { formatAccessUntilCountdown } from '@/lib/access-until-display';
 import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { leadDatabaseRangeLabel } from '@/lib/lead-display';
 import { tagSlugToLabel } from '@/lib/lead-tags';
@@ -39,18 +40,19 @@ function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: b
     return (
       <colgroup>
         <col style={{ width: '2%' }} />
-        <col style={{ width: '12%' }} />
+        <col style={{ width: '11%' }} />
         <col style={{ width: '6%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '7%' }} />
         <col style={{ width: '6%' }} />
         <col style={{ width: '8%' }} />
+        <col style={{ width: '8%' }} />
         <col style={{ width: '6%' }} />
+        <col style={{ width: '7%' }} />
+        <col style={{ width: '15%' }} />
+        <col style={{ width: '5%' }} />
+        <col style={{ width: '5%' }} />
         <col style={{ width: '9%' }} />
-        <col style={{ width: '6%' }} />
-        <col style={{ width: '8%' }} />
-        <col style={{ width: '18%' }} />
-        <col style={{ width: '5%' }} />
-        <col style={{ width: '5%' }} />
-        <col style={{ width: '6%' }} />
       </colgroup>
     );
   }
@@ -58,16 +60,17 @@ function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: b
   return (
     <colgroup>
       <col style={{ width: '2%' }} />
-      <col style={{ width: '11%' }} />
+      <col style={{ width: '12%' }} />
       <col style={{ width: '5%' }} />
-      <col style={{ width: '6%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '7%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '7%' }} />
       <col style={{ width: '8%' }} />
       <col style={{ width: '5%' }} />
-      <col style={{ width: '8%' }} />
       <col style={{ width: '6%' }} />
-      <col style={{ width: '7%' }} />
-      <col style={{ width: '7%' }} />
-      <col style={{ width: '16%' }} />
+      <col style={{ width: '6%' }} />
+      <col style={{ width: '17%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '5%' }} />
@@ -88,7 +91,7 @@ export function LeadDatabaseTableSection({
   const { togglePage, pageSelectionState } = useLeadDatabaseSelection();
   const pageState = pageSelectionState(leads);
   const showReferrerCoach = filters.referrerCoaches.length > 0;
-  const columnCount = showReferrerCoach ? 14 : 13;
+  const columnCount = showReferrerCoach ? 15 : 14;
 
   return (
     <>
@@ -131,6 +134,7 @@ export function LeadDatabaseTableSection({
             <DataTableHeaderCell className={leadDbHeaderCell}>Program</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Batch</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Stars</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Access until</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Geography</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Source</DataTableHeaderCell>
             {showReferrerCoach ? (
@@ -253,6 +257,12 @@ function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: b
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <StarBalanceLines earned={lead.starsEarned} available={lead.starsAvailable} value={lead.starsValue} />
+      </DataTableCell>
+      <DataTableCell className={leadDbCell}>
+        <TruncatedWithTooltip
+          text={formatAccessUntilCountdown(lead.membershipEndsAt)}
+          className={lead.membershipEndsAt ? undefined : 'text-slate-400'}
+        />
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <TruncatedWithTooltip text={lead.location || '—'} className={lead.location ? undefined : 'text-slate-400'} />

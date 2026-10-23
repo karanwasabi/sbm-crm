@@ -36,7 +36,8 @@ export function buildLeadListSearchParams(
   if (filters.order !== 'desc') params.set('order', filters.order);
   if (filters.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (filters.phoneDuplicates) params.set('phone_duplicates', 'true');
-  if (filters.starsUnredeemed) params.set('stars_unredeemed', 'true');
+  if (filters.stars) params.set('stars', filters.stars);
+  if (filters.accessExpiring.length > 0) params.set('access_expiring', filters.accessExpiring.join(','));
   if (filters.createdByMe) params.set('created_by_me', '1');
   if (filters.perfSource) params.set('perf_source', filters.perfSource);
   if (filters.metaCampaignId) params.set('meta_campaign_id', filters.metaCampaignId);
