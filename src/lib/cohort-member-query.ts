@@ -23,6 +23,7 @@ export type CohortMemberListQuery = {
   sex: string[];
   countries: string[];
   timezones: string[];
+  unredeemedStars: boolean;
   sort: CohortMemberSortKey;
   order: CohortMemberSortOrder;
   showBodyMetrics: boolean;
@@ -37,6 +38,7 @@ export const DEFAULT_COHORT_MEMBER_LIST_QUERY: CohortMemberListQuery = {
   sex: [],
   countries: [],
   timezones: [],
+  unredeemedStars: false,
   sort: 'enrolled',
   order: 'desc',
   showBodyMetrics: false,
@@ -75,6 +77,7 @@ export function parseCohortMemberListQuery(
     sex: parseList(one(searchParams, 'sex')),
     countries: parseList(one(searchParams, 'countries')),
     timezones: parseList(one(searchParams, 'timezones')),
+    unredeemedStars: one(searchParams, 'stars') === 'unredeemed',
     sort,
     order: orderRaw === 'asc' || orderRaw === 'desc' ? orderRaw : defaultOrder,
     showBodyMetrics: one(searchParams, 'metrics') === '1',
@@ -98,6 +101,7 @@ export function buildCohortMemberListSearchParams(query: CohortMemberListQuery):
   if (query.sex.length > 0) params.set('sex', query.sex.join(','));
   if (query.countries.length > 0) params.set('countries', query.countries.join(','));
   if (query.timezones.length > 0) params.set('timezones', query.timezones.join(','));
+  if (query.unredeemedStars) params.set('stars', 'unredeemed');
   if (query.sort !== 'enrolled') params.set('sort', query.sort);
   const defaultOrder: CohortMemberSortOrder = query.sort === 'enrolled' ? 'desc' : 'asc';
   if (query.order !== defaultOrder) params.set('order', query.order);

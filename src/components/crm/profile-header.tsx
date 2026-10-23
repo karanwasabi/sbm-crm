@@ -250,6 +250,12 @@ export function ProfileHeader({
                     Referred by {referredBy.referrerName}
                   </HeaderMetaPill>
                 ) : null}
+                {contact.starsAvailable != null && contact.starsEarned != null ? (
+                  <HeaderMetaPill title="Redeemable star balance">
+                    Earned {contact.starsEarned.toLocaleString('en-IN')} · available{' '}
+                    {contact.starsAvailable.toLocaleString('en-IN')} · {contact.starsValue || '₹0'}
+                  </HeaderMetaPill>
+                ) : null}
                 {leadHasTag(contact.tags, 'vip') ? (
                   <span className={cn('border-b-2 border-[#C28C00] bg-motivation text-slate-900', HEADER_PILL_CLASS)}>
                     <Star className="h-2.5 w-2.5 fill-slate-900" />

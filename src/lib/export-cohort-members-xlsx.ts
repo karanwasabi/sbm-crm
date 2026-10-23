@@ -4,6 +4,7 @@ import {
   cohortMembershipEndsDisplay,
   cohortMembershipExtendedDisplay,
 } from '@/lib/cohort-membership-display';
+import { formatStarRupees } from '@/lib/star-balance';
 import { SEX_OPTIONS } from '@/types/profile';
 
 const TEXT_NUMFMT = '@';
@@ -99,6 +100,15 @@ const BASE_EXPORT_COLUMNS: ExportColumn[] = [
     width: 14,
     kind: 'text',
     value: (m) => (m.onboardingCompletedAt ? 'Complete' : 'Incomplete'),
+  },
+  { header: 'Stars earned', key: 'starsEarned', width: 14, kind: 'text', value: (m) => String(m.starsEarned) },
+  { header: 'Stars available', key: 'starsAvailable', width: 16, kind: 'text', value: (m) => String(m.starsAvailable) },
+  {
+    header: 'Stars available value',
+    key: 'starsValue',
+    width: 18,
+    kind: 'text',
+    value: (m) => m.starsValue?.trim() || formatStarRupees(m.starsAvailable),
   },
   {
     header: 'Subscription',

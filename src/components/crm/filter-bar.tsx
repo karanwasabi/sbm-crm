@@ -21,6 +21,7 @@ import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popove
 import { TagFilterSheet } from '@/components/crm/tag-filter-sheet';
 import { LeadDatabaseUnseenUpdatesFilter } from '@/components/crm/lead-database-unseen-updates-filter';
 import { LeadDatabasePhoneDuplicatesFilter } from '@/components/crm/lead-database-phone-duplicates-filter';
+import { LeadDatabaseUnredeemedStarsFilter } from '@/components/crm/lead-database-unredeemed-stars-filter';
 import { LeadDatabaseCreatedByMeFilter } from '@/components/crm/lead-database-created-by-me-filter';
 import { LeadDatabasePurchaseKindFilter } from '@/components/crm/lead-database-purchase-kind-filter';
 import { LeadDatabasePerfSourceFilter } from '@/components/crm/lead-database-perf-source-filter';
@@ -134,6 +135,7 @@ export function FilterBar({
           <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
           {restrictToCreatedByMe ? <LeadDatabaseCreatedByMeFilter filters={filters} /> : null}
           <LeadDatabasePhoneDuplicatesFilter filters={filters} />
+          <LeadDatabaseUnredeemedStarsFilter filters={filters} />
         </div>
       </div>
 

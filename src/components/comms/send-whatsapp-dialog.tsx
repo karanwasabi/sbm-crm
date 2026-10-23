@@ -198,6 +198,9 @@ export function SendWhatsAppDialog({
             Missing values: {preview.missing.map((name) => `{{${name}}}`).join(', ')}
           </p>
         ) : null}
+        {preview?.starBalanceWarning ? (
+          <p className="mt-3 text-sm font-medium text-amber-700">{preview.starBalanceWarning}</p>
+        ) : null}
 
         {error ? <p className="mt-3 text-sm font-medium text-danger-press">{error}</p> : null}
 

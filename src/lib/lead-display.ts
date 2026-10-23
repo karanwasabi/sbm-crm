@@ -62,6 +62,9 @@ export function leadDetailToContactProfile(
     marketingUnsubscribedAt: lead.marketingUnsubscribedAt,
     coachName: lead.coachName ?? null,
     cohortId: lead.cohortId ?? null,
+    starsEarned: lead.starsEarned ?? null,
+    starsAvailable: lead.starsAvailable ?? null,
+    starsValue: lead.starsValue ?? null,
   };
 }
 

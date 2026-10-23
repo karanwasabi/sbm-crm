@@ -71,6 +71,12 @@ export type Lead = {
   latestRenewalCategory?: string | null;
   createdBy?: string | null;
   referrerCoachName?: string | null;
+  /** Lifetime stars earned, including weekly bonuses. Absent when the lead is not a member. */
+  starsEarned?: number | null;
+  starsSpent?: number | null;
+  starsAvailable?: number | null;
+  /** Rupee value of stars still available, at ₹2 per star. */
+  starsValue?: string | null;
 };
 
 export type LeadSummary = {
@@ -415,6 +421,9 @@ export type ContactProfile = {
   loggingPct?: number;
   coachName?: string | null;
   cohortId?: string | null;
+  starsEarned?: number | null;
+  starsAvailable?: number | null;
+  starsValue?: string | null;
 };
 
 export type StaffUser = {
@@ -749,6 +758,10 @@ export type CohortMember = {
   cancelAtPeriodEnd: boolean;
   /** True when latest paid checkout is a renewal / trial extend / trial installment > 1. */
   membershipExtended: boolean;
+  starsEarned: number;
+  starsSpent: number;
+  starsAvailable: number;
+  starsValue: string;
 };
 
 /** @deprecated Use CohortSummary */

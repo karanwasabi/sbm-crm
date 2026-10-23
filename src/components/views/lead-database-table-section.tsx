@@ -8,6 +8,7 @@ import { LeadDatabaseSelectionControls } from '@/components/crm/lead-database-se
 import { useLeadDatabaseSelection } from '@/components/crm/lead-database-selection-context';
 import { TruncatedContainerTooltip, TruncatedWithTooltip } from '@/components/crm/truncated-with-tooltip';
 import { SortableHeader } from '@/components/crm/lead-database-sortable-header';
+import { StarBalanceLines } from '@/components/crm/star-balance-lines';
 import { MemberKindPill } from '@/components/ui/member-kind-pill';
 import {
   DataTable,
@@ -38,14 +39,15 @@ function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: b
     return (
       <colgroup>
         <col style={{ width: '2%' }} />
-        <col style={{ width: '13%' }} />
+        <col style={{ width: '12%' }} />
         <col style={{ width: '6%' }} />
-        <col style={{ width: '7%' }} />
-        <col style={{ width: '10%' }} />
         <col style={{ width: '6%' }} />
-        <col style={{ width: '7%' }} />
+        <col style={{ width: '8%' }} />
+        <col style={{ width: '6%' }} />
         <col style={{ width: '9%' }} />
-        <col style={{ width: '24%' }} />
+        <col style={{ width: '6%' }} />
+        <col style={{ width: '8%' }} />
+        <col style={{ width: '18%' }} />
         <col style={{ width: '5%' }} />
         <col style={{ width: '5%' }} />
         <col style={{ width: '6%' }} />
@@ -56,15 +58,16 @@ function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: b
   return (
     <colgroup>
       <col style={{ width: '2%' }} />
-      <col style={{ width: '12%' }} />
+      <col style={{ width: '11%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '6%' }} />
+      <col style={{ width: '8%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '8%' }} />
       <col style={{ width: '6%' }} />
       <col style={{ width: '7%' }} />
-      <col style={{ width: '9%' }} />
-      <col style={{ width: '6%' }} />
       <col style={{ width: '7%' }} />
-      <col style={{ width: '8%' }} />
-      <col style={{ width: '8%' }} />
-      <col style={{ width: '20%' }} />
+      <col style={{ width: '16%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '5%' }} />
@@ -85,7 +88,7 @@ export function LeadDatabaseTableSection({
   const { togglePage, pageSelectionState } = useLeadDatabaseSelection();
   const pageState = pageSelectionState(leads);
   const showReferrerCoach = filters.referrerCoaches.length > 0;
-  const columnCount = showReferrerCoach ? 13 : 12;
+  const columnCount = showReferrerCoach ? 14 : 13;
 
   return (
     <>
@@ -127,6 +130,7 @@ export function LeadDatabaseTableSection({
             <DataTableHeaderCell className={leadDbHeaderCell}>Marketing</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Program</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Batch</DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Stars</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Geography</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>Source</DataTableHeaderCell>
             {showReferrerCoach ? (
@@ -246,6 +250,9 @@ function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: b
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <TruncatedWithTooltip text={lead.batch} />
+      </DataTableCell>
+      <DataTableCell className={leadDbCell}>
+        <StarBalanceLines earned={lead.starsEarned} available={lead.starsAvailable} value={lead.starsValue} />
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <TruncatedWithTooltip text={lead.location || '—'} className={lead.location ? undefined : 'text-slate-400'} />

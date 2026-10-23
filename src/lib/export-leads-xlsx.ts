@@ -1,5 +1,6 @@
 import type { Lead } from '@/types/crm';
 import { tagSlugToLabel } from '@/lib/lead-tags';
+import { formatStarRupees } from '@/lib/star-balance';
 
 const TEXT_NUMFMT = '@';
 const DATE_NUMFMT = 'yyyy-mm-dd hh:mm';
@@ -27,6 +28,28 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   },
   { header: 'Program', key: 'program', width: 20, kind: 'text', value: (lead) => lead.interest },
   { header: 'Batch', key: 'batch', width: 16, kind: 'text', value: (lead) => lead.batch },
+  {
+    header: 'Stars earned',
+    key: 'starsEarned',
+    width: 14,
+    kind: 'text',
+    value: (lead) => (lead.starsEarned == null ? '' : String(lead.starsEarned)),
+  },
+  {
+    header: 'Stars available',
+    key: 'starsAvailable',
+    width: 16,
+    kind: 'text',
+    value: (lead) => (lead.starsAvailable == null ? '' : String(lead.starsAvailable)),
+  },
+  {
+    header: 'Stars available value',
+    key: 'starsValue',
+    width: 18,
+    kind: 'text',
+    value: (lead) =>
+      lead.starsValue?.trim() || (lead.starsAvailable == null ? '' : formatStarRupees(lead.starsAvailable)),
+  },
   { header: 'Geography', key: 'geography', width: 22, kind: 'text', value: (lead) => lead.location },
   { header: 'Source', key: 'source', width: 20, kind: 'text', value: (lead) => lead.sourceLabel },
   { header: 'Tags', key: 'tags', width: 36, kind: 'text', value: (lead) => lead.tags.map(tagSlugToLabel).join('; ') },

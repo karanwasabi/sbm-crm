@@ -37,6 +37,8 @@ export type LeadDatabaseFilters = {
   order: LeadDatabaseSortOrder;
   hasUnseenSuggestions: boolean;
   phoneDuplicates: boolean;
+  /** Members with stars left who have never redeemed. */
+  starsUnredeemed: boolean;
   createdByMe: boolean;
   page: number;
   pageSize: number;
@@ -74,6 +76,7 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   order: 'desc',
   hasUnseenSuggestions: false,
   phoneDuplicates: false,
+  starsUnredeemed: false,
   createdByMe: false,
   page: 1,
   pageSize: 50,
@@ -177,6 +180,7 @@ export function parseLeadDatabaseFilters(
     order: parseOrder(get('order')),
     hasUnseenSuggestions: get('has_unseen_suggestions') === 'true',
     phoneDuplicates: get('phone_duplicates') === 'true',
+    starsUnredeemed: get('stars_unredeemed') === 'true',
     createdByMe,
     perfSource: get('perf_source')?.trim() || '',
     metaCampaignId: get('meta_campaign_id')?.trim() || '',
@@ -238,6 +242,7 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.order !== 'desc') params.set('order', merged.order);
   if (merged.hasUnseenSuggestions) params.set('has_unseen_suggestions', 'true');
   if (merged.phoneDuplicates) params.set('phone_duplicates', 'true');
+  if (merged.starsUnredeemed) params.set('stars_unredeemed', 'true');
   if (merged.createdByMe) params.set('created_by_me', '1');
   if (merged.perfSource) params.set('perf_source', merged.perfSource);
   if (merged.metaCampaignId) params.set('meta_campaign_id', merged.metaCampaignId);

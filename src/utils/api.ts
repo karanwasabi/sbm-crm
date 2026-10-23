@@ -258,6 +258,10 @@ type ApiLeadResponse = {
   latest_renewal_category?: string | null;
   created_by?: string | null;
   referrer_coach_name?: string | null;
+  stars_earned?: number | null;
+  stars_spent?: number | null;
+  stars_available?: number | null;
+  stars_value?: string | null;
   can_mutate?: boolean;
   can_mark_lost?: boolean;
   can_purge?: boolean;
@@ -387,6 +391,10 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     latestRenewalCategory: row.latest_renewal_category?.trim() || null,
     createdBy: row.created_by ?? null,
     referrerCoachName: row.referrer_coach_name ?? null,
+    starsEarned: row.stars_earned ?? null,
+    starsSpent: row.stars_spent ?? null,
+    starsAvailable: row.stars_available ?? null,
+    starsValue: row.stars_value ?? null,
   };
 }
 
@@ -2750,6 +2758,10 @@ type ApiCohortMemberResponse = {
   auto_renew_enabled?: boolean;
   cancel_at_period_end?: boolean;
   membership_extended?: boolean;
+  stars_earned?: number | null;
+  stars_spent?: number | null;
+  stars_available?: number | null;
+  stars_value?: string | null;
 };
 
 function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortSummary {
@@ -2822,6 +2834,10 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     autoRenewEnabled: Boolean(row.auto_renew_enabled),
     cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
     membershipExtended: Boolean(row.membership_extended),
+    starsEarned: row.stars_earned ?? 0,
+    starsSpent: row.stars_spent ?? 0,
+    starsAvailable: row.stars_available ?? 0,
+    starsValue: row.stars_value?.trim() || '',
   };
 }
 
@@ -4099,6 +4115,7 @@ export type EmailTemplatePreview = {
   leadId: string;
   leadName: string;
   leadEmail: string;
+  starBalanceWarning?: string;
 };
 
 export async function previewEmailTemplate(templateId: string, leadId: string): Promise<EmailTemplatePreview> {
@@ -4119,6 +4136,7 @@ export async function previewEmailTemplate(templateId: string, leadId: string): 
     lead_id: string;
     lead_name: string;
     lead_email: string;
+    star_balance_warning?: string;
   };
   return {
     from: row.from,
@@ -4128,6 +4146,7 @@ export async function previewEmailTemplate(templateId: string, leadId: string): 
     leadId: row.lead_id,
     leadName: row.lead_name,
     leadEmail: row.lead_email,
+    starBalanceWarning: row.star_balance_warning || undefined,
   };
 }
 
@@ -4146,6 +4165,7 @@ export type BulkLeadEmailPreview = {
     already_sent: number;
   };
   example_lead_id?: string;
+  star_balance_warning?: string;
 };
 
 export type BulkLeadEmailSendJob = {
@@ -4608,6 +4628,7 @@ export type WhatsAppTemplateParamsPreview = {
   params: Record<string, string>;
   missing: string[];
   previewText: string;
+  starBalanceWarning?: string;
 };
 
 export async function previewWhatsAppTemplateParams(
@@ -4629,11 +4650,13 @@ export async function previewWhatsAppTemplateParams(
     params: Record<string, string>;
     missing: string[];
     preview_text: string;
+    star_balance_warning?: string;
   };
   return {
     params: row.params ?? {},
     missing: row.missing ?? [],
     previewText: row.preview_text ?? '',
+    starBalanceWarning: row.star_balance_warning || undefined,
   };
 }
 
@@ -4896,6 +4919,7 @@ export type BulkLeadWhatsAppPreview = {
     whatsapp_not_configured: number;
     missing_param?: number;
   };
+  star_balance_warning?: string;
 };
 
 export type BulkLeadWhatsAppSendJob = {

@@ -89,6 +89,14 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions
       href: buildLeadDatabaseHref(filters, { phoneDuplicates: false }),
     });
   }
+  if (filters.starsUnredeemed) {
+    chips.push({
+      key: 'stars-unredeemed',
+      label: 'Stars',
+      value: 'Can redeem, never redeemed',
+      href: buildLeadDatabaseHref(filters, { starsUnredeemed: false }),
+    });
+  }
   filters.tags.forEach((tag) => {
     chips.push({
       key: `tag-${tag}`,
@@ -298,6 +306,7 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions
           updatedTo: '',
           hasUnseenSuggestions: false,
           phoneDuplicates: false,
+          starsUnredeemed: false,
           sort: 'created_at',
           order: 'desc',
         })}

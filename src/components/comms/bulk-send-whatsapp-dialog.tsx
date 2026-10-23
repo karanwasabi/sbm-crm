@@ -288,6 +288,9 @@ export function BulkSendWhatsAppDialog({
                     ) : (
                       <p className="mt-1 text-slate-500">No leads will be skipped for consent or eligibility.</p>
                     )}
+                    {preview.star_balance_warning ? (
+                      <p className="mt-2 font-medium text-amber-700">{preview.star_balance_warning}</p>
+                    ) : null}
                   </div>
                 ) : null}
               </>

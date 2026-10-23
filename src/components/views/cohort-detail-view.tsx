@@ -19,6 +19,7 @@ import {
   MoreVertical,
   Pencil,
   Search,
+  Star,
   Tags,
   Trash2,
   UserRound,
@@ -38,6 +39,8 @@ import {
   DataTableRow,
 } from '@/components/crm/data-table';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
+import { StarBalanceLines } from '@/components/crm/star-balance-lines';
+import { memberHasUnredeemedStars } from '@/lib/star-balance';
 import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { CohortAssignCoachDialog } from '@/components/programs/cohort-assign-coach-dialog';
 import { CohortAutoAssignCoachesDialog } from '@/components/programs/cohort-auto-assign-coaches-dialog';
@@ -407,7 +410,7 @@ function MemberTable({
   coachTones: Map<string, (typeof COACH_PILL_TONES)[number]>;
   showBodyMetrics?: boolean;
 }) {
-  const columnCount = 14 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
+  const columnCount = 15 + (showBodyMetrics ? 3 : 0) + (transferColumn ? 1 : 0);
   const rowIds = rows.map((row) => row.enrollmentId);
   const allSelected = rowIds.length > 0 && rowIds.every((id) => selectedIds.has(id));
 
@@ -444,6 +447,7 @@ function MemberTable({
             </DataTableHeaderCell>
             <DataTableHeaderCell>Status</DataTableHeaderCell>
             <DataTableHeaderCell>Onboarding</DataTableHeaderCell>
+            <DataTableHeaderCell>Stars</DataTableHeaderCell>
             <DataTableHeaderCell>
               {sortable && sortKey && sortOrder && onSort ? (
                 <LocalSortableHeader
@@ -620,6 +624,13 @@ function MemberTable({
                     ) : (
                       <Pill tone="warn">Incomplete</Pill>
                     )}
+                  </DataTableCell>
+                  <DataTableCell>
+                    <StarBalanceLines
+                      earned={member.starsEarned}
+                      available={member.starsAvailable}
+                      value={member.starsValue}
+                    />
                   </DataTableCell>
                   <DataTableCell>
                     <CoachNamePill name={member.coachName} coachUserId={member.coachUserId} tones={coachTones} />
@@ -1196,6 +1207,7 @@ export function CohortDetailView({
   const sexFilters = listQuery.sex;
   const countryFilters = listQuery.countries;
   const timezoneFilters = listQuery.timezones;
+  const unredeemedStars = listQuery.unredeemedStars;
   const showBodyMetrics = listQuery.showBodyMetrics;
   const sortKey = listQuery.sort;
   const sortOrder = listQuery.order;
@@ -1405,9 +1417,19 @@ export function CohortDetailView({
       if (onboardingFilters.length > 0) {
         if (!onboardingFilters.includes(onboardingFilterId(member))) return false;
       }
+      if (unredeemedStars && !memberHasUnredeemedStars(member.starsAvailable, member.starsSpent)) return false;
       return true;
     });
-  }, [cityFilters, countryFilters, members, onboardingFilters, searchQuery, sexFilters, timezoneFilters]);
+  }, [
+    cityFilters,
+    countryFilters,
+    members,
+    onboardingFilters,
+    searchQuery,
+    sexFilters,
+    timezoneFilters,
+    unredeemedStars,
+  ]);
 
   const activeMembers = useMemo(
     () => geoFilteredMembers.filter((member) => member.subscriptionState === 'active'),
@@ -1577,7 +1599,8 @@ export function CohortDetailView({
 
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
-  const statusCoachFiltersActive = statusFilters.length > 0 || coachFilters.length > 0 || onboardingFilters.length > 0;
+  const statusCoachFiltersActive =
+    statusFilters.length > 0 || coachFilters.length > 0 || onboardingFilters.length > 0 || unredeemedStars;
   const geoFiltersActive =
     cityFilters.length > 0 || sexFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
   const searchActive = searchQuery.trim().length > 0;
@@ -1676,6 +1699,16 @@ export function CohortDetailView({
           onChange={(onboarding) => commitQuery({ onboarding })}
           emptyLabel="No onboarding states yet."
         />
+        <button
+          type="button"
+          className={filterPopoverTriggerClass(unredeemedStars)}
+          aria-pressed={unredeemedStars}
+          title="Members who still have stars and have never redeemed them"
+          onClick={() => commitQuery({ unredeemedStars: !unredeemedStars })}
+        >
+          <Star className="h-3.5 w-3.5" />
+          Unredeemed stars
+        </button>
         <CohortMultiFilterPopover
           label="Coach"
           icon={<UserRound className="h-3.5 w-3.5" />}
@@ -1749,6 +1782,13 @@ export function CohortDetailView({
               onDismiss={() => commitQuery({ onboarding: onboardingFilters.filter((item) => item !== state) })}
             />
           ))}
+          {unredeemedStars ? (
+            <ActiveFilterTag
+              label="Stars"
+              value="Can redeem, never redeemed"
+              onDismiss={() => commitQuery({ unredeemedStars: false })}
+            />
+          ) : null}
           {coachFilters.map((coachId) => (
             <ActiveFilterTag
               key={`coach-${coachId}`}
@@ -1796,6 +1836,7 @@ export function CohortDetailView({
                 q: '',
                 statuses: [],
                 onboarding: [],
+                unredeemedStars: false,
                 coaches: [],
                 cities: [],
                 sex: [],
