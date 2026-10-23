@@ -1,6 +1,10 @@
 import type { CohortMember } from '@/types/crm';
 import { daysUntilInclusiveAccessEnd, formatInclusiveAccessEndDate } from '@/lib/access-until-display';
 
+function subscriptionPaused(member: CohortMember): boolean {
+  return (member.subscriptionStatus ?? '').trim().toLowerCase() === 'paused';
+}
+
 export function cohortMembershipDurationDisplay(member: CohortMember): string {
   const label = member.membershipDuration?.trim();
   return label && label !== '—' ? label : '—';
@@ -24,9 +28,11 @@ export function cohortMembershipEndsDisplay(member: CohortMember): string {
       else label = `${date} · in ${days}d`;
     }
     if (member.cancelAtPeriodEnd) return `${label} · cancelling`;
+    if (subscriptionPaused(member)) return `${label} · paused`;
     if (member.autoRenewEnabled) return `${label} · auto-renew`;
     return label;
   }
+  if (subscriptionPaused(member)) return 'Paused';
   if (member.autoRenewEnabled) return 'Auto-renew';
   return '—';
 }
