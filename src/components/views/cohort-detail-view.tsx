@@ -164,6 +164,7 @@ function MemberTableColGroup({ withActions, showBodyMetrics }: { withActions: bo
       <col style={{ minWidth: 200 }} />
       <col style={{ minWidth: 100 }} />
       <col style={{ minWidth: 110 }} />
+      <col style={{ minWidth: 140 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 120 }} />
       <col style={{ minWidth: 110 }} />
@@ -421,7 +422,7 @@ function MemberTable({
       </div>
       {toolbar}
       <div className="overflow-x-auto">
-        <DataTable tableClassName="min-w-[1560px]">
+        <DataTable tableClassName="min-w-[1700px]">
           <MemberTableColGroup withActions={transferColumn} showBodyMetrics={showBodyMetrics} />
           <DataTableHead>
             <DataTableHeaderCell>
