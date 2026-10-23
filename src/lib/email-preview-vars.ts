@@ -22,6 +22,8 @@ export const EMAIL_PREVIEW_SAMPLE_VARS: Record<string, string> = {
   '{{member.cohort_starts_on}}': '17th of August, 2026',
   '{{member.enrollment_status}}': 'Currently enrolled',
   '{{member.access_until}}': '19th of February, 2027',
+  '{{member.stars_available}}': '120',
+  '{{member.stars_value}}': '₹240',
   '{{renewal.category}}': 'returnee_no_sub',
   '{{renewal.category_label}}': 'Returnee',
   '{{renewal.plan_key}}': 'renewal_6m',

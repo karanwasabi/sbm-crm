@@ -45,6 +45,8 @@ export const EMAIL_VARIABLES: EmailVariable[] = [
     classifications: ['transactional'],
   },
   { token: '{{member.enrollment_status}}', label: 'Enrollment status', classifications: ['transactional'] },
+  { token: '{{member.stars_available}}', label: 'Stars available to redeem' },
+  { token: '{{member.stars_value}}', label: 'Star value (₹2 per star, e.g. ₹240)' },
   {
     token: '{{member.access_until}}',
     label: 'Access until (e.g. 19th of February, 2027)',

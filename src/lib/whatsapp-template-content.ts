@@ -16,6 +16,8 @@ export type WhatsAppLeadField =
   | 'cohort_name'
   | 'cohort_starts_on'
   | 'enrollment_status'
+  | 'stars_available'
+  | 'stars_value'
   | 'portal'
   | 'website'
   | 'coach_first_name'
@@ -81,6 +83,18 @@ export const WHATSAPP_VARIABLE_CATALOG: {
     token: '{{enrollment_status}}',
     label: 'Member — enrollment status',
     insertLabel: 'Enrollment status',
+  },
+  {
+    field: 'stars_available',
+    token: '{{stars_available}}',
+    label: 'Member — stars available to redeem',
+    insertLabel: 'Stars available',
+  },
+  {
+    field: 'stars_value',
+    token: '{{stars_value}}',
+    label: 'Member — star value (₹2 each)',
+    insertLabel: 'Star value',
   },
   { field: 'portal', token: '{{portal}}', label: 'Link — portal', insertLabel: 'Portal link' },
   { field: 'website', token: '{{website}}', label: 'Link — website', insertLabel: 'Website link' },
@@ -149,6 +163,8 @@ export function guessLeadField(variableName: string): WhatsAppLeadField {
   if (normalized === 'cohort') return 'cohort_name';
   if (normalized === 'starts_on' || normalized === 'start_date') return 'cohort_starts_on';
   if (normalized === 'status') return 'enrollment_status';
+  if (normalized === 'stars' || normalized === 'available_stars') return 'stars_available';
+  if (normalized === 'stars_amount' || normalized === 'star_value') return 'stars_value';
   if (normalized === 'portal_url') return 'portal';
   if (normalized === 'website_url') return 'website';
   return '';
@@ -165,6 +181,8 @@ export function defaultVariableExample(variableName: string, leadField: WhatsApp
   if (leadField === 'batch' || leadField === 'cohort_name') return 'Cohort 12';
   if (leadField === 'cohort_starts_on') return '3 July 2026';
   if (leadField === 'enrollment_status') return 'Currently enrolled';
+  if (leadField === 'stars_available') return '120';
+  if (leadField === 'stars_value') return '₹240';
   if (leadField === 'portal') return 'https://portal.slowburnmethod.in';
   if (leadField === 'website') return 'https://slowburnmethod.in';
   if (variableName.toLowerCase().includes('link') || variableName.toLowerCase().includes('url')) {
