@@ -13,6 +13,7 @@ type AutomationDetailViewProps = {
   tagSuggestions: TagSuggestion[];
   coaches?: StaffMember[];
   events?: EventOption[];
+  cohortNames?: string[];
 };
 
 export function AutomationDetailView({
@@ -22,6 +23,7 @@ export function AutomationDetailView({
   tagSuggestions,
   coaches = [],
   events = [],
+  cohortNames = [],
 }: AutomationDetailViewProps) {
   return (
     <div className="flex flex-col gap-6">
@@ -32,6 +34,7 @@ export function AutomationDetailView({
         tagSuggestions={tagSuggestions}
         coaches={coaches}
         events={events}
+        cohortNames={cohortNames}
       />
       <AutomationEnrollmentsPanel automationId={automation.id} graphJson={automation.graphJson} />
     </div>

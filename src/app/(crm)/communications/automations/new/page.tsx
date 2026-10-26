@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { AutomationBuilder } from '@/components/comms/automation-builder';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { automationCohortNames } from '@/lib/automation-types';
 import { COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
 import {
+  listAdminResourceCohortOptions,
   listEmailTemplates,
   listEventOptions,
   listStaff,
@@ -11,12 +13,13 @@ import {
 } from '@/utils/api';
 
 export default async function NewAutomationPage() {
-  const [emailTemplates, whatsappTemplates, tagSuggestions, staff, events] = await Promise.all([
+  const [emailTemplates, whatsappTemplates, tagSuggestions, staff, events, cohortPrograms] = await Promise.all([
     listEmailTemplates().catch(() => []),
     listWhatsAppTemplates().catch(() => []),
     listTagSuggestions().catch(() => []),
     listStaff().catch(() => ({ active: [], inactive: [] })),
     listEventOptions().catch(() => []),
+    listAdminResourceCohortOptions().catch(() => []),
   ]);
   const coaches = staff.active.filter((row) => row.roles.includes('coach'));
 
@@ -38,6 +41,7 @@ export default async function NewAutomationPage() {
         tagSuggestions={tagSuggestions}
         coaches={coaches}
         events={events}
+        cohortNames={automationCohortNames(cohortPrograms)}
       />
     </CrmPageLayout>
   );

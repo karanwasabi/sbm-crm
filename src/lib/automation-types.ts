@@ -22,7 +22,7 @@ export type AutomationNodeType = 'trigger' | 'condition_group' | 'wait' | 'send_
 export type AutomationCondition = {
   field: string;
   operator: string;
-  value: string | boolean | number;
+  value: string | boolean | number | string[];
 };
 
 export type AutomationConditionGroupData = {
@@ -114,11 +114,45 @@ export type AutomationRunLogEntry = {
 export const AUTOMATION_CONDITION_FIELDS = [
   { value: 'lifecycle_stage', label: 'Stage' },
   { value: 'manual_source', label: 'Lead source' },
+  { value: 'batch', label: 'Cohort' },
   { value: 'has_enrollment', label: 'Has enrollment' },
   { value: 'has_checkout', label: 'Started checkout' },
   { value: 'has_payment', label: 'Payment received' },
   { value: 'tag', label: 'Tag' },
 ] as const;
+
+export const BATCH_CONDITION_OPERATORS = [
+  { value: 'in', label: 'is in' },
+  { value: 'not_in', label: 'is not in' },
+] as const;
+
+export function cohortConditionValues(value: AutomationCondition['value'] | unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean);
+  }
+  if (typeof value === 'string' && value.trim()) return [value.trim()];
+  return [];
+}
+
+export function automationCohortNames(programs: { cohorts: { name: string; startsOn: string }[] }[]): string[] {
+  const rows: { name: string; startsOn: string }[] = [];
+  for (const program of programs) {
+    for (const cohort of program.cohorts) {
+      const name = cohort.name.trim();
+      if (name) rows.push({ name, startsOn: cohort.startsOn });
+    }
+  }
+  rows.sort((a, b) => b.startsOn.localeCompare(a.startsOn) || a.name.localeCompare(b.name));
+  const seen = new Set<string>();
+  const names: string[] = [];
+  for (const row of rows) {
+    const key = row.name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    names.push(row.name);
+  }
+  return names;
+}
 
 export const TAG_CONDITION_OPERATORS = [
   { value: 'equals', label: 'Has tag' },

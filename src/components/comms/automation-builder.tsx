@@ -27,8 +27,10 @@ import type {
   AutomationTriggerType,
   AutomationWaitData,
 } from '@/lib/automation-types';
+import { CohortConditionMultiSelect } from '@/components/comms/cohort-condition-multi-select';
 import {
   AUTOMATION_CONDITION_FIELDS,
+  BATCH_CONDITION_OPERATORS,
   BOOLEAN_CONDITION_OPTIONS,
   CONDITION_LOGIC_OPTIONS,
   DEFAULT_CONDITION_OPERATORS,
@@ -36,6 +38,7 @@ import {
   TAG_CONDITION_OPERATORS,
   TRIGGER_LABELS,
   WAIT_UNIT_OPTIONS,
+  cohortConditionValues,
   defaultAutomationGraph,
   deriveAutomationChannel,
   normalizeStageTriggerConfig,
@@ -155,9 +158,11 @@ type AutomationBuilderProps = {
   tagSuggestions?: TagSuggestion[];
   coaches?: StaffMember[];
   events?: EventOption[];
+  cohortNames?: string[];
 };
 
 const SUPPORTED_TAG_OPERATORS = new Set<string>(TAG_CONDITION_OPERATORS.map((op) => op.value));
+const SUPPORTED_BATCH_OPERATORS = new Set<string>(BATCH_CONDITION_OPERATORS.map((op) => op.value));
 const LOCKED_IS_FIELDS = new Set<string>(['has_enrollment', 'has_checkout', 'has_payment']);
 const SUPPORTED_DEFAULT_OPERATORS = new Set<string>(DEFAULT_CONDITION_OPERATORS.map((op) => op.value));
 
@@ -166,6 +171,13 @@ function tagConditionOperator(operator: string): string {
 }
 
 function normalizeTagCondition(condition: AutomationCondition): AutomationCondition {
+  if (condition.field === 'batch') {
+    return {
+      ...condition,
+      operator: SUPPORTED_BATCH_OPERATORS.has(condition.operator) ? condition.operator : 'in',
+      value: cohortConditionValues(condition.value),
+    };
+  }
   if (condition.field !== 'tag' || SUPPORTED_TAG_OPERATORS.has(condition.operator)) {
     return condition;
   }
@@ -174,6 +186,7 @@ function normalizeTagCondition(condition: AutomationCondition): AutomationCondit
 
 function defaultConditionForField(field: string): Pick<AutomationCondition, 'field' | 'operator' | 'value'> {
   if (field === 'tag') return { field, operator: 'equals', value: '' };
+  if (field === 'batch') return { field, operator: 'in', value: [] };
   if (field === 'lifecycle_stage') return { field, operator: 'equals', value: 'inquiry' };
   if (field === 'manual_source') return { field, operator: 'equals', value: '' };
   if (LOCKED_IS_FIELDS.has(field)) return { field, operator: 'equals', value: true };
@@ -274,6 +287,7 @@ export function AutomationBuilder({
   tagSuggestions = [],
   coaches = [],
   events = [],
+  cohortNames = [],
 }: AutomationBuilderProps) {
   const router = useRouter();
   const allTemplates: BuilderTemplate[] = useMemo(
@@ -1087,6 +1101,7 @@ export function AutomationBuilder({
                 emailTemplates={emailActiveTemplates}
                 whatsappTemplatesForSelect={whatsappTemplatesForSelect}
                 tagSuggestions={tagSuggestions}
+                cohortNames={cohortNames}
                 readOnly={isGraphLocked}
                 onChange={updateSelectedConfig}
               />
@@ -1196,6 +1211,7 @@ function NodeConfigPanel({
   emailTemplates,
   whatsappTemplatesForSelect,
   tagSuggestions,
+  cohortNames,
   readOnly = false,
   onChange,
 }: {
@@ -1206,6 +1222,7 @@ function NodeConfigPanel({
   emailTemplates: BuilderTemplate[];
   whatsappTemplatesForSelect: WhatsAppTemplate[];
   tagSuggestions: TagSuggestion[];
+  cohortNames: string[];
   readOnly?: boolean;
   onChange: (config: Record<string, unknown>, label?: string) => void;
 }) {
@@ -1327,12 +1344,17 @@ function NodeConfigPanel({
           </Field>
           {group.conditions.map((condition, index) => {
             const isTagField = condition.field === 'tag';
+            const isBatchField = condition.field === 'batch';
             const isLockedIsField = LOCKED_IS_FIELDS.has(condition.field);
             const operatorValue = isLockedIsField
               ? 'equals'
               : isTagField
                 ? tagConditionOperator(condition.operator)
-                : defaultConditionOperator(condition.operator);
+                : isBatchField
+                  ? SUPPORTED_BATCH_OPERATORS.has(condition.operator)
+                    ? condition.operator
+                    : 'in'
+                  : defaultConditionOperator(condition.operator);
             const tagValue = String(condition.value ?? '');
             const tagOptions = isTagField ? buildTagSelectOptions(tagSuggestions, tagValue) : [];
             const operatorOptions = (
@@ -1340,7 +1362,9 @@ function NodeConfigPanel({
                 ? [{ value: 'equals', label: 'is' }]
                 : isTagField
                   ? TAG_CONDITION_OPERATORS
-                  : DEFAULT_CONDITION_OPERATORS
+                  : isBatchField
+                    ? BATCH_CONDITION_OPERATORS
+                    : DEFAULT_CONDITION_OPERATORS
             ).map((operator) => ({ value: operator.value, label: operator.label }));
 
             return (
@@ -1379,6 +1403,18 @@ function NodeConfigPanel({
                       }))}
                       disabled={readOnly}
                     />
+                  ) : isBatchField ? (
+                    <div className="flex flex-col gap-1.5">
+                      <CohortConditionMultiSelect
+                        options={cohortNames}
+                        selected={cohortConditionValues(condition.value)}
+                        disabled={readOnly}
+                        onChange={(names) => updateCondition(index, { value: names })}
+                      />
+                      <p className="text-[11px] text-slate-500">
+                        Uses the cohort they are enrolled in, or the batch on the lead if they are not enrolled.
+                      </p>
+                    </div>
                   ) : isTagField ? (
                     <SearchableSelect
                       value={tagValue}

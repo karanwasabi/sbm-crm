@@ -2,9 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AutomationDetailView } from '@/components/comms/automation-detail-view';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
+import { automationCohortNames } from '@/lib/automation-types';
 import { COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';
 import {
   getAutomation,
+  listAdminResourceCohortOptions,
   listEmailTemplates,
   listEventOptions,
   listStaff,
@@ -21,21 +23,25 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
   let tagSuggestions;
   let events: EventOption[] = [];
   let coaches: Awaited<ReturnType<typeof listStaff>>['active'] = [];
+  let cohortNames: string[] = [];
   try {
-    const [automationResult, emailResult, whatsappResult, tagsResult, staff, eventsResult] = await Promise.all([
-      getAutomation(id),
-      listEmailTemplates(),
-      listWhatsAppTemplates().catch(() => []),
-      listTagSuggestions().catch(() => []),
-      listStaff().catch(() => ({ active: [], inactive: [] })),
-      listEventOptions().catch(() => []),
-    ]);
+    const [automationResult, emailResult, whatsappResult, tagsResult, staff, eventsResult, cohortPrograms] =
+      await Promise.all([
+        getAutomation(id),
+        listEmailTemplates(),
+        listWhatsAppTemplates().catch(() => []),
+        listTagSuggestions().catch(() => []),
+        listStaff().catch(() => ({ active: [], inactive: [] })),
+        listEventOptions().catch(() => []),
+        listAdminResourceCohortOptions().catch(() => []),
+      ]);
     automation = automationResult;
     emailTemplates = emailResult;
     whatsappTemplates = whatsappResult;
     tagSuggestions = tagsResult;
     events = eventsResult;
     coaches = staff.active.filter((row) => row.roles.includes('coach'));
+    cohortNames = automationCohortNames(cohortPrograms);
   } catch {
     notFound();
   }
@@ -58,6 +64,7 @@ export default async function EditAutomationPage({ params }: { params: Promise<{
         tagSuggestions={tagSuggestions}
         coaches={coaches}
         events={events}
+        cohortNames={cohortNames}
       />
     </CrmPageLayout>
   );
