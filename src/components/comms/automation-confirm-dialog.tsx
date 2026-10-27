@@ -66,8 +66,8 @@ const ACTION_COPY: Record<
     srDescription: 'Confirm deactivating this active automation workflow',
     body: (name) => (
       <>
-        Deactivate <span className="font-semibold text-slate-800">{name}</span>? New leads will not enroll until you
-        activate it again.
+        Deactivate <span className="font-semibold text-slate-800">{name}</span>? This workflow pauses. Anyone already in
+        it continues when you activate it again. People who match it while it is off skip this workflow.
       </>
     ),
     confirmLabel: 'Deactivate',
