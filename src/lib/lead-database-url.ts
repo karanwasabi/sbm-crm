@@ -30,6 +30,9 @@ export type LeadDatabaseFilters = {
   utmContent: string;
   paidFrom: string;
   paidTo: string;
+  converted: '' | 'yes' | 'no';
+  convertedFrom: string;
+  convertedTo: string;
   offlineCrmPaid: boolean;
   purchaseKind: string;
   renewalDurations: string[];
@@ -70,6 +73,9 @@ export const DEFAULT_LEAD_DATABASE_FILTERS: LeadDatabaseFilters = {
   utmContent: '',
   paidFrom: '',
   paidTo: '',
+  converted: '',
+  convertedFrom: '',
+  convertedTo: '',
   offlineCrmPaid: false,
   purchaseKind: '',
   renewalDurations: [],
@@ -99,6 +105,12 @@ function parseMarketingList(raw?: string): string[] {
   return parseCommaList(raw).filter(
     (status) => status !== 'all' && MARKETING_FILTER_IDS.has(status as MarketingContactStatus)
   );
+}
+
+function parseConvertedFilter(raw?: string | null): '' | 'yes' | 'no' {
+  const value = raw?.trim().toLowerCase();
+  if (value === 'yes' || value === 'no') return value;
+  return '';
 }
 
 function parseCommaList(raw?: string): string[] {
@@ -193,6 +205,9 @@ export function parseLeadDatabaseFilters(
     utmContent: get('utm_content')?.trim() || '',
     paidFrom: get('paid_from')?.trim() || '',
     paidTo: get('paid_to')?.trim() || '',
+    converted: parseConvertedFilter(get('converted')),
+    convertedFrom: get('converted_from')?.trim() || '',
+    convertedTo: get('converted_to')?.trim() || '',
     offlineCrmPaid: get('offline_crm_paid') === 'true',
     purchaseKind: get('purchase_kind')?.trim() || '',
     renewalDurations: parseCommaList(get('renewal_durations')),
@@ -256,6 +271,9 @@ export function buildLeadDatabaseHref(filters: LeadDatabaseFilters, patch?: Part
   if (merged.utmContent) params.set('utm_content', merged.utmContent);
   if (merged.paidFrom) params.set('paid_from', merged.paidFrom);
   if (merged.paidTo) params.set('paid_to', merged.paidTo);
+  if (merged.converted) params.set('converted', merged.converted);
+  if (merged.converted !== 'no' && merged.convertedFrom) params.set('converted_from', merged.convertedFrom);
+  if (merged.converted !== 'no' && merged.convertedTo) params.set('converted_to', merged.convertedTo);
   if (merged.offlineCrmPaid) params.set('offline_crm_paid', 'true');
   if (merged.purchaseKind) params.set('purchase_kind', merged.purchaseKind);
   if (merged.renewalDurations.length > 0) params.set('renewal_durations', merged.renewalDurations.join(','));

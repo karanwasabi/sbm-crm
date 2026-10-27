@@ -79,6 +79,8 @@ export type Lead = {
   starsValue?: string | null;
   /** Exclusive end of the latest paid membership (access until, or the next renewal date). */
   membershipEndsAt?: string | null;
+  /** First successful payment. Later renewals do not change this. */
+  convertedAt?: string | null;
 };
 
 export type LeadSummary = {
@@ -407,6 +409,7 @@ export type ContactProfile = {
   phone: string;
   location: string;
   joinedAt: string;
+  convertedAt?: string | null;
   stage: LifecycleStage;
   batch: string;
   tags: string[];

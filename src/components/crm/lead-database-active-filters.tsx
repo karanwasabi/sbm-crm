@@ -193,6 +193,22 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions
       href: buildLeadDatabaseHref(filters, { paidFrom: '', paidTo: '' }),
     });
   }
+  if (filters.converted === 'no') {
+    chips.push({
+      key: 'converted',
+      label: 'Converted',
+      value: 'No',
+      href: buildLeadDatabaseHref(filters, { converted: '', convertedFrom: '', convertedTo: '' }),
+    });
+  } else if (filters.converted === 'yes' || filters.convertedFrom || filters.convertedTo) {
+    const range = formatPaidRangeChip(filters.convertedFrom, filters.convertedTo);
+    chips.push({
+      key: 'converted',
+      label: 'Converted',
+      value: range ? `Yes · ${range}` : 'Yes',
+      href: buildLeadDatabaseHref(filters, { converted: '', convertedFrom: '', convertedTo: '' }),
+    });
+  }
   if (filters.purchaseKind === 'new' || filters.purchaseKind === 'renewal') {
     chips.push({
       key: 'purchase-kind',
@@ -305,6 +321,9 @@ export function LeadDatabaseActiveFilters({ filters, filterOptions, eventOptions
           addedTo: '',
           paidFrom: '',
           paidTo: '',
+          converted: '',
+          convertedFrom: '',
+          convertedTo: '',
           offlineCrmPaid: false,
           purchaseKind: '',
           renewalDurations: [],

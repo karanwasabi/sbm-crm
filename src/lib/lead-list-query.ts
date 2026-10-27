@@ -45,6 +45,9 @@ export function buildLeadListSearchParams(
   if (filters.utmContent) params.set('utm_content', filters.utmContent);
   if (filters.paidFrom) params.set('paid_from', filters.paidFrom);
   if (filters.paidTo) params.set('paid_to', filters.paidTo);
+  if (filters.converted) params.set('converted', filters.converted);
+  if (filters.converted !== 'no' && filters.convertedFrom) params.set('converted_from', filters.convertedFrom);
+  if (filters.converted !== 'no' && filters.convertedTo) params.set('converted_to', filters.convertedTo);
   if (filters.offlineCrmPaid) params.set('offline_crm_paid', 'true');
   if (filters.purchaseKind) params.set('purchase_kind', filters.purchaseKind);
   if (filters.renewalDurations.length > 0) params.set('renewal_durations', filters.renewalDurations.join(','));

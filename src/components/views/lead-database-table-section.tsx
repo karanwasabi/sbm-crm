@@ -49,10 +49,11 @@ function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: b
         <col style={{ width: '8%' }} />
         <col style={{ width: '6%' }} />
         <col style={{ width: '7%' }} />
-        <col style={{ width: '15%' }} />
+        <col style={{ width: '11%' }} />
         <col style={{ width: '5%' }} />
+        <col style={{ width: '6%' }} />
         <col style={{ width: '5%' }} />
-        <col style={{ width: '9%' }} />
+        <col style={{ width: '7%' }} />
       </colgroup>
     );
   }
@@ -60,18 +61,19 @@ function LeadDatabaseTableColGroup({ showReferrerCoach }: { showReferrerCoach: b
   return (
     <colgroup>
       <col style={{ width: '2%' }} />
-      <col style={{ width: '12%' }} />
+      <col style={{ width: '11%' }} />
       <col style={{ width: '5%' }} />
+      <col style={{ width: '5%' }} />
+      <col style={{ width: '6%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '7%' }} />
-      <col style={{ width: '5%' }} />
       <col style={{ width: '7%' }} />
-      <col style={{ width: '8%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '6%' }} />
       <col style={{ width: '6%' }} />
-      <col style={{ width: '17%' }} />
+      <col style={{ width: '14%' }} />
       <col style={{ width: '5%' }} />
+      <col style={{ width: '6%' }} />
       <col style={{ width: '5%' }} />
       <col style={{ width: '5%' }} />
     </colgroup>
@@ -91,7 +93,7 @@ export function LeadDatabaseTableSection({
   const { togglePage, pageSelectionState } = useLeadDatabaseSelection();
   const pageState = pageSelectionState(leads);
   const showReferrerCoach = filters.referrerCoaches.length > 0;
-  const columnCount = showReferrerCoach ? 15 : 14;
+  const columnCount = showReferrerCoach ? 16 : 15;
 
   return (
     <>
@@ -144,6 +146,7 @@ export function LeadDatabaseTableSection({
             <DataTableHeaderCell className={leadDbHeaderCell}>
               <SortableHeader label="Added" sortKey="created_at" filters={filters} />
             </DataTableHeaderCell>
+            <DataTableHeaderCell className={leadDbHeaderCell}>Converted</DataTableHeaderCell>
             <DataTableHeaderCell className={leadDbHeaderCell}>
               <SortableHeader label="Updated" sortKey="updated_at" filters={filters} />
             </DataTableHeaderCell>
@@ -296,6 +299,9 @@ function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: b
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <LeadTableTimestamp iso={lead.addedAt} />
+      </DataTableCell>
+      <DataTableCell className={leadDbCell}>
+        {lead.convertedAt ? <LeadTableTimestamp iso={lead.convertedAt} /> : <span className="text-slate-400">—</span>}
       </DataTableCell>
       <DataTableCell className={leadDbCell}>
         <LeadTableTimestamp iso={lead.updatedAt} />

@@ -243,6 +243,7 @@ type ApiLeadResponse = {
   phone_duplicate_count?: number;
   added_at: string;
   updated_at?: string;
+  converted_at?: string | null;
   marketing_contact_status?: import('@/types/crm').MarketingContactStatus;
   marketing_contact_synced_at?: string | null;
   marketing_unsubscribed_at?: string | null;
@@ -382,6 +383,7 @@ function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
     phoneDuplicateCount: row.phone_duplicate_count ?? 0,
     addedAt: row.added_at,
     updatedAt: row.updated_at ?? row.added_at,
+    convertedAt: row.converted_at ?? null,
     marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
     marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
     marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,

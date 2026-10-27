@@ -49,6 +49,7 @@ export function leadDetailToContactProfile(
     phone: lead.phone,
     location: lead.location || '—',
     joinedAt: formatLeadAddedAt(lead.addedAt, timezoneId),
+    convertedAt: lead.convertedAt ? formatLeadAddedAt(lead.convertedAt, timezoneId) : null,
     stage: lead.stage,
     batch: liveBatch,
     tags: lead.tags,

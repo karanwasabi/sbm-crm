@@ -63,6 +63,13 @@ const EXPORT_COLUMNS: ExportColumn[] = [
   { header: 'Tags', key: 'tags', width: 36, kind: 'text', value: (lead) => lead.tags.map(tagSlugToLabel).join('; ') },
   { header: 'Medium', key: 'medium', width: 12, kind: 'text', value: (lead) => lead.medium },
   { header: 'Added', key: 'addedAt', width: 20, kind: 'date', value: (lead) => parseExportDate(lead.addedAt) },
+  {
+    header: 'Converted',
+    key: 'convertedAt',
+    width: 20,
+    kind: 'date',
+    value: (lead) => (lead.convertedAt ? parseExportDate(lead.convertedAt) : ''),
+  },
   { header: 'Updated', key: 'updatedAt', width: 20, kind: 'date', value: (lead) => parseExportDate(lead.updatedAt) },
 ];
 

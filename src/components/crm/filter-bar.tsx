@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BadgeCheck,
   CalendarClock,
   CalendarPlus,
   CreditCard,
@@ -131,6 +132,7 @@ export function FilterBar({
           <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
           <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
           <LeadDatabaseDateRangePopover field="paid" icon={CreditCard} filters={filters} />
+          <LeadDatabaseDateRangePopover field="converted" icon={BadgeCheck} filters={filters} />
           <LeadDatabasePurchaseKindFilter filters={filters} />
           <LeadDatabasePerfSourceFilter filters={filters} />
           <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />

@@ -350,7 +350,7 @@ export function ProfileHeader({
         </div>
 
         <div className="border-t border-white/12 bg-black/10 px-4 py-2.5 sm:px-5">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 xl:grid-cols-6 xl:gap-x-0">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-3 xl:grid-cols-7 xl:gap-x-0">
             <ProfileDetailField label="Email" copyValue={contact.email} className="xl:px-3 xl:first:pl-0">
               {contact.email}
             </ProfileDetailField>
@@ -366,6 +366,9 @@ export function ProfileHeader({
             </ProfileDetailField>
             <ProfileDetailField label="Added" className="xl:border-l xl:border-white/10 xl:px-3">
               {contact.joinedAt}
+            </ProfileDetailField>
+            <ProfileDetailField label="Converted" className="xl:border-l xl:border-white/10 xl:px-3">
+              {contact.convertedAt || '—'}
             </ProfileDetailField>
             <ProfileDetailField label="Source" className="xl:border-l xl:border-white/10 xl:px-3">
               {contact.manualSourceLabel || '—'}
