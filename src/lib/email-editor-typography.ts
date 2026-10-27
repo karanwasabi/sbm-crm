@@ -1,7 +1,20 @@
 import type { Component, Editor } from 'grapesjs';
-import { ensureEmailLinksOpenInNewTab } from '@/lib/email-mjml-starters';
 import { isMjmlTextComponent, reconcileMjmlTextComponent } from '@/lib/email-mjml-compile';
+import {
+  canonicalizeEditable,
+  clearEmailRichFormatting,
+  insertTextWithMarks,
+  marksAtCaret,
+  marksEqual,
+  sanitizeEmailRichHtml,
+  selectionFullyHasMark,
+  toggleEmailMark,
+  type EmailInlineMarks,
+  type EmailMark,
+} from '@/lib/email-rich-text';
 import { EMAIL_BODY_TEXT_MJML_ATTRS, EMAIL_BODY_TYPOGRAPHY } from '@/lib/email-typography-tokens';
+
+export { clearEmailRichFormatting, sanitizeEmailRichHtml } from '@/lib/email-rich-text';
 
 export { EMAIL_BODY_TEXT_MJML_ATTRS, EMAIL_BODY_TYPOGRAPHY };
 
@@ -30,193 +43,6 @@ const BUTTON_STYLE_DEFAULT = {
   'padding-right': '24px',
   align: 'center',
 } as const;
-
-const ALLOWED_TAGS = new Set(['B', 'STRONG', 'I', 'EM', 'U', 'A', 'BR', 'P', 'DIV', 'SPAN']);
-const DROP_WITH_CONTENT = new Set([
-  'STYLE',
-  'SCRIPT',
-  'META',
-  'LINK',
-  'TITLE',
-  'XML',
-  'HEAD',
-  'IMG',
-  'NOSCRIPT',
-  'IFRAME',
-  'OBJECT',
-  'EMBED',
-]);
-
-/** Sanitize pasted / RTE HTML down to email-safe inline formatting. */
-export function sanitizeEmailRichHtml(raw: string): string {
-  if (!raw.trim()) return '';
-
-  // Prefer DOM parsing in browser; fall back to regex strip for vitest/node.
-  if (typeof DOMParser === 'undefined') {
-    return sanitizeEmailRichHtmlFallback(raw);
-  }
-
-  const doc = new DOMParser().parseFromString(`<div id="sbm-root">${raw}</div>`, 'text/html');
-  const root = doc.getElementById('sbm-root');
-  if (!root) return sanitizeEmailRichHtmlFallback(raw);
-
-  const unwrapKeepingChildren = (el: HTMLElement): Node[] => {
-    const parent = el.parentNode;
-    if (!parent) return [];
-    const moved: Node[] = [];
-    while (el.firstChild) {
-      const child = el.firstChild;
-      parent.insertBefore(child, el);
-      moved.push(child);
-    }
-    parent.removeChild(el);
-    return moved;
-  };
-
-  const walk = (node: Node) => {
-    if (node.nodeType === Node.COMMENT_NODE) {
-      node.parentNode?.removeChild(node);
-      return;
-    }
-    if (node.nodeType !== Node.ELEMENT_NODE) return;
-
-    const el = node as HTMLElement;
-    const tag = el.tagName;
-
-    if (DROP_WITH_CONTENT.has(tag) || tag.includes(':')) {
-      el.parentNode?.removeChild(el);
-      return;
-    }
-
-    // Unwrap disallowed tags, keep children, then sanitize those children.
-    if (!ALLOWED_TAGS.has(tag)) {
-      unwrapKeepingChildren(el).forEach(walk);
-      return;
-    }
-
-    // Normalize semantic tags
-    if (tag === 'STRONG') {
-      walk(renameElement(el, 'b'));
-      return;
-    }
-    if (tag === 'EM') {
-      walk(renameElement(el, 'i'));
-      return;
-    }
-    if (tag === 'SPAN') {
-      const weight = el.style.fontWeight;
-      const isBold = weight === 'bold' || Number(weight) >= 600;
-      const isItalic = el.style.fontStyle === 'italic';
-      const isUnderline = (el.style.textDecoration || '').includes('underline');
-      if (isBold || isItalic || isUnderline) {
-        let current: HTMLElement = el;
-        if (isBold) current = wrapWith(current, 'b');
-        if (isItalic) current = wrapWith(current, 'i');
-        if (isUnderline) current = wrapWith(current, 'u');
-        unwrapKeepingChildren(el).forEach(walk);
-        return;
-      }
-      unwrapKeepingChildren(el).forEach(walk);
-      return;
-    }
-    if (tag === 'P' || tag === 'DIV') {
-      const parent = el.parentNode;
-      if (parent && el.previousSibling) {
-        parent.insertBefore(doc.createElement('br'), el);
-      }
-      unwrapKeepingChildren(el).forEach(walk);
-      return;
-    }
-
-    // Google Docs wraps the paste in <b style="font-weight:normal" id="docs-internal-guid-…">
-    if (tag === 'B') {
-      const id = el.getAttribute('id') || '';
-      const weight = (el.style.fontWeight || '').toLowerCase();
-      if (id.startsWith('docs-internal-guid') || weight === 'normal' || weight === '400') {
-        unwrapKeepingChildren(el).forEach(walk);
-        return;
-      }
-    }
-
-    // Strip all attributes except href/target/rel on anchors
-    if (tag === 'A') {
-      const href = el.getAttribute('href') || '';
-      [...el.attributes].forEach((attr) => el.removeAttribute(attr.name));
-      if (href) el.setAttribute('href', href);
-      el.setAttribute('target', '_blank');
-      el.setAttribute('rel', 'noopener noreferrer');
-    } else {
-      [...el.attributes].forEach((attr) => el.removeAttribute(attr.name));
-    }
-
-    // Recurse children (copy list — mutation-safe)
-    [...el.childNodes].forEach(walk);
-  };
-
-  [...root.childNodes].forEach(walk);
-  const html = root.innerHTML;
-  return ensureEmailLinksOpenInNewTab(html);
-}
-
-function renameElement(el: HTMLElement, tagName: string): HTMLElement {
-  const doc = el.ownerDocument;
-  const next = doc.createElement(tagName);
-  while (el.firstChild) next.appendChild(el.firstChild);
-  el.parentNode?.replaceChild(next, el);
-  return next;
-}
-
-function wrapWith(el: HTMLElement, tagName: string): HTMLElement {
-  const doc = el.ownerDocument;
-  const wrapper = doc.createElement(tagName);
-  while (el.firstChild) wrapper.appendChild(el.firstChild);
-  el.appendChild(wrapper);
-  return wrapper;
-}
-
-function sanitizeEmailRichHtmlFallback(raw: string): string {
-  let html = raw
-    .replace(/<!--[\s\S]*?-->/g, '')
-    .replace(/<\/?(?:font|o:p|meta|style|script)[^>]*>/gi, '')
-    .replace(/\sstyle="[^"]*"/gi, '')
-    .replace(/\sclass="[^"]*"/gi, '')
-    .replace(/<\/?span[^>]*>/gi, '')
-    .replace(/<strong\b[^>]*>/gi, '<b>')
-    .replace(/<\/strong>/gi, '</b>')
-    .replace(/<em\b[^>]*>/gi, '<i>')
-    .replace(/<\/em>/gi, '</i>')
-    .replace(/<\/?p\b[^>]*>/gi, '<br>')
-    .replace(/<\/?div\b[^>]*>/gi, '<br>')
-    .replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>');
-
-  // Drop tags that aren't in the allowlist
-  html = html.replace(/<\/?([a-z0-9]+)(\s[^>]*)?>/gi, (match, tag: string) => {
-    const upper = tag.toUpperCase();
-    if (['B', 'I', 'U', 'A', 'BR'].includes(upper)) {
-      if (upper === 'A') {
-        const href = match.match(/href\s*=\s*["']([^"']*)["']/i)?.[1] ?? '';
-        if (match.startsWith('</')) return '</a>';
-        return href
-          ? `<a href="${href}" target="_blank" rel="noopener noreferrer">`
-          : '<a target="_blank" rel="noopener noreferrer">';
-      }
-      if (upper === 'BR') return '<br>';
-      return match.startsWith('</') ? `</${tag.toLowerCase()}>` : `<${tag.toLowerCase()}>`;
-    }
-    return '';
-  });
-
-  return ensureEmailLinksOpenInNewTab(html);
-}
-
-/** Clear inline formatting markers from an HTML fragment. */
-export function clearEmailRichFormatting(raw: string): string {
-  const sanitized = sanitizeEmailRichHtml(raw);
-  return sanitized
-    .replace(/<\/?(?:b|strong|i|em|u)\b[^>]*>/gi, '')
-    .replace(/<span\b[^>]*>/gi, '')
-    .replace(/<\/span>/gi, '');
-}
 
 function escapePlainTextForHtml(text: string): string {
   return text
@@ -408,6 +234,76 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     },
   });
 
+  type RteSession = {
+    el?: HTMLElement;
+    doc?: Document;
+    updateActiveActions?: () => void;
+  };
+  let activeRte: RteSession | null = null;
+  let pendingMarks: EmailInlineMarks | null = null;
+  let pendingAnchor: { node: Node; offset: number } | null = null;
+  let suppressSelection = 0;
+
+  const refreshToolbar = () => {
+    activeRte?.updateActiveActions?.();
+  };
+
+  const editableFor = (session?: RteSession | null): HTMLElement | null =>
+    session?.el ?? getActiveEditableElement(editor);
+
+  const markButtonState = (session: RteSession, doc: Document, mark: EmailMark): number => {
+    const editable = editableFor(session);
+    if (!editable) return 0;
+    const selection = doc.getSelection();
+    const collapsed = !selection?.rangeCount || selection.getRangeAt(0).collapsed;
+    if (pendingMarks && collapsed) return pendingMarks[mark] ? 1 : 0;
+    return selectionFullyHasMark(editable, doc, mark) ? 1 : 0;
+  };
+
+  const rememberPending = (doc: Document, marks: EmailInlineMarks | null) => {
+    pendingMarks = marks;
+    const selection = doc.getSelection();
+    if (!marks || !selection?.rangeCount) {
+      pendingAnchor = null;
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    pendingAnchor = { node: range.startContainer, offset: range.startOffset };
+  };
+
+  const runToggle = (session: RteSession, mark: EmailMark) => {
+    const doc = session.doc ?? session.el?.ownerDocument ?? editor.Canvas.getDocument();
+    const editable = editableFor(session);
+    if (!doc || !editable) return;
+    activeRte = session;
+    suppressSelection += 1;
+    try {
+      const range = doc.getSelection()?.rangeCount ? doc.getSelection()?.getRangeAt(0) : null;
+      if (range?.collapsed) {
+        if (canonicalizeEditable(editable)) {
+          editable.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        const natural = marksAtCaret(editable, doc);
+        const base = pendingMarks ?? natural;
+        const next: EmailInlineMarks = { ...base, [mark]: !base[mark] };
+        rememberPending(doc, marksEqual(next, natural) ? null : next);
+        return;
+      }
+      rememberPending(doc, null);
+      toggleEmailMark(editable, doc, mark);
+    } finally {
+      suppressSelection -= 1;
+      refreshToolbar();
+    }
+  };
+
+  for (const mark of ['bold', 'italic', 'underline'] as const) {
+    const action = rte.get(mark);
+    if (!action) continue;
+    action.result = (session) => runToggle(session as RteSession, mark);
+    action.state = (session, doc) => markButtonState(session, doc, mark);
+  }
+
   const onPaste = (event: ClipboardEvent) => {
     // Only sanitize when a text component is actively being edited. Otherwise let Grapes
     // handle component paste / ignore the event — preventingDefault while idle locked the canvas.
@@ -429,25 +325,90 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     const sanitized = html ? sanitizeEmailRichHtml(html) : escapePlainTextForHtml(text).replace(/\r\n|\r|\n/g, '<br>');
     if (!sanitized) return;
 
+    rememberPending(doc, null);
     insertSanitizedHtmlAtSelection(doc, sanitized, editable);
   };
 
-  let pasteDoc: Document | null = null;
-  const attachPaste = () => {
-    if (pasteDoc) {
-      pasteDoc.removeEventListener('paste', onPaste, true);
-      pasteDoc = null;
+  const onBeforeInput = (event: InputEvent) => {
+    if (!pendingMarks || event.isComposing || event.inputType !== 'insertText' || !event.data) return;
+    const editable = getActiveEditableElement(editor);
+    const doc = editor.Canvas.getDocument();
+    if (!editable || !doc) return;
+    const target = event.target;
+    if (!(target instanceof Node) || !editable.contains(target)) return;
+    const natural = marksAtCaret(editable, doc);
+    if (marksEqual(pendingMarks, natural)) {
+      rememberPending(doc, null);
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    suppressSelection += 1;
+    try {
+      insertTextWithMarks(editable, doc, event.data, pendingMarks);
+      rememberPending(doc, null);
+    } finally {
+      suppressSelection -= 1;
+      refreshToolbar();
+    }
+  };
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+    const markByKey: Record<string, EmailMark> = { b: 'bold', i: 'italic', u: 'underline' };
+    const mark = markByKey[event.key.toLowerCase()];
+    if (!mark) return;
+    const editable = getActiveEditableElement(editor);
+    const doc = editor.Canvas.getDocument();
+    const session = activeRte;
+    if (!editable || !doc || !session) return;
+    const target = event.target;
+    if (!(target instanceof Node) || !editable.contains(target)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    runToggle(session, mark);
+  };
+
+  const onSelectionChange = () => {
+    if (suppressSelection || !pendingMarks || !pendingAnchor) return;
+    const doc = editor.Canvas.getDocument();
+    const selection = doc?.getSelection();
+    if (!selection?.rangeCount) {
+      rememberPending(doc ?? pendingAnchor.node.ownerDocument!, null);
+      refreshToolbar();
+      return;
+    }
+    const range = selection.getRangeAt(0);
+    if (range.startContainer !== pendingAnchor.node || range.startOffset !== pendingAnchor.offset) {
+      rememberPending(range.startContainer.ownerDocument ?? doc!, null);
+      refreshToolbar();
+    }
+  };
+
+  let editingDoc: Document | null = null;
+  const attachEditing = () => {
+    if (editingDoc) {
+      editingDoc.removeEventListener('paste', onPaste, true);
+      editingDoc.removeEventListener('beforeinput', onBeforeInput, true);
+      editingDoc.removeEventListener('keydown', onKeyDown, true);
+      editingDoc.removeEventListener('selectionchange', onSelectionChange, true);
+      editingDoc = null;
     }
     const doc = editor.Canvas.getDocument();
     if (!doc) return;
     doc.addEventListener('paste', onPaste, true);
-    pasteDoc = doc;
+    doc.addEventListener('beforeinput', onBeforeInput, true);
+    doc.addEventListener('keydown', onKeyDown, true);
+    doc.addEventListener('selectionchange', onSelectionChange, true);
+    editingDoc = doc;
   };
-  const detachPaste = () => {
-    if (pasteDoc) {
-      pasteDoc.removeEventListener('paste', onPaste, true);
-      pasteDoc = null;
-    }
+  const detachEditing = () => {
+    if (!editingDoc) return;
+    editingDoc.removeEventListener('paste', onPaste, true);
+    editingDoc.removeEventListener('beforeinput', onBeforeInput, true);
+    editingDoc.removeEventListener('keydown', onKeyDown, true);
+    editingDoc.removeEventListener('selectionchange', onSelectionChange, true);
+    editingDoc = null;
   };
 
   const syncTypographyForComponent = (component: Component | undefined) => {
@@ -473,12 +434,16 @@ export function installEmailEditorTypography(editor: Editor): () => void {
       undefined;
     if (!component || !isMjmlTextComponent(component)) return;
 
+    activeRte = (args[1] as RteSession | undefined) ?? activeRte;
     const apply = () => {
       const live = editor.RichTextEditor.model.get('currentView') as
         | { model?: Component; getChildrenContainer?: () => HTMLElement | null; el?: HTMLElement; rteEnabled?: boolean }
         | undefined;
       const target = live?.model ?? component;
       const editable = getEditableFromView(live ?? { model: target, ...eventView });
+      if (editable && canonicalizeEditable(editable)) {
+        editable.dispatchEvent(new Event('input', { bubbles: true }));
+      }
       applyMjmlTextTypographyToEditable(target, editable);
     };
     apply();
@@ -490,6 +455,9 @@ export function installEmailEditorTypography(editor: Editor): () => void {
   };
 
   const onRteDisable = (view?: { model?: Component } | Component) => {
+    pendingMarks = null;
+    pendingAnchor = null;
+    activeRte = null;
     const component = view && 'model' in view ? view.model : ((view as Component | undefined) ?? editor.getSelected());
     if (component && isMjmlTextComponent(component)) {
       preserveMjmlTextTypographyAttrs(component);
@@ -497,20 +465,20 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     }
   };
 
-  editor.on('canvas:frame:load', attachPaste);
-  editor.on('load', attachPaste);
+  editor.on('canvas:frame:load', attachEditing);
+  editor.on('load', attachEditing);
   editor.on('rte:enable', onRteEnable as never);
   editor.on('rte:disable', onRteDisable as never);
   editor.on('component:selected', onComponentSelected);
-  attachPaste();
+  attachEditing();
 
   return () => {
-    editor.off('canvas:frame:load', attachPaste);
-    editor.off('load', attachPaste);
+    editor.off('canvas:frame:load', attachEditing);
+    editor.off('load', attachEditing);
     editor.off('rte:enable', onRteEnable as never);
     editor.off('rte:disable', onRteDisable as never);
     editor.off('component:selected', onComponentSelected);
-    detachPaste();
+    detachEditing();
     try {
       rte.remove('clear-format');
     } catch {
