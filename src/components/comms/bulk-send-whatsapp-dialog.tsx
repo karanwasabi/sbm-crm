@@ -15,6 +15,7 @@ import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { WhatsAppAccountSelect } from '@/components/comms/whatsapp-account-select';
 import { bulkWhatsAppSkipTotal, formatBulkWhatsAppSkipSummary } from '@/lib/bulk-send-display';
+import { readBulkWhatsAppJobId } from '@/lib/bulk-whatsapp-job';
 import { commsBulkSendHref } from '@/lib/comms-channel';
 import { fetchWhatsAppAccountsClient, fetchWhatsAppTemplatesClient } from '@/lib/comms-templates-client';
 import { resolveWhatsAppAccountId } from '@/lib/whatsapp-account';
@@ -167,7 +168,7 @@ export function BulkSendWhatsAppDialog({
   }, [open, templateId, leadIds, customDefaults]);
 
   useEffect(() => {
-    if (!job || job.status === 'completed' || job.status === 'failed') {
+    if (!job || !readBulkWhatsAppJobId(job) || job.status === 'completed' || job.status === 'failed') {
       return;
     }
 

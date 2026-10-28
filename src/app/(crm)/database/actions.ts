@@ -69,9 +69,8 @@ export async function startBulkLeadWhatsAppSendAction(
   options?: { skipAlreadySent?: boolean; paramOverrides?: Record<string, string> }
 ): Promise<{ job: import('@/utils/api').BulkLeadWhatsAppSendJob | null; error: string | null }> {
   try {
-    const { getBulkLeadWhatsAppSendJob, startBulkLeadWhatsAppSend } = await import('@/utils/api');
-    const started = await startBulkLeadWhatsAppSend(templateId, leadIds, options);
-    const job = await getBulkLeadWhatsAppSendJob(started.job_id);
+    const { startBulkLeadWhatsAppSend } = await import('@/utils/api');
+    const job = await startBulkLeadWhatsAppSend(templateId, leadIds, options);
     return { job, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to start bulk WhatsApp send.';

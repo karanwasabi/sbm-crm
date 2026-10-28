@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import type { StaffAccessRole } from '@/lib/access';
+import { readBulkWhatsAppJobId } from '@/lib/bulk-whatsapp-job';
 import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import { buildLeadListSearchParams } from '@/lib/lead-list-query';
 import { performanceWindowQueryParam, type PerformanceWindowPreset } from '@/lib/performance-display';
@@ -4978,7 +4979,7 @@ export async function startBulkLeadWhatsAppSend(
   templateId: string,
   leadIds: string[],
   options?: { skipAlreadySent?: boolean; paramOverrides?: Record<string, string> }
-): Promise<{ job_id: string }> {
+): Promise<BulkLeadWhatsAppSendJob> {
   const response = await requireApiFetch('/admin/comms/leads/bulk-whatsapp', {
     method: 'POST',
     body: JSON.stringify({
@@ -4992,10 +4993,21 @@ export async function startBulkLeadWhatsAppSend(
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(payload?.error ?? 'Failed to start bulk WhatsApp send.', response.status);
   }
-  return (await response.json()) as { job_id: string };
+  const payload = (await response.json()) as Partial<BulkLeadWhatsAppSendJob> & { job_id?: string };
+  const jobId = readBulkWhatsAppJobId(payload);
+  if (!jobId) {
+    throw new ApiError('The send did not return a job id.', response.status);
+  }
+  if (payload.status) {
+    return { ...(payload as BulkLeadWhatsAppSendJob), id: jobId };
+  }
+  return getBulkLeadWhatsAppSendJob(jobId);
 }
 
 export async function getBulkLeadWhatsAppSendJob(jobId: string): Promise<BulkLeadWhatsAppSendJob> {
+  if (!readBulkWhatsAppJobId({ id: jobId })) {
+    throw new ApiError('The send did not return a job id.', 400);
+  }
   const response = await requireApiFetch(`/admin/comms/bulk-whatsapp/${encodeURIComponent(jobId)}`);
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as { error?: string } | null;
@@ -5017,6 +5029,9 @@ export async function listBulkLeadWhatsAppSendJobSends(
   jobId: string,
   options?: { limit?: number; offset?: number }
 ): Promise<BulkLeadWhatsAppSendList> {
+  if (!readBulkWhatsAppJobId({ id: jobId })) {
+    throw new ApiError('The send did not return a job id.', 400);
+  }
   const params = new URLSearchParams();
   if (options?.limit != null) {
     params.set('limit', String(options.limit));
