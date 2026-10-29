@@ -1,6 +1,7 @@
 import { cache } from 'react';
 import type { StaffAccessRole } from '@/lib/access';
 import { readBulkWhatsAppJobId } from '@/lib/bulk-whatsapp-job';
+import { mapLeadListRow } from '@/lib/map-lead-list-row';
 import { LOGIN_PRODUCT_CRM } from '@/lib/login-access';
 import { buildLeadListSearchParams } from '@/lib/lead-list-query';
 import { performanceWindowQueryParam, type PerformanceWindowPreset } from '@/lib/performance-display';
@@ -358,49 +359,7 @@ type ApiLeadResponse = {
 };
 
 function mapLead(row: ApiLeadResponse): import('@/types/crm').Lead {
-  const firstName = row.first_name;
-  const lastName = row.last_name ?? '';
-  return {
-    id: row.id,
-    firstName,
-    lastName,
-    name: [firstName, lastName].filter(Boolean).join(' '),
-    email: row.email,
-    phone: row.phone ?? '',
-    location: row.location,
-    countryCode: row.country_code ?? '',
-    city: row.city ?? '',
-    stage: row.stage,
-    medium: row.medium ?? 'offline',
-    sourceLabel: row.source_label ?? '',
-    interest: row.interest || '—',
-    batch: row.batch || '—',
-    systemTags: row.system_tags ?? [],
-    manualTags: row.manual_tags ?? [],
-    tags: row.tags ?? [],
-    enriched: row.enriched,
-    dedup: row.dedup,
-    phoneDuplicate: row.phone_duplicate ?? false,
-    phoneDuplicateCount: row.phone_duplicate_count ?? 0,
-    addedAt: row.added_at,
-    updatedAt: row.updated_at ?? row.added_at,
-    convertedAt: row.converted_at ?? null,
-    marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
-    marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
-    marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
-    unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
-    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
-    latestRenewalPlanKey: row.latest_renewal_plan_key?.trim() || null,
-    latestRenewalDuration: row.latest_renewal_duration?.trim() || null,
-    latestRenewalCategory: row.latest_renewal_category?.trim() || null,
-    createdBy: row.created_by ?? null,
-    referrerCoachName: row.referrer_coach_name ?? null,
-    starsEarned: row.stars_earned ?? null,
-    starsSpent: row.stars_spent ?? null,
-    starsAvailable: row.stars_available ?? null,
-    starsValue: row.stars_value ?? null,
-    membershipEndsAt: row.membership_ends_at ?? null,
-  };
+  return mapLeadListRow(row);
 }
 
 export async function createLead(input: import('@/types/crm').CreateLeadInput): Promise<import('@/types/crm').Lead> {

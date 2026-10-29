@@ -2,81 +2,11 @@
 
 import { buildLeadListSearchParams, LEAD_LIST_BULK_PAGE_SIZE } from '@/lib/lead-list-query';
 import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
-import type { Lead, LeadListResult } from '@/types/crm';
+import { mapLeadListRow, type LeadListApiRow } from '@/lib/map-lead-list-row';
+import type { LeadListResult } from '@/types/crm';
 import { createClient } from '@/utils/supabase/client';
 
-type ApiLeadResponse = {
-  id: string;
-  first_name: string;
-  last_name?: string | null;
-  email: string;
-  phone?: string | null;
-  location: string;
-  country_code?: string | null;
-  city?: string | null;
-  stage: import('@/types/crm').LifecycleStage;
-  medium?: import('@/types/crm').LeadMedium | null;
-  interest?: string | null;
-  batch?: string | null;
-  system_tags?: string[];
-  manual_tags?: string[];
-  tags?: string[];
-  enriched: boolean;
-  dedup: boolean;
-  phone_duplicate?: boolean;
-  phone_duplicate_count?: number;
-  added_at: string;
-  updated_at?: string | null;
-  marketing_contact_status?: import('@/types/crm').MarketingContactStatus | null;
-  marketing_contact_synced_at?: string | null;
-  marketing_unsubscribed_at?: string | null;
-  unseen_suggestion_count?: number;
-  source_label?: string | null;
-  member_kind?: 'renewal' | 'returnee' | null;
-  latest_renewal_plan_key?: string | null;
-  latest_renewal_duration?: string | null;
-  latest_renewal_category?: string | null;
-};
-
 const BULK_FETCH_CONCURRENCY = 3;
-
-function mapLead(row: ApiLeadResponse): Lead {
-  const firstName = row.first_name;
-  const lastName = row.last_name ?? '';
-  return {
-    id: row.id,
-    firstName,
-    lastName,
-    name: [firstName, lastName].filter(Boolean).join(' '),
-    email: row.email,
-    phone: row.phone ?? '',
-    location: row.location,
-    countryCode: row.country_code ?? '',
-    city: row.city ?? '',
-    stage: row.stage,
-    medium: row.medium ?? 'offline',
-    sourceLabel: row.source_label ?? '',
-    interest: row.interest || '—',
-    batch: row.batch || '—',
-    systemTags: row.system_tags ?? [],
-    manualTags: row.manual_tags ?? [],
-    tags: row.tags ?? [],
-    enriched: row.enriched,
-    dedup: row.dedup,
-    phoneDuplicate: row.phone_duplicate ?? false,
-    phoneDuplicateCount: row.phone_duplicate_count ?? 0,
-    addedAt: row.added_at,
-    updatedAt: row.updated_at ?? row.added_at,
-    marketingContactStatus: row.marketing_contact_status ?? 'no_consent',
-    marketingContactSyncedAt: row.marketing_contact_synced_at ?? null,
-    marketingUnsubscribedAt: row.marketing_unsubscribed_at ?? null,
-    unseenSuggestionCount: row.unseen_suggestion_count ?? 0,
-    memberKind: row.member_kind === 'renewal' || row.member_kind === 'returnee' ? row.member_kind : null,
-    latestRenewalPlanKey: row.latest_renewal_plan_key?.trim() || null,
-    latestRenewalDuration: row.latest_renewal_duration?.trim() || null,
-    latestRenewalCategory: row.latest_renewal_category?.trim() || null,
-  };
-}
 
 function getBackendUrl(): string {
   return process.env.NEXT_PUBLIC_BACKEND_URL ?? 'http://localhost:8080';
@@ -112,7 +42,7 @@ async function fetchLeadListPage(
   }
 
   const payload = (await response.json()) as {
-    items: ApiLeadResponse[];
+    items: LeadListApiRow[];
     total: number;
     page: number;
     page_size: number;
@@ -120,7 +50,7 @@ async function fetchLeadListPage(
   };
 
   return {
-    items: payload.items.map(mapLead),
+    items: payload.items.map(mapLeadListRow),
     total: payload.total,
     page: payload.page,
     pageSize: payload.page_size,
