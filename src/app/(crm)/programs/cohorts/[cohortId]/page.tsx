@@ -12,6 +12,10 @@ import {
   listWhatsAppTemplates,
 } from '@/utils/api';
 
+function superadminCanTransferCohort(status: string): boolean {
+  return status === 'active' || status === 'upcoming' || status === 'locked' || status === 'queued';
+}
+
 export default async function CohortDetailPage({
   params,
   searchParams,
@@ -54,15 +58,12 @@ export default async function CohortDetailPage({
     canManagePointA = superadmin;
     canLockCohort = superadmin;
     isSuperadminUser = superadmin;
-    const canTransferFrom =
-      cohort.status === 'active' || (superadmin && (cohort.status === 'upcoming' || cohort.status === 'locked'));
+    const canTransferFrom = cohort.status === 'active' || (superadmin && superadminCanTransferCohort(cohort.status));
     if (canTransferFrom) {
       const programCohorts = await getProgramCohorts(cohort.programId);
       transferTargets = programCohorts.filter((row) => {
         if (row.id === cohortId) return false;
-        if (superadmin) {
-          return row.status === 'active' || row.status === 'upcoming' || row.status === 'locked';
-        }
+        if (superadmin) return superadminCanTransferCohort(row.status);
         return row.status === 'active';
       });
     }
