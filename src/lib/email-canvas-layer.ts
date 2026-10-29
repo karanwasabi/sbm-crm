@@ -1,6 +1,7 @@
 import type { Component, Editor } from 'grapesjs';
 import { isMjmlTextComponent, reconcileMjmlTextComponent } from '@/lib/email-mjml-compile';
 import { sanitizeEmailRichHtml } from '@/lib/email-editor-typography';
+import { emailCaretOffset, emailContentLength, placeEmailCaretAtOffset } from '@/lib/email-rich-text';
 
 // Local copies — avoid importing email-editor-structure (circular via grapes-email-editor).
 const MJML_LEAF_TYPES = new Set(['mj-text', 'mj-button', 'mj-image', 'mj-divider', 'mj-spacer']);
@@ -150,43 +151,12 @@ function getEditableElement(component: Component): HTMLElement | null {
 }
 
 function getTextOffset(root: Node, targetNode: Node, targetOffset: number): number {
-  const walker = root.ownerDocument?.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  if (!walker) return 0;
-  let offset = 0;
-  let current: Node | null;
-  while ((current = walker.nextNode())) {
-    if (current === targetNode) return offset + targetOffset;
-    offset += current.textContent?.length ?? 0;
-  }
-  return offset;
+  if (!(root instanceof HTMLElement)) return 0;
+  return emailCaretOffset(root, targetNode, targetOffset);
 }
 
 function placeCaretAtTextOffset(root: HTMLElement, targetOffset: number): boolean {
-  const doc = root.ownerDocument;
-  if (!doc) return false;
-  const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let remaining = Math.max(0, targetOffset);
-  let node: Node | null;
-  while ((node = walker.nextNode())) {
-    const length = node.textContent?.length ?? 0;
-    if (remaining <= length) {
-      const range = doc.createRange();
-      range.setStart(node, remaining);
-      range.collapse(true);
-      const selection = doc.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-      return true;
-    }
-    remaining -= length;
-  }
-  const range = doc.createRange();
-  range.selectNodeContents(root);
-  range.collapse(false);
-  const selection = doc.getSelection();
-  selection?.removeAllRanges();
-  selection?.addRange(range);
-  return true;
+  return placeEmailCaretAtOffset(root, targetOffset);
 }
 
 function readLiveHtml(component: Component): string {
@@ -603,7 +573,7 @@ export class EmailCanvasLayer {
       if (!ok) {
         el.appendChild(el.ownerDocument.createTextNode(insertion));
         this.state.contentByComponentId.set(target.getId(), el.innerHTML);
-        placeCaretAtTextOffset(el, el.textContent?.length ?? 0);
+        placeCaretAtTextOffset(el, emailContentLength(el));
       }
       if (!el.isContentEditable) el.contentEditable = 'true';
       el.focus();
@@ -628,7 +598,7 @@ export class EmailCanvasLayer {
     } else {
       const sel = doc.getSelection();
       if (!sel?.rangeCount || !sel.anchorNode || !el.contains(sel.anchorNode)) {
-        placeCaretAtTextOffset(el, el.textContent?.length ?? 0);
+        placeCaretAtTextOffset(el, emailContentLength(el));
       }
     }
     const selection = doc.getSelection();

@@ -94,4 +94,18 @@ describe('email-mjml-compile', () => {
     expect(changed).toBe(true);
     expect(resetFromString).toHaveBeenCalledWith('Hello', { fromDisable: true });
   });
+
+  it('passes line breaks and marks through unchanged', () => {
+    const html = 'Line<br><br><b>bold</b>';
+    const { component, resetFromString } = createMockComponent({
+      content: 'Hello',
+      innerHtml: 'Hello',
+      childCount: 1,
+      childText: 'Hello',
+    });
+
+    const changed = reconcileMjmlTextComponent(component, { forceHtml: html });
+    expect(changed).toBe(true);
+    expect(resetFromString).toHaveBeenCalledWith(html, { fromDisable: true });
+  });
 });

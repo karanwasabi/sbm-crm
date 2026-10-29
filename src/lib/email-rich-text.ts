@@ -74,9 +74,20 @@ type TextRun = {
   href: string | null;
 };
 
-type BreakRun = { kind: 'br' };
+type Run = TextRun;
 
-type Run = TextRun | BreakRun;
+/** One visual line. A new entry is one Enter. Lines are joined with a single <br>. */
+type LineBuild = {
+  lines: Run[][];
+  /** The previous block already finished, so the next block or text starts a new line. */
+  closed: boolean;
+};
+
+type CaretProbe = {
+  container: Node;
+  offset: number;
+  unit: number | null;
+};
 
 const EMPTY_MARKS: EmailInlineMarks = { bold: false, italic: false, underline: false };
 
@@ -86,12 +97,12 @@ export function sanitizeEmailRichHtml(raw: string): string {
 
   const doc = new DOMParser().parseFromString(wrapHtmlDocument(raw), 'text/html');
   const rules = parseStylesheets(doc);
-  const runs: Run[] = [];
   const body = doc.body;
   if (!body) return sanitizeEmailRichHtmlFallback(raw);
 
-  walkNodes(body, EMPTY_MARKS, null, rules, runs, { hasContent: false, lastWasBreak: true });
-  return collapseExtraBreaks(serializeRuns(runs));
+  const build = createLineBuild();
+  walkNodes(body, EMPTY_MARKS, null, rules, build);
+  return serializeLines(build.lines);
 }
 
 export function clearEmailRichFormatting(raw: string): string {
@@ -235,8 +246,8 @@ export function canonicalizeEditable(editable: HTMLElement): boolean {
     const range = selection.getRangeAt(0);
     if (editable.contains(range.startContainer) && editable.contains(range.endContainer)) {
       saved = {
-        start: visibleCaretOffset(editable, range.startContainer, range.startOffset),
-        end: visibleCaretOffset(editable, range.endContainer, range.endOffset),
+        start: emailCaretOffset(editable, range.startContainer, range.startOffset),
+        end: emailCaretOffset(editable, range.endContainer, range.endOffset),
       };
     }
   }
@@ -358,36 +369,121 @@ function parseFontShorthand(value: string): { bold?: boolean; italic?: boolean }
   return out;
 }
 
+function createLineBuild(): LineBuild {
+  return { lines: [[]], closed: false };
+}
+
+function currentLine(build: LineBuild): Run[] {
+  return build.lines[build.lines.length - 1];
+}
+
+function lineHasText(line: Run[]): boolean {
+  return line.some((run) => run.kind === 'text' && run.text.length > 0);
+}
+
+function lineTextLength(line: Run[]): number {
+  let total = 0;
+  for (const run of line) total += run.text.length;
+  return total;
+}
+
+/** Character units so far. Each line join is one <br>, which is one caret position. */
+function caretUnit(build: LineBuild): number {
+  let total = 0;
+  for (let i = 0; i < build.lines.length; i += 1) {
+    if (i > 0) total += 1;
+    total += lineTextLength(build.lines[i]);
+  }
+  return total;
+}
+
+function openLine(build: LineBuild) {
+  build.lines.push([]);
+  build.closed = false;
+}
+
+function beginBlock(build: LineBuild) {
+  if (build.closed || lineHasText(currentLine(build))) openLine(build);
+  build.closed = false;
+}
+
+function endBlock(build: LineBuild) {
+  build.closed = true;
+}
+
+/**
+ * Chrome's empty line is `<div><br></div>`: the break is the caret placeholder
+ * for a line this block already opened. Counting it again would turn one Enter
+ * into a blank line. A break that shares its block with real text is a real Enter.
+ */
+function isPlaceholderBr(br: HTMLElement): boolean {
+  const parent = br.parentElement;
+  if (!parent || !BLOCK_TAGS.has(parent.tagName)) return false;
+  for (const child of [...parent.childNodes]) {
+    if (child === br) continue;
+    if (child.nodeType === Node.TEXT_NODE) {
+      const text = (child.textContent ?? '').replace(/[\u200b\ufeff]/g, '');
+      if (text.trim()) return false;
+      continue;
+    }
+    if (child.nodeType === Node.ELEMENT_NODE) return false;
+  }
+  return true;
+}
+
 function walkNodes(
   node: Node,
   marks: EmailInlineMarks,
   href: string | null,
   rules: CssRule[],
-  runs: Run[],
-  state: { hasContent: boolean; lastWasBreak: boolean }
-) {
+  build: LineBuild,
+  probe?: CaretProbe
+): boolean {
+  if (probe?.unit != null) return true;
+
   if (node.nodeType === Node.TEXT_NODE) {
-    appendText(node as Text, marks, href, runs, state);
-    return;
+    if (probe && node === probe.container) {
+      probe.unit = unitWithinText(build, node as Text, probe.offset);
+      return true;
+    }
+    appendText(node as Text, marks, href, build);
+    return false;
   }
-  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  if (node.nodeType !== Node.ELEMENT_NODE) return false;
 
   const el = node as HTMLElement;
   const tag = el.tagName;
-  if (DROP_WITH_CONTENT.has(tag) || tag.includes(':')) return;
+  if (DROP_WITH_CONTENT.has(tag) || tag.includes(':')) return false;
   if (tag === 'BR') {
-    pushBreak(runs, state);
-    return;
+    if (probe && node === probe.container) {
+      probe.unit = caretUnit(build);
+      return true;
+    }
+    if (isPlaceholderBr(el) && !lineHasText(currentLine(build))) return false;
+    openLine(build);
+    return false;
   }
 
   const nextMarks = applyElementMarks(el, marks, rules);
   const nextHref = tag === 'A' ? (safeHref(el.getAttribute('href') || '') ?? href) : href;
   const block = BLOCK_TAGS.has(tag);
-  if (block && state.hasContent && !state.lastWasBreak) pushBreak(runs, state);
+  if (block) beginBlock(build);
+
+  if (probe && node === probe.container) {
+    const children = [...el.childNodes];
+    const limit = Math.max(0, Math.min(probe.offset, children.length));
+    for (let i = 0; i < limit; i += 1) {
+      if (walkNodes(children[i], nextMarks, nextHref, rules, build, probe)) return true;
+    }
+    probe.unit = caretUnit(build);
+    return true;
+  }
 
   for (const child of [...el.childNodes]) {
-    walkNodes(child, nextMarks, nextHref, rules, runs, state);
+    if (walkNodes(child, nextMarks, nextHref, rules, build, probe)) return true;
   }
+  if (block) endBlock(build);
+  return false;
 }
 
 function applyElementMarks(el: HTMLElement, parent: EmailInlineMarks, rules: CssRule[]): EmailInlineMarks {
@@ -427,44 +523,63 @@ function whiteSpaceOf(node: Node): string {
   return 'normal';
 }
 
-function appendText(
-  node: Text,
-  marks: EmailInlineMarks,
-  href: string | null,
-  runs: Run[],
-  state: { hasContent: boolean; lastWasBreak: boolean }
-) {
+function appendText(node: Text, marks: EmailInlineMarks, href: string | null, build: LineBuild) {
   const preserveBreaks = preservesNewlines(node);
-  const cleaned = (node.textContent ?? '').replace(/\u200b|\ufeff/g, '');
   if (!preserveBreaks) {
     const mapped = mapVisibleText(node.textContent ?? '', false);
     if (!mapped.text) return;
-    pushText(mapped.text, marks, href, runs, state);
+    pushText(mapped.text, marks, href, build);
     return;
   }
+  const cleaned = (node.textContent ?? '').replace(/\u200b|\ufeff/g, '');
   const parts = cleaned.split(/\r\n|\r|\n/);
   parts.forEach((part, index) => {
-    if (index > 0) pushBreak(runs, state);
+    if (index > 0) openLine(build);
     if (!part) return;
-    pushText(part, marks, href, runs, state);
+    pushText(part, marks, href, build);
   });
 }
 
-function pushText(
-  part: string,
-  marks: EmailInlineMarks,
-  href: string | null,
-  runs: Run[],
-  state: { hasContent: boolean; lastWasBreak: boolean }
-) {
-  const previous = runs[runs.length - 1];
+function pushText(part: string, marks: EmailInlineMarks, href: string | null, build: LineBuild) {
+  if (!part) return;
+  if (build.closed) openLine(build);
+  const line = currentLine(build);
+  const previous = line[line.length - 1];
   if (previous?.kind === 'text' && marksEqual(previous.marks, marks) && previous.href === href) {
     previous.text += part;
   } else {
-    runs.push({ kind: 'text', text: part, marks: { ...marks }, href });
+    line.push({ kind: 'text', text: part, marks: { ...marks }, href });
   }
-  state.hasContent = true;
-  state.lastWasBreak = false;
+}
+
+function unitWithinText(build: LineBuild, node: Text, rawOffset: number): number {
+  const base = caretUnit(build);
+  const text = node.textContent ?? '';
+  const offset = Math.max(0, Math.min(rawOffset, text.length));
+  if (!preservesNewlines(node)) {
+    const mapped = mapVisibleText(text, false);
+    const index = Math.max(0, Math.min(offset, mapped.map.length - 1));
+    return base + (mapped.map[index] ?? 0);
+  }
+
+  let extra = 0;
+  let i = 0;
+  while (i < offset) {
+    const ch = text[i];
+    if (ch === '\u200b' || ch === '\ufeff') {
+      i += 1;
+      continue;
+    }
+    if (ch === '\n' || ch === '\r') {
+      extra += 1;
+      if (ch === '\r' && text[i + 1] === '\n' && i + 1 < offset) i += 2;
+      else i += 1;
+      continue;
+    }
+    extra += 1;
+    i += 1;
+  }
+  return base + extra;
 }
 
 function preservesNewlines(node: Node): boolean {
@@ -518,55 +633,9 @@ function mapVisibleText(raw: string, preserveBreaks: boolean): { text: string; m
   return { text: out, map };
 }
 
-function visibleCaretOffset(root: HTMLElement, container: Node, offset: number): number {
-  let total = 0;
-  const visit = (node: Node): boolean => {
-    if (node === container) {
-      if (node.nodeType === Node.TEXT_NODE) {
-        const mapped = mapVisibleText(node.textContent ?? '', preservesNewlines(node));
-        const index = Math.max(0, Math.min(offset, mapped.map.length - 1));
-        total += mapped.map[index] ?? 0;
-      } else {
-        const children = [...node.childNodes];
-        for (let i = 0; i < offset && i < children.length; i += 1) total += visibleTextLength(children[i]);
-      }
-      return true;
-    }
-    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).contains(container)) {
-      for (const child of [...node.childNodes]) {
-        if (child.contains(container)) return visit(child);
-        total += visibleTextLength(child);
-      }
-    }
-    return false;
-  };
-  visit(root);
-  return total;
-}
-
-function visibleTextLength(node: Node): number {
-  if (node.nodeType === Node.TEXT_NODE) {
-    return mapVisibleText(node.textContent ?? '', preservesNewlines(node)).text.length;
-  }
-  if (node.nodeType !== Node.ELEMENT_NODE) return 0;
-  const el = node as HTMLElement;
-  const tag = el.tagName;
-  if (DROP_WITH_CONTENT.has(tag) || tag.includes(':') || tag === 'BR') return 0;
-  let count = 0;
-  for (const child of [...el.childNodes]) count += visibleTextLength(child);
-  return count;
-}
-
-function pushBreak(runs: Run[], state: { hasContent: boolean; lastWasBreak: boolean }) {
-  if (!state.hasContent || state.lastWasBreak) return;
-  runs.push({ kind: 'br' });
-  state.lastWasBreak = true;
-}
-
 function serializeRuns(runs: Run[]): string {
   return runs
     .map((run) => {
-      if (run.kind === 'br') return '<br>';
       let html = escapeHtml(run.text);
       if (run.marks.underline) html = `<u>${html}</u>`;
       if (run.marks.italic) html = `<i>${html}</i>`;
@@ -579,8 +648,8 @@ function serializeRuns(runs: Run[]): string {
     .join('');
 }
 
-function collapseExtraBreaks(html: string): string {
-  return html.replace(/(?:<br>\s*){3,}/g, '<br><br>');
+function serializeLines(lines: Run[][]): string {
+  return lines.map((line) => serializeRuns(line)).join('<br>');
 }
 
 function safeHref(href: string): string | null {
@@ -819,12 +888,35 @@ function wrapNode(doc: Document, tag: string, child: Node): HTMLElement {
   return el;
 }
 
+/**
+ * Caret position where each character is one unit and each `<br>` is one unit.
+ * Block boundaries use the same line rules as sanitizing, so a caret in the
+ * second paragraph survives being rewritten to `line<br>line`.
+ */
+export function emailCaretOffset(root: HTMLElement, container: Node, offset: number): number {
+  if (container !== root && !root.contains(container)) return 0;
+  const build = createLineBuild();
+  const probe: CaretProbe = { container, offset, unit: null };
+  if (container === root) {
+    const children = [...root.childNodes];
+    const limit = Math.max(0, Math.min(offset, children.length));
+    for (let i = 0; i < limit; i += 1) {
+      if (walkNodes(children[i], EMPTY_MARKS, null, [], build, probe)) break;
+    }
+    return probe.unit ?? caretUnit(build);
+  }
+  for (const child of [...root.childNodes]) {
+    if (walkNodes(child, EMPTY_MARKS, null, [], build, probe)) break;
+  }
+  return probe.unit ?? caretUnit(build);
+}
+
+export function emailContentLength(root: HTMLElement): number {
+  return emailCaretOffset(root, root, root.childNodes.length);
+}
+
 function textOffsetIn(root: HTMLElement, container: Node, offset: number): number {
-  const doc = root.ownerDocument;
-  const range = doc.createRange();
-  range.selectNodeContents(root);
-  range.setEnd(container, offset);
-  return range.toString().length;
+  return emailCaretOffset(root, container, offset);
 }
 
 function restoreTextSelection(root: HTMLElement, start: number, end: number) {
@@ -840,16 +932,70 @@ function restoreTextSelection(root: HTMLElement, start: number, end: number) {
 }
 
 function pointAtTextOffset(root: HTMLElement, target: number): { node: Node; offset: number } {
-  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   let seen = 0;
-  let node = walker.nextNode();
-  while (node) {
-    const length = node.textContent?.length ?? 0;
-    if (seen + length >= target) return { node, offset: target - seen };
-    seen += length;
-    node = walker.nextNode();
-  }
-  return { node: root, offset: root.childNodes.length };
+  const visit = (node: Node): { node: Node; offset: number } | null => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      const length = node.textContent?.length ?? 0;
+      if (length === 0) return null;
+      if (seen + length >= target) return { node, offset: target - seen };
+      seen += length;
+      return null;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE && (node as HTMLElement).tagName === 'BR') {
+      if (target === seen) {
+        const parent = node.parentNode ?? root;
+        return { node: parent, offset: indexOfNode(parent, node) };
+      }
+      seen += 1;
+      if (target === seen) {
+        const parent = node.parentNode ?? root;
+        return { node: parent, offset: indexOfNode(parent, node) + 1 };
+      }
+      return null;
+    }
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      for (const child of [...node.childNodes]) {
+        const hit = visit(child);
+        if (hit) return hit;
+      }
+    }
+    return null;
+  };
+  return visit(root) ?? { node: root, offset: root.childNodes.length };
+}
+
+function indexOfNode(parent: Node, child: Node): number {
+  return [...parent.childNodes].indexOf(child as ChildNode);
+}
+
+export function placeEmailCaretAtOffset(root: HTMLElement, targetOffset: number): boolean {
+  const doc = root.ownerDocument;
+  if (!doc) return false;
+  const point = pointAtTextOffset(root, Math.max(0, targetOffset));
+  const range = doc.createRange();
+  range.setStart(point.node, point.offset);
+  range.collapse(true);
+  const selection = doc.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(range);
+  return true;
+}
+
+/** One Enter: a `<br>` with the caret after it. Shift+Enter uses the same break. */
+export function insertEmailLineBreak(editable: HTMLElement, doc: Document): boolean {
+  const range = currentRange(doc, editable);
+  if (!range) return false;
+  if (!range.collapsed) range.deleteContents();
+  const br = doc.createElement('br');
+  range.insertNode(br);
+  const caret = doc.createRange();
+  caret.setStartAfter(br);
+  caret.collapse(true);
+  const selection = doc.getSelection();
+  selection?.removeAllRanges();
+  selection?.addRange(caret);
+  editable.dispatchEvent(new Event('input', { bubbles: true }));
+  return true;
 }
 
 function sanitizeEmailRichHtmlFallback(raw: string): string {
@@ -863,9 +1009,8 @@ function sanitizeEmailRichHtmlFallback(raw: string): string {
     .replace(/<\/strong>/gi, '</b>')
     .replace(/<em\b[^>]*>/gi, '<i>')
     .replace(/<\/em>/gi, '</i>')
-    .replace(/<\/?p\b[^>]*>/gi, '<br>')
-    .replace(/<\/?div\b[^>]*>/gi, '<br>')
-    .replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>');
+    .replace(/<(?:p|div|h[1-6]|li|blockquote|pre)\b[^>]*>/gi, '')
+    .replace(/<\/(?:p|div|h[1-6]|li|blockquote|pre)>/gi, '<br>');
 
   html = html.replace(/<\/?([a-z0-9]+)(\s[^>]*)?>/gi, (match, tag: string) => {
     const upper = tag.toUpperCase();

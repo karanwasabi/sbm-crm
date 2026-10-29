@@ -3,6 +3,7 @@ import { isMjmlTextComponent, reconcileMjmlTextComponent } from '@/lib/email-mjm
 import {
   canonicalizeEditable,
   clearEmailRichFormatting,
+  insertEmailLineBreak,
   insertTextWithMarks,
   marksAtCaret,
   marksEqual,
@@ -329,7 +330,21 @@ export function installEmailEditorTypography(editor: Editor): () => void {
     insertSanitizedHtmlAtSelection(doc, sanitized, editable);
   };
 
+  let enterFromKey = false;
+
   const onBeforeInput = (event: InputEvent) => {
+    if (event.inputType === 'insertParagraph' || event.inputType === 'insertLineBreak') {
+      const alreadyInserted = enterFromKey;
+      enterFromKey = false;
+      const editable = getActiveEditableElement(editor);
+      const doc = editor.Canvas.getDocument();
+      const target = event.target;
+      if (!editable || !doc || !(target instanceof Node) || !editable.contains(target)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!alreadyInserted && !event.isComposing) insertEmailLineBreak(editable, doc);
+      return;
+    }
     if (!pendingMarks || event.isComposing || event.inputType !== 'insertText' || !event.data) return;
     const editable = getActiveEditableElement(editor);
     const doc = editor.Canvas.getDocument();
@@ -354,6 +369,21 @@ export function installEmailEditorTypography(editor: Editor): () => void {
   };
 
   const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.isComposing && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      const editable = getActiveEditableElement(editor);
+      const doc = editor.Canvas.getDocument();
+      const target = event.target;
+      if (editable && doc && target instanceof Node && editable.contains(target)) {
+        event.preventDefault();
+        event.stopPropagation();
+        enterFromKey = true;
+        insertEmailLineBreak(editable, doc);
+        setTimeout(() => {
+          enterFromKey = false;
+        }, 0);
+        return;
+      }
+    }
     if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
     const markByKey: Record<string, EmailMark> = { b: 'bold', i: 'italic', u: 'underline' };
     const mark = markByKey[event.key.toLowerCase()];
