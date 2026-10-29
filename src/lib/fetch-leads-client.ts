@@ -3,7 +3,7 @@
 import { buildLeadListSearchParams, LEAD_LIST_BULK_PAGE_SIZE } from '@/lib/lead-list-query';
 import type { LeadDatabaseFilters } from '@/lib/lead-database-url';
 import { mapLeadListRow, type LeadListApiRow } from '@/lib/map-lead-list-row';
-import type { LeadListResult } from '@/types/crm';
+import type { Lead, LeadListResult } from '@/types/crm';
 import { createClient } from '@/utils/supabase/client';
 
 const BULK_FETCH_CONCURRENCY = 3;
