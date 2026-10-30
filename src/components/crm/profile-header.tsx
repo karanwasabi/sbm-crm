@@ -41,6 +41,7 @@ type ProfileHeaderProps = {
   openConvonite?: ProfileOpenConvoniteAction;
   onPurge?: () => void;
   onEnroll?: () => void;
+  onAddToTrial?: () => void;
   onTransferMembership?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
@@ -157,6 +158,7 @@ export function ProfileHeader({
   openConvonite,
   onPurge,
   onEnroll,
+  onAddToTrial,
   onTransferMembership,
   onSyncPayment,
   onMarkPaidOffline,
@@ -184,6 +186,7 @@ export function ProfileHeader({
   const hasOverflowMenu = Boolean(
     onPurge ||
     onEnroll ||
+    onAddToTrial ||
     onTransferMembership ||
     onSyncPayment ||
     onMarkPaidOffline ||
@@ -324,6 +327,7 @@ export function ProfileHeader({
                   <ProfileOverflowMenu
                     onPurge={onPurge}
                     onEnroll={onEnroll}
+                    onAddToTrial={onAddToTrial}
                     onTransferMembership={onTransferMembership}
                     onSyncPayment={onSyncPayment}
                     onMarkPaidOffline={onMarkPaidOffline}

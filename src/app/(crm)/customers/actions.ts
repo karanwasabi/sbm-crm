@@ -20,6 +20,8 @@ import {
   updateLeadTags,
   offlineEnrollLead,
   listOfflineEnrollCohorts,
+  enrollLeadInAppTrial,
+  getLeadAppTrialGoals,
   previewMembershipTransfer,
   applyMembershipTransfer,
   syncLeadCheckout,
@@ -92,6 +94,8 @@ import type {
   PutCheckInInput,
   PutCheckInResult,
   CheckInTelemetry,
+  AppTrialGoals,
+  AppTrialEnrollInput,
 } from '@/utils/api';
 import type {
   OfflineEnrollCohort,
@@ -296,6 +300,31 @@ export async function offlineEnrollLeadAction(leadId: string, cohortId: string):
     return { error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to enroll lead.';
+    return { error: message };
+  }
+}
+
+export async function getLeadAppTrialGoalsAction(
+  leadId: string
+): Promise<{ goals: AppTrialGoals | null; error: string | null }> {
+  try {
+    const goals = await getLeadAppTrialGoals(leadId);
+    return { goals, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load trial goals.';
+    return { goals: null, error: message };
+  }
+}
+
+export async function enrollLeadInAppTrialAction(
+  leadId: string,
+  input: AppTrialEnrollInput
+): Promise<{ error: string | null }> {
+  try {
+    await enrollLeadInAppTrial(leadId, input);
+    return { error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to add this member to the trial.';
     return { error: message };
   }
 }

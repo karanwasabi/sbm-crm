@@ -982,6 +982,44 @@ export async function listOfflineEnrollCohorts(): Promise<OfflineEnrollCohort[]>
   }));
 }
 
+export type AppTrialGoals = {
+  steps_daily: number;
+  exercise_days: number;
+  sleep_hours_daily: number;
+  nutrition_points_daily: number;
+  protein: number;
+  fiber: number;
+  starch: number;
+  dairy: number;
+  fun: number;
+};
+
+export type AppTrialEnrollInput = {
+  starts_on: string;
+  ends_on: string;
+  goals: AppTrialGoals;
+};
+
+export async function getLeadAppTrialGoals(leadId: string): Promise<AppTrialGoals> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/app-trial/goals`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to load trial goals.', response.status);
+  }
+  return (await response.json()) as AppTrialGoals;
+}
+
+export async function enrollLeadInAppTrial(leadId: string, input: AppTrialEnrollInput): Promise<void> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/app-trial`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to add this member to the trial.', response.status);
+  }
+}
+
 export async function offlineEnrollLead(leadId: string, cohortId: string): Promise<OfflineEnrollResult> {
   const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/offline-enroll`, {
     method: 'POST',

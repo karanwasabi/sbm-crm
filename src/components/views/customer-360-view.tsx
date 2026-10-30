@@ -15,6 +15,7 @@ import { SendEmailDialog } from '@/components/comms/send-email-dialog';
 import { SendWhatsAppDialog } from '@/components/comms/send-whatsapp-dialog';
 import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
 import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
+import { AppTrialDialog } from '@/components/crm/app-trial-dialog';
 import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
 import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
 import { CorrectEmailDialog } from '@/components/crm/correct-email-dialog';
@@ -128,6 +129,7 @@ export function Customer360View({
   const [sendWhatsAppOpen, setSendWhatsAppOpen] = useState(false);
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
+  const [trialOpen, setTrialOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [setPasswordOpen, setSetPasswordOpen] = useState(false);
   const [correctEmailOpen, setCorrectEmailOpen] = useState(false);
@@ -378,6 +380,9 @@ export function Customer360View({
           openConvonite={openConvoniteForHeader}
           onPurge={canMutate && lead.canPurge ? () => setPurgeOpen(true) : undefined}
           onEnroll={lead.canOfflineEnroll ? () => setEnrollOpen(true) : undefined}
+          onAddToTrial={
+            canMutate && lead.stage === 'lapsed' && lead.memberUserId != null ? () => setTrialOpen(true) : undefined
+          }
           onTransferMembership={canSyncPayment && lead.canTransferMembership ? () => setTransferOpen(true) : undefined}
           onSyncPayment={canSyncPayment && lead.memberUserId != null ? handleSyncPayment : undefined}
           onMarkPaidOffline={canSyncPayment && lead.paymentPending != null ? handleMarkPaidOffline : undefined}
@@ -515,6 +520,16 @@ export function Customer360View({
         leadId={lead.id}
         leadName={contact.name}
         onEnrolled={refresh}
+      />
+      <AppTrialDialog
+        open={trialOpen}
+        onOpenChange={setTrialOpen}
+        leadId={lead.id}
+        leadName={contact.name}
+        onEnrolled={() => {
+          toast({ message: 'Added to the Take Control Trial.', variant: 'success' });
+          refresh();
+        }}
       />
       <MembershipTransferDialog
         open={transferOpen}

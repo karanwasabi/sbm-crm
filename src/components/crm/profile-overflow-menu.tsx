@@ -7,6 +7,7 @@ import {
   Banknote,
   Clock,
   GraduationCap,
+  Sparkles,
   KeyRound,
   Landmark,
   AtSign,
@@ -28,6 +29,7 @@ import { cn } from '@/lib/cn';
 type ProfileOverflowMenuProps = {
   onPurge?: () => void;
   onEnroll?: () => void;
+  onAddToTrial?: () => void;
   onTransferMembership?: () => void;
   onSyncPayment?: () => void;
   onMarkPaidOffline?: () => void;
@@ -59,6 +61,7 @@ const menuItemClass =
 export function ProfileOverflowMenu({
   onPurge,
   onEnroll,
+  onAddToTrial,
   onTransferMembership,
   onSyncPayment,
   onMarkPaidOffline,
@@ -164,6 +167,20 @@ export function ProfileOverflowMenu({
               >
                 <GraduationCap className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 Enroll
+              </button>
+            ) : null}
+            {onAddToTrial ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onAddToTrial();
+                }}
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                Add to trial
               </button>
             ) : null}
             {onTransferMembership ? (
