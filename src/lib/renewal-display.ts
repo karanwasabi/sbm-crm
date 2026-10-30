@@ -21,8 +21,8 @@ export const RENEWAL_BUCKET_FILTERS: { id: RenewalBucketFilter; label: string }[
 ];
 
 export const RENEWAL_PRODUCT_FILTERS: { id: string; label: string }[] = [
-  { id: 'trial_1m', label: '1m trial' },
-  { id: 'trial_3m', label: '3m trial' },
+  { id: 'trial_1m', label: 'Enroll 1' },
+  { id: 'trial_3m', label: 'Enroll 3m' },
   { id: 'renewal', label: 'Renewal' },
   { id: 'fixed', label: 'Fixed term' },
   { id: 'subscription', label: 'Subscription' },
@@ -102,9 +102,9 @@ export function formatChargeLabel(row: RenewalRow): string {
 export function membershipProductLabel(row: RenewalRow): string {
   switch (row.membershipProduct) {
     case 'trial_1m':
-      return '1m trial';
+      return 'Enroll 1';
     case 'trial_3m':
-      return '3m trial';
+      return 'Enroll 3m';
     case 'renewal':
       return row.renewalPlanKey ? `Renewal · ${renewalDurationFilterLabel(row.renewalPlanKey)}` : 'Renewal';
     case 'subscription':
