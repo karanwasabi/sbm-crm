@@ -11,6 +11,7 @@ import {
   MessageSquare,
   RefreshCw,
   Settings,
+  Smartphone,
   Tag,
   UserPlus,
   type LucideIcon,
@@ -77,6 +78,13 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
         icon: CloudOff,
         superadminOnly: true,
       },
+      {
+        id: 'app-preview',
+        href: '/app-preview',
+        label: 'App preview',
+        icon: Smartphone,
+        superadminOnly: true,
+      },
       { id: 'settings', href: '/settings', label: 'Settings', icon: Settings, marketingAllowed: true },
     ],
   },
@@ -105,6 +113,10 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/check-in-syncs': {
     title: 'Check-in syncs',
     subtitle: 'Failed flushes, expired outbox & incomplete Sunday goals',
+  },
+  '/app-preview': {
+    title: 'App preview',
+    subtitle: 'Home screen as a member sees it. Nothing here changes their account.',
   },
   '/settings': { title: 'Settings', subtitle: 'Profile, team, integrations & purge audit' },
 };

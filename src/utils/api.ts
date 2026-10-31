@@ -2898,6 +2898,41 @@ export async function getCohortMembers(cohortId: string): Promise<import('@/type
   return rows.map(mapCohortMember);
 }
 
+export type AppPreviewMember = {
+  user_id: string;
+  name: string;
+  email: string;
+  cohort_id: string;
+  cohort_name: string;
+  cohort_status: string;
+  enrollment_status: string;
+};
+
+export async function searchAppPreviewMembers(query: string, cohortId: string | null): Promise<AppPreviewMember[]> {
+  const params = new URLSearchParams();
+  if (query.trim()) params.set('q', query.trim());
+  if (cohortId) params.set('cohort_id', cohortId);
+  const response = await requireApiFetch(`/admin/app-preview/members?${params.toString()}`);
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Could not search members.', response.status);
+  }
+  const body = (await response.json()) as { members?: AppPreviewMember[] };
+  return body.members ?? [];
+}
+
+export async function createAppPreview(userId: string): Promise<{ token: string; expires_at: string }> {
+  const response = await requireApiFetch('/admin/app-preview', {
+    method: 'POST',
+    body: JSON.stringify({ user_id: userId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Could not open preview.', response.status);
+  }
+  return (await response.json()) as { token: string; expires_at: string };
+}
+
 export type PatchCohortInput = {
   name?: string;
   starts_on?: string;
