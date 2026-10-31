@@ -6,10 +6,11 @@ export default async function ProgramsPage() {
 
   try {
     const programs = await listPrograms();
-    const takeControl = programs.find((p) => p.slug === 'take-control') ?? programs[0];
-    if (takeControl) {
-      cohorts = await getProgramCohorts(takeControl.id);
-    }
+    const programIds = ['take-control', 'take-control-trial']
+      .map((slug) => programs.find((program) => program.slug === slug)?.id)
+      .filter((id): id is string => Boolean(id));
+    const lists = await Promise.all(programIds.map((id) => getProgramCohorts(id)));
+    cohorts = lists.flat();
   } catch {
     cohorts = [];
   }
