@@ -30,15 +30,19 @@ export function sortCohorts<T extends { startsOn: string; isLive?: boolean; stat
   return [...cohorts].sort(compareCohortsLiveFirst);
 }
 
-export function partitionProgramCohorts<T extends { startsOn: string; isLive?: boolean; status?: string }>(
-  cohorts: T[]
-): { live: T[]; futureUpcoming: T[]; futureQueued: T[]; test: T[] } {
+export function partitionProgramCohorts<
+  T extends { startsOn: string; isLive?: boolean; status?: string; isDemo?: boolean },
+>(cohorts: T[]): { live: T[]; futureUpcoming: T[]; futureQueued: T[]; test: T[] } {
   const live: T[] = [];
   const futureUpcoming: T[] = [];
   const futureQueued: T[] = [];
   const test: T[] = [];
 
   for (const cohort of cohorts) {
+    if (cohort.isDemo) {
+      test.push(cohort);
+      continue;
+    }
     if (cohort.status === 'upcoming') {
       futureUpcoming.push(cohort);
       continue;

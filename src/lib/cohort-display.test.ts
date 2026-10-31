@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { firstLiveCohortId, partitionCohorts, partitionProgramCohorts } from '@/lib/cohort-display';
 
-function cohort(partial: { id: string; startsOn: string; status: string; isLive: boolean }) {
+function cohort(partial: { id: string; startsOn: string; status: string; isLive: boolean; isDemo?: boolean }) {
   return partial;
 }
 
@@ -12,6 +12,7 @@ const samples = [
   cohort({ id: 'upcoming', startsOn: '2026-08-17', status: 'upcoming', isLive: true }),
   cohort({ id: 'live-old', startsOn: '2026-04-13', status: 'locked', isLive: true }),
   cohort({ id: 'test-demo', startsOn: '2026-07-13', status: 'active', isLive: false }),
+  cohort({ id: 'demo-webinar', startsOn: '2026-11-02', status: 'upcoming', isLive: false, isDemo: true }),
 ];
 
 describe('partitionProgramCohorts', () => {
@@ -20,7 +21,7 @@ describe('partitionProgramCohorts', () => {
     expect(live.map((c) => c.id)).toEqual(['live-new', 'live-old']);
     expect(futureUpcoming.map((c) => c.id)).toEqual(['upcoming']);
     expect(futureQueued.map((c) => c.id)).toEqual(['queued']);
-    expect(test.map((c) => c.id)).toEqual(['test-demo', 'test-old']);
+    expect(test.map((c) => c.id)).toEqual(['demo-webinar', 'test-demo', 'test-old']);
   });
 });
 
@@ -29,7 +30,7 @@ describe('partitionCohorts', () => {
     const { live, future, test } = partitionCohorts(samples);
     expect(live.map((c) => c.id)).toEqual(['live-new', 'live-old']);
     expect(future.map((c) => c.id)).toEqual(['upcoming', 'queued']);
-    expect(test.map((c) => c.id)).toEqual(['test-demo', 'test-old']);
+    expect(test.map((c) => c.id)).toEqual(['demo-webinar', 'test-demo', 'test-old']);
   });
 });
 
