@@ -44,7 +44,7 @@ export function CorrectEmailDialog({ leadId, currentEmail, open, onOpenChange, o
   const nextEmail = email.trim().toLowerCase();
   const current = currentEmail.trim().toLowerCase();
   const invalid = nextEmail.length > 0 && !looksLikeEmail(nextEmail);
-  const canSubmit = looksLikeEmail(nextEmail) && nextEmail !== current && !pending;
+  const canSubmit = looksLikeEmail(nextEmail) && !pending;
 
   const submit = () => {
     if (!canSubmit) return;
@@ -54,11 +54,20 @@ export function CorrectEmailDialog({ leadId, currentEmail, open, onOpenChange, o
         toast({ message: error ?? 'Failed to correct email.', variant: 'error' });
         return;
       }
+      const razorpayNote =
+        result.razorpayCustomersUpdated > 0
+          ? ` Razorpay customer email updated (${result.razorpayCustomersUpdated}).`
+          : '';
       if (result.unchanged) {
         toast({ message: 'Email is already that address.', variant: 'success' });
+      } else if (result.fromEmail === result.toEmail) {
+        toast({
+          message: `Login email was already ${result.toEmail}.${razorpayNote}`,
+          variant: 'success',
+        });
       } else {
         toast({
-          message: `Email updated to ${result.toEmail}. Login uses this address. No email was sent.`,
+          message: `Email updated to ${result.toEmail}. Login uses this address. No email was sent.${razorpayNote}`,
           variant: 'success',
         });
       }
@@ -73,8 +82,8 @@ export function CorrectEmailDialog({ leadId, currentEmail, open, onOpenChange, o
         <DialogHeader className="pr-8">
           <DialogTitle>Correct email</DialogTitle>
           <DialogDescription>
-            Updates the member login and this CRM lead. Use this for typos like .con instead of .com. Does not send
-            mail.
+            Updates the member login, this CRM lead, and the Razorpay customer on their checkout. Use this for typos
+            like .con instead of .com. Does not send mail.
           </DialogDescription>
         </DialogHeader>
 

@@ -1432,6 +1432,7 @@ export type CorrectLeadEmailResult = {
   toEmail: string;
   updated: boolean;
   unchanged: boolean;
+  razorpayCustomersUpdated: number;
 };
 
 export async function correctLeadEmail(leadId: string, email: string): Promise<CorrectLeadEmailResult> {
@@ -1450,6 +1451,7 @@ export async function correctLeadEmail(leadId: string, email: string): Promise<C
     to_email: string;
     updated: boolean;
     unchanged: boolean;
+    razorpay_customers_updated?: number;
   };
   return {
     userId: row.user_id,
@@ -1457,6 +1459,7 @@ export async function correctLeadEmail(leadId: string, email: string): Promise<C
     toEmail: row.to_email,
     updated: row.updated,
     unchanged: row.unchanged,
+    razorpayCustomersUpdated: row.razorpay_customers_updated ?? 0,
   };
 }
 
