@@ -14,6 +14,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { TableSkeleton } from '@/components/loading/table-skeleton';
 import { CustomerDetailSkeleton } from '@/components/loading/customer-detail-skeleton';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
@@ -270,112 +271,178 @@ export function RenewalsView({
           <TableSkeleton columns={7} rows={8} showHeader embedded />
         ) : (
           <>
-            <DataTable>
-              <DataTableHead>
-                <DataTableHeaderCell className="w-10 pl-3">
-                  <SelectAllCheckbox
-                    checked={selectAllFiltered || allPageSelected}
-                    indeterminate={!selectAllFiltered && somePageSelected && !allPageSelected}
-                    disabled={pageSelectable.length === 0}
-                    onChange={togglePageSelection}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Member"
-                    sortKey="name"
-                    activeSortKey={filters.sort}
-                    sortDirection={filters.order}
-                    onSort={handleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>Status</DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Product"
-                    sortKey="product"
-                    activeSortKey={filters.sort}
-                    sortDirection={filters.order}
-                    onSort={handleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Cohort"
-                    sortKey="cohort"
-                    activeSortKey={filters.sort}
-                    sortDirection={filters.order}
-                    onSort={handleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Expires"
-                    sortKey="access_until"
-                    activeSortKey={filters.sort}
-                    sortDirection={filters.order}
-                    onSort={handleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>Retention</DataTableHeaderCell>
-              </DataTableHead>
-              <DataTableBody>
-                {rows.length === 0 ? (
-                  <DataTableRow>
-                    <DataTableCell colSpan={7} className="py-10 text-center text-sm text-slate-500">
-                      No members match this filter.
-                    </DataTableCell>
-                  </DataTableRow>
+            <ResponsiveList
+              mobile={
+                rows.length === 0 ? (
+                  <div className="px-4 py-10 text-center text-sm text-slate-500">No members match this filter.</div>
                 ) : (
-                  rows.map((row) => {
-                    const opening = clickedRowId === row.checkoutSessionId && isPending;
-                    return (
-                      <DataTableRow
-                        key={row.checkoutSessionId}
-                        className={cn(opening && 'opacity-60')}
-                        onClick={row.leadId ? () => openCustomer(row) : undefined}
-                      >
-                        <DataTableCell className="pl-3">
-                          <input
-                            type="checkbox"
-                            className="h-3.5 w-3.5 accent-brand"
-                            checked={selectAllFiltered || selectedIds.has(row.checkoutSessionId)}
-                            disabled={!row.leadId}
-                            onClick={(event) => event.stopPropagation()}
-                            onChange={() => toggleRow(row)}
-                            aria-label={`Select ${row.memberName}`}
-                          />
-                        </DataTableCell>
-                        <DataTableCell>
-                          <div className="flex items-center gap-2.5">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
-                              {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : row.memberInitials}
+                  <div className="flex flex-col gap-2 px-3 pb-3">
+                    <div className="flex items-center gap-2 px-1">
+                      <SelectAllCheckbox
+                        checked={selectAllFiltered || allPageSelected}
+                        indeterminate={!selectAllFiltered && somePageSelected && !allPageSelected}
+                        disabled={pageSelectable.length === 0}
+                        onChange={togglePageSelection}
+                      />
+                      <span className="text-[11px] font-semibold text-slate-500">Select page</span>
+                    </div>
+                    {rows.map((row) => {
+                      const opening = clickedRowId === row.checkoutSessionId && isPending;
+                      return (
+                        <button
+                          key={row.checkoutSessionId}
+                          type="button"
+                          disabled={!row.leadId}
+                          onClick={row.leadId ? () => openCustomer(row) : undefined}
+                          className={cn(
+                            'rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm',
+                            opening && 'opacity-60',
+                            !row.leadId && 'cursor-default'
+                          )}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              className="mt-1 h-4 w-4 shrink-0 accent-brand"
+                              checked={selectAllFiltered || selectedIds.has(row.checkoutSessionId)}
+                              disabled={!row.leadId}
+                              onClick={(event) => event.stopPropagation()}
+                              onChange={() => toggleRow(row)}
+                              aria-label={`Select ${row.memberName}`}
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
+                                  {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : row.memberInitials}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="truncate font-semibold text-slate-800">{row.memberName}</p>
+                                  <p className="truncate text-[12px] text-slate-500">{row.cohortName}</p>
+                                </div>
+                              </div>
+                              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                                <RenewalMemberStatus row={row} />
+                                <Pill tone="neutral">{membershipProductLabel(row)}</Pill>
+                                <Pill tone={bucketTone(row.retentionBucket)}>{bucketLabel(row.retentionBucket)}</Pill>
+                              </div>
+                              <p className="mt-2 text-[12px] text-slate-600">{formatAccessExpiryLabel(row)}</p>
                             </div>
-                            <span className="font-semibold text-slate-800">{row.memberName}</span>
                           </div>
-                        </DataTableCell>
-                        <DataTableCell>
-                          <RenewalMemberStatus row={row} />
-                        </DataTableCell>
-                        <DataTableCell className="text-slate-700">{membershipProductLabel(row)}</DataTableCell>
-                        <DataTableCell>{row.cohortName}</DataTableCell>
-                        <DataTableCell className="text-slate-600">{formatAccessExpiryLabel(row)}</DataTableCell>
-                        <DataTableCell>
-                          <div className="flex flex-wrap items-center gap-1">
-                            <Pill tone={bucketTone(row.retentionBucket)}>{bucketLabel(row.retentionBucket)}</Pill>
-                            {row.accessState !== 'active' ? (
-                              <Pill tone={row.accessState === 'grace' ? 'warn' : 'neutral'}>
-                                {accessStateLabel(row.accessState)}
-                              </Pill>
-                            ) : null}
-                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )
+              }
+              desktop={
+                <DataTable>
+                  <DataTableHead>
+                    <DataTableHeaderCell className="w-10 pl-3">
+                      <SelectAllCheckbox
+                        checked={selectAllFiltered || allPageSelected}
+                        indeterminate={!selectAllFiltered && somePageSelected && !allPageSelected}
+                        disabled={pageSelectable.length === 0}
+                        onChange={togglePageSelection}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Member"
+                        sortKey="name"
+                        activeSortKey={filters.sort}
+                        sortDirection={filters.order}
+                        onSort={handleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>Status</DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Product"
+                        sortKey="product"
+                        activeSortKey={filters.sort}
+                        sortDirection={filters.order}
+                        onSort={handleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Cohort"
+                        sortKey="cohort"
+                        activeSortKey={filters.sort}
+                        sortDirection={filters.order}
+                        onSort={handleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Expires"
+                        sortKey="access_until"
+                        activeSortKey={filters.sort}
+                        sortDirection={filters.order}
+                        onSort={handleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>Retention</DataTableHeaderCell>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {rows.length === 0 ? (
+                      <DataTableRow>
+                        <DataTableCell colSpan={7} className="py-10 text-center text-sm text-slate-500">
+                          No members match this filter.
                         </DataTableCell>
                       </DataTableRow>
-                    );
-                  })
-                )}
-              </DataTableBody>
-            </DataTable>
+                    ) : (
+                      rows.map((row) => {
+                        const opening = clickedRowId === row.checkoutSessionId && isPending;
+                        return (
+                          <DataTableRow
+                            key={row.checkoutSessionId}
+                            className={cn(opening && 'opacity-60')}
+                            onClick={row.leadId ? () => openCustomer(row) : undefined}
+                          >
+                            <DataTableCell className="pl-3">
+                              <input
+                                type="checkbox"
+                                className="h-3.5 w-3.5 accent-brand"
+                                checked={selectAllFiltered || selectedIds.has(row.checkoutSessionId)}
+                                disabled={!row.leadId}
+                                onClick={(event) => event.stopPropagation()}
+                                onChange={() => toggleRow(row)}
+                                aria-label={`Select ${row.memberName}`}
+                              />
+                            </DataTableCell>
+                            <DataTableCell>
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
+                                  {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : row.memberInitials}
+                                </div>
+                                <span className="font-semibold text-slate-800">{row.memberName}</span>
+                              </div>
+                            </DataTableCell>
+                            <DataTableCell>
+                              <RenewalMemberStatus row={row} />
+                            </DataTableCell>
+                            <DataTableCell className="text-slate-700">{membershipProductLabel(row)}</DataTableCell>
+                            <DataTableCell>{row.cohortName}</DataTableCell>
+                            <DataTableCell className="text-slate-600">{formatAccessExpiryLabel(row)}</DataTableCell>
+                            <DataTableCell>
+                              <div className="flex flex-wrap items-center gap-1">
+                                <Pill tone={bucketTone(row.retentionBucket)}>{bucketLabel(row.retentionBucket)}</Pill>
+                                {row.accessState !== 'active' ? (
+                                  <Pill tone={row.accessState === 'grace' ? 'warn' : 'neutral'}>
+                                    {accessStateLabel(row.accessState)}
+                                  </Pill>
+                                ) : null}
+                              </div>
+                            </DataTableCell>
+                          </DataTableRow>
+                        );
+                      })
+                    )}
+                  </DataTableBody>
+                </DataTable>
+              }
+            />
             <RenewalsPagination
               filters={filters}
               total={page.total}

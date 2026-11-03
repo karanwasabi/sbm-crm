@@ -268,17 +268,28 @@ export function ProfileHeader({
                 {!contact.isMember ? <HeaderMetaPill>Not a member yet</HeaderMetaPill> : null}
               </div>
 
-              <div className="flex flex-wrap items-center justify-end gap-2">
+              <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
                 {showCommunicate ? (
                   <>
                     {contact.stage !== 'lost' && onLogCall ? (
-                      <TCButton gradient="call" leftIcon={<Phone className="h-3.5 w-3.5" />} onClick={onLogCall}>
+                      <TCButton
+                        gradient="call"
+                        leftIcon={<Phone className="h-3.5 w-3.5" />}
+                        onClick={onLogCall}
+                        className="min-h-10"
+                      >
                         Log Call
                       </TCButton>
                     ) : null}
                     {onSendEmail ? (
-                      <TCButton gradient="email" leftIcon={<Mail className="h-3.5 w-3.5" />} onClick={onSendEmail}>
-                        Send Email
+                      <TCButton
+                        gradient="email"
+                        leftIcon={<Mail className="h-3.5 w-3.5" />}
+                        onClick={onSendEmail}
+                        className="min-h-10"
+                      >
+                        <span className="sm:hidden">Email</span>
+                        <span className="hidden sm:inline">Send Email</span>
                       </TCButton>
                     ) : null}
                     {sendWhatsApp ? (
@@ -291,8 +302,10 @@ export function ProfileHeader({
                           leftIcon={<WhatsAppIcon />}
                           onClick={sendWhatsApp.onClick}
                           disabled={sendWhatsApp.disabled}
+                          className="min-h-10"
                         >
-                          Send WhatsApp
+                          <span className="sm:hidden">WhatsApp</span>
+                          <span className="hidden sm:inline">Send WhatsApp</span>
                         </TCButton>
                       </span>
                     ) : null}

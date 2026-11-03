@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
+import { FiltersSheet } from '@/components/crm/filters-sheet';
 import { RenewalsSearch } from '@/components/crm/renewals-search';
 import { RenewalsBulkSendButton } from '@/components/crm/renewals-bulk-send-button';
 import { RenewalsExportButton } from '@/components/crm/renewals-export-button';
@@ -71,69 +72,60 @@ export function RenewalsFilterBar({
     filters.access.length > 0 ||
     filters.expiries.length > 0 ||
     filters.batches.length > 0;
+  const toolbarFilterCount =
+    filters.products.length +
+    filters.statuses.length +
+    filters.batches.length +
+    filters.access.length +
+    filters.expiries.length;
+
+  const filterControls = (
+    <>
+      <RenewalMultiSelectPopover
+        label="Product"
+        icon={Layers}
+        values={filters.products}
+        options={withCounts(RENEWAL_PRODUCT_FILTERS, summary.facets.products)}
+        onApply={(products) => onNavigate(buildRenewalsHref(filters, { products }))}
+      />
+      <RenewalMultiSelectPopover
+        label="Status"
+        icon={Tags}
+        values={filters.statuses}
+        options={statusOptions(summary)}
+        onApply={(statuses) => onNavigate(buildRenewalsHref(filters, { statuses }))}
+      />
+      <RenewalMultiSelectPopover
+        label="Batch"
+        icon={Users}
+        values={filters.batches}
+        options={batchOptions(summary)}
+        onApply={(batches) => onNavigate(buildRenewalsHref(filters, { batches }))}
+      />
+      <RenewalMultiSelectPopover
+        label="Access"
+        icon={Shield}
+        values={filters.access}
+        options={withCounts(RENEWAL_ACCESS_FILTERS, summary.facets.access)}
+        onApply={(access) => onNavigate(buildRenewalsHref(filters, { access }))}
+      />
+      <RenewalMultiSelectPopover
+        label="Expires"
+        icon={CalendarClock}
+        values={filters.expiries}
+        options={RENEWAL_EXPIRY_FILTERS}
+        onApply={(expiries) => onNavigate(buildRenewalsHref(filters, { expiries }))}
+      />
+    </>
+  );
 
   return (
     <Card padding="none" className="overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
-        <RenewalsSearch filters={filters} onNavigate={onNavigate} className="w-full max-w-96 flex-1" />
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <RenewalMultiSelectPopover
-            label="Product"
-            icon={Layers}
-            values={filters.products}
-            options={withCounts(RENEWAL_PRODUCT_FILTERS, summary.facets.products)}
-            onApply={(products) => onNavigate(buildRenewalsHref(filters, { products }))}
-          />
-          <RenewalMultiSelectPopover
-            label="Status"
-            icon={Tags}
-            values={filters.statuses}
-            options={statusOptions(summary)}
-            onApply={(statuses) => onNavigate(buildRenewalsHref(filters, { statuses }))}
-          />
-          <RenewalMultiSelectPopover
-            label="Batch"
-            icon={Users}
-            values={filters.batches}
-            options={batchOptions(summary)}
-            onApply={(batches) => onNavigate(buildRenewalsHref(filters, { batches }))}
-          />
-          <RenewalMultiSelectPopover
-            label="Access"
-            icon={Shield}
-            values={filters.access}
-            options={withCounts(RENEWAL_ACCESS_FILTERS, summary.facets.access)}
-            onApply={(access) => onNavigate(buildRenewalsHref(filters, { access }))}
-          />
-          <RenewalMultiSelectPopover
-            label="Expires"
-            icon={CalendarClock}
-            values={filters.expiries}
-            options={RENEWAL_EXPIRY_FILTERS}
-            onApply={(expiries) => onNavigate(buildRenewalsHref(filters, { expiries }))}
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center gap-3 bg-white px-4 py-2.5">
-        <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Retention</span>
-        <div className="-mx-1 flex min-w-0 flex-1 [scrollbar-width:thin] items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
-          {RENEWAL_BUCKET_FILTERS.map((filter) => {
-            const href = buildRenewalsHref(filters, { bucket: filter.id === 'all' ? '' : filter.id });
-            return (
-              <FilterChip
-                key={filter.id}
-                onClick={() => onNavigate(href)}
-                active={displayedBucket === filter.id}
-                pending={isNavigating && pendingHref === href}
-                count={filterCount(summary, filter.id)}
-              >
-                {filter.label}
-              </FilterChip>
-            );
-          })}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
+        <RenewalsSearch filters={filters} onNavigate={onNavigate} className="w-full max-w-96 min-w-0 flex-1" />
+        <FiltersSheet activeCount={toolbarFilterCount}>{filterControls}</FiltersSheet>
+        <div className="hidden min-w-0 flex-wrap items-center gap-2 lg:flex">{filterControls}</div>
+        <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
           {leadIds.length > 0 || skippedCount > 0 ? (
             <RenewalsBulkSendButton
               leadIds={leadIds}
@@ -150,6 +142,26 @@ export function RenewalsFilterBar({
             selectAllFiltered={selectAllFiltered}
             selectedCount={selectedCount}
           />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 bg-white px-3 py-2.5 lg:gap-3 lg:px-4">
+        <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Retention</span>
+        <div className="-mx-1 flex min-w-0 flex-1 [scrollbar-width:thin] items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
+          {RENEWAL_BUCKET_FILTERS.map((filter) => {
+            const href = buildRenewalsHref(filters, { bucket: filter.id === 'all' ? '' : filter.id });
+            return (
+              <FilterChip
+                key={filter.id}
+                onClick={() => onNavigate(href)}
+                active={displayedBucket === filter.id}
+                pending={isNavigating && pendingHref === href}
+                count={filterCount(summary, filter.id)}
+              >
+                {filter.label}
+              </FilterChip>
+            );
+          })}
         </div>
       </div>
 

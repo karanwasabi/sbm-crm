@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useState, useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { createStaffAction } from '@/app/(crm)/settings/team-actions';
 import {
   DataTable,
@@ -12,6 +12,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -192,17 +193,12 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
           {staff.active.length === 0 ? (
             <p className="text-sm text-slate-500">No active staff yet.</p>
           ) : (
-            <StaffTable>
-              {staff.active.map((member) => (
-                <StaffRow
-                  key={member.user_id}
-                  member={member}
-                  currentUserId={currentUserId}
-                  onEdit={() => openEdit(member, false)}
-                  disabled={pending}
-                />
-              ))}
-            </StaffTable>
+            <StaffList
+              members={staff.active}
+              currentUserId={currentUserId}
+              disabled={pending}
+              onEdit={(member) => openEdit(member, false)}
+            />
           )}
         </Card>
 
@@ -211,18 +207,13 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
           {staff.inactive.length === 0 ? (
             <p className="text-sm text-slate-500">No inactive staff.</p>
           ) : (
-            <StaffTable>
-              {staff.inactive.map((member) => (
-                <StaffRow
-                  key={member.user_id}
-                  member={member}
-                  currentUserId={currentUserId}
-                  inactive
-                  onEdit={() => openEdit(member, true)}
-                  disabled={pending}
-                />
-              ))}
-            </StaffTable>
+            <StaffList
+              members={staff.inactive}
+              currentUserId={currentUserId}
+              inactive
+              disabled={pending}
+              onEdit={(member) => openEdit(member, true)}
+            />
           )}
         </Card>
       </div>
@@ -240,20 +231,6 @@ export function TeamManagement({ staff, currentUserId }: TeamManagementProps) {
   );
 }
 
-function StaffTable({ children }: { children: ReactNode }) {
-  return (
-    <DataTable className="-mx-1">
-      <DataTableHead>
-        <DataTableHeaderCell className="w-[28%] min-w-[160px]">Name</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[32%] min-w-[200px]">Email</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[24%] min-w-[200px]">Access</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[16%] min-w-[120px] text-right"> </DataTableHeaderCell>
-      </DataTableHead>
-      <DataTableBody>{children}</DataTableBody>
-    </DataTable>
-  );
-}
-
 function RolePill({ label, active, tone }: { label: string; active: boolean; tone: 'deep' | 'success' | 'brand' }) {
   return (
     <Pill
@@ -265,52 +242,110 @@ function RolePill({ label, active, tone }: { label: string; active: boolean; ton
   );
 }
 
-function StaffRow({
-  member,
-  currentUserId,
-  inactive = false,
-  onEdit,
-  disabled,
-}: {
-  member: StaffMember;
-  currentUserId: string;
-  inactive?: boolean;
-  onEdit: () => void;
-  disabled: boolean;
-}) {
-  const isSelf = member.user_id === currentUserId;
-  const name = formatStaffName(member);
+function StaffRolePills({ member }: { member: StaffMember }) {
   const hasAdmin = member.roles.includes('admin');
   const hasCoach = member.roles.includes('coach');
   const hasMarketing = member.roles.includes('marketing');
   const hasMarketingPlus = member.roles.includes('marketing_plus');
   const hasSuperadmin = member.roles.includes('superadmin');
-
   return (
-    <DataTableRow className={cn(inactive && 'bg-slate-50/60')}>
-      <DataTableCell>
-        <div className="text-[13px] font-semibold text-slate-800">
-          {name}
-          {isSelf ? <span className="ml-1.5 text-[11px] font-medium text-slate-400">(you)</span> : null}
+    <div className="flex flex-wrap items-center gap-1.5">
+      <RolePill label="Admin" active={hasAdmin} tone="deep" />
+      <RolePill label="Coach" active={hasCoach} tone="success" />
+      <RolePill label="Marketing" active={hasMarketing} tone="brand" />
+      <RolePill label="Marketing Plus" active={hasMarketingPlus} tone="brand" />
+      {hasSuperadmin ? <RolePill label="Superadmin" active tone="deep" /> : null}
+    </div>
+  );
+}
+
+function StaffList({
+  members,
+  currentUserId,
+  inactive = false,
+  disabled,
+  onEdit,
+}: {
+  members: StaffMember[];
+  currentUserId: string;
+  inactive?: boolean;
+  disabled: boolean;
+  onEdit: (member: StaffMember) => void;
+}) {
+  return (
+    <ResponsiveList
+      mobile={
+        <div className="flex flex-col gap-2">
+          {members.map((member) => {
+            const isSelf = member.user_id === currentUserId;
+            const name = formatStaffName(member);
+            return (
+              <div
+                key={member.user_id}
+                className={cn(
+                  'rounded-2xl border border-slate-100 bg-white p-3 shadow-sm',
+                  inactive && 'bg-slate-50/80'
+                )}
+              >
+                <p className="font-semibold text-slate-800">
+                  {name}
+                  {isSelf ? <span className="ml-1.5 text-[11px] font-medium text-slate-400">(you)</span> : null}
+                </p>
+                <p className="mt-1 truncate text-[12px] text-slate-500">{member.email}</p>
+                <div className="mt-2">
+                  <StaffRolePills member={member} />
+                </div>
+                <Button
+                  variant="light"
+                  size="sm"
+                  className="mt-3 min-h-11"
+                  disabled={disabled || isSelf}
+                  onClick={() => onEdit(member)}
+                >
+                  {inactive ? 'Edit' : 'Edit access'}
+                </Button>
+              </div>
+            );
+          })}
         </div>
-      </DataTableCell>
-      <DataTableCell>
-        <div className="truncate text-[12px] text-slate-500">{member.email}</div>
-      </DataTableCell>
-      <DataTableCell>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <RolePill label="Admin" active={hasAdmin} tone="deep" />
-          <RolePill label="Coach" active={hasCoach} tone="success" />
-          <RolePill label="Marketing" active={hasMarketing} tone="brand" />
-          <RolePill label="Marketing Plus" active={hasMarketingPlus} tone="brand" />
-          {hasSuperadmin ? <RolePill label="Superadmin" active tone="deep" /> : null}
-        </div>
-      </DataTableCell>
-      <DataTableCell className="text-right">
-        <Button variant="light" size="sm" disabled={disabled || isSelf} onClick={onEdit}>
-          {inactive ? 'Edit' : 'Edit access'}
-        </Button>
-      </DataTableCell>
-    </DataTableRow>
+      }
+      desktop={
+        <DataTable className="-mx-1">
+          <DataTableHead>
+            <DataTableHeaderCell className="w-[28%] min-w-[160px]">Name</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[32%] min-w-[200px]">Email</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[24%] min-w-[200px]">Access</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[16%] min-w-[120px] text-right"> </DataTableHeaderCell>
+          </DataTableHead>
+          <DataTableBody>
+            {members.map((member) => {
+              const isSelf = member.user_id === currentUserId;
+              const name = formatStaffName(member);
+              return (
+                <DataTableRow key={member.user_id} className={cn(inactive && 'bg-slate-50/60')}>
+                  <DataTableCell>
+                    <div className="text-[13px] font-semibold text-slate-800">
+                      {name}
+                      {isSelf ? <span className="ml-1.5 text-[11px] font-medium text-slate-400">(you)</span> : null}
+                    </div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <div className="truncate text-[12px] text-slate-500">{member.email}</div>
+                  </DataTableCell>
+                  <DataTableCell>
+                    <StaffRolePills member={member} />
+                  </DataTableCell>
+                  <DataTableCell className="text-right">
+                    <Button variant="light" size="sm" disabled={disabled || isSelf} onClick={() => onEdit(member)}>
+                      {inactive ? 'Edit' : 'Edit access'}
+                    </Button>
+                  </DataTableCell>
+                </DataTableRow>
+              );
+            })}
+          </DataTableBody>
+        </DataTable>
+      }
+    />
   );
 }

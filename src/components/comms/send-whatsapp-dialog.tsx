@@ -141,8 +141,8 @@ export function SendWhatsAppDialog({
   const canSend = Boolean(templateId) && (preview?.missing.length ?? 0) === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="w-full max-w-lg rounded-3xl border border-slate-100 bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-900/40 p-0 lg:items-center lg:p-4">
+      <div className="flex h-[100dvh] max-h-[100dvh] w-full max-w-lg flex-col overflow-y-auto rounded-none border border-slate-100 bg-white p-5 shadow-xl lg:h-auto lg:max-h-[90vh] lg:rounded-3xl">
         <h2 className="text-lg font-extrabold text-slate-800">Send WhatsApp</h2>
         <p className="mt-1 text-sm font-medium text-slate-500">Choose an active template to send to this lead.</p>
 

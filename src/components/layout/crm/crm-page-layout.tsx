@@ -7,5 +7,5 @@ type CrmPageLayoutProps = {
 };
 
 export function CrmPageLayout({ children, className }: CrmPageLayoutProps) {
-  return <div className={cn('flex flex-col gap-4 px-6 py-5 pb-9', className)}>{children}</div>;
+  return <div className={cn('flex flex-col gap-4 px-4 py-4 pb-8 lg:px-6 lg:py-5 lg:pb-9', className)}>{children}</div>;
 }

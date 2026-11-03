@@ -12,6 +12,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -216,7 +217,12 @@ export function EventDetailView({ event, registrations }: EventDetailViewProps) 
           <Field label="Starts at (IST)">
             <TextInput type="datetime-local" value={slotStartsAt} onChange={setSlotStartsAt} disabled={pending} />
           </Field>
-          <Button onClick={handleAddSlot} loading={pending} loadingLabel="Adding…">
+          <Button
+            className="min-h-11 w-full md:w-auto"
+            onClick={handleAddSlot}
+            loading={pending}
+            loadingLabel="Adding…"
+          >
             Add slot
           </Button>
         </div>
@@ -224,43 +230,85 @@ export function EventDetailView({ event, registrations }: EventDetailViewProps) 
         {event.slots.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500">No slots yet.</p>
         ) : (
-          <DataTable className="-mx-1 mt-4">
-            <DataTableHead>
-              <DataTableHeaderCell className="min-w-[160px]">Label</DataTableHeaderCell>
-              <DataTableHeaderCell className="min-w-[180px]">Starts</DataTableHeaderCell>
-              <DataTableHeaderCell className="w-[110px]">Registrations</DataTableHeaderCell>
-              <DataTableHeaderCell className="w-[100px]">Status</DataTableHeaderCell>
-              <DataTableHeaderCell className="w-[120px] text-right"> </DataTableHeaderCell>
-            </DataTableHead>
-            <DataTableBody>
-              {event.slots.map((slot) => (
-                <DataTableRow key={slot.id} className={cn(!slot.isActive && 'bg-slate-50/60')}>
-                  <DataTableCell>
-                    <span className="text-[13px] font-semibold text-slate-800">{slot.label}</span>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="text-[12px] text-slate-600">{formatDateTimeIST(slot.startsAt)}</span>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="text-[12px] text-slate-600">{slot.registrationCount.toLocaleString('en-IN')}</span>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <Pill tone={slot.isActive ? 'success' : 'neutral'}>{slot.isActive ? 'Active' : 'Inactive'}</Pill>
-                  </DataTableCell>
-                  <DataTableCell className="text-right">
+          <ResponsiveList
+            className="mt-4"
+            mobile={
+              <div className="flex flex-col gap-2">
+                {event.slots.map((slot) => (
+                  <div
+                    key={slot.id}
+                    className={cn(
+                      'rounded-2xl border border-slate-100 bg-white p-3 shadow-sm',
+                      !slot.isActive && 'bg-slate-50/80'
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-800">{slot.label}</p>
+                        <p className="mt-1 text-[12px] text-slate-600">{formatDateTimeIST(slot.startsAt)}</p>
+                      </div>
+                      <Pill tone={slot.isActive ? 'success' : 'neutral'}>{slot.isActive ? 'Active' : 'Inactive'}</Pill>
+                    </div>
+                    <p className="mt-2 text-[12px] text-slate-600">
+                      {slot.registrationCount.toLocaleString('en-IN')} registrations
+                    </p>
                     <Button
                       size="sm"
                       variant="ghost"
+                      className="mt-2 min-h-11"
                       disabled={pending}
                       onClick={() => handleToggleSlot(slot.id, !slot.isActive)}
                     >
                       {slot.isActive ? 'Deactivate' : 'Activate'}
                     </Button>
-                  </DataTableCell>
-                </DataTableRow>
-              ))}
-            </DataTableBody>
-          </DataTable>
+                  </div>
+                ))}
+              </div>
+            }
+            desktop={
+              <DataTable className="-mx-1">
+                <DataTableHead>
+                  <DataTableHeaderCell className="min-w-[160px]">Label</DataTableHeaderCell>
+                  <DataTableHeaderCell className="min-w-[180px]">Starts</DataTableHeaderCell>
+                  <DataTableHeaderCell className="w-[110px]">Registrations</DataTableHeaderCell>
+                  <DataTableHeaderCell className="w-[100px]">Status</DataTableHeaderCell>
+                  <DataTableHeaderCell className="w-[120px] text-right"> </DataTableHeaderCell>
+                </DataTableHead>
+                <DataTableBody>
+                  {event.slots.map((slot) => (
+                    <DataTableRow key={slot.id} className={cn(!slot.isActive && 'bg-slate-50/60')}>
+                      <DataTableCell>
+                        <span className="text-[13px] font-semibold text-slate-800">{slot.label}</span>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <span className="text-[12px] text-slate-600">{formatDateTimeIST(slot.startsAt)}</span>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <span className="text-[12px] text-slate-600">
+                          {slot.registrationCount.toLocaleString('en-IN')}
+                        </span>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <Pill tone={slot.isActive ? 'success' : 'neutral'}>
+                          {slot.isActive ? 'Active' : 'Inactive'}
+                        </Pill>
+                      </DataTableCell>
+                      <DataTableCell className="text-right">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          disabled={pending}
+                          onClick={() => handleToggleSlot(slot.id, !slot.isActive)}
+                        >
+                          {slot.isActive ? 'Deactivate' : 'Activate'}
+                        </Button>
+                      </DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            }
+          />
         )}
       </Card>
 
@@ -276,45 +324,73 @@ export function EventDetailView({ event, registrations }: EventDetailViewProps) 
         {registrations.length === 0 ? (
           <p className="text-sm text-slate-500">No registrations yet.</p>
         ) : (
-          <DataTable className="-mx-1">
-            <DataTableHead>
-              <DataTableHeaderCell className="min-w-[160px]">Lead</DataTableHeaderCell>
-              <DataTableHeaderCell className="min-w-[200px]">Email</DataTableHeaderCell>
-              <DataTableHeaderCell className="min-w-[140px]">Slot</DataTableHeaderCell>
-              <DataTableHeaderCell className="w-[120px]">Stage</DataTableHeaderCell>
-              <DataTableHeaderCell className="min-w-[160px]">Registered</DataTableHeaderCell>
-            </DataTableHead>
-            <DataTableBody>
-              {registrations.map((registration) => (
-                <DataTableRow key={registration.id}>
-                  <DataTableCell>
+          <ResponsiveList
+            mobile={
+              <div className="flex flex-col gap-2">
+                {registrations.map((registration) => (
+                  <div key={registration.id} className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
                     <Link
                       href={`/customers/${registration.leadId}`}
-                      className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
+                      className="text-[14px] font-semibold text-slate-800 no-underline hover:text-brand"
                     >
                       {registration.leadName || registration.leadEmail}
                     </Link>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="text-[12px] text-slate-600">{registration.leadEmail}</span>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="text-[12px] text-slate-600">{registration.slotLabel}</span>
-                  </DataTableCell>
-                  <DataTableCell>
-                    {registration.lifecycleStage in LIFECYCLE_STAGES ? (
-                      <StagePill stage={registration.lifecycleStage as LifecycleStage} />
-                    ) : (
-                      <span className="text-[12px] text-slate-500">{registration.lifecycleStage}</span>
-                    )}
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="text-[12px] text-slate-500">{formatDateTimeIST(registration.createdAt)}</span>
-                  </DataTableCell>
-                </DataTableRow>
-              ))}
-            </DataTableBody>
-          </DataTable>
+                    <p className="mt-1 truncate text-[12px] text-slate-600">{registration.leadEmail}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="text-[12px] text-slate-600">{registration.slotLabel}</span>
+                      {registration.lifecycleStage in LIFECYCLE_STAGES ? (
+                        <StagePill stage={registration.lifecycleStage as LifecycleStage} />
+                      ) : (
+                        <span className="text-[12px] text-slate-500">{registration.lifecycleStage}</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-slate-400">{formatDateTimeIST(registration.createdAt)}</p>
+                  </div>
+                ))}
+              </div>
+            }
+            desktop={
+              <DataTable className="-mx-1">
+                <DataTableHead>
+                  <DataTableHeaderCell className="min-w-[160px]">Lead</DataTableHeaderCell>
+                  <DataTableHeaderCell className="min-w-[200px]">Email</DataTableHeaderCell>
+                  <DataTableHeaderCell className="min-w-[140px]">Slot</DataTableHeaderCell>
+                  <DataTableHeaderCell className="w-[120px]">Stage</DataTableHeaderCell>
+                  <DataTableHeaderCell className="min-w-[160px]">Registered</DataTableHeaderCell>
+                </DataTableHead>
+                <DataTableBody>
+                  {registrations.map((registration) => (
+                    <DataTableRow key={registration.id}>
+                      <DataTableCell>
+                        <Link
+                          href={`/customers/${registration.leadId}`}
+                          className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
+                        >
+                          {registration.leadName || registration.leadEmail}
+                        </Link>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <span className="text-[12px] text-slate-600">{registration.leadEmail}</span>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <span className="text-[12px] text-slate-600">{registration.slotLabel}</span>
+                      </DataTableCell>
+                      <DataTableCell>
+                        {registration.lifecycleStage in LIFECYCLE_STAGES ? (
+                          <StagePill stage={registration.lifecycleStage as LifecycleStage} />
+                        ) : (
+                          <span className="text-[12px] text-slate-500">{registration.lifecycleStage}</span>
+                        )}
+                      </DataTableCell>
+                      <DataTableCell>
+                        <span className="text-[12px] text-slate-500">{formatDateTimeIST(registration.createdAt)}</span>
+                      </DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            }
+          />
         )}
       </Card>
     </div>

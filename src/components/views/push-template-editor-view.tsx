@@ -365,41 +365,33 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-linear-to-r from-brand/[0.06] via-white to-white px-5 py-4">
           <SectionHead
             title="Notification copy"
-            subtitle={`Editing week ${week}. Empty title or body skips that send. CSV columns: week, day, slot, title, body.`}
+            subtitle={`Editing week ${week}. Empty title or body skips that send.`}
             className="mb-0"
           />
           <div className="flex flex-wrap gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={(event) => void onCsvFileChange(event.target.files?.[0] ?? null)}
-            />
             <Button
               variant="light"
               size="sm"
-              onClick={onPickCsv}
-              disabled={pending}
-              leftIcon={<Upload className="h-3.5 w-3.5" />}
-            >
-              Upload CSV
-            </Button>
-            <Button
-              variant="light"
-              size="sm"
+              className="min-h-11"
               onClick={addWeek}
               disabled={pending}
               leftIcon={<Plus className="h-3.5 w-3.5" />}
             >
               Add week
             </Button>
-            <Button variant="ghost" size="sm" onClick={removeLastWeek} disabled={pending || maxWeek <= 1}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="min-h-11"
+              onClick={removeLastWeek}
+              disabled={pending || maxWeek <= 1}
+            >
               Remove last week
             </Button>
             <Button
               variant="primary"
               size="sm"
+              className="min-h-11"
               onClick={saveEntries}
               loading={pending}
               leftIcon={<Save className="h-3.5 w-3.5" />}
@@ -491,6 +483,32 @@ export function PushTemplateEditorView({ template }: PushTemplateEditorViewProps
               </div>
             </div>
           ))}
+
+          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/70 p-4">
+            <p className="text-sm font-semibold text-slate-800">Bulk tools</p>
+            <p className="mt-1 text-[12px] text-slate-500">
+              CSV columns: week, day, slot, title, body. Import stays available on every screen size.
+            </p>
+            <div className="mt-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(event) => void onCsvFileChange(event.target.files?.[0] ?? null)}
+              />
+              <Button
+                variant="light"
+                size="sm"
+                className="min-h-11"
+                onClick={onPickCsv}
+                disabled={pending}
+                leftIcon={<Upload className="h-3.5 w-3.5" />}
+              >
+                Upload CSV
+              </Button>
+            </div>
+          </div>
         </div>
       </Card>
 

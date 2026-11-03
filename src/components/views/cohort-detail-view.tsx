@@ -37,6 +37,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { filterPopoverTriggerClass } from '@/components/crm/filter-popover-trigger';
 import { StarBalanceFilterPopover } from '@/components/crm/lead-database-unredeemed-stars-filter';
 import { StarBalanceLines } from '@/components/crm/star-balance-lines';
@@ -424,270 +425,351 @@ function MemberTable({
         <SectionHead title={title} subtitle={subtitle} className="mb-1.5" />
       </div>
       {toolbar}
-      <div className="overflow-x-auto">
-        <DataTable tableClassName="min-w-[1700px]">
-          <MemberTableColGroup withActions={transferColumn} showBodyMetrics={showBodyMetrics} />
-          <DataTableHead>
-            <DataTableHeaderCell>
-              <input
-                type="checkbox"
-                checked={allSelected}
-                onChange={(event) => onToggleAll(rowIds, event.target.checked)}
-                aria-label={`Select all in ${title}`}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Member"
-                  sortKey="name"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
+      <ResponsiveList
+        mobile={
+          rows.length === 0 ? (
+            <div className="px-4 py-10 text-center text-sm text-slate-500">
+              {emptyMessage ?? 'No members in this section.'}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 px-3 pb-3">
+              <div className="flex items-center gap-2 px-1">
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={(event) => onToggleAll(rowIds, event.target.checked)}
+                  aria-label={`Select all in ${title}`}
                 />
-              ) : (
-                'Member'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>Status</DataTableHeaderCell>
-            <DataTableHeaderCell>Onboarding</DataTableHeaderCell>
-            <DataTableHeaderCell>Stars</DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Coach"
-                  sortKey="coach"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Coach'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="WhatsApp"
-                  sortKey="whatsapp"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'WhatsApp'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="City"
-                  sortKey="city"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'City'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>Sex</DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Country"
-                  sortKey="country"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Country'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Timezone"
-                  sortKey="timezone"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Timezone'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Duration"
-                  sortKey="duration"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Duration'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Membership ends"
-                  sortKey="membershipEnds"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Membership ends'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Extended"
-                  sortKey="extended"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Extended'
-              )}
-            </DataTableHeaderCell>
-            <DataTableHeaderCell>
-              {sortable && sortKey && sortOrder && onSort ? (
-                <LocalSortableHeader
-                  label="Enrolled"
-                  sortKey="enrolled"
-                  activeKey={sortKey}
-                  order={sortOrder}
-                  onSort={onSort}
-                />
-              ) : (
-                'Enrolled'
-              )}
-            </DataTableHeaderCell>
-            {showBodyMetrics ? (
-              <>
-                <DataTableHeaderCell>Initial weight</DataTableHeaderCell>
-                <DataTableHeaderCell>Height</DataTableHeaderCell>
-                <DataTableHeaderCell>BMI</DataTableHeaderCell>
-              </>
-            ) : null}
-            {transferColumn ? <DataTableHeaderCell className="text-right">{'\u00a0'}</DataTableHeaderCell> : null}
-          </DataTableHead>
-          <DataTableBody>
-            {rows.length === 0 ? (
-              <DataTableRow>
-                <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
-                  {emptyMessage ?? 'No members in this section.'}
-                </DataTableCell>
-              </DataTableRow>
-            ) : (
-              rows.map((member) => (
-                <DataTableRow key={member.enrollmentId} onClick={member.leadId ? () => onRowClick(member) : undefined}>
-                  <DataTableCell>
+                <span className="text-[11px] font-semibold text-slate-500">Select page</span>
+              </div>
+              {rows.map((member) => (
+                <button
+                  key={member.enrollmentId}
+                  type="button"
+                  disabled={!member.leadId}
+                  onClick={member.leadId ? () => onRowClick(member) : undefined}
+                  className={cn(
+                    'rounded-2xl border border-slate-100 bg-white p-3 text-left shadow-sm',
+                    !member.leadId && 'cursor-default'
+                  )}
+                >
+                  <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
+                      className="mt-1 h-4 w-4 shrink-0 accent-brand"
                       checked={selectedIds.has(member.enrollmentId)}
                       onChange={() => onToggle(member.enrollmentId)}
                       onClick={(event) => event.stopPropagation()}
                       aria-label={`Select ${member.memberName}`}
                     />
-                  </DataTableCell>
-                  <DataTableCell>
-                    <div className="flex items-center gap-2.5">
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
-                        {member.memberInitials}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
+                          {member.memberInitials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-slate-800">{member.memberName}</p>
+                          <p className="truncate text-[12px] text-slate-500">{member.email}</p>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-slate-800">{member.memberName}</div>
-                        <div className="truncate text-[11px] text-slate-500">{member.email}</div>
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {statusMode === 'transferred' ? (
+                          <Pill tone="neutral">Transferred</Pill>
+                        ) : statusMode === 'lapsed' ? (
+                          <Pill tone="neutral">Lapsed</Pill>
+                        ) : statusMode === 'grace' ? (
+                          <Pill tone="warn">Grace</Pill>
+                        ) : statusMode === 'paused' ? (
+                          <Pill tone="brand">Paused</Pill>
+                        ) : (
+                          <ActiveMemberStatus member={member} />
+                        )}
+                        {member.onboardingCompletedAt ? (
+                          <Pill tone="success">Onboarded</Pill>
+                        ) : (
+                          <Pill tone="warn">Onboarding</Pill>
+                        )}
                       </div>
+                      {member.whatsapp ? (
+                        <p className="mt-2 truncate text-[12px] text-slate-600">{member.whatsapp}</p>
+                      ) : null}
                     </div>
-                  </DataTableCell>
-                  <DataTableCell>
-                    {statusMode === 'transferred' ? (
-                      <Pill tone="neutral">Transferred</Pill>
-                    ) : statusMode === 'lapsed' ? (
-                      <Pill tone="neutral">Lapsed</Pill>
-                    ) : statusMode === 'grace' ? (
-                      <Pill tone="warn">Grace</Pill>
-                    ) : statusMode === 'paused' ? (
-                      <Pill tone="brand">Paused</Pill>
-                    ) : (
-                      <ActiveMemberStatus member={member} />
-                    )}
-                  </DataTableCell>
-                  <DataTableCell>
-                    {member.onboardingCompletedAt ? (
-                      <Pill tone="success">Complete</Pill>
-                    ) : (
-                      <Pill tone="warn">Incomplete</Pill>
-                    )}
-                  </DataTableCell>
-                  <DataTableCell>
-                    <StarBalanceLines
-                      earned={member.starsEarned}
-                      available={member.starsAvailable}
-                      value={member.starsValue}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )
+        }
+        desktop={
+          <div className="overflow-x-auto">
+            <DataTable tableClassName="min-w-[1700px]">
+              <MemberTableColGroup withActions={transferColumn} showBodyMetrics={showBodyMetrics} />
+              <DataTableHead>
+                <DataTableHeaderCell>
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={(event) => onToggleAll(rowIds, event.target.checked)}
+                    aria-label={`Select all in ${title}`}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Member"
+                      sortKey="name"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
                     />
-                  </DataTableCell>
-                  <DataTableCell>
-                    <CoachNamePill name={member.coachName} coachUserId={member.coachUserId} tones={coachTones} />
-                  </DataTableCell>
-                  <DataTableCell className="text-slate-600">{displayOrDash(member.whatsapp)}</DataTableCell>
-                  <DataTableCell className="text-slate-600">{displayOrDash(member.city)}</DataTableCell>
-                  <DataTableCell className="text-slate-600">{displayOrDash(sexDisplay(member))}</DataTableCell>
-                  <DataTableCell className="text-slate-600">{displayOrDash(countryDisplay(member))}</DataTableCell>
-                  <DataTableCell className="text-slate-600">
-                    <span className="block max-w-[180px] truncate" title={timezoneDisplay(member) || undefined}>
-                      {displayOrDash(timezoneDisplay(member))}
-                    </span>
-                  </DataTableCell>
-                  <DataTableCell className="text-slate-600">
-                    <span className="block max-w-[160px] truncate" title={cohortMembershipDurationDisplay(member)}>
-                      {cohortMembershipDurationDisplay(member)}
-                    </span>
-                  </DataTableCell>
-                  <DataTableCell className="text-slate-600">
-                    <span className="block max-w-[190px] truncate" title={cohortMembershipEndsDisplay(member)}>
-                      {cohortMembershipEndsDisplay(member)}
-                    </span>
-                  </DataTableCell>
-                  <DataTableCell>
-                    {member.membershipExtended ? <Pill tone="success">Yes</Pill> : <Pill tone="neutral">No</Pill>}
-                  </DataTableCell>
-                  <DataTableCell className="text-slate-600">
-                    <LeadTableTimestamp iso={member.enrolledAt} />
-                  </DataTableCell>
-                  {showBodyMetrics ? (
-                    <>
-                      <DataTableCell className="text-slate-600 tabular-nums">
-                        {formatBodyMetric(member.initialWeightKg, 'kg')}
-                      </DataTableCell>
-                      <DataTableCell className="text-slate-600 tabular-nums">
-                        {formatBodyMetric(member.heightCm, 'cm')}
-                      </DataTableCell>
-                      <DataTableCell className="text-slate-600 tabular-nums">
-                        {member.bmi != null && member.bmi > 0 ? member.bmi.toFixed(1) : '—'}
-                      </DataTableCell>
-                    </>
-                  ) : null}
-                  {transferColumn ? (
-                    <DataTableCell className="text-right">
-                      {showTransfer ? <MemberRowMenu onTransfer={() => onTransfer(member)} /> : null}
+                  ) : (
+                    'Member'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>Status</DataTableHeaderCell>
+                <DataTableHeaderCell>Onboarding</DataTableHeaderCell>
+                <DataTableHeaderCell>Stars</DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Coach"
+                      sortKey="coach"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Coach'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="WhatsApp"
+                      sortKey="whatsapp"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'WhatsApp'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="City"
+                      sortKey="city"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'City'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>Sex</DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Country"
+                      sortKey="country"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Country'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Timezone"
+                      sortKey="timezone"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Timezone'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Duration"
+                      sortKey="duration"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Duration'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Membership ends"
+                      sortKey="membershipEnds"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Membership ends'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Extended"
+                      sortKey="extended"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Extended'
+                  )}
+                </DataTableHeaderCell>
+                <DataTableHeaderCell>
+                  {sortable && sortKey && sortOrder && onSort ? (
+                    <LocalSortableHeader
+                      label="Enrolled"
+                      sortKey="enrolled"
+                      activeKey={sortKey}
+                      order={sortOrder}
+                      onSort={onSort}
+                    />
+                  ) : (
+                    'Enrolled'
+                  )}
+                </DataTableHeaderCell>
+                {showBodyMetrics ? (
+                  <>
+                    <DataTableHeaderCell>Initial weight</DataTableHeaderCell>
+                    <DataTableHeaderCell>Height</DataTableHeaderCell>
+                    <DataTableHeaderCell>BMI</DataTableHeaderCell>
+                  </>
+                ) : null}
+                {transferColumn ? <DataTableHeaderCell className="text-right">{'\u00a0'}</DataTableHeaderCell> : null}
+              </DataTableHead>
+              <DataTableBody>
+                {rows.length === 0 ? (
+                  <DataTableRow>
+                    <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
+                      {emptyMessage ?? 'No members in this section.'}
                     </DataTableCell>
-                  ) : null}
-                </DataTableRow>
-              ))
-            )}
-          </DataTableBody>
-        </DataTable>
-      </div>
+                  </DataTableRow>
+                ) : (
+                  rows.map((member) => (
+                    <DataTableRow
+                      key={member.enrollmentId}
+                      onClick={member.leadId ? () => onRowClick(member) : undefined}
+                    >
+                      <DataTableCell>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(member.enrollmentId)}
+                          onChange={() => onToggle(member.enrollmentId)}
+                          onClick={(event) => event.stopPropagation()}
+                          aria-label={`Select ${member.memberName}`}
+                        />
+                      </DataTableCell>
+                      <DataTableCell>
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-[11px] font-extrabold text-white">
+                            {member.memberInitials}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="truncate font-semibold text-slate-800">{member.memberName}</div>
+                            <div className="truncate text-[11px] text-slate-500">{member.email}</div>
+                          </div>
+                        </div>
+                      </DataTableCell>
+                      <DataTableCell>
+                        {statusMode === 'transferred' ? (
+                          <Pill tone="neutral">Transferred</Pill>
+                        ) : statusMode === 'lapsed' ? (
+                          <Pill tone="neutral">Lapsed</Pill>
+                        ) : statusMode === 'grace' ? (
+                          <Pill tone="warn">Grace</Pill>
+                        ) : statusMode === 'paused' ? (
+                          <Pill tone="brand">Paused</Pill>
+                        ) : (
+                          <ActiveMemberStatus member={member} />
+                        )}
+                      </DataTableCell>
+                      <DataTableCell>
+                        {member.onboardingCompletedAt ? (
+                          <Pill tone="success">Complete</Pill>
+                        ) : (
+                          <Pill tone="warn">Incomplete</Pill>
+                        )}
+                      </DataTableCell>
+                      <DataTableCell>
+                        <StarBalanceLines
+                          earned={member.starsEarned}
+                          available={member.starsAvailable}
+                          value={member.starsValue}
+                        />
+                      </DataTableCell>
+                      <DataTableCell>
+                        <CoachNamePill name={member.coachName} coachUserId={member.coachUserId} tones={coachTones} />
+                      </DataTableCell>
+                      <DataTableCell className="text-slate-600">{displayOrDash(member.whatsapp)}</DataTableCell>
+                      <DataTableCell className="text-slate-600">{displayOrDash(member.city)}</DataTableCell>
+                      <DataTableCell className="text-slate-600">{displayOrDash(sexDisplay(member))}</DataTableCell>
+                      <DataTableCell className="text-slate-600">{displayOrDash(countryDisplay(member))}</DataTableCell>
+                      <DataTableCell className="text-slate-600">
+                        <span className="block max-w-[180px] truncate" title={timezoneDisplay(member) || undefined}>
+                          {displayOrDash(timezoneDisplay(member))}
+                        </span>
+                      </DataTableCell>
+                      <DataTableCell className="text-slate-600">
+                        <span className="block max-w-[160px] truncate" title={cohortMembershipDurationDisplay(member)}>
+                          {cohortMembershipDurationDisplay(member)}
+                        </span>
+                      </DataTableCell>
+                      <DataTableCell className="text-slate-600">
+                        <span className="block max-w-[190px] truncate" title={cohortMembershipEndsDisplay(member)}>
+                          {cohortMembershipEndsDisplay(member)}
+                        </span>
+                      </DataTableCell>
+                      <DataTableCell>
+                        {member.membershipExtended ? <Pill tone="success">Yes</Pill> : <Pill tone="neutral">No</Pill>}
+                      </DataTableCell>
+                      <DataTableCell className="text-slate-600">
+                        <LeadTableTimestamp iso={member.enrolledAt} />
+                      </DataTableCell>
+                      {showBodyMetrics ? (
+                        <>
+                          <DataTableCell className="text-slate-600 tabular-nums">
+                            {formatBodyMetric(member.initialWeightKg, 'kg')}
+                          </DataTableCell>
+                          <DataTableCell className="text-slate-600 tabular-nums">
+                            {formatBodyMetric(member.heightCm, 'cm')}
+                          </DataTableCell>
+                          <DataTableCell className="text-slate-600 tabular-nums">
+                            {member.bmi != null && member.bmi > 0 ? member.bmi.toFixed(1) : '—'}
+                          </DataTableCell>
+                        </>
+                      ) : null}
+                      {transferColumn ? (
+                        <DataTableCell className="text-right">
+                          {showTransfer ? <MemberRowMenu onTransfer={() => onTransfer(member)} /> : null}
+                        </DataTableCell>
+                      ) : null}
+                    </DataTableRow>
+                  ))
+                )}
+              </DataTableBody>
+            </DataTable>
+          </div>
+        }
+      />
     </Card>
   );
 }
@@ -1782,7 +1864,7 @@ export function CohortDetailView({
           emptyLabel="No timezones yet."
         />
         {isSuperadmin ? (
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.25 text-[13px] font-semibold text-slate-700 shadow-sm">
+          <label className="hidden cursor-pointer items-center gap-2 rounded-2xl border border-slate-200/90 bg-white px-3.5 py-2.25 text-[13px] font-semibold text-slate-700 shadow-sm lg:inline-flex">
             <input
               type="checkbox"
               className="h-3.5 w-3.5 rounded border-slate-300"

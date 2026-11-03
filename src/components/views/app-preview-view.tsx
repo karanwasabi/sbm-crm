@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { mintAppPreviewAction, searchAppPreviewAction } from '@/app/(crm)/app-preview/actions';
+import { Sheet, SheetBody, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsXlUp } from '@/hooks/use-media-query';
 import type { AppPreviewMember } from '@/utils/api';
 import type { CohortSummary } from '@/types/crm';
 
@@ -15,6 +17,7 @@ type AppPreviewViewProps = {
 };
 
 export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
+  const isXlUp = useIsXlUp();
   const [query, setQuery] = useState('');
   const [cohortId, setCohortId] = useState('');
   const [members, setMembers] = useState<AppPreviewMember[]>([]);
@@ -26,6 +29,7 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
   );
   const [previewError, setPreviewError] = useState('');
   const [opening, setOpening] = useState(false);
+  const [mobileSheetOpen, setMobileSheetOpen] = useState(false);
 
   const trimmedQuery = query.trim();
   const canSearch = Boolean(cohortId) || trimmedQuery.length >= 2;
@@ -72,6 +76,9 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
       token: result.token,
       expiresAt: result.expiresAt,
     });
+    if (!isXlUp) {
+      setMobileSheetOpen(true);
+    }
   }
 
   async function refreshPreview() {
@@ -89,6 +96,33 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
 
   const frameSrc = preview ? `${APP_WEB_ORIGIN}/preview#token=${encodeURIComponent(preview.token)}` : '';
 
+  const previewMeta = preview ? (
+    <div className="text-center">
+      <p className="text-sm font-medium text-slate-800">{preview.name}</p>
+      <p className="text-xs text-slate-500">{preview.email}</p>
+    </div>
+  ) : (
+    <p className="text-sm text-slate-500">Choose a member to load their home screen.</p>
+  );
+
+  const refreshButton = preview ? (
+    <button
+      type="button"
+      className="h-11 min-h-11 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-50"
+      disabled={opening}
+      onClick={() => void refreshPreview()}
+    >
+      {opening ? 'Refreshing…' : 'Refresh preview'}
+    </button>
+  ) : null;
+
+  const expiryNote = preview ? (
+    <p className="max-w-sm text-center text-xs text-slate-400">
+      Preview expires {new Date(preview.expiresAt).toLocaleTimeString()}. Refresh loads a new one. The hosted app must
+      include the preview route.
+    </p>
+  ) : null;
+
   return (
     <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
       <section className="w-full max-w-md shrink-0">
@@ -99,7 +133,7 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
         <label className="mb-3 block text-sm text-slate-700">
           Cohort
           <select
-            className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-brand"
+            className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-brand"
             value={cohortId}
             onChange={(event) => setCohortId(event.target.value)}
           >
@@ -114,7 +148,7 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
         <label className="mb-3 block text-sm text-slate-700">
           Name or email
           <input
-            className="mt-1 h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-brand"
+            className="mt-1 h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus:border-brand"
             value={query}
             placeholder={cohortId ? 'Search this cohort' : 'Search all cohorts'}
             onChange={(event) => setQuery(event.target.value)}
@@ -123,6 +157,7 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
         {!canSearch ? <p className="text-sm text-slate-500">Type at least 2 characters, or pick a cohort.</p> : null}
         {canSearch && searching ? <p className="text-sm text-slate-500">Searching…</p> : null}
         {searchError ? <p className="text-sm text-red-600">{searchError}</p> : null}
+        {previewError && !isXlUp ? <p className="text-sm text-red-600">{previewError}</p> : null}
         <ul className="mt-3 flex max-h-[640px] flex-col gap-1 overflow-auto">
           {(canSearch ? members : []).map((member) => {
             const active = member.user_id === selectedId;
@@ -130,7 +165,7 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
               <li key={`${member.user_id}-${member.cohort_id}`}>
                 <button
                   type="button"
-                  className={`w-full rounded-xl px-3 py-2 text-left ${active ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 hover:bg-slate-50'}`}
+                  className={`w-full rounded-xl px-3 py-3 text-left ${active ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 hover:bg-slate-50'}`}
                   onClick={() => void openMember(member)}
                 >
                   <span className="block text-sm font-medium">{member.name || member.email}</span>
@@ -147,15 +182,8 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
         ) : null}
       </section>
 
-      <section className="flex flex-1 flex-col items-center gap-3">
-        {preview ? (
-          <div className="text-center">
-            <p className="text-sm font-medium text-slate-800">{preview.name}</p>
-            <p className="text-xs text-slate-500">{preview.email}</p>
-          </div>
-        ) : (
-          <p className="text-sm text-slate-500">Choose a member to load their home screen.</p>
-        )}
+      <section className="hidden flex-1 flex-col items-center gap-3 xl:flex">
+        {previewMeta}
         <div className="w-[390px] overflow-hidden rounded-[40px] border-[12px] border-slate-900 bg-white shadow-2xl">
           {frameSrc ? (
             <iframe
@@ -172,24 +200,41 @@ export function AppPreviewView({ cohorts }: AppPreviewViewProps) {
             </div>
           )}
         </div>
-        {preview ? (
-          <button
-            type="button"
-            className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-medium text-white disabled:opacity-50"
-            disabled={opening}
-            onClick={() => void refreshPreview()}
-          >
-            {opening ? 'Refreshing…' : 'Refresh preview'}
-          </button>
-        ) : null}
+        {refreshButton}
         {previewError ? <p className="text-sm text-red-600">{previewError}</p> : null}
-        {preview ? (
-          <p className="max-w-sm text-center text-xs text-slate-400">
-            Preview expires {new Date(preview.expiresAt).toLocaleTimeString()}. Refresh loads a new one. The hosted app
-            must include the preview route.
-          </p>
-        ) : null}
+        {expiryNote}
       </section>
+
+      <Sheet
+        open={Boolean(preview) && mobileSheetOpen && !isXlUp}
+        onOpenChange={(open) => {
+          setMobileSheetOpen(open);
+        }}
+      >
+        <SheetContent side="full" className="bg-slate-950" showCloseButton>
+          <SheetHeader className="border-slate-800 bg-slate-950 pr-14">
+            <SheetTitle className="text-white">{preview?.name ?? 'App preview'}</SheetTitle>
+            {preview ? <p className="mt-1 text-sm text-slate-400">{preview.email}</p> : null}
+          </SheetHeader>
+          <SheetBody className="flex flex-col gap-3 bg-slate-950 p-0">
+            {frameSrc ? (
+              <iframe
+                key={preview?.token}
+                title={preview ? `Home preview for ${preview.name}` : 'App home preview'}
+                src={frameSrc}
+                className="min-h-0 w-full flex-1 bg-white"
+                sandbox="allow-scripts allow-same-origin"
+                referrerPolicy="no-referrer"
+              />
+            ) : null}
+            <div className="flex flex-col items-center gap-2 px-4 pb-6">
+              {refreshButton}
+              {previewError ? <p className="text-sm text-red-400">{previewError}</p> : null}
+              {expiryNote}
+            </div>
+          </SheetBody>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

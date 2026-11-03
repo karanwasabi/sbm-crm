@@ -18,6 +18,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { CrmTableLink } from '@/components/layout/crm/crm-table-link';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -116,55 +117,79 @@ export function LeadDatabaseTableSection({
         <LeadDatabaseSelectionControls filters={filters} filteredTotal={total} />
       </div>
 
-      <Card padding="none">
-        <DataTable className="overflow-x-hidden" tableClassName="w-full table-fixed">
-          <LeadDatabaseTableColGroup showReferrerCoach={showReferrerCoach} />
-          <DataTableHead>
-            <DataTableHeaderCell className={`${leadDbHeaderCell} pl-3`}>
-              <PageSelectCheckbox
-                checked={pageState === 'all'}
-                indeterminate={pageState === 'some'}
-                disabled={leads.length === 0}
-                onChange={(checked) => togglePage(leads, checked)}
-              />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>
-              <SortableHeader label="Name" sortKey="name" filters={filters} />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Stage</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Marketing</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Program</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Batch</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Stars</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Access until</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Geography</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Source</DataTableHeaderCell>
-            {showReferrerCoach ? (
-              <DataTableHeaderCell className={leadDbHeaderCell}>Referrer&apos;s coach</DataTableHeaderCell>
-            ) : null}
-            <DataTableHeaderCell className={leadDbHeaderCell}>Tags</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>
-              <SortableHeader label="Added" sortKey="created_at" filters={filters} />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>Converted</DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>
-              <SortableHeader label="Updated" sortKey="updated_at" filters={filters} />
-            </DataTableHeaderCell>
-            <DataTableHeaderCell className={leadDbHeaderCell}>{'\u00a0'}</DataTableHeaderCell>
-          </DataTableHead>
-          <DataTableBody>
-            {leads.length === 0 ? (
-              <DataTableRow>
-                <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
-                  No leads match these filters.
-                </DataTableCell>
-              </DataTableRow>
-            ) : (
-              leads.map((lead) => <LeadRow key={lead.id} lead={lead} showReferrerCoach={showReferrerCoach} />)
-            )}
-          </DataTableBody>
-        </DataTable>
-      </Card>
+      <ResponsiveList
+        mobile={
+          leads.length === 0 ? (
+            <Card className="py-10 text-center text-sm text-slate-500">No leads match these filters.</Card>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-2 px-1">
+                <PageSelectCheckbox
+                  checked={pageState === 'all'}
+                  indeterminate={pageState === 'some'}
+                  disabled={leads.length === 0}
+                  onChange={(checked) => togglePage(leads, checked)}
+                />
+                <span className="text-[11px] font-semibold text-slate-500">Select page</span>
+              </div>
+              {leads.map((lead) => (
+                <LeadMobileCard key={lead.id} lead={lead} />
+              ))}
+            </div>
+          )
+        }
+        desktop={
+          <Card padding="none">
+            <DataTable className="overflow-x-hidden" tableClassName="w-full table-fixed">
+              <LeadDatabaseTableColGroup showReferrerCoach={showReferrerCoach} />
+              <DataTableHead>
+                <DataTableHeaderCell className={`${leadDbHeaderCell} pl-3`}>
+                  <PageSelectCheckbox
+                    checked={pageState === 'all'}
+                    indeterminate={pageState === 'some'}
+                    disabled={leads.length === 0}
+                    onChange={(checked) => togglePage(leads, checked)}
+                  />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>
+                  <SortableHeader label="Name" sortKey="name" filters={filters} />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Stage</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Marketing</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Program</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Batch</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Stars</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Access until</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Geography</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Source</DataTableHeaderCell>
+                {showReferrerCoach ? (
+                  <DataTableHeaderCell className={leadDbHeaderCell}>Referrer&apos;s coach</DataTableHeaderCell>
+                ) : null}
+                <DataTableHeaderCell className={leadDbHeaderCell}>Tags</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>
+                  <SortableHeader label="Added" sortKey="created_at" filters={filters} />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>Converted</DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>
+                  <SortableHeader label="Updated" sortKey="updated_at" filters={filters} />
+                </DataTableHeaderCell>
+                <DataTableHeaderCell className={leadDbHeaderCell}>{'\u00a0'}</DataTableHeaderCell>
+              </DataTableHead>
+              <DataTableBody>
+                {leads.length === 0 ? (
+                  <DataTableRow>
+                    <DataTableCell colSpan={columnCount} className="py-10 text-center text-sm text-slate-500">
+                      No leads match these filters.
+                    </DataTableCell>
+                  </DataTableRow>
+                ) : (
+                  leads.map((lead) => <LeadRow key={lead.id} lead={lead} showReferrerCoach={showReferrerCoach} />)
+                )}
+              </DataTableBody>
+            </DataTable>
+          </Card>
+        }
+      />
 
       <LeadDatabasePagination filters={filters} total={total} page={page} pageSize={pageSize} totalPages={totalPages} />
     </>
@@ -200,6 +225,52 @@ function PageSelectCheckbox({
       onChange={(event) => onChange(event.target.checked)}
       aria-label="Select all leads on this page"
     />
+  );
+}
+
+function LeadMobileCard({ lead }: { lead: Lead }) {
+  const { isSelected, toggleLead } = useLeadDatabaseSelection();
+
+  return (
+    <Card className="p-3">
+      <div className="flex items-start gap-3">
+        <input
+          type="checkbox"
+          className="mt-1 h-4 w-4 shrink-0 accent-brand"
+          checked={isSelected(lead.id)}
+          onChange={() => toggleLead(lead)}
+          aria-label={`Select ${lead.name}`}
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-[15px] font-semibold text-slate-800">{lead.name}</p>
+              <p className="truncate text-[12px] text-slate-500">{lead.email}</p>
+              {lead.phone ? <p className="truncate text-[12px] text-slate-500">{lead.phone}</p> : null}
+            </div>
+            <StagePill stage={lead.stage} />
+          </div>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {lead.batch ? <Pill tone="neutral">{lead.batch}</Pill> : null}
+            {lead.memberKind === 'renewal' || lead.memberKind === 'returnee' ? (
+              <MemberKindPill kind={lead.memberKind} />
+            ) : null}
+            {lead.unseenSuggestionCount > 0 ? (
+              <span className="text-[10px] font-bold text-brand">{lead.unseenSuggestionCount} unseen</span>
+            ) : null}
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <LeadTableTimestamp iso={lead.updatedAt} />
+            <CrmTableLink
+              href={`/customers/${lead.id}`}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border-b-2 border-b-slate-200 bg-white px-3 py-2 text-[12px] font-semibold text-brand no-underline shadow-sm"
+            >
+              View
+            </CrmTableLink>
+          </div>
+        </div>
+      </div>
+    </Card>
   );
 }
 

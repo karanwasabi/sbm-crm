@@ -14,6 +14,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -172,8 +173,8 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
               subtitle="Starts with week 1 (28 empty slots). Add more weeks in the editor."
               className="mb-4"
             />
-            <div className="flex flex-wrap items-end gap-3">
-              <Field label="Name" className="min-w-[240px] flex-1">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+              <Field label="Name" className="w-full min-w-0 flex-1 sm:min-w-[240px]">
                 <TextInput
                   value={name}
                   onChange={setName}
@@ -183,6 +184,7 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
               </Field>
               <Button
                 variant="primary"
+                className="min-h-11 w-full sm:w-auto"
                 onClick={createTemplate}
                 loading={pending}
                 leftIcon={<Plus className="h-4 w-4" />}
@@ -200,50 +202,86 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
                 className="mb-0"
               />
             </div>
-            <DataTable>
-              <DataTableHead>
-                <DataTableHeaderCell>Name</DataTableHeaderCell>
-                <DataTableHeaderCell>Status</DataTableHeaderCell>
-                <DataTableHeaderCell>Copy ready</DataTableHeaderCell>
-                <DataTableHeaderCell>Weeks</DataTableHeaderCell>
-                <DataTableHeaderCell className="text-right">Open</DataTableHeaderCell>
-              </DataTableHead>
-              <DataTableBody>
-                {templates.length === 0 ? (
-                  <DataTableRow>
-                    <DataTableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
-                      No templates yet. Create one above to get started.
-                    </DataTableCell>
-                  </DataTableRow>
+            <ResponsiveList
+              mobile={
+                templates.length === 0 ? (
+                  <p className="px-5 py-10 text-center text-sm text-slate-500">
+                    No templates yet. Create one above to get started.
+                  </p>
                 ) : (
-                  templates.map((template) => {
-                    const incomplete = template.totalSlots > 0 && template.readySlots < template.totalSlots;
-                    return (
-                      <DataTableRow key={template.id}>
-                        <DataTableCell className="font-semibold text-slate-800">{template.name}</DataTableCell>
-                        <DataTableCell>
-                          <Pill tone={statusTone(template.status)}>{template.status}</Pill>
+                  <div className="flex flex-col gap-2 px-3 pb-3">
+                    {templates.map((template) => {
+                      const incomplete = template.totalSlots > 0 && template.readySlots < template.totalSlots;
+                      return (
+                        <div key={template.id} className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-semibold text-slate-800">{template.name}</p>
+                            <Pill tone={statusTone(template.status)}>{template.status}</Pill>
+                          </div>
+                          <p className="mt-2 text-[12px] text-slate-600">
+                            {template.readySlots}/{template.totalSlots || '—'} ready · {template.maxWeek} weeks
+                          </p>
                           {template.status === 'active' && incomplete ? (
                             <p className="mt-1 text-[11px] font-medium text-amber-700">
                               Active but incomplete — worker skips empty slots
                             </p>
                           ) : null}
-                        </DataTableCell>
-                        <DataTableCell className="tabular-nums">
-                          <span className={incomplete ? 'font-semibold text-amber-700' : 'text-slate-700'}>
-                            {template.readySlots}/{template.totalSlots || '—'}
-                          </span>
-                        </DataTableCell>
-                        <DataTableCell className="tabular-nums">{template.maxWeek}</DataTableCell>
-                        <DataTableCell className="text-right">
-                          <CrmTableLink href={`/push-notifications/${template.id}`}>Edit</CrmTableLink>
+                          <div className="mt-3">
+                            <CrmTableLink href={`/push-notifications/${template.id}`}>Edit</CrmTableLink>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
+              }
+              desktop={
+                <DataTable>
+                  <DataTableHead>
+                    <DataTableHeaderCell>Name</DataTableHeaderCell>
+                    <DataTableHeaderCell>Status</DataTableHeaderCell>
+                    <DataTableHeaderCell>Copy ready</DataTableHeaderCell>
+                    <DataTableHeaderCell>Weeks</DataTableHeaderCell>
+                    <DataTableHeaderCell className="text-right">Open</DataTableHeaderCell>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {templates.length === 0 ? (
+                      <DataTableRow>
+                        <DataTableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
+                          No templates yet. Create one above to get started.
                         </DataTableCell>
                       </DataTableRow>
-                    );
-                  })
-                )}
-              </DataTableBody>
-            </DataTable>
+                    ) : (
+                      templates.map((template) => {
+                        const incomplete = template.totalSlots > 0 && template.readySlots < template.totalSlots;
+                        return (
+                          <DataTableRow key={template.id}>
+                            <DataTableCell className="font-semibold text-slate-800">{template.name}</DataTableCell>
+                            <DataTableCell>
+                              <Pill tone={statusTone(template.status)}>{template.status}</Pill>
+                              {template.status === 'active' && incomplete ? (
+                                <p className="mt-1 text-[11px] font-medium text-amber-700">
+                                  Active but incomplete — worker skips empty slots
+                                </p>
+                              ) : null}
+                            </DataTableCell>
+                            <DataTableCell className="tabular-nums">
+                              <span className={incomplete ? 'font-semibold text-amber-700' : 'text-slate-700'}>
+                                {template.readySlots}/{template.totalSlots || '—'}
+                              </span>
+                            </DataTableCell>
+                            <DataTableCell className="tabular-nums">{template.maxWeek}</DataTableCell>
+                            <DataTableCell className="text-right">
+                              <CrmTableLink href={`/push-notifications/${template.id}`}>Edit</CrmTableLink>
+                            </DataTableCell>
+                          </DataTableRow>
+                        );
+                      })
+                    )}
+                  </DataTableBody>
+                </DataTable>
+              }
+            />
           </Card>
         </div>
       ) : (
@@ -255,40 +293,25 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
               className="mb-0"
             />
           </div>
-          <DataTable>
-            <DataTableHead>
-              <DataTableHeaderCell>Cohort</DataTableHeaderCell>
-              <DataTableHeaderCell>Starts</DataTableHeaderCell>
-              <DataTableHeaderCell>Status</DataTableHeaderCell>
-              <DataTableHeaderCell>Type</DataTableHeaderCell>
-              <DataTableHeaderCell>Assigned template</DataTableHeaderCell>
-            </DataTableHead>
-            <DataTableBody>
-              {assignments.length === 0 ? (
-                <DataTableRow>
-                  <DataTableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
-                    No take-control cohorts found.
-                  </DataTableCell>
-                </DataTableRow>
+          <ResponsiveList
+            mobile={
+              assignments.length === 0 ? (
+                <p className="px-5 py-10 text-center text-sm text-slate-500">No take-control cohorts found.</p>
               ) : (
-                assignments.map((row) => (
-                  <DataTableRow key={row.cohortId}>
-                    <DataTableCell>
-                      <div className="font-semibold text-slate-800">{row.cohortName}</div>
-                      <div className="text-[11px] text-slate-500">{row.programName}</div>
-                    </DataTableCell>
-                    <DataTableCell className="tabular-nums">{row.startsOn}</DataTableCell>
-                    <DataTableCell>
-                      <Pill tone="neutral">{row.status}</Pill>
-                    </DataTableCell>
-                    <DataTableCell>
-                      <Pill tone={isLiveCohort(row) ? 'success' : 'neutral'}>
-                        {isLiveCohort(row) ? 'Live' : 'Test'}
-                      </Pill>
-                    </DataTableCell>
-                    <DataTableCell>
+                <div className="flex flex-col gap-2 px-3 pb-3">
+                  {assignments.map((row) => (
+                    <div key={row.cohortId} className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+                      <p className="font-semibold text-slate-800">{row.cohortName}</p>
+                      <p className="text-[11px] text-slate-500">{row.programName}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <Pill tone="neutral">{row.status}</Pill>
+                        <Pill tone={isLiveCohort(row) ? 'success' : 'neutral'}>
+                          {isLiveCohort(row) ? 'Live' : 'Test'}
+                        </Pill>
+                        <span className="text-[12px] text-slate-600 tabular-nums">{row.startsOn}</span>
+                      </div>
                       <select
-                        className={cn(selectClassName)}
+                        className={cn(selectClassName, 'mt-3 w-full max-w-none')}
                         disabled={pending}
                         value={row.templateId ?? ''}
                         onChange={(event) => {
@@ -332,12 +355,97 @@ export function PushNotificationsView({ templates, assignments }: PushNotificati
                           Assigned template is archived — worker will not send.
                         </p>
                       ) : null}
-                    </DataTableCell>
-                  </DataTableRow>
-                ))
-              )}
-            </DataTableBody>
-          </DataTable>
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+            desktop={
+              <DataTable>
+                <DataTableHead>
+                  <DataTableHeaderCell>Cohort</DataTableHeaderCell>
+                  <DataTableHeaderCell>Starts</DataTableHeaderCell>
+                  <DataTableHeaderCell>Status</DataTableHeaderCell>
+                  <DataTableHeaderCell>Type</DataTableHeaderCell>
+                  <DataTableHeaderCell>Assigned template</DataTableHeaderCell>
+                </DataTableHead>
+                <DataTableBody>
+                  {assignments.length === 0 ? (
+                    <DataTableRow>
+                      <DataTableCell colSpan={5} className="py-10 text-center text-sm text-slate-500">
+                        No take-control cohorts found.
+                      </DataTableCell>
+                    </DataTableRow>
+                  ) : (
+                    assignments.map((row) => (
+                      <DataTableRow key={row.cohortId}>
+                        <DataTableCell>
+                          <div className="font-semibold text-slate-800">{row.cohortName}</div>
+                          <div className="text-[11px] text-slate-500">{row.programName}</div>
+                        </DataTableCell>
+                        <DataTableCell className="tabular-nums">{row.startsOn}</DataTableCell>
+                        <DataTableCell>
+                          <Pill tone="neutral">{row.status}</Pill>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <Pill tone={isLiveCohort(row) ? 'success' : 'neutral'}>
+                            {isLiveCohort(row) ? 'Live' : 'Test'}
+                          </Pill>
+                        </DataTableCell>
+                        <DataTableCell>
+                          <select
+                            className={cn(selectClassName)}
+                            disabled={pending}
+                            value={row.templateId ?? ''}
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              if (value) {
+                                const selected = activeTemplates.find((t) => t.id === value);
+                                if (selected?.status === 'draft') {
+                                  const confirmed = window.confirm(
+                                    'This template is still draft. The worker only sends active templates. Assign anyway?'
+                                  );
+                                  if (!confirmed) {
+                                    event.target.value = row.templateId ?? '';
+                                    return;
+                                  }
+                                } else if (
+                                  selected &&
+                                  selected.totalSlots > 0 &&
+                                  selected.readySlots < selected.totalSlots
+                                ) {
+                                  const confirmed = window.confirm(
+                                    `This template only has ${selected.readySlots}/${selected.totalSlots} slots with copy. Empty slots will not send. Assign anyway?`
+                                  );
+                                  if (!confirmed) {
+                                    event.target.value = row.templateId ?? '';
+                                    return;
+                                  }
+                                }
+                              }
+                              assign(row.cohortId, value || null);
+                            }}
+                          >
+                            <option value="">— None —</option>
+                            {activeTemplates.map((template) => (
+                              <option key={template.id} value={template.id}>
+                                {template.name} ({template.status}, {template.readySlots}/{template.totalSlots} ready)
+                              </option>
+                            ))}
+                          </select>
+                          {row.templateStatus === 'archived' ? (
+                            <p className="mt-1.5 text-[11px] font-medium text-amber-700">
+                              Assigned template is archived — worker will not send.
+                            </p>
+                          ) : null}
+                        </DataTableCell>
+                      </DataTableRow>
+                    ))
+                  )}
+                </DataTableBody>
+              </DataTable>
+            }
+          />
         </Card>
       )}
     </div>

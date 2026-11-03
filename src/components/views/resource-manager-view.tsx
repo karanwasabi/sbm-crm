@@ -24,6 +24,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -862,113 +863,39 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
                 className="mb-0"
               />
             </div>
-            <DataTable>
-              <DataTableHead>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Title"
-                    sortKey="title"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Category"
-                    sortKey="category"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Kind"
-                    sortKey="kind"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Tag"
-                    sortKey="tag"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Status"
-                    sortKey="status"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Added"
-                    sortKey="createdAt"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell>
-                  <PerformanceSortableHeader
-                    label="Updated"
-                    sortKey="updatedAt"
-                    activeSortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={toggleSort}
-                  />
-                </DataTableHeaderCell>
-                <DataTableHeaderCell className="text-right"> </DataTableHeaderCell>
-              </DataTableHead>
-              <DataTableBody>
-                {sortedResources.length === 0 ? (
-                  <DataTableRow>
-                    <DataTableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
-                      No resources in this category yet.
-                    </DataTableCell>
-                  </DataTableRow>
+            <ResponsiveList
+              mobile={
+                sortedResources.length === 0 ? (
+                  <p className="px-5 py-8 text-center text-sm text-slate-500">No resources in this category yet.</p>
                 ) : (
-                  sortedResources.map((resource) => (
-                    <DataTableRow key={resource.id}>
-                      <DataTableCell>
-                        <div className="flex items-center gap-2">
+                  <div className="flex flex-col gap-2 px-3 pb-3">
+                    {sortedResources.map((resource) => (
+                      <div key={resource.id} className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+                        <div className="flex items-start gap-2">
                           {resource.kind === 'youtube' ? (
-                            <Video className="h-4 w-4 shrink-0 text-red-500" aria-hidden />
+                            <Video className="mt-0.5 h-4 w-4 shrink-0 text-red-500" aria-hidden />
                           ) : (
-                            <FileText className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                            <FileText className="mt-0.5 h-4 w-4 shrink-0 text-brand" aria-hidden />
                           )}
-                          <span className="font-semibold text-slate-800">{resource.title}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-semibold text-slate-800">{resource.title}</p>
+                              <Pill tone={resource.published ? 'success' : 'neutral'}>
+                                {resource.published ? 'Published' : 'Draft'}
+                              </Pill>
+                            </div>
+                            <p className="mt-1 text-[12px] text-slate-500">
+                              {CATEGORY_LABELS[resource.category] ?? resource.category} · {kindLabel(resource.kind)}
+                              {resource.tag ? ` · ${resource.tag}` : ''}
+                            </p>
+                          </div>
                         </div>
-                      </DataTableCell>
-                      <DataTableCell>{CATEGORY_LABELS[resource.category] ?? resource.category}</DataTableCell>
-                      <DataTableCell>{kindLabel(resource.kind)}</DataTableCell>
-                      <DataTableCell>{resource.tag}</DataTableCell>
-                      <DataTableCell>
-                        <Pill tone={resource.published ? 'success' : 'neutral'}>
-                          {resource.published ? 'Published' : 'Draft'}
-                        </Pill>
-                      </DataTableCell>
-                      <DataTableCell>
-                        <ResourceTableTimestamp iso={resource.createdAt} />
-                      </DataTableCell>
-                      <DataTableCell>
-                        <ResourceTableTimestamp iso={resource.updatedAt} />
-                      </DataTableCell>
-                      <DataTableCell className="text-right">
-                        <div className="flex justify-end gap-1">
+                        <div className="mt-3 flex flex-wrap gap-1">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             aria-label="Copy share link"
                             onClick={() => void copyDeepLink(resource)}
                           >
@@ -978,6 +905,7 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             aria-label="Edit resource"
                             onClick={() => setEditResource(resource)}
                           >
@@ -987,18 +915,158 @@ export function ResourceManagerView({ resources, programCohorts }: ResourceManag
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             aria-label="Delete resource"
                             onClick={() => setDeleteResource(resource)}
                           >
                             <Trash2 className="h-4 w-4 text-danger" />
                           </Button>
                         </div>
-                      </DataTableCell>
-                    </DataTableRow>
-                  ))
-                )}
-              </DataTableBody>
-            </DataTable>
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+              desktop={
+                <DataTable>
+                  <DataTableHead>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Title"
+                        sortKey="title"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Category"
+                        sortKey="category"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Kind"
+                        sortKey="kind"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Tag"
+                        sortKey="tag"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Status"
+                        sortKey="status"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Added"
+                        sortKey="createdAt"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell>
+                      <PerformanceSortableHeader
+                        label="Updated"
+                        sortKey="updatedAt"
+                        activeSortKey={sortKey}
+                        sortDirection={sortDirection}
+                        onSort={toggleSort}
+                      />
+                    </DataTableHeaderCell>
+                    <DataTableHeaderCell className="text-right"> </DataTableHeaderCell>
+                  </DataTableHead>
+                  <DataTableBody>
+                    {sortedResources.length === 0 ? (
+                      <DataTableRow>
+                        <DataTableCell colSpan={8} className="py-8 text-center text-sm text-slate-500">
+                          No resources in this category yet.
+                        </DataTableCell>
+                      </DataTableRow>
+                    ) : (
+                      sortedResources.map((resource) => (
+                        <DataTableRow key={resource.id}>
+                          <DataTableCell>
+                            <div className="flex items-center gap-2">
+                              {resource.kind === 'youtube' ? (
+                                <Video className="h-4 w-4 shrink-0 text-red-500" aria-hidden />
+                              ) : (
+                                <FileText className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                              )}
+                              <span className="font-semibold text-slate-800">{resource.title}</span>
+                            </div>
+                          </DataTableCell>
+                          <DataTableCell>{CATEGORY_LABELS[resource.category] ?? resource.category}</DataTableCell>
+                          <DataTableCell>{kindLabel(resource.kind)}</DataTableCell>
+                          <DataTableCell>{resource.tag}</DataTableCell>
+                          <DataTableCell>
+                            <Pill tone={resource.published ? 'success' : 'neutral'}>
+                              {resource.published ? 'Published' : 'Draft'}
+                            </Pill>
+                          </DataTableCell>
+                          <DataTableCell>
+                            <ResourceTableTimestamp iso={resource.createdAt} />
+                          </DataTableCell>
+                          <DataTableCell>
+                            <ResourceTableTimestamp iso={resource.updatedAt} />
+                          </DataTableCell>
+                          <DataTableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label="Copy share link"
+                                onClick={() => void copyDeepLink(resource)}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label="Edit resource"
+                                onClick={() => setEditResource(resource)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                aria-label="Delete resource"
+                                onClick={() => setDeleteResource(resource)}
+                              >
+                                <Trash2 className="h-4 w-4 text-danger" />
+                              </Button>
+                            </div>
+                          </DataTableCell>
+                        </DataTableRow>
+                      ))
+                    )}
+                  </DataTableBody>
+                </DataTable>
+              }
+            />
           </Card>
         </div>
       ) : (
@@ -1359,32 +1427,35 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
                       <li
                         key={assignment.resourceId}
                         className={cn(
-                          'flex items-center gap-3 rounded-xl border border-slate-100 bg-canvas px-3 py-2.5',
+                          'flex flex-col gap-2 rounded-xl border border-slate-100 bg-canvas px-3 py-2.5 sm:flex-row sm:items-center sm:gap-3',
                           isFeatured && 'border-brand/30 bg-brand/5'
                         )}
                       >
-                        <button
-                          type="button"
-                          aria-label={isFeatured ? 'Featured resource' : 'Set as featured'}
-                          onClick={() => setFeatured(assignment.resourceId)}
-                          className={cn(
-                            'shrink-0 rounded-full p-1 transition-colors',
-                            isFeatured ? 'text-brand' : 'text-slate-300 hover:text-brand'
-                          )}
-                        >
-                          <Star className={cn('h-4 w-4', isFeatured && 'fill-current')} />
-                        </button>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-semibold text-slate-800">{resource.title}</p>
-                          <p className="text-xs text-slate-500">
-                            {kindLabel(resource.kind)} · {resource.tag}
-                          </p>
+                        <div className="flex min-w-0 flex-1 items-center gap-3">
+                          <button
+                            type="button"
+                            aria-label={isFeatured ? 'Featured resource' : 'Set as featured'}
+                            onClick={() => setFeatured(assignment.resourceId)}
+                            className={cn(
+                              'shrink-0 rounded-full p-1 transition-colors',
+                              isFeatured ? 'text-brand' : 'text-slate-300 hover:text-brand'
+                            )}
+                          >
+                            <Star className={cn('h-4 w-4', isFeatured && 'fill-current')} />
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-semibold text-slate-800">{resource.title}</p>
+                            <p className="text-xs text-slate-500">
+                              {kindLabel(resource.kind)} · {resource.tag}
+                            </p>
+                          </div>
                         </div>
-                        <div className="flex shrink-0 items-center gap-1">
+                        <div className="flex shrink-0 items-center gap-1 pl-8 sm:pl-0">
                           <Button
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             aria-label="Move up"
                             disabled={index === 0}
                             onClick={() => moveAssignment(catDef.id, index, -1)}
@@ -1395,6 +1466,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             aria-label="Move down"
                             disabled={index === assignments.length - 1}
                             onClick={() => moveAssignment(catDef.id, index, 1)}
@@ -1405,6 +1477,7 @@ function CohortAssignmentsPanel({ resources, programCohorts }: CohortAssignments
                             type="button"
                             variant="ghost"
                             size="sm"
+                            className="min-h-11"
                             aria-label="Remove"
                             onClick={() => removeAssignment(catDef.id, assignment.resourceId)}
                           >

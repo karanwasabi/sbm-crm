@@ -16,6 +16,7 @@ import {
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
 import { EventSlotFilterSheet } from '@/components/crm/event-slot-filter-sheet';
+import { FiltersSheet } from '@/components/crm/filters-sheet';
 import { LeadDatabaseDateRangePopover } from '@/components/crm/lead-database-date-range-popover';
 import { LeadDatabaseMultiSelectPopover } from '@/components/crm/lead-database-multi-select-popover';
 import { MarketingFilterPopover } from '@/components/crm/marketing-filter-popover';
@@ -37,6 +38,7 @@ import {
   toggleStageFilter,
   type LeadDatabaseFilters,
 } from '@/lib/lead-database-url';
+import { countLeadDatabaseToolbarFilters } from '@/lib/lead-database-filter-count';
 import { mergeRenewalDurationFilterOptions } from '@/lib/renewal-duration';
 import type { LeadFilterOptions, TagSuggestion } from '@/types/crm';
 import type { EventOption } from '@/types/events';
@@ -60,6 +62,90 @@ type FilterBarProps = {
   restrictToCreatedByMe?: boolean;
 };
 
+function LeadDatabaseFilterControls({
+  filters,
+  filterOptions,
+  eventOptions,
+  tagSuggestions,
+  unseenUpdatesCount,
+  restrictToCreatedByMe,
+}: {
+  filters: LeadDatabaseFilters;
+  filterOptions: LeadFilterOptions;
+  eventOptions: EventOption[];
+  tagSuggestions: TagSuggestion[];
+  unseenUpdatesCount: number;
+  restrictToCreatedByMe: boolean;
+}) {
+  return (
+    <>
+      <MarketingFilterPopover filters={filters} />
+      <LeadDatabaseMultiSelectPopover
+        label="Program"
+        icon={GraduationCap}
+        field="programs"
+        filters={filters}
+        options={filterOptions.programs}
+      />
+      <LeadDatabaseMultiSelectPopover
+        label="Batch"
+        icon={Layers}
+        field="batches"
+        filters={filters}
+        options={filterOptions.batches}
+      />
+      <LeadDatabaseMultiSelectPopover
+        label="Geography"
+        icon={Globe}
+        field="geography"
+        filters={filters}
+        options={filterOptions.geography}
+      />
+      <LeadDatabaseMultiSelectPopover
+        label="Source"
+        icon={Megaphone}
+        field="sources"
+        filters={filters}
+        options={filterOptions.sources}
+      />
+      <LeadDatabaseMultiSelectPopover
+        label="Coach"
+        icon={UserRound}
+        field="coaches"
+        filters={filters}
+        options={filterOptions.coaches}
+      />
+      <LeadDatabaseMultiSelectPopover
+        label="Referrer's coach"
+        icon={Users}
+        field="referrerCoaches"
+        filters={filters}
+        options={filterOptions.referrerCoaches}
+      />
+      <LeadDatabaseMultiSelectPopover
+        label="Renewal duration"
+        icon={RefreshCw}
+        field="renewalDurations"
+        filters={filters}
+        options={mergeRenewalDurationFilterOptions(filterOptions.renewalDurations)}
+      />
+      <EventSlotFilterSheet filters={filters} eventOptions={eventOptions} />
+      <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
+      <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
+      <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
+      <LeadDatabaseDateRangePopover field="paid" icon={CreditCard} filters={filters} />
+      <LeadDatabaseDateRangePopover field="converted" icon={BadgeCheck} filters={filters} />
+      <LeadDatabasePurchaseKindFilter filters={filters} />
+      <LeadDatabasePerfSourceFilter filters={filters} />
+      <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
+      {restrictToCreatedByMe ? <LeadDatabaseCreatedByMeFilter filters={filters} /> : null}
+      <LeadDatabasePhoneDuplicatesFilter filters={filters} />
+      <LeadDatabaseStarsFilter filters={filters} />
+      <LeadDatabaseAccessExpiringFilter filters={filters} />
+    </>
+  );
+}
+
 export function FilterBar({
   filters,
   stageOptions,
@@ -72,78 +158,47 @@ export function FilterBar({
   unseenUpdatesCount,
   restrictToCreatedByMe = false,
 }: FilterBarProps) {
+  const toolbarFilterCount = countLeadDatabaseToolbarFilters(filters);
+
   return (
     <Card padding="none" className="overflow-hidden">
-      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-4 py-3">
-        <LeadDatabaseSearch filters={filters} className="w-full max-w-96 flex-1" />
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <MarketingFilterPopover filters={filters} />
-          <LeadDatabaseMultiSelectPopover
-            label="Program"
-            icon={GraduationCap}
-            field="programs"
+      <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
+        <LeadDatabaseSearch filters={filters} className="w-full max-w-96 min-w-0 flex-1" />
+        <FiltersSheet activeCount={toolbarFilterCount}>
+          <div className="flex flex-wrap gap-2">
+            <LeadDatabaseFilterControls
+              filters={filters}
+              filterOptions={filterOptions}
+              eventOptions={eventOptions}
+              tagSuggestions={tagSuggestions}
+              unseenUpdatesCount={unseenUpdatesCount}
+              restrictToCreatedByMe={restrictToCreatedByMe}
+            />
+          </div>
+        </FiltersSheet>
+        <div className="hidden min-w-0 flex-wrap items-center gap-2 lg:flex">
+          <LeadDatabaseFilterControls
             filters={filters}
-            options={filterOptions.programs}
+            filterOptions={filterOptions}
+            eventOptions={eventOptions}
+            tagSuggestions={tagSuggestions}
+            unseenUpdatesCount={unseenUpdatesCount}
+            restrictToCreatedByMe={restrictToCreatedByMe}
           />
-          <LeadDatabaseMultiSelectPopover
-            label="Batch"
-            icon={Layers}
-            field="batches"
-            filters={filters}
-            options={filterOptions.batches}
+        </div>
+        <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
+          <LeadDatabaseBulkSendButton
+            emailTemplates={emailTemplates}
+            whatsappTemplates={whatsappTemplates}
+            whatsappSendsEnabled={whatsappSendsEnabled}
+            createdByMe={filters.createdByMe}
+            restrictToCreatedByMe={restrictToCreatedByMe}
           />
-          <LeadDatabaseMultiSelectPopover
-            label="Geography"
-            icon={Globe}
-            field="geography"
-            filters={filters}
-            options={filterOptions.geography}
-          />
-          <LeadDatabaseMultiSelectPopover
-            label="Source"
-            icon={Megaphone}
-            field="sources"
-            filters={filters}
-            options={filterOptions.sources}
-          />
-          <LeadDatabaseMultiSelectPopover
-            label="Coach"
-            icon={UserRound}
-            field="coaches"
-            filters={filters}
-            options={filterOptions.coaches}
-          />
-          <LeadDatabaseMultiSelectPopover
-            label="Referrer's coach"
-            icon={Users}
-            field="referrerCoaches"
-            filters={filters}
-            options={filterOptions.referrerCoaches}
-          />
-          <LeadDatabaseMultiSelectPopover
-            label="Renewal duration"
-            icon={RefreshCw}
-            field="renewalDurations"
-            filters={filters}
-            options={mergeRenewalDurationFilterOptions(filterOptions.renewalDurations)}
-          />
-          <EventSlotFilterSheet filters={filters} eventOptions={eventOptions} />
-          <TagFilterSheet filters={filters} suggestions={tagSuggestions} />
-          <LeadDatabaseDateRangePopover field="added" icon={CalendarPlus} filters={filters} />
-          <LeadDatabaseDateRangePopover field="updated" icon={CalendarClock} filters={filters} />
-          <LeadDatabaseDateRangePopover field="paid" icon={CreditCard} filters={filters} />
-          <LeadDatabaseDateRangePopover field="converted" icon={BadgeCheck} filters={filters} />
-          <LeadDatabasePurchaseKindFilter filters={filters} />
-          <LeadDatabasePerfSourceFilter filters={filters} />
-          <LeadDatabaseUnseenUpdatesFilter filters={filters} unseenCount={unseenUpdatesCount} />
-          {restrictToCreatedByMe ? <LeadDatabaseCreatedByMeFilter filters={filters} /> : null}
-          <LeadDatabasePhoneDuplicatesFilter filters={filters} />
-          <LeadDatabaseStarsFilter filters={filters} />
-          <LeadDatabaseAccessExpiringFilter filters={filters} />
+          <LeadDatabaseExportButton />
         </div>
       </div>
 
-      <div className="flex items-center gap-3 bg-white px-4 py-2.5">
+      <div className="flex items-center gap-2 bg-white px-3 py-2.5 lg:gap-3 lg:px-4">
         <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Stage</span>
         <div className="-mx-1 flex min-w-0 flex-1 [scrollbar-width:thin] items-center gap-1.5 overflow-x-auto px-1 pb-0.5">
           {stageOptions.map((stage) => (
@@ -156,16 +211,6 @@ export function FilterBar({
               {stage.label}
             </FilterChip>
           ))}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <LeadDatabaseBulkSendButton
-            emailTemplates={emailTemplates}
-            whatsappTemplates={whatsappTemplates}
-            whatsappSendsEnabled={whatsappSendsEnabled}
-            createdByMe={filters.createdByMe}
-            restrictToCreatedByMe={restrictToCreatedByMe}
-          />
-          <LeadDatabaseExportButton />
         </div>
       </div>
     </Card>

@@ -11,6 +11,7 @@ type CrmNavLinkProps = {
   label: string;
   icon: LucideIcon;
   active: boolean;
+  onNavigate?: () => void;
 };
 
 function CrmNavLinkInner({ label, icon: Icon, active }: Pick<CrmNavLinkProps, 'label' | 'icon' | 'active'>) {
@@ -25,12 +26,13 @@ function CrmNavLinkInner({ label, icon: Icon, active }: Pick<CrmNavLinkProps, 'l
   );
 }
 
-export function CrmNavLink({ href, label, icon, active }: CrmNavLinkProps) {
+export function CrmNavLink({ href, label, icon, active, onNavigate }: CrmNavLinkProps) {
   return (
     <Link
       href={href}
+      onClick={onNavigate}
       className={cn(
-        'flex items-center gap-3 rounded-[14px] px-3 py-2.5 text-[13px] font-semibold transition-colors',
+        'flex min-h-11 items-center gap-3 rounded-[14px] px-3 py-2.5 text-[13px] font-semibold transition-colors lg:min-h-0',
         active
           ? 'border-b-[3px] border-b-brand-press bg-brand font-bold text-white shadow-[0_8px_14px_-6px_rgba(92,101,207,0.40)]'
           : 'border-b-[3px] border-transparent text-slate-700 hover:bg-white/60'

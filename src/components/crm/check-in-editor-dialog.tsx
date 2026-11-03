@@ -9,16 +9,18 @@ import {
 } from '@/app/(crm)/customers/actions';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetBody,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Field } from '@/components/ui/field';
 import { TextInput } from '@/components/ui/text-input';
 import { useToast } from '@/components/ui/toast';
+import { useIsLgUp } from '@/hooks/use-media-query';
 import {
   buildDailyNutritionMcqQuestions,
   EXERCISE_INTENSITY_OPTIONS,
@@ -163,6 +165,7 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDate }: CheckInEditorDialogProps) {
+  const isLgUp = useIsLgUp();
   const { toast } = useToast();
   const [pending, startTransition] = useTransition();
   const [loading, setLoading] = useState(false);
@@ -341,157 +344,131 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-lg">
-        <DialogHeader className="pr-8">
-          <DialogTitle>Check-ins</DialogTitle>
-          <DialogDescription>View or edit daily check-in answers for this member.</DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent side={isLgUp ? 'right' : 'full'} className={isLgUp ? 'max-w-lg' : undefined} showCloseButton>
+        <SheetHeader>
+          <SheetTitle>Check-ins</SheetTitle>
+          <SheetDescription>View or edit daily check-in answers for this member.</SheetDescription>
+        </SheetHeader>
 
-        {scheduleError ? (
-          <p className="text-sm text-red-600">{scheduleError}</p>
-        ) : schedule?.awaitingStart ? (
-          <p className="text-sm text-slate-600">Program has not started yet — no check-in days available.</p>
-        ) : schedule && !schedule.pointAComplete ? (
-          <p className="text-sm text-slate-600">Point A assessment must be completed before check-ins are available.</p>
-        ) : schedule ? (
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
-            <Field label="Program week">
-              <select
-                className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                value={weekOffset}
-                disabled={pending || loading}
-                onChange={(e) => handleWeekChange(Number.parseInt(e.target.value, 10))}
-              >
-                {schedule.weeks.map((w) => (
-                  <option key={w.offset} value={w.offset}>
-                    {w.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+        <SheetBody>
+          {scheduleError ? (
+            <p className="text-sm text-red-600">{scheduleError}</p>
+          ) : schedule?.awaitingStart ? (
+            <p className="text-sm text-slate-600">Program has not started yet — no check-in days available.</p>
+          ) : schedule && !schedule.pointAComplete ? (
+            <p className="text-sm text-slate-600">
+              Point A assessment must be completed before check-ins are available.
+            </p>
+          ) : schedule ? (
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
+              <Field label="Program week">
+                <select
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                  value={weekOffset}
+                  disabled={pending || loading}
+                  onChange={(e) => handleWeekChange(Number.parseInt(e.target.value, 10))}
+                >
+                  {schedule.weeks.map((w) => (
+                    <option key={w.offset} value={w.offset}>
+                      {w.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
 
-            <Field label="Day">
-              <div className="flex flex-wrap gap-2">
-                {schedule.days.map((d) => (
-                  <button
-                    key={d.date}
-                    type="button"
-                    disabled={!d.selectable || pending || loading}
-                    onClick={() => setSelectedDate(d.date)}
-                    className={cn(
-                      'rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors',
-                      selectedDate === d.date
-                        ? 'border-slate-800 bg-slate-800 text-white'
-                        : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
-                      !d.selectable && 'cursor-not-allowed opacity-40'
-                    )}
-                  >
-                    {d.date.slice(8)}
-                    <span className="ml-1 font-normal opacity-80">({dayStatusLabel(d.status)})</span>
-                  </button>
-                ))}
-              </div>
-            </Field>
+              <Field label="Day">
+                <div className="flex flex-wrap gap-2">
+                  {schedule.days.map((d) => (
+                    <button
+                      key={d.date}
+                      type="button"
+                      disabled={!d.selectable || pending || loading}
+                      onClick={() => setSelectedDate(d.date)}
+                      className={cn(
+                        'rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors',
+                        selectedDate === d.date
+                          ? 'border-slate-800 bg-slate-800 text-white'
+                          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+                        !d.selectable && 'cursor-not-allowed opacity-40'
+                      )}
+                    >
+                      {d.date.slice(8)}
+                      <span className="ml-1 font-normal opacity-80">({dayStatusLabel(d.status)})</span>
+                    </button>
+                  ))}
+                </div>
+              </Field>
 
-            {loading && !checkIn ? (
-              <p className="text-sm text-slate-500">Loading…</p>
-            ) : checkIn && !checkIn.exists && !editing ? (
-              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
-                <p className="text-sm font-medium text-slate-700">Not logged</p>
-                <p className="mt-1 text-xs text-slate-500">Click Edit to backfill this day.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {editing ? (
-                  <>
-                    <Field label={questionCopy ? sleepQuestion(questionCopy) : 'Sleep'}>
-                      <div className="flex items-center gap-2">
+              {loading && !checkIn ? (
+                <p className="text-sm text-slate-500">Loading…</p>
+              ) : checkIn && !checkIn.exists && !editing ? (
+                <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center">
+                  <p className="text-sm font-medium text-slate-700">Not logged</p>
+                  <p className="mt-1 text-xs text-slate-500">Click Edit to backfill this day.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {editing ? (
+                    <>
+                      <Field label={questionCopy ? sleepQuestion(questionCopy) : 'Sleep'}>
+                        <div className="flex items-center gap-2">
+                          <TextInput
+                            type="number"
+                            inputMode="numeric"
+                            value={String(draft.sleepHours)}
+                            onChange={(v) => setDraft((d) => ({ ...d, sleepHours: Number.parseInt(v, 10) || 0 }))}
+                            disabled={pending}
+                            placeholder="Hours"
+                          />
+                          <span className="text-sm text-slate-500">h</span>
+                          <TextInput
+                            type="number"
+                            inputMode="numeric"
+                            value={String(draft.sleepMinutes)}
+                            onChange={(v) => setDraft((d) => ({ ...d, sleepMinutes: Number.parseInt(v, 10) || 0 }))}
+                            disabled={pending}
+                            placeholder="Min"
+                          />
+                          <span className="text-sm text-slate-500">m</span>
+                        </div>
+                      </Field>
+                      <Field label={questionCopy ? walkingQuestion(questionCopy) : 'Steps'}>
                         <TextInput
                           type="number"
                           inputMode="numeric"
-                          value={String(draft.sleepHours)}
-                          onChange={(v) => setDraft((d) => ({ ...d, sleepHours: Number.parseInt(v, 10) || 0 }))}
+                          value={draft.steps}
+                          onChange={(v) => setDraft((d) => ({ ...d, steps: v }))}
+                          onBlur={() =>
+                            setDraft((d) => ({
+                              ...d,
+                              steps: String(snapSteps(Number.parseInt(d.steps.replace(/\D/g, ''), 10) || 0)),
+                            }))
+                          }
                           disabled={pending}
-                          placeholder="Hours"
+                          placeholder="e.g. 8000"
                         />
-                        <span className="text-sm text-slate-500">h</span>
-                        <TextInput
-                          type="number"
-                          inputMode="numeric"
-                          value={String(draft.sleepMinutes)}
-                          onChange={(v) => setDraft((d) => ({ ...d, sleepMinutes: Number.parseInt(v, 10) || 0 }))}
-                          disabled={pending}
-                          placeholder="Min"
-                        />
-                        <span className="text-sm text-slate-500">m</span>
-                      </div>
-                    </Field>
-                    <Field label={questionCopy ? walkingQuestion(questionCopy) : 'Steps'}>
-                      <TextInput
-                        type="number"
-                        inputMode="numeric"
-                        value={draft.steps}
-                        onChange={(v) => setDraft((d) => ({ ...d, steps: v }))}
-                        onBlur={() =>
-                          setDraft((d) => ({
-                            ...d,
-                            steps: String(snapSteps(Number.parseInt(d.steps.replace(/\D/g, ''), 10) || 0)),
-                          }))
-                        }
-                        disabled={pending}
-                        placeholder="e.g. 8000"
-                      />
-                    </Field>
-                    <Field label="Answer style">
-                      <div className="flex gap-3">
-                        {(
-                          [
-                            ['legacy', 'Legacy choices'],
-                            ['exact', 'Exact servings'],
-                          ] as const
-                        ).map(([style, label]) => (
-                          <label key={style} className="flex cursor-pointer items-center gap-1.5 text-sm">
-                            <input
-                              type="radio"
-                              name="answer-style"
-                              checked={draft.answerStyle === style}
-                              disabled={pending}
-                              onChange={() =>
-                                setDraft((d) => ({
-                                  ...d,
-                                  answerStyle: style,
-                                  nutritionAnswers: withoutMismatchedServings(d.nutritionAnswers, style),
-                                  exercised: style === 'exact' ? d.exerciseOutcome === 'yes' : d.exercised,
-                                }))
-                              }
-                            />
-                            {label}
-                          </label>
-                        ))}
-                      </div>
-                    </Field>
-                    <Field label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}>
-                      {draft.answerStyle === 'exact' ? (
-                        <div className="flex flex-wrap gap-3">
+                      </Field>
+                      <Field label="Answer style">
+                        <div className="flex gap-3">
                           {(
                             [
-                              ['yes', 'Yes'],
-                              ['missed', 'No, missed it'],
-                              ['rest', 'Took a rest day'],
+                              ['legacy', 'Legacy choices'],
+                              ['exact', 'Exact servings'],
                             ] as const
-                          ).map(([outcome, label]) => (
-                            <label key={outcome} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                          ).map(([style, label]) => (
+                            <label key={style} className="flex cursor-pointer items-center gap-1.5 text-sm">
                               <input
                                 type="radio"
-                                name="exercise-outcome"
-                                checked={draft.exerciseOutcome === outcome}
+                                name="answer-style"
+                                checked={draft.answerStyle === style}
                                 disabled={pending}
                                 onChange={() =>
                                   setDraft((d) => ({
                                     ...d,
-                                    exerciseOutcome: outcome,
-                                    exercised: outcome === 'yes',
+                                    answerStyle: style,
+                                    nutritionAnswers: withoutMismatchedServings(d.nutritionAnswers, style),
+                                    exercised: style === 'exact' ? d.exerciseOutcome === 'yes' : d.exercised,
                                   }))
                                 }
                               />
@@ -499,214 +476,248 @@ export function CheckInEditorDialog({ leadId, open, onOpenChange, initialLocalDa
                             </label>
                           ))}
                         </div>
-                      ) : (
-                        <div className="flex gap-3">
-                          {(['yes', 'no'] as const).map((v) => (
-                            <label key={v} className="flex cursor-pointer items-center gap-1.5 text-sm">
-                              <input
-                                type="radio"
-                                name="exercised"
-                                checked={(v === 'yes') === draft.exercised}
-                                onChange={() => setDraft((d) => ({ ...d, exercised: v === 'yes' }))}
+                      </Field>
+                      <Field label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}>
+                        {draft.answerStyle === 'exact' ? (
+                          <div className="flex flex-wrap gap-3">
+                            {(
+                              [
+                                ['yes', 'Yes'],
+                                ['missed', 'No, missed it'],
+                                ['rest', 'Took a rest day'],
+                              ] as const
+                            ).map(([outcome, label]) => (
+                              <label key={outcome} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                                <input
+                                  type="radio"
+                                  name="exercise-outcome"
+                                  checked={draft.exerciseOutcome === outcome}
+                                  disabled={pending}
+                                  onChange={() =>
+                                    setDraft((d) => ({
+                                      ...d,
+                                      exerciseOutcome: outcome,
+                                      exercised: outcome === 'yes',
+                                    }))
+                                  }
+                                />
+                                {label}
+                              </label>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="flex gap-3">
+                            {(['yes', 'no'] as const).map((v) => (
+                              <label key={v} className="flex cursor-pointer items-center gap-1.5 text-sm">
+                                <input
+                                  type="radio"
+                                  name="exercised"
+                                  checked={(v === 'yes') === draft.exercised}
+                                  onChange={() => setDraft((d) => ({ ...d, exercised: v === 'yes' }))}
+                                  disabled={pending}
+                                />
+                                {v === 'yes' ? 'Yes' : 'No'}
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </Field>
+                      {(draft.answerStyle === 'exact' ? draft.exerciseOutcome === 'yes' : draft.exercised) ? (
+                        <>
+                          <Field label="Exercise type">
+                            <select
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                              value={draft.exerciseType}
+                              disabled={pending}
+                              onChange={(e) => setDraft((d) => ({ ...d, exerciseType: e.target.value }))}
+                            >
+                              {EXERCISE_TYPE_OPTIONS.map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="Intensity">
+                            <select
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                              value={draft.exerciseIntensity}
+                              disabled={pending}
+                              onChange={(e) => setDraft((d) => ({ ...d, exerciseIntensity: e.target.value }))}
+                            >
+                              {EXERCISE_INTENSITY_OPTIONS.map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                        </>
+                      ) : null}
+                      {nutritionQuestions.map((q) => {
+                        const target = servingTargetForQuestion(q.id, servings);
+                        const exactWater = draft.answerStyle === 'exact' && q.id === 'water';
+                        if (exactWater || (draft.answerStyle === 'exact' && target != null)) {
+                          return (
+                            <Field
+                              key={q.id}
+                              label={
+                                exactWater
+                                  ? `${q.question} Target 2 litres or more.`
+                                  : `${q.question} Target ${target}.`
+                              }
+                            >
+                              <TextInput
+                                type="number"
+                                inputMode="decimal"
+                                value={draft.nutritionAnswers[q.id] ?? ''}
                                 disabled={pending}
+                                placeholder="0"
+                                onChange={(v) =>
+                                  setDraft((d) => ({
+                                    ...d,
+                                    nutritionAnswers: { ...d.nutritionAnswers, [q.id]: v },
+                                  }))
+                                }
+                                onBlur={() =>
+                                  setDraft((d) => {
+                                    const parsed = parseExactServing(d.nutritionAnswers[q.id]);
+                                    if (parsed == null) return d;
+                                    const snapped = Math.round(parsed * 2) / 2;
+                                    return {
+                                      ...d,
+                                      nutritionAnswers: { ...d.nutritionAnswers, [q.id]: String(snapped) },
+                                    };
+                                  })
+                                }
                               />
-                              {v === 'yes' ? 'Yes' : 'No'}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    </Field>
-                    {(draft.answerStyle === 'exact' ? draft.exerciseOutcome === 'yes' : draft.exercised) ? (
-                      <>
-                        <Field label="Exercise type">
-                          <select
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                            value={draft.exerciseType}
-                            disabled={pending}
-                            onChange={(e) => setDraft((d) => ({ ...d, exerciseType: e.target.value }))}
-                          >
-                            {EXERCISE_TYPE_OPTIONS.map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                        <Field label="Intensity">
-                          <select
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                            value={draft.exerciseIntensity}
-                            disabled={pending}
-                            onChange={(e) => setDraft((d) => ({ ...d, exerciseIntensity: e.target.value }))}
-                          >
-                            {EXERCISE_INTENSITY_OPTIONS.map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                      </>
-                    ) : null}
-                    {nutritionQuestions.map((q) => {
-                      const target = servingTargetForQuestion(q.id, servings);
-                      const exactWater = draft.answerStyle === 'exact' && q.id === 'water';
-                      if (exactWater || (draft.answerStyle === 'exact' && target != null)) {
+                            </Field>
+                          );
+                        }
                         return (
-                          <Field
-                            key={q.id}
-                            label={
-                              exactWater ? `${q.question} Target 2 litres or more.` : `${q.question} Target ${target}.`
-                            }
-                          >
-                            <TextInput
-                              type="number"
-                              inputMode="decimal"
+                          <Field key={q.id} label={q.question}>
+                            <select
+                              className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                               value={draft.nutritionAnswers[q.id] ?? ''}
                               disabled={pending}
-                              placeholder="0"
-                              onChange={(v) =>
+                              onChange={(e) =>
                                 setDraft((d) => ({
                                   ...d,
-                                  nutritionAnswers: { ...d.nutritionAnswers, [q.id]: v },
+                                  nutritionAnswers: { ...d.nutritionAnswers, [q.id]: e.target.value },
                                 }))
                               }
-                              onBlur={() =>
-                                setDraft((d) => {
-                                  const parsed = parseExactServing(d.nutritionAnswers[q.id]);
-                                  if (parsed == null) return d;
-                                  const snapped = Math.round(parsed * 2) / 2;
-                                  return {
-                                    ...d,
-                                    nutritionAnswers: { ...d.nutritionAnswers, [q.id]: String(snapped) },
-                                  };
-                                })
-                              }
-                            />
+                            >
+                              <option value="">Select…</option>
+                              {nutritionOptionsForQuestion(q, draft.nutritionAnswers[q.id]).map((o) => (
+                                <option key={o.id} value={o.id}>
+                                  {o.label}
+                                </option>
+                              ))}
+                            </select>
                           </Field>
                         );
-                      }
-                      return (
-                        <Field key={q.id} label={q.question}>
-                          <select
-                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-                            value={draft.nutritionAnswers[q.id] ?? ''}
-                            disabled={pending}
-                            onChange={(e) =>
-                              setDraft((d) => ({
-                                ...d,
-                                nutritionAnswers: { ...d.nutritionAnswers, [q.id]: e.target.value },
-                              }))
-                            }
-                          >
-                            <option value="">Select…</option>
-                            {nutritionOptionsForQuestion(q, draft.nutritionAnswers[q.id]).map((o) => (
-                              <option key={o.id} value={o.id}>
-                                {o.label}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                      );
-                    })}
-                  </>
-                ) : checkIn?.exists ? (
-                  <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
-                    <Row
-                      label={questionCopy ? sleepQuestion(questionCopy) : 'Sleep'}
-                      value={formatSleepDuration(checkIn.sleepHours ?? 0)}
-                    />
-                    <Row
-                      label={questionCopy ? walkingQuestion(questionCopy) : 'Steps'}
-                      value={checkIn.steps != null ? formatSteps(checkIn.steps) : '—'}
-                    />
-                    <Row
-                      label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}
-                      value={
-                        checkIn.exerciseOutcome === 'missed'
-                          ? 'Missed it'
-                          : checkIn.exerciseOutcome === 'rest' || !checkIn.exercised
-                            ? 'Rest day'
-                            : `${exerciseTypeLabel(checkIn.exerciseType)} · ${exerciseIntensityLabel(checkIn.exerciseIntensity)}`
-                      }
-                    />
-                    {nutritionQuestions.map((q) => (
+                      })}
+                    </>
+                  ) : checkIn?.exists ? (
+                    <div className="rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2">
                       <Row
-                        key={q.id}
-                        label={q.question}
-                        value={viewNutritionLabel(q.id, checkIn.nutritionAnswers?.[q.id])}
+                        label={questionCopy ? sleepQuestion(questionCopy) : 'Sleep'}
+                        value={formatSleepDuration(checkIn.sleepHours ?? 0)}
                       />
+                      <Row
+                        label={questionCopy ? walkingQuestion(questionCopy) : 'Steps'}
+                        value={checkIn.steps != null ? formatSteps(checkIn.steps) : '—'}
+                      />
+                      <Row
+                        label={questionCopy ? exerciseDidQuestion(questionCopy) : 'Exercise'}
+                        value={
+                          checkIn.exerciseOutcome === 'missed'
+                            ? 'Missed it'
+                            : checkIn.exerciseOutcome === 'rest' || !checkIn.exercised
+                              ? 'Rest day'
+                              : `${exerciseTypeLabel(checkIn.exerciseType)} · ${exerciseIntensityLabel(checkIn.exerciseIntensity)}`
+                        }
+                      />
+                      {nutritionQuestions.map((q) => (
+                        <Row
+                          key={q.id}
+                          label={q.question}
+                          value={viewNutritionLabel(q.id, checkIn.nutritionAnswers?.[q.id])}
+                        />
+                      ))}
+                      {checkIn.nutritionScore != null ? (
+                        <Row label="Nutrition score" value={String(checkIn.nutritionScore)} />
+                      ) : null}
+                      {checkIn.stars != null ? <Row label="Stars" value={String(checkIn.stars)} /> : null}
+                    </div>
+                  ) : null}
+                </div>
+              )}
+              {telemetry && (telemetry.events.length > 0 || telemetry.draft || telemetry.syncIssue) ? (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
+                  <p className="text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">Activity</p>
+                  {telemetry.syncIssue ? (
+                    <p className="mt-1 text-xs font-semibold text-amber-800">
+                      Sync: {telemetry.syncIssue.status.replaceAll('_', ' ')}
+                      {telemetry.syncIssue.lastError ? ` · ${telemetry.syncIssue.lastError}` : ''}
+                      {telemetry.syncIssue.attempts > 0 ? ` · ${telemetry.syncIssue.attempts} attempts` : ''}
+                    </p>
+                  ) : null}
+                  {telemetry.draft ? (
+                    <p className="mt-1 text-xs text-slate-600">
+                      Phone snapshot
+                      {telemetry.draft.steps != null ? ` · ${telemetry.draft.steps.toLocaleString()} steps` : ''}
+                      {telemetry.draft.sleepHours != null ? ` · ${telemetry.draft.sleepHours}h sleep` : ''}
+                      {telemetry.draft.exercised != null
+                        ? ` · exercise ${telemetry.draft.exercised ? 'yes' : 'no'}`
+                        : ''}
+                    </p>
+                  ) : null}
+                  <ul className="mt-2 space-y-1">
+                    {telemetry.events.map((ev) => (
+                      <li key={ev.id} className="text-[11px] text-slate-500">
+                        {new Date(ev.createdAt).toLocaleString()} · {ev.eventType}
+                        {ev.step != null ? ` · step ${ev.step}` : ''}
+                      </li>
                     ))}
-                    {checkIn.nutritionScore != null ? (
-                      <Row label="Nutrition score" value={String(checkIn.nutritionScore)} />
-                    ) : null}
-                    {checkIn.stars != null ? <Row label="Stars" value={String(checkIn.stars)} /> : null}
-                  </div>
-                ) : null}
-              </div>
-            )}
-            {telemetry && (telemetry.events.length > 0 || telemetry.draft || telemetry.syncIssue) ? (
-              <div className="rounded-xl border border-slate-100 bg-slate-50 px-3 py-3">
-                <p className="text-[11px] font-bold tracking-[0.14em] text-slate-400 uppercase">Activity</p>
-                {telemetry.syncIssue ? (
-                  <p className="mt-1 text-xs font-semibold text-amber-800">
-                    Sync: {telemetry.syncIssue.status.replaceAll('_', ' ')}
-                    {telemetry.syncIssue.lastError ? ` · ${telemetry.syncIssue.lastError}` : ''}
-                    {telemetry.syncIssue.attempts > 0 ? ` · ${telemetry.syncIssue.attempts} attempts` : ''}
-                  </p>
-                ) : null}
-                {telemetry.draft ? (
-                  <p className="mt-1 text-xs text-slate-600">
-                    Phone snapshot
-                    {telemetry.draft.steps != null ? ` · ${telemetry.draft.steps.toLocaleString()} steps` : ''}
-                    {telemetry.draft.sleepHours != null ? ` · ${telemetry.draft.sleepHours}h sleep` : ''}
-                    {telemetry.draft.exercised != null ? ` · exercise ${telemetry.draft.exercised ? 'yes' : 'no'}` : ''}
-                  </p>
-                ) : null}
-                <ul className="mt-2 space-y-1">
-                  {telemetry.events.map((ev) => (
-                    <li key={ev.id} className="text-[11px] text-slate-500">
-                      {new Date(ev.createdAt).toLocaleString()} · {ev.eventType}
-                      {ev.step != null ? ` · step ${ev.step}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : null}
-          </div>
-        ) : loading ? (
-          <p className="text-sm text-slate-500">Loading…</p>
-        ) : null}
+                  </ul>
+                </div>
+              ) : null}
+            </div>
+          ) : loading ? (
+            <p className="text-sm text-slate-500">Loading…</p>
+          ) : null}
+        </SheetBody>
 
-        <DialogFooter className="gap-2 sm:gap-0">
+        <SheetFooter className="flex flex-wrap gap-2">
           {!editing ? (
-            <Button variant="light" onClick={() => onOpenChange(false)}>
+            <Button variant="light" className="min-h-11" onClick={() => onOpenChange(false)}>
               Close
             </Button>
           ) : null}
           {editing ? (
             <>
-              <Button variant="light" onClick={cancelEdit} disabled={pending}>
+              <Button variant="light" className="min-h-11" onClick={cancelEdit} disabled={pending}>
                 Cancel
               </Button>
-              <Button onClick={save} disabled={!canSave || pending}>
+              <Button className="min-h-11" onClick={save} disabled={!canSave || pending}>
                 Save
               </Button>
             </>
           ) : schedule && schedule.pointAComplete && !schedule.awaitingStart && selectedDate ? (
             <>
               {telemetry?.draft ? (
-                <Button variant="light" onClick={applyServerDraft} disabled={pending || loading}>
+                <Button variant="light" className="min-h-11" onClick={applyServerDraft} disabled={pending || loading}>
                   Apply draft
                 </Button>
               ) : null}
-              <Button onClick={startEdit} disabled={pending || loading}>
+              <Button className="min-h-11" onClick={startEdit} disabled={pending || loading}>
                 Edit
               </Button>
             </>
           ) : null}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
   );
 }

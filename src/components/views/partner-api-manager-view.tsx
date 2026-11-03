@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { type ReactNode, useMemo, useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import {
   activatePartnerAPIClientAction,
   createPartnerAPIClientAction,
@@ -18,6 +18,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -267,7 +268,7 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
             title="Create partner"
             subtitle="API keys and webhook secrets are shown once. Store them before closing the dialog."
           />
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Field label="Name">
               <TextInput value={name} onChange={setName} placeholder="Agency name" disabled={pending} />
             </Field>
@@ -291,8 +292,13 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
               />
             </Field>
           </div>
-          <div className="mt-3 flex justify-end">
-            <Button onClick={handleCreate} loading={pending} loadingLabel="Creating…">
+          <div className="mt-3 flex justify-stretch sm:justify-end">
+            <Button
+              className="min-h-11 w-full sm:w-auto"
+              onClick={handleCreate}
+              loading={pending}
+              loadingLabel="Creating…"
+            >
               Create partner
             </Button>
           </div>
@@ -303,19 +309,14 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
           {active.length === 0 ? (
             <p className="text-sm text-slate-500">No active partners yet.</p>
           ) : (
-            <PartnerTable>
-              {active.map((client) => (
-                <PartnerRow
-                  key={client.id}
-                  client={client}
-                  disabled={pending}
-                  onEdit={() => openEdit(client)}
-                  onToggleActive={() => handleToggleActive(client)}
-                  onRotateKey={() => handleRotateKey(client)}
-                  onRotateWebhook={() => handleRotateWebhook(client)}
-                />
-              ))}
-            </PartnerTable>
+            <PartnerList
+              clients={active}
+              disabled={pending}
+              onEdit={openEdit}
+              onToggleActive={handleToggleActive}
+              onRotateKey={handleRotateKey}
+              onRotateWebhook={handleRotateWebhook}
+            />
           )}
         </Card>
 
@@ -324,20 +325,15 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
           {inactive.length === 0 ? (
             <p className="text-sm text-slate-500">No inactive partners.</p>
           ) : (
-            <PartnerTable>
-              {inactive.map((client) => (
-                <PartnerRow
-                  key={client.id}
-                  client={client}
-                  inactive
-                  disabled={pending}
-                  onEdit={() => openEdit(client)}
-                  onToggleActive={() => handleToggleActive(client)}
-                  onRotateKey={() => handleRotateKey(client)}
-                  onRotateWebhook={() => handleRotateWebhook(client)}
-                />
-              ))}
-            </PartnerTable>
+            <PartnerList
+              clients={inactive}
+              inactive
+              disabled={pending}
+              onEdit={openEdit}
+              onToggleActive={handleToggleActive}
+              onRotateKey={handleRotateKey}
+              onRotateWebhook={handleRotateWebhook}
+            />
           )}
         </Card>
       </div>
@@ -418,24 +414,8 @@ export function PartnerAPIManagerView({ clients }: PartnerAPIManagerViewProps) {
   );
 }
 
-function PartnerTable({ children }: { children: ReactNode }) {
-  return (
-    <DataTable className="-mx-1">
-      <DataTableHead>
-        <DataTableHeaderCell className="w-[22%] min-w-[140px]">Name</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[16%] min-w-[110px]">Key prefix</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[12%] min-w-[90px]">Webhook</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[10%] min-w-[70px]">RPM</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[18%] min-w-[140px]">Created</DataTableHeaderCell>
-        <DataTableHeaderCell className="w-[22%] min-w-[180px] text-right"> </DataTableHeaderCell>
-      </DataTableHead>
-      <DataTableBody>{children}</DataTableBody>
-    </DataTable>
-  );
-}
-
-function PartnerRow({
-  client,
+function PartnerList({
+  clients,
   inactive = false,
   disabled,
   onEdit,
@@ -443,48 +423,126 @@ function PartnerRow({
   onRotateKey,
   onRotateWebhook,
 }: {
-  client: PartnerAPIClient;
+  clients: PartnerAPIClient[];
   inactive?: boolean;
   disabled: boolean;
-  onEdit: () => void;
-  onToggleActive: () => void;
-  onRotateKey: () => void;
-  onRotateWebhook: () => void;
+  onEdit: (client: PartnerAPIClient) => void;
+  onToggleActive: (client: PartnerAPIClient) => void;
+  onRotateKey: (client: PartnerAPIClient) => void;
+  onRotateWebhook: (client: PartnerAPIClient) => void;
 }) {
   return (
-    <DataTableRow className={cn(inactive && 'bg-slate-50/60')}>
-      <DataTableCell>
-        <div className="text-[13px] font-semibold text-slate-800">{client.name}</div>
-      </DataTableCell>
-      <DataTableCell>
-        <code className="text-[12px] text-slate-500">{client.key_prefix}</code>
-      </DataTableCell>
-      <DataTableCell>
-        <span className="text-[12px] text-slate-600">{client.has_webhook ? 'Yes' : 'No'}</span>
-      </DataTableCell>
-      <DataTableCell>
-        <span className="text-[12px] text-slate-600">{client.rate_limit_rpm}</span>
-      </DataTableCell>
-      <DataTableCell>
-        <span className="text-[12px] text-slate-500">{formatCreatedAt(client.created_at)}</span>
-      </DataTableCell>
-      <DataTableCell className="text-right">
-        <div className="flex flex-wrap items-center justify-end gap-1.5">
-          <Button size="sm" variant="ghost" onClick={onEdit} disabled={disabled}>
-            Edit
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onRotateKey} disabled={disabled}>
-            Rotate key
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onRotateWebhook} disabled={disabled || !client.webhook_url}>
-            Rotate secret
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onToggleActive} disabled={disabled}>
-            {client.active ? 'Deactivate' : 'Activate'}
-          </Button>
+    <ResponsiveList
+      mobile={
+        <div className="flex flex-col gap-2">
+          {clients.map((client) => (
+            <div
+              key={client.id}
+              className={cn('rounded-2xl border border-slate-100 bg-white p-3 shadow-sm', inactive && 'bg-slate-50/80')}
+            >
+              <p className="font-semibold text-slate-800">{client.name}</p>
+              <p className="mt-1 text-[12px] text-slate-500">
+                <code>{client.key_prefix}</code> · Webhook {client.has_webhook ? 'Yes' : 'No'} · {client.rate_limit_rpm}{' '}
+                RPM
+              </p>
+              <p className="mt-1 text-[11px] text-slate-400">{formatCreatedAt(client.created_at)}</p>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-11"
+                  onClick={() => onEdit(client)}
+                  disabled={disabled}
+                >
+                  Edit
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-11"
+                  onClick={() => onRotateKey(client)}
+                  disabled={disabled}
+                >
+                  Rotate key
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-11"
+                  onClick={() => onRotateWebhook(client)}
+                  disabled={disabled || !client.webhook_url}
+                >
+                  Rotate secret
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="min-h-11"
+                  onClick={() => onToggleActive(client)}
+                  disabled={disabled}
+                >
+                  {client.active ? 'Deactivate' : 'Activate'}
+                </Button>
+              </div>
+            </div>
+          ))}
         </div>
-      </DataTableCell>
-    </DataTableRow>
+      }
+      desktop={
+        <DataTable className="-mx-1">
+          <DataTableHead>
+            <DataTableHeaderCell className="w-[22%] min-w-[140px]">Name</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[16%] min-w-[110px]">Key prefix</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[12%] min-w-[90px]">Webhook</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[10%] min-w-[70px]">RPM</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[18%] min-w-[140px]">Created</DataTableHeaderCell>
+            <DataTableHeaderCell className="w-[22%] min-w-[180px] text-right"> </DataTableHeaderCell>
+          </DataTableHead>
+          <DataTableBody>
+            {clients.map((client) => (
+              <DataTableRow key={client.id} className={cn(inactive && 'bg-slate-50/60')}>
+                <DataTableCell>
+                  <div className="text-[13px] font-semibold text-slate-800">{client.name}</div>
+                </DataTableCell>
+                <DataTableCell>
+                  <code className="text-[12px] text-slate-500">{client.key_prefix}</code>
+                </DataTableCell>
+                <DataTableCell>
+                  <span className="text-[12px] text-slate-600">{client.has_webhook ? 'Yes' : 'No'}</span>
+                </DataTableCell>
+                <DataTableCell>
+                  <span className="text-[12px] text-slate-600">{client.rate_limit_rpm}</span>
+                </DataTableCell>
+                <DataTableCell>
+                  <span className="text-[12px] text-slate-500">{formatCreatedAt(client.created_at)}</span>
+                </DataTableCell>
+                <DataTableCell className="text-right">
+                  <div className="flex flex-wrap items-center justify-end gap-1.5">
+                    <Button size="sm" variant="ghost" onClick={() => onEdit(client)} disabled={disabled}>
+                      Edit
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => onRotateKey(client)} disabled={disabled}>
+                      Rotate key
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onRotateWebhook(client)}
+                      disabled={disabled || !client.webhook_url}
+                    >
+                      Rotate secret
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => onToggleActive(client)} disabled={disabled}>
+                      {client.active ? 'Deactivate' : 'Activate'}
+                    </Button>
+                  </div>
+                </DataTableCell>
+              </DataTableRow>
+            ))}
+          </DataTableBody>
+        </DataTable>
+      }
+    />
   );
 }
 

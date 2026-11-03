@@ -7,6 +7,7 @@ type DataTableProps = {
   tableClassName?: string;
 };
 
+/** Desktop-oriented table shell. Pair with `ResponsiveList` for a mobile card alternate. */
 export function DataTable({ children, className, tableClassName }: DataTableProps) {
   return (
     <div className={cn('overflow-x-auto', className)}>

@@ -1,10 +1,11 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { CrmContactProvider } from '@/components/layout/crm/crm-contact-context';
 import { CrmDashboardFilterProvider } from '@/components/layout/crm/crm-dashboard-filter-context';
 import { CrmLeadSummaryProvider } from '@/components/layout/crm/crm-lead-summary-context';
 import { CrmRenewalSummaryProvider } from '@/components/layout/crm/crm-renewal-summary-context';
+import { CrmMobileNav } from '@/components/layout/crm/crm-mobile-nav';
 import { CrmSidebar } from '@/components/layout/crm/crm-sidebar';
 import { CrmProfileProvider } from '@/components/layout/crm/crm-profile-context';
 import { CrmTopbar } from '@/components/layout/crm/crm-topbar';
@@ -40,6 +41,8 @@ export function CrmShell({
   isMarketingPlus = false,
   whatsappSendsEnabled = false,
 }: CrmShellProps) {
+  const [navOpen, setNavOpen] = useState(false);
+
   return (
     <ToastProvider>
       <TooltipProvider>
@@ -54,8 +57,19 @@ export function CrmShell({
                       isMarketing={isMarketing}
                       isMarketingPlus={isMarketingPlus}
                     />
+                    <CrmMobileNav
+                      open={navOpen}
+                      onOpenChange={setNavOpen}
+                      isSuperadmin={isSuperadmin}
+                      isMarketing={isMarketing}
+                      isMarketingPlus={isMarketingPlus}
+                    />
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <CrmTopbar staffUser={staffUser} whatsappSendsEnabled={whatsappSendsEnabled} />
+                      <CrmTopbar
+                        staffUser={staffUser}
+                        whatsappSendsEnabled={whatsappSendsEnabled}
+                        onOpenNav={() => setNavOpen(true)}
+                      />
                       <CrmDashboardContextBar />
                       <div className="flex flex-1 [scrollbar-gutter:stable] flex-col overflow-auto bg-canvas">
                         {children}

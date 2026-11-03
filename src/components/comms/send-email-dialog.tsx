@@ -58,8 +58,8 @@ export function SendEmailDialog({ open, onClose, leadId, templates, onSent }: Se
   const canSend = Boolean(templateId) && !previewLoading && preview !== null && preview.missing.length === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-100 bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-900/40 p-0 lg:items-center lg:p-4">
+      <div className="flex h-[100dvh] max-h-[100dvh] w-full max-w-2xl flex-col overflow-y-auto rounded-none border border-slate-100 bg-white p-5 shadow-xl lg:h-auto lg:max-h-[90vh] lg:rounded-3xl">
         <h2 className="text-lg font-extrabold text-slate-800">Send email</h2>
         <p className="mt-1 text-sm font-medium text-slate-500">Choose an active template to send to this lead.</p>
 
@@ -106,12 +106,13 @@ export function SendEmailDialog({ open, onClose, leadId, templates, onSent }: Se
 
         {error ? <p className="mt-3 text-sm font-medium text-danger-press">{error}</p> : null}
 
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="light" onClick={onClose} disabled={isPending}>
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <Button variant="light" className="min-h-11" onClick={onClose} disabled={isPending}>
             Cancel
           </Button>
           <Button
             variant="primary"
+            className="min-h-11"
             leftIcon={<Send className="h-3.5 w-3.5" />}
             loading={isPending}
             loadingLabel="Sending…"

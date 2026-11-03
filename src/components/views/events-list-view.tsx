@@ -12,6 +12,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
@@ -109,8 +110,13 @@ export function EventsListView({ events }: EventsListViewProps) {
             />
           </Field>
         </div>
-        <div className="mt-3 flex justify-end">
-          <Button onClick={handleCreate} loading={pending} loadingLabel="Creating…">
+        <div className="mt-3 flex justify-stretch sm:justify-end">
+          <Button
+            className="min-h-11 w-full sm:w-auto"
+            onClick={handleCreate}
+            loading={pending}
+            loadingLabel="Creating…"
+          >
             Create event
           </Button>
         </div>
@@ -121,54 +127,97 @@ export function EventsListView({ events }: EventsListViewProps) {
         {events.length === 0 ? (
           <p className="text-sm text-slate-500">No events yet.</p>
         ) : (
-          <DataTable className="-mx-1">
-            <DataTableHead>
-              <DataTableHeaderCell className="min-w-[200px]">Name</DataTableHeaderCell>
-              <DataTableHeaderCell className="w-[120px]">Status</DataTableHeaderCell>
-              <DataTableHeaderCell className="w-[140px]">Registrations</DataTableHeaderCell>
-              <DataTableHeaderCell className="min-w-[220px] text-right"> </DataTableHeaderCell>
-            </DataTableHead>
-            <DataTableBody>
-              {events.map((event) => (
-                <DataTableRow key={event.id}>
-                  <DataTableCell>
-                    <Link
-                      href={`/events/${event.id}`}
-                      className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
-                    >
-                      {event.name}
-                    </Link>
-                    <div className="text-[11px] text-slate-400">/{event.slug}</div>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <Pill tone={eventStatusTone(event.status)}>{eventStatusLabel(event.status)}</Pill>
-                  </DataTableCell>
-                  <DataTableCell>
-                    <span className="text-[12px] text-slate-600">
-                      {event.registrationCount.toLocaleString('en-IN')}
-                    </span>
-                  </DataTableCell>
-                  <DataTableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
+          <ResponsiveList
+            mobile={
+              <div className="flex flex-col gap-2">
+                {events.map((event) => (
+                  <div key={event.id} className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/events/${event.id}`}
+                          className="text-[14px] font-semibold text-slate-800 no-underline hover:text-brand"
+                        >
+                          {event.name}
+                        </Link>
+                        <div className="text-[11px] text-slate-400">/{event.slug}</div>
+                      </div>
+                      <Pill tone={eventStatusTone(event.status)}>{eventStatusLabel(event.status)}</Pill>
+                    </div>
+                    <p className="mt-2 text-[12px] text-slate-600">
+                      {event.registrationCount.toLocaleString('en-IN')} registrations
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
                       <Button
                         size="sm"
                         variant="ghost"
+                        className="min-h-11"
                         onClick={() => void handleCopy(event)}
                         disabled={!event.publicUrl}
                       >
                         Copy URL
                       </Button>
                       <Link href={`/events/${event.id}`} className="no-underline">
-                        <Button size="sm" variant="light">
+                        <Button size="sm" variant="light" className="min-h-11">
                           Manage
                         </Button>
                       </Link>
                     </div>
-                  </DataTableCell>
-                </DataTableRow>
-              ))}
-            </DataTableBody>
-          </DataTable>
+                  </div>
+                ))}
+              </div>
+            }
+            desktop={
+              <DataTable className="-mx-1">
+                <DataTableHead>
+                  <DataTableHeaderCell className="min-w-[200px]">Name</DataTableHeaderCell>
+                  <DataTableHeaderCell className="w-[120px]">Status</DataTableHeaderCell>
+                  <DataTableHeaderCell className="w-[140px]">Registrations</DataTableHeaderCell>
+                  <DataTableHeaderCell className="min-w-[220px] text-right"> </DataTableHeaderCell>
+                </DataTableHead>
+                <DataTableBody>
+                  {events.map((event) => (
+                    <DataTableRow key={event.id}>
+                      <DataTableCell>
+                        <Link
+                          href={`/events/${event.id}`}
+                          className="text-[13px] font-semibold text-slate-800 no-underline hover:text-brand"
+                        >
+                          {event.name}
+                        </Link>
+                        <div className="text-[11px] text-slate-400">/{event.slug}</div>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <Pill tone={eventStatusTone(event.status)}>{eventStatusLabel(event.status)}</Pill>
+                      </DataTableCell>
+                      <DataTableCell>
+                        <span className="text-[12px] text-slate-600">
+                          {event.registrationCount.toLocaleString('en-IN')}
+                        </span>
+                      </DataTableCell>
+                      <DataTableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => void handleCopy(event)}
+                            disabled={!event.publicUrl}
+                          >
+                            Copy URL
+                          </Button>
+                          <Link href={`/events/${event.id}`} className="no-underline">
+                            <Button size="sm" variant="light">
+                              Manage
+                            </Button>
+                          </Link>
+                        </div>
+                      </DataTableCell>
+                    </DataTableRow>
+                  ))}
+                </DataTableBody>
+              </DataTable>
+            }
+          />
         )}
       </Card>
     </div>

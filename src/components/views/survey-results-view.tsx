@@ -11,6 +11,7 @@ import {
   DataTableHeaderCell,
   DataTableRow,
 } from '@/components/crm/data-table';
+import { ResponsiveList } from '@/components/crm/responsive-list';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Pill } from '@/components/ui/pill';
@@ -330,19 +331,30 @@ export function SurveyResultsView({ survey, initialResults, initialOtherAnswers 
         ) : (
           <>
             <div className="overflow-hidden rounded-2xl border border-amber-100/80 bg-white/90 shadow-sm">
-              <DataTable>
-                <DataTableHead>
-                  <DataTableHeaderCell>Member</DataTableHeaderCell>
-                  <DataTableHeaderCell>Question</DataTableHeaderCell>
-                  <DataTableHeaderCell>Response</DataTableHeaderCell>
-                  <DataTableHeaderCell>Answered</DataTableHeaderCell>
-                </DataTableHead>
-                <DataTableBody>
-                  {otherAnswers.items.map((row) => (
-                    <OtherAnswerRow key={`${row.user_id}-${row.question_id}-${row.answered_on}`} row={row} />
-                  ))}
-                </DataTableBody>
-              </DataTable>
+              <ResponsiveList
+                mobile={
+                  <div className="flex flex-col gap-2 p-3">
+                    {otherAnswers.items.map((row) => (
+                      <OtherAnswerCard key={`${row.user_id}-${row.question_id}-${row.answered_on}`} row={row} />
+                    ))}
+                  </div>
+                }
+                desktop={
+                  <DataTable>
+                    <DataTableHead>
+                      <DataTableHeaderCell>Member</DataTableHeaderCell>
+                      <DataTableHeaderCell>Question</DataTableHeaderCell>
+                      <DataTableHeaderCell>Response</DataTableHeaderCell>
+                      <DataTableHeaderCell>Answered</DataTableHeaderCell>
+                    </DataTableHead>
+                    <DataTableBody>
+                      {otherAnswers.items.map((row) => (
+                        <OtherAnswerRow key={`${row.user_id}-${row.question_id}-${row.answered_on}`} row={row} />
+                      ))}
+                    </DataTableBody>
+                  </DataTable>
+                }
+              />
             </div>
 
             {otherAnswers.total > OTHER_PAGE_SIZE ? (
@@ -413,6 +425,33 @@ function QuestionChartCard({ question }: { question: SurveyQuestionResult }) {
           {question.other_text_count === 1 ? '' : 's'} — see table below
         </p>
       ) : null}
+    </div>
+  );
+}
+
+function OtherAnswerCard({ row }: { row: SurveyOtherAnswer }) {
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          {row.lead_id ? (
+            <Link href={`/customers/${row.lead_id}`} className="font-semibold text-brand hover:underline">
+              {row.member_name}
+            </Link>
+          ) : (
+            <span className="font-semibold text-slate-800">{row.member_name}</span>
+          )}
+          {row.member_email ? <p className="mt-0.5 text-xs text-slate-500">{row.member_email}</p> : null}
+        </div>
+        <span className="shrink-0 text-[11px] text-slate-400">{formatDate(row.answered_on)}</span>
+      </div>
+      <p className="mt-2 text-xs font-semibold text-slate-500">
+        Day {row.day_index}: {row.day_title}
+      </p>
+      <p className="mt-0.5 text-sm text-slate-800">{formatPrompt(row.question_prompt)}</p>
+      <p className="mt-2 rounded-xl bg-amber-50/70 px-2.5 py-2 text-sm whitespace-pre-wrap text-slate-800">
+        {row.other_text}
+      </p>
     </div>
   );
 }
