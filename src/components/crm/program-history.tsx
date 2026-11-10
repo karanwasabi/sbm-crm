@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowDownRight, ArrowUpRight, CalendarRange, PauseCircle } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, CalendarRange, PauseCircle, UserX } from 'lucide-react';
 import { EditMembershipAccessDialog } from '@/components/crm/edit-membership-access-dialog';
+import { MarkLostOfflineRefundDialog } from '@/components/crm/mark-lost-offline-refund-dialog';
 import { MembershipPauseDialog } from '@/components/crm/membership-pause-dialog';
 import {
   cancelMembershipPauseAction,
@@ -123,6 +124,7 @@ function EnrollmentRow({
   demotePending,
   pauseActionPending,
   onEditAccess,
+  onMarkLostOfflineRefund,
   onSchedulePause,
   onCancelPause,
   onEndPauseEarly,
@@ -140,6 +142,7 @@ function EnrollmentRow({
   promotePending?: boolean;
   demotePending?: boolean;
   onEditAccess?: (item: ProgramHistoryItem) => void;
+  onMarkLostOfflineRefund?: (item: ProgramHistoryItem) => void;
   onSchedulePause?: (item: ProgramHistoryItem) => void;
   onCancelPause?: (item: ProgramHistoryItem) => void;
   onEndPauseEarly?: (item: ProgramHistoryItem) => void;
@@ -161,6 +164,14 @@ function EnrollmentRow({
   const showSchedulePause = Boolean(canManagePause && onSchedulePause && canSchedulePause(item));
   const showCancelPause = Boolean(canManagePause && onCancelPause && pauseStatus === 'scheduled' && item.pauseId);
   const showEndPauseEarly = Boolean(canManagePause && onEndPauseEarly && pauseStatus === 'active' && item.pauseId);
+  const stage = (leadStage ?? '').trim().toLowerCase();
+  const showMarkLostOfflineRefund = Boolean(
+    canEditAccess &&
+    onMarkLostOfflineRefund &&
+    stage !== 'lost' &&
+    stage !== 'transferred' &&
+    (Boolean(item.accessUntil) || Boolean(item.amount && item.amount !== '—'))
+  );
 
   return (
     <article className="border-t border-slate-100 px-5 py-4">
@@ -246,6 +257,17 @@ function EnrollmentRow({
                   Edit access
                 </Button>
               ) : null}
+              {showMarkLostOfflineRefund ? (
+                <Button
+                  type="button"
+                  variant="light"
+                  size="sm"
+                  leftIcon={<UserX className="h-3.5 w-3.5" />}
+                  onClick={() => onMarkLostOfflineRefund?.(item)}
+                >
+                  Mark lost
+                </Button>
+              ) : null}
               {showSchedulePause ? (
                 <Button
                   type="button"
@@ -317,6 +339,17 @@ function EnrollmentRow({
               onClick={() => onEditAccess(item)}
             >
               Set access until
+            </Button>
+          ) : null}
+          {showMarkLostOfflineRefund ? (
+            <Button
+              type="button"
+              variant="light"
+              size="sm"
+              leftIcon={<UserX className="h-3.5 w-3.5" />}
+              onClick={() => onMarkLostOfflineRefund?.(item)}
+            >
+              Mark lost
             </Button>
           ) : null}
           {showSchedulePause ? (
@@ -393,6 +426,7 @@ export function ProgramHistory({
   const { toast } = useToast();
   const timezone = useDisplayTimezone();
   const [editItem, setEditItem] = useState<ProgramHistoryItem | null>(null);
+  const [markLostItem, setMarkLostItem] = useState<ProgramHistoryItem | null>(null);
   const [pauseItem, setPauseItem] = useState<ProgramHistoryItem | null>(null);
   const [pauseActionPendingId, setPauseActionPendingId] = useState<string | null>(null);
   const [pauseActionPending, startPauseAction] = useTransition();
@@ -583,6 +617,7 @@ export function ProgramHistory({
               demotePending={demotePending && demotePendingId === item.id}
               pauseActionPending={pauseActionPending && pauseActionPendingId === item.id}
               onEditAccess={canEditAccess ? setEditItem : undefined}
+              onMarkLostOfflineRefund={canEditAccess ? setMarkLostItem : undefined}
               onSchedulePause={canManagePause ? setPauseItem : undefined}
               onCancelPause={canManagePause ? handleCancelPause : undefined}
               onEndPauseEarly={canManagePause ? handleEndPauseEarly : undefined}
@@ -599,6 +634,16 @@ export function ProgramHistory({
           open={editItem !== null}
           onOpenChange={(open) => {
             if (!open) setEditItem(null);
+          }}
+        />
+      ) : null}
+      {leadId && canEditAccess ? (
+        <MarkLostOfflineRefundDialog
+          leadId={leadId}
+          item={markLostItem}
+          open={markLostItem !== null}
+          onOpenChange={(open) => {
+            if (!open) setMarkLostItem(null);
           }}
         />
       ) : null}

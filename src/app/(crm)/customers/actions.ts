@@ -47,6 +47,7 @@ import {
   putLeadPointA,
   resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
+  cancelLeadMembershipOfflineRefund,
   scheduleMembershipPause,
   cancelMembershipPause,
   endMembershipPauseEarly,
@@ -85,6 +86,7 @@ import type {
   PutPointAAssessmentInput,
   ResetOnboardingPointAResult,
   SetMembershipAccessResult,
+  CancelMembershipOfflineRefundResult,
   MembershipPauseResult,
   SetMemberKindResult,
   PromoteToMemberResult,
@@ -665,6 +667,19 @@ export async function setLeadMembershipAccessUntilAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to update membership access.';
+    return { result: null, error: message };
+  }
+}
+
+export async function cancelLeadMembershipOfflineRefundAction(
+  leadId: string,
+  enrollmentId: string
+): Promise<{ result: CancelMembershipOfflineRefundResult | null; error: string | null }> {
+  try {
+    const result = await cancelLeadMembershipOfflineRefund(leadId, enrollmentId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to mark lost with offline refund.';
     return { result: null, error: message };
   }
 }

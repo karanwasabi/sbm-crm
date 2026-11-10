@@ -2353,6 +2353,55 @@ export async function setLeadMembershipAccessUntil(
   };
 }
 
+export type CancelMembershipOfflineRefundResult = {
+  enrollmentId: string;
+  checkoutSessionId: string;
+  accessUntil: string;
+  stage: string;
+  refundAmountPaise: number;
+  razorpayCancelled: boolean;
+  razorpayPaymentId?: string;
+  alreadyEndedAccess: boolean;
+};
+
+export async function cancelLeadMembershipOfflineRefund(
+  leadId: string,
+  enrollmentId: string
+): Promise<CancelMembershipOfflineRefundResult> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/membership/cancel-offline-refund`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollment_id: enrollmentId }),
+    }
+  );
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to mark lost with offline refund.', response.status);
+  }
+  const row = (await response.json()) as {
+    enrollment_id: string;
+    checkout_session_id: string;
+    access_until: string;
+    stage: string;
+    refund_amount_paise: number;
+    razorpay_cancelled: boolean;
+    razorpay_payment_id?: string;
+    already_ended_access: boolean;
+  };
+  return {
+    enrollmentId: row.enrollment_id,
+    checkoutSessionId: row.checkout_session_id,
+    accessUntil: row.access_until,
+    stage: row.stage,
+    refundAmountPaise: row.refund_amount_paise ?? 0,
+    razorpayCancelled: Boolean(row.razorpay_cancelled),
+    razorpayPaymentId: row.razorpay_payment_id,
+    alreadyEndedAccess: Boolean(row.already_ended_access),
+  };
+}
+
 export type MembershipPauseResult = {
   id: string;
   enrollmentId: string;
