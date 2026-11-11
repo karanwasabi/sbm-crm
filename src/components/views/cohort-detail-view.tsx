@@ -1515,6 +1515,8 @@ export function CohortDetailView({
     }
   };
 
+  const trialLayout = isTrialCohortDetail(cohort);
+
   const geoFilteredMembers = useMemo(() => {
     return members.filter((member) => {
       if (!memberMatchesSearch(member, searchQuery)) return false;
@@ -1527,6 +1529,7 @@ export function CohortDetailView({
       }
       if (!memberMatchesStarFilter(starFilter, member.starsAvailable, member.starsSpent)) return false;
       if (
+        !trialLayout &&
         !matchesAccessExpiry({
           windows: accessExpiring,
           endsAt: cohortMembershipEndsExclusive(member),
@@ -1547,6 +1550,7 @@ export function CohortDetailView({
     sexFilters,
     starFilter,
     timezoneFilters,
+    trialLayout,
   ]);
 
   const activeMembers = useMemo(
@@ -1579,7 +1583,6 @@ export function CohortDetailView({
     [members]
   );
 
-  const trialLayout = isTrialCohortDetail(cohort);
   const allTrialPartitions = useMemo(() => partitionTrialMembers(members), [members]);
   const filteredTrialPartitions = useMemo(() => {
     const coachFiltered =
@@ -1731,11 +1734,11 @@ export function CohortDetailView({
   const coachTones = useMemo(() => coachToneById(members), [members]);
 
   const statusCoachFiltersActive =
-    statusFilters.length > 0 ||
+    (!trialLayout && statusFilters.length > 0) ||
     coachFilters.length > 0 ||
     onboardingFilters.length > 0 ||
     Boolean(starFilter) ||
-    accessExpiring.length > 0;
+    (!trialLayout && accessExpiring.length > 0);
   const geoFiltersActive =
     cityFilters.length > 0 || sexFilters.length > 0 || countryFilters.length > 0 || timezoneFilters.length > 0;
   const searchActive = searchQuery.trim().length > 0;
@@ -1832,14 +1835,16 @@ export function CohortDetailView({
             aria-label="Search members by name, email, or phone"
           />
         </div>
-        <CohortMultiFilterPopover
-          label="Status"
-          icon={<Tags className="h-3.5 w-3.5" />}
-          options={statusFilterOptions}
-          selected={statusFilters}
-          onChange={(statuses) => commitQuery({ statuses })}
-          emptyLabel="No statuses yet."
-        />
+        {!trialLayout ? (
+          <CohortMultiFilterPopover
+            label="Status"
+            icon={<Tags className="h-3.5 w-3.5" />}
+            options={statusFilterOptions}
+            selected={statusFilters}
+            onChange={(statuses) => commitQuery({ statuses })}
+            emptyLabel="No statuses yet."
+          />
+        ) : null}
         <CohortMultiFilterPopover
           label="Onboarding"
           icon={<CheckCircle2 className="h-3.5 w-3.5" />}
@@ -1849,14 +1854,16 @@ export function CohortDetailView({
           emptyLabel="No onboarding states yet."
         />
         <StarBalanceFilterPopover value={starFilter} onChange={(stars) => commitQuery({ stars })} />
-        <CohortMultiFilterPopover
-          label="Access until"
-          icon={<CalendarDays className="h-3.5 w-3.5" />}
-          options={accessFilterOptions}
-          selected={accessExpiring}
-          onChange={(access) => commitQuery({ accessExpiring: access })}
-          emptyLabel="No access windows."
-        />
+        {!trialLayout ? (
+          <CohortMultiFilterPopover
+            label="Access until"
+            icon={<CalendarDays className="h-3.5 w-3.5" />}
+            options={accessFilterOptions}
+            selected={accessExpiring}
+            onChange={(access) => commitQuery({ accessExpiring: access })}
+            emptyLabel="No access windows."
+          />
+        ) : null}
         <CohortMultiFilterPopover
           label="Coach"
           icon={<UserRound className="h-3.5 w-3.5" />}
