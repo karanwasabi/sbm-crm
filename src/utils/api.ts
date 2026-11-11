@@ -995,8 +995,7 @@ export type AppTrialGoals = {
 };
 
 export type AppTrialEnrollInput = {
-  starts_on: string;
-  ends_on: string;
+  duration_days: number;
   goals: AppTrialGoals;
 };
 

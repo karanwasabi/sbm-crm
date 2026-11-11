@@ -1,7 +1,7 @@
 'use client';
 
 import { Sparkles } from 'lucide-react';
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from 'react';
+import { useEffect, useState, useTransition, type ReactNode } from 'react';
 import { enrollLeadInAppTrialAction, getLeadAppTrialGoalsAction } from '@/app/(crm)/customers/actions';
 import { Button } from '@/components/ui/button';
 import {
@@ -49,40 +49,6 @@ type AppTrialDialogProps = {
   onEnrolled: () => void;
 };
 
-function isoDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function addDays(iso: string, days: number): string {
-  const [year, month, day] = iso.split('-').map(Number);
-  if (!year || !month || !day) return iso;
-  const date = new Date(year, month - 1, day);
-  date.setDate(date.getDate() + days);
-  return isoDate(date);
-}
-
-function inclusiveDays(start: string, end: string): number | null {
-  const [sy, sm, sd] = start.split('-').map(Number);
-  const [ey, em, ed] = end.split('-').map(Number);
-  if (!sy || !sm || !sd || !ey || !em || !ed) return null;
-  const from = Date.UTC(sy, sm - 1, sd);
-  const to = Date.UTC(ey, em - 1, ed);
-  return Math.round((to - from) / 86_400_000) + 1;
-}
-
-function formatLongDate(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number);
-  if (!year || !month || !day) return iso;
-  return new Date(year, month - 1, day).toLocaleDateString('en-IN', {
-    weekday: 'short',
-    day: 'numeric',
-    month: 'short',
-  });
-}
-
 function goalError(goals: AppTrialGoals): string | null {
   if (goals.steps_daily < 1000 || goals.steps_daily > 20000) return 'Steps must be between 1,000 and 20,000.';
   if (goals.exercise_days < 0 || goals.exercise_days > 7) return 'Exercise days must be between 0 and 7.';
@@ -96,8 +62,7 @@ function goalError(goals: AppTrialGoals): string | null {
 }
 
 export function AppTrialDialog({ open, onOpenChange, leadId, leadName, onEnrolled }: AppTrialDialogProps) {
-  const [startsOn, setStartsOn] = useState('');
-  const [endsOn, setEndsOn] = useState('');
+  const [durationDays, setDurationDays] = useState(String(DEFAULT_DAYS));
   const [goals, setGoals] = useState<AppTrialGoals>(EMPTY_GOALS);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -106,9 +71,7 @@ export function AppTrialDialog({ open, onOpenChange, leadId, leadName, onEnrolle
 
   useEffect(() => {
     if (!open) return;
-    const start = isoDate(new Date());
-    setStartsOn(start);
-    setEndsOn(addDays(start, DEFAULT_DAYS - 1));
+    setDurationDays(String(DEFAULT_DAYS));
     setGoals(EMPTY_GOALS);
     setLoadError(null);
     setSubmitError(null);
@@ -123,20 +86,10 @@ export function AppTrialDialog({ open, onOpenChange, leadId, leadName, onEnrolle
     });
   }, [open, leadId]);
 
-  const length = inclusiveDays(startsOn, endsOn);
-  const lengthValue = length != null && length >= MIN_DAYS && length <= MAX_DAYS ? String(length) : '';
-  const windowError =
-    length == null
-      ? 'Choose a start and end date.'
-      : length < MIN_DAYS || length > MAX_DAYS
-        ? 'Trial length must be 5 to 14 days.'
-        : null;
+  const length = Number(durationDays);
+  const lengthError =
+    !Number.isFinite(length) || length < MIN_DAYS || length > MAX_DAYS ? 'Trial length must be 5 to 14 days.' : null;
   const goalsInvalid = goalError(goals);
-
-  const summary = useMemo(() => {
-    if (!startsOn || !endsOn || length == null || length < 1) return null;
-    return `${formatLongDate(startsOn)} to ${formatLongDate(endsOn)} · ${length} day${length === 1 ? '' : 's'}`;
-  }, [startsOn, endsOn, length]);
 
   const setGoal = (key: keyof AppTrialGoals, raw: string) => {
     const value = raw.trim() === '' ? 0 : Number(raw);
@@ -145,14 +98,13 @@ export function AppTrialDialog({ open, onOpenChange, leadId, leadName, onEnrolle
   };
 
   const handleSubmit = () => {
-    if (windowError || goalsInvalid) {
-      setSubmitError(windowError ?? goalsInvalid);
+    if (lengthError || goalsInvalid) {
+      setSubmitError(lengthError ?? goalsInvalid);
       return;
     }
     startSubmit(async () => {
       const result = await enrollLeadInAppTrialAction(leadId, {
-        starts_on: startsOn,
-        ends_on: endsOn,
+        duration_days: length,
         goals: {
           ...goals,
           steps_daily: Math.round(goals.steps_daily),
@@ -178,64 +130,36 @@ export function AppTrialDialog({ open, onOpenChange, leadId, leadName, onEnrolle
             Add to Take Control Trial
           </DialogTitle>
           <DialogDescription className="text-left text-sm text-slate-600">
-            Give <span className="font-semibold text-slate-800">{leadName}</span> a personal trial. Day 1 is the start
-            date. The app stays open through the last check-in, then asks them to join the next classroom batch.
+            Give <span className="font-semibold text-slate-800">{leadName}</span> a personal trial. They will see a
+            welcome screen and Day 1 starts when they tap Start trial in the app.
           </DialogDescription>
         </DialogHeader>
 
         <div className="max-h-[min(70vh,36rem)] space-y-5 overflow-y-auto px-6 py-5">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Starts" htmlFor="app-trial-start">
-              <Input
-                id="app-trial-start"
-                type="date"
-                value={startsOn}
-                className="h-11"
-                onChange={(event) => {
-                  const next = event.target.value;
-                  setStartsOn(next);
-                  if (lengthValue) setEndsOn(addDays(next, Number(lengthValue) - 1));
-                  setSubmitError(null);
-                }}
-              />
-            </Field>
-            <Field label="Ends" htmlFor="app-trial-end">
-              <Input
-                id="app-trial-end"
-                type="date"
-                value={endsOn}
-                min={startsOn || undefined}
-                className="h-11"
-                onChange={(event) => {
-                  setEndsOn(event.target.value);
-                  setSubmitError(null);
-                }}
-              />
-            </Field>
-          </div>
-
           <Field label="Length">
             <SearchableSelect
-              value={lengthValue}
+              value={durationDays}
               searchable={false}
               placeholder="5 to 14 days"
               options={LENGTH_OPTIONS}
               onChange={(value) => {
-                if (!startsOn) return;
-                setEndsOn(addDays(startsOn, Number(value) - 1));
+                setDurationDays(value);
                 setSubmitError(null);
               }}
             />
           </Field>
 
-          {summary ? <p className="text-sm font-medium text-slate-700">{summary}</p> : null}
-          {windowError && startsOn && endsOn ? <p className="text-sm text-red-600">{windowError}</p> : null}
+          <p className="text-sm font-medium text-slate-700">
+            {length} day{length === 1 ? '' : 's'} · starts when they tap Start trial
+          </p>
+          {lengthError ? <p className="text-sm text-red-600">{lengthError}</p> : null}
 
           <div className="space-y-3">
             <div>
               <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">Week 1 goals</p>
               <p className="mt-1 text-sm text-slate-500">
-                Filled from their last week, or Point A when there is no week on file. Saved exactly as entered.
+                Filled from their last week, or Point A when there is no week on file. Applied when they start the
+                trial.
               </p>
             </div>
             {loading ? (
@@ -350,7 +274,7 @@ export function AppTrialDialog({ open, onOpenChange, leadId, leadName, onEnrolle
             className="min-w-[8.75rem]"
             loading={submitting}
             loadingLabel="Adding…"
-            disabled={loading || Boolean(loadError) || Boolean(windowError) || Boolean(goalsInvalid) || submitting}
+            disabled={loading || Boolean(loadError) || Boolean(lengthError) || Boolean(goalsInvalid) || submitting}
             onClick={handleSubmit}
           >
             Add to trial
