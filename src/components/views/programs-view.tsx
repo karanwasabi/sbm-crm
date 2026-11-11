@@ -9,7 +9,7 @@ type ProgramsViewProps = {
   cohorts: CohortSummary[];
 };
 
-type BandTone = 'live' | 'future' | 'test';
+type BandTone = 'live' | 'future' | 'trial' | 'test';
 
 const TITLE_ACCENT: Record<BandTone, { bar: string; title: string; count: string }> = {
   live: {
@@ -21,6 +21,11 @@ const TITLE_ACCENT: Record<BandTone, { bar: string; title: string; count: string
     bar: 'bg-brand',
     title: 'text-brand-press',
     count: 'text-brand',
+  },
+  trial: {
+    bar: 'bg-[#7C3AED]',
+    title: 'text-[#5B21B6]',
+    count: 'text-[#6D28D9]',
   },
   test: {
     bar: 'bg-amber-700',
@@ -70,9 +75,9 @@ function CohortSection({
 }
 
 export function ProgramsView({ cohorts }: ProgramsViewProps) {
-  const { live, futureUpcoming, futureQueued, test } = partitionProgramCohorts(cohorts);
+  const { live, futureUpcoming, futureQueued, trial, test } = partitionProgramCohorts(cohorts);
   const futureCount = futureUpcoming.length + futureQueued.length;
-  const empty = live.length === 0 && futureCount === 0 && test.length === 0;
+  const empty = live.length === 0 && futureCount === 0 && trial.length === 0 && test.length === 0;
 
   const sections: { key: string; node: ReactNode }[] = [];
   if (live.length > 0) {
@@ -91,6 +96,16 @@ export function ProgramsView({ cohorts }: ProgramsViewProps) {
       node: (
         <CohortSection tone="future" label="Future" count={futureCount}>
           <CohortCardGrid cohorts={[...futureUpcoming, ...futureQueued]} />
+        </CohortSection>
+      ),
+    });
+  }
+  if (trial.length > 0) {
+    sections.push({
+      key: 'trial',
+      node: (
+        <CohortSection tone="trial" label="Trial" count={trial.length}>
+          <CohortCardGrid cohorts={trial} />
         </CohortSection>
       ),
     });

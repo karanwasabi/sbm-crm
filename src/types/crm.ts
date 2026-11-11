@@ -704,21 +704,26 @@ export type CohortSummary = {
   canEditStartsOn: boolean;
   isLive: boolean;
   color: string;
+  /** Present when the programs page tags cohorts by parent program. */
+  programSlug?: string;
+  isDemo?: boolean;
 };
 
 export type CohortDetail = CohortSummary & {
   programName: string;
+  programSlug?: string;
   paidMemberCount: number;
   pointAEnabled?: boolean;
   pointAEffective?: boolean;
   canEditPointAEnabled?: boolean;
-  isDemo?: boolean;
   canEditIsDemo?: boolean;
   canEditIsLive?: boolean;
   canDelete?: boolean;
   canArchive?: boolean;
   cleanupBlockers?: string[];
 };
+
+export type CohortMemberTrialState = 'pending' | 'active' | 'lapsed' | 'converted';
 
 export type CohortMember = {
   enrollmentId: string;
@@ -767,6 +772,11 @@ export type CohortMember = {
   starsSpent: number;
   starsAvailable: number;
   starsValue: string;
+  /** Present for Take Control Trial enrollments. */
+  trialState?: CohortMemberTrialState;
+  trialStartsOn?: string | null;
+  trialEndsOn?: string | null;
+  trialDurationDays?: number | null;
 };
 
 /** @deprecated Use CohortSummary */

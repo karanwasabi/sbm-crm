@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { firstLiveCohortId, partitionCohorts, partitionProgramCohorts } from '@/lib/cohort-display';
 
-function cohort(partial: { id: string; startsOn: string; status: string; isLive: boolean; isDemo?: boolean }) {
+function cohort(partial: {
+  id: string;
+  startsOn: string;
+  status: string;
+  isLive: boolean;
+  isDemo?: boolean;
+  programSlug?: string;
+}) {
   return partial;
 }
 
@@ -13,23 +20,32 @@ const samples = [
   cohort({ id: 'live-old', startsOn: '2026-04-13', status: 'locked', isLive: true }),
   cohort({ id: 'test-demo', startsOn: '2026-07-13', status: 'active', isLive: false }),
   cohort({ id: 'demo-webinar', startsOn: '2026-11-02', status: 'upcoming', isLive: false, isDemo: true }),
+  cohort({
+    id: 'trial-cohort',
+    startsOn: '2026-06-01',
+    status: 'active',
+    isLive: true,
+    programSlug: 'take-control-trial',
+  }),
 ];
 
 describe('partitionProgramCohorts', () => {
-  it('puts running live first by start date, then upcoming, queued, then test', () => {
-    const { live, futureUpcoming, futureQueued, test } = partitionProgramCohorts(samples);
+  it('puts running live first by start date, then upcoming, queued, trial, then test', () => {
+    const { live, futureUpcoming, futureQueued, trial, test } = partitionProgramCohorts(samples);
     expect(live.map((c) => c.id)).toEqual(['live-new', 'live-old']);
     expect(futureUpcoming.map((c) => c.id)).toEqual(['upcoming']);
     expect(futureQueued.map((c) => c.id)).toEqual(['queued']);
+    expect(trial.map((c) => c.id)).toEqual(['trial-cohort']);
     expect(test.map((c) => c.id)).toEqual(['demo-webinar', 'test-demo', 'test-old']);
   });
 });
 
 describe('partitionCohorts', () => {
-  it('keeps future after live and before test', () => {
-    const { live, future, test } = partitionCohorts(samples);
+  it('keeps future after live, trial after future, and before test', () => {
+    const { live, future, trial, test } = partitionCohorts(samples);
     expect(live.map((c) => c.id)).toEqual(['live-new', 'live-old']);
     expect(future.map((c) => c.id)).toEqual(['upcoming', 'queued']);
+    expect(trial.map((c) => c.id)).toEqual(['trial-cohort']);
     expect(test.map((c) => c.id)).toEqual(['demo-webinar', 'test-demo', 'test-old']);
   });
 });

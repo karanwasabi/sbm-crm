@@ -2763,6 +2763,7 @@ type ApiCohortResponse = {
 
 type ApiCohortDetailResponse = ApiCohortResponse & {
   program_name: string;
+  program_slug?: string;
   paid_member_count: number;
   point_a_enabled?: boolean;
   point_a_effective?: boolean;
@@ -2815,6 +2816,10 @@ type ApiCohortMemberResponse = {
   stars_spent?: number | null;
   stars_available?: number | null;
   stars_value?: string | null;
+  trial_state?: 'pending' | 'active' | 'lapsed' | 'converted' | null;
+  trial_starts_on?: string | null;
+  trial_ends_on?: string | null;
+  trial_duration_days?: number | null;
 };
 
 function mapCohortSummary(row: ApiCohortResponse): import('@/types/crm').CohortSummary {
@@ -2837,6 +2842,7 @@ function mapCohortDetail(row: ApiCohortDetailResponse): import('@/types/crm').Co
   return {
     ...mapCohortSummary(row),
     programName: row.program_name,
+    programSlug: row.program_slug?.trim() || undefined,
     paidMemberCount: row.paid_member_count,
     pointAEnabled: row.point_a_enabled,
     pointAEffective: row.point_a_effective,
@@ -2891,6 +2897,19 @@ function mapCohortMember(row: ApiCohortMemberResponse): import('@/types/crm').Co
     starsSpent: row.stars_spent ?? 0,
     starsAvailable: row.stars_available ?? 0,
     starsValue: row.stars_value?.trim() || '',
+    trialState:
+      row.trial_state === 'pending' ||
+      row.trial_state === 'active' ||
+      row.trial_state === 'lapsed' ||
+      row.trial_state === 'converted'
+        ? row.trial_state
+        : undefined,
+    trialStartsOn: row.trial_starts_on?.trim() || null,
+    trialEndsOn: row.trial_ends_on?.trim() || null,
+    trialDurationDays:
+      typeof row.trial_duration_days === 'number' && Number.isFinite(row.trial_duration_days)
+        ? row.trial_duration_days
+        : null,
   };
 }
 

@@ -1,12 +1,24 @@
 type PhasePillTone = 'neutral' | 'brand' | 'success' | 'warn' | 'danger' | 'deep' | 'paid' | 'organic' | 'offline';
 
+export const TAKE_CONTROL_TRIAL_PROGRAM_SLUG = 'take-control-trial';
+
 export function isFutureCohort(cohort: { status?: string }): boolean {
   return cohort.status === 'upcoming' || cohort.status === 'queued';
 }
 
-/** Running live batches, plus pipeline (upcoming/queued). Not test. */
-export function isLiveCohort(cohort: { isLive?: boolean; status?: string }): boolean {
+/** Running live batches, plus pipeline (upcoming/queued). Not test or trial. */
+export function isLiveCohort(cohort: {
+  isLive?: boolean;
+  status?: string;
+  programSlug?: string;
+  isDemo?: boolean;
+}): boolean {
+  if (cohort.isDemo || cohort.programSlug === TAKE_CONTROL_TRIAL_PROGRAM_SLUG) return false;
   return isFutureCohort(cohort) || Boolean(cohort.isLive);
+}
+
+export function isTrialProgramCohort(cohort: { programSlug?: string; isDemo?: boolean }): boolean {
+  return !cohort.isDemo && cohort.programSlug === TAKE_CONTROL_TRIAL_PROGRAM_SLUG;
 }
 
 function compareStartsOnDesc(a: { startsOn: string }, b: { startsOn: string }): number {
@@ -18,29 +30,36 @@ function compareStartsOnAsc(a: { startsOn: string }, b: { startsOn: string }): n
 }
 
 export function compareCohortsLiveFirst(
-  a: { startsOn: string; isLive?: boolean; status?: string },
-  b: { startsOn: string; isLive?: boolean; status?: string }
+  a: { startsOn: string; isLive?: boolean; status?: string; programSlug?: string; isDemo?: boolean },
+  b: { startsOn: string; isLive?: boolean; status?: string; programSlug?: string; isDemo?: boolean }
 ): number {
   const liveDiff = Number(isLiveCohort(b)) - Number(isLiveCohort(a));
   if (liveDiff !== 0) return liveDiff;
   return compareStartsOnDesc(a, b);
 }
 
-export function sortCohorts<T extends { startsOn: string; isLive?: boolean; status?: string }>(cohorts: T[]): T[] {
+export function sortCohorts<
+  T extends { startsOn: string; isLive?: boolean; status?: string; programSlug?: string; isDemo?: boolean },
+>(cohorts: T[]): T[] {
   return [...cohorts].sort(compareCohortsLiveFirst);
 }
 
 export function partitionProgramCohorts<
-  T extends { startsOn: string; isLive?: boolean; status?: string; isDemo?: boolean },
->(cohorts: T[]): { live: T[]; futureUpcoming: T[]; futureQueued: T[]; test: T[] } {
+  T extends { startsOn: string; isLive?: boolean; status?: string; isDemo?: boolean; programSlug?: string },
+>(cohorts: T[]): { live: T[]; futureUpcoming: T[]; futureQueued: T[]; trial: T[]; test: T[] } {
   const live: T[] = [];
   const futureUpcoming: T[] = [];
   const futureQueued: T[] = [];
+  const trial: T[] = [];
   const test: T[] = [];
 
   for (const cohort of cohorts) {
     if (cohort.isDemo) {
       test.push(cohort);
+      continue;
+    }
+    if (cohort.programSlug === TAKE_CONTROL_TRIAL_PROGRAM_SLUG) {
+      trial.push(cohort);
       continue;
     }
     if (cohort.status === 'upcoming') {
@@ -61,27 +80,29 @@ export function partitionProgramCohorts<
   live.sort(compareStartsOnDesc);
   futureUpcoming.sort(compareStartsOnAsc);
   futureQueued.sort(compareStartsOnAsc);
+  trial.sort(compareStartsOnDesc);
   test.sort(compareStartsOnDesc);
 
-  return { live, futureUpcoming, futureQueued, test };
+  return { live, futureUpcoming, futureQueued, trial, test };
 }
 
-export function partitionCohorts<T extends { startsOn: string; isLive?: boolean; status?: string }>(
-  cohorts: T[]
-): { live: T[]; future: T[]; test: T[] } {
-  const { live, futureUpcoming, futureQueued, test } = partitionProgramCohorts(cohorts);
+export function partitionCohorts<
+  T extends { startsOn: string; isLive?: boolean; status?: string; isDemo?: boolean; programSlug?: string },
+>(cohorts: T[]): { live: T[]; future: T[]; trial: T[]; test: T[] } {
+  const { live, futureUpcoming, futureQueued, trial, test } = partitionProgramCohorts(cohorts);
   return {
     live,
     future: [...futureUpcoming, ...futureQueued],
+    trial,
     test,
   };
 }
 
-export function firstLiveCohortId<T extends { id: string; isLive?: boolean; status?: string; startsOn: string }>(
-  cohorts: T[]
-): string {
-  const { live, future, test } = partitionCohorts(cohorts);
-  return live[0]?.id ?? future[0]?.id ?? test[0]?.id ?? '';
+export function firstLiveCohortId<
+  T extends { id: string; isLive?: boolean; status?: string; startsOn: string; isDemo?: boolean; programSlug?: string },
+>(cohorts: T[]): string {
+  const { live, future, trial, test } = partitionCohorts(cohorts);
+  return live[0]?.id ?? future[0]?.id ?? trial[0]?.id ?? test[0]?.id ?? '';
 }
 
 export function formatCohortStartDate(startsOn: string): string {

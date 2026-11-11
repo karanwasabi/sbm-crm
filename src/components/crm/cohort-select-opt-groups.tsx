@@ -5,6 +5,8 @@ type CohortSelectItem = {
   startsOn: string;
   isLive?: boolean;
   status?: string;
+  isDemo?: boolean;
+  programSlug?: string;
 };
 
 type CohortSelectOptGroupsProps<T extends CohortSelectItem> = {
@@ -22,7 +24,7 @@ export function CohortSelectOptGroups<T extends CohortSelectItem>({
     return <option value="">{emptyLabel}</option>;
   }
 
-  const { live, future, test } = partitionCohorts(cohorts);
+  const { live, future, trial, test } = partitionCohorts(cohorts);
 
   return (
     <>
@@ -38,6 +40,15 @@ export function CohortSelectOptGroups<T extends CohortSelectItem>({
       {future.length > 0 ? (
         <optgroup label="Future">
           {future.map((cohort) => (
+            <option key={cohort.id} value={cohort.id}>
+              {labelFor(cohort)}
+            </option>
+          ))}
+        </optgroup>
+      ) : null}
+      {trial.length > 0 ? (
+        <optgroup label="Trial">
+          {trial.map((cohort) => (
             <option key={cohort.id} value={cohort.id}>
               {labelFor(cohort)}
             </option>

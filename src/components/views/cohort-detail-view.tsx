@@ -54,6 +54,7 @@ import { CohortExportButton } from '@/components/programs/cohort-export-button';
 import { CohortPushBroadcastButton } from '@/components/programs/cohort-push-broadcast-button';
 import { CohortScheduledPushList } from '@/components/programs/cohort-scheduled-push-list';
 import { CohortTransferDialog } from '@/components/programs/cohort-transfer-dialog';
+import { TrialMemberTable } from '@/components/programs/trial-member-table';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { ActiveFilterTag } from '@/components/ui/active-filter-tag';
 import { Button } from '@/components/ui/button';
@@ -89,6 +90,7 @@ import {
   type CohortMemberSortKey,
   type CohortMemberSortOrder,
 } from '@/lib/cohort-member-query';
+import { isTrialCohortDetail, partitionTrialMembers } from '@/lib/trial-cohort-display';
 import { useDebouncedSearchInput } from '@/hooks/use-debounced-search-input';
 import { cn } from '@/lib/cn';
 import type { CohortDetail, CohortMember, CohortSummary } from '@/types/crm';
@@ -792,6 +794,9 @@ function CohortDetailHeader({
   pausedCount,
   lapsedCount,
   transferredCount,
+  trialPendingCount,
+  trialActiveCount,
+  trialEndedCount,
   canManagePointA,
   pointAEnabled,
   pointAEffective,
@@ -811,6 +816,9 @@ function CohortDetailHeader({
   pausedCount: number;
   lapsedCount: number;
   transferredCount: number;
+  trialPendingCount?: number;
+  trialActiveCount?: number;
+  trialEndedCount?: number;
   canManagePointA?: boolean;
   pointAEnabled: boolean;
   pointAEffective: boolean;
@@ -824,6 +832,7 @@ function CohortDetailHeader({
   isLiveSaving?: boolean;
   onRequestToggleIsLive?: (enabled: boolean) => void;
 }) {
+  const trialLayout = isTrialCohortDetail(cohort);
   const startDateReached = cohortStartDateReached(cohort.startsOn);
   const showPointAToggle = !startDateReached;
   const showDemoToggle = /demo/i.test(cohort.name);
@@ -919,15 +928,27 @@ function CohortDetailHeader({
         </div>
 
         <div className="inline-flex shrink-0 overflow-hidden rounded-2xl border-b-2 border-black/22 bg-black/16 sm:self-center">
-          <CohortHeaderStat label="Active" value={activeCount} />
-          <div className="w-px self-stretch bg-white/20" aria-hidden />
-          <CohortHeaderStat label="Grace" value={graceCount} />
-          <div className="w-px self-stretch bg-white/20" aria-hidden />
-          <CohortHeaderStat label="Paused" value={pausedCount} />
-          <div className="w-px self-stretch bg-white/20" aria-hidden />
-          <CohortHeaderStat label="Lapsed" value={lapsedCount} />
-          <div className="w-px self-stretch bg-white/20" aria-hidden />
-          <CohortHeaderStat label="Transferred" value={transferredCount} />
+          {trialLayout ? (
+            <>
+              <CohortHeaderStat label="Pending" value={trialPendingCount ?? 0} />
+              <div className="w-px self-stretch bg-white/20" aria-hidden />
+              <CohortHeaderStat label="Active" value={trialActiveCount ?? 0} />
+              <div className="w-px self-stretch bg-white/20" aria-hidden />
+              <CohortHeaderStat label="Ended" value={trialEndedCount ?? 0} />
+            </>
+          ) : (
+            <>
+              <CohortHeaderStat label="Active" value={activeCount} />
+              <div className="w-px self-stretch bg-white/20" aria-hidden />
+              <CohortHeaderStat label="Grace" value={graceCount} />
+              <div className="w-px self-stretch bg-white/20" aria-hidden />
+              <CohortHeaderStat label="Paused" value={pausedCount} />
+              <div className="w-px self-stretch bg-white/20" aria-hidden />
+              <CohortHeaderStat label="Lapsed" value={lapsedCount} />
+              <div className="w-px self-stretch bg-white/20" aria-hidden />
+              <CohortHeaderStat label="Transferred" value={transferredCount} />
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -1558,6 +1579,19 @@ export function CohortDetailView({
     [members]
   );
 
+  const trialLayout = isTrialCohortDetail(cohort);
+  const allTrialPartitions = useMemo(() => partitionTrialMembers(members), [members]);
+  const filteredTrialPartitions = useMemo(() => {
+    const coachFiltered =
+      coachFilters.length === 0
+        ? geoFilteredMembers
+        : geoFilteredMembers.filter((member) => {
+            const coachId = member.coachUserId || 'unassigned';
+            return coachFilters.includes(coachId);
+          });
+    return partitionTrialMembers(coachFiltered);
+  }, [coachFilters, geoFilteredMembers]);
+
   const cityFilterOptions = useMemo(
     () =>
       buildGeoFilterOptions(
@@ -2067,6 +2101,9 @@ export function CohortDetailView({
         pausedCount={allPausedMembers.length}
         lapsedCount={allLapsedMembers.length}
         transferredCount={allTransferredMembers.length}
+        trialPendingCount={allTrialPartitions.pending.length}
+        trialActiveCount={allTrialPartitions.active.length}
+        trialEndedCount={allTrialPartitions.ended.length}
         canManagePointA={canManagePointA}
         pointAEnabled={pointAEnabled}
         pointAEffective={pointAEffective}
@@ -2265,107 +2302,150 @@ export function CohortDetailView({
       ) : null}
 
       <div className="space-y-4">
-        <MemberTable
-          title="Active subscriptions"
-          subtitle={`${filteredActiveMembers.length} member${filteredActiveMembers.length === 1 ? '' : 's'} with live access`}
-          rows={sortedActiveMembers}
-          transferColumn={canTransfer}
-          showTransfer={canTransfer}
-          selectedIds={selectedIds}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
-          onTransfer={setTransferMember}
-          sortable
-          sortKey={sortKey}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-          emptyMessage={filtersActive ? 'No active members match the current filters.' : 'No members in this section.'}
-          statusMode="lifecycle"
-          toolbar={activeFilterToolbar}
-          coachTones={coachTones}
-          showBodyMetrics={showBodyMetrics}
-        />
-        <MemberTable
-          title="Grace"
-          subtitle={`${sortedGraceMembers.length} member${sortedGraceMembers.length === 1 ? '' : 's'} whose access ended, still within grace`}
-          rows={sortedGraceMembers}
-          transferColumn={canTransfer}
-          showTransfer={canTransfer}
-          selectedIds={selectedIds}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
-          onTransfer={setTransferMember}
-          sortable
-          sortKey={sortKey}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-          emptyMessage={filtersActive ? 'No grace members match the current filters.' : undefined}
-          statusMode="grace"
-          coachTones={coachTones}
-          showBodyMetrics={showBodyMetrics}
-        />
-        <MemberTable
-          title="Paused"
-          subtitle={`${sortedPausedMembers.length} member${sortedPausedMembers.length === 1 ? '' : 's'} with an active membership pause`}
-          rows={sortedPausedMembers}
-          transferColumn={canTransfer}
-          showTransfer={canTransfer}
-          selectedIds={selectedIds}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
-          onTransfer={setTransferMember}
-          sortable
-          sortKey={sortKey}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-          emptyMessage={filtersActive ? 'No paused members match the current filters.' : undefined}
-          statusMode="paused"
-          coachTones={coachTones}
-          showBodyMetrics={showBodyMetrics}
-        />
-        <MemberTable
-          title="Lapsed"
-          subtitle={`${sortedLapsedMembers.length} cancelled, halted, or expired member${sortedLapsedMembers.length === 1 ? '' : 's'}`}
-          rows={sortedLapsedMembers}
-          deemphasized
-          transferColumn={false}
-          selectedIds={selectedIds}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
-          onTransfer={() => undefined}
-          sortable
-          sortKey={sortKey}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-          emptyMessage={filtersActive ? 'No lapsed members match the current filters.' : undefined}
-          statusMode="lapsed"
-          coachTones={coachTones}
-          showBodyMetrics={showBodyMetrics}
-        />
-        <MemberTable
-          title="Transferred"
-          subtitle={`${sortedTransferredMembers.length} membership transfer${sortedTransferredMembers.length === 1 ? '' : 's'} out of this batch`}
-          rows={sortedTransferredMembers}
-          deemphasized
-          transferColumn={false}
-          selectedIds={selectedIds}
-          onToggle={toggle}
-          onToggleAll={toggleAll}
-          onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
-          onTransfer={() => undefined}
-          sortable
-          sortKey={sortKey}
-          sortOrder={sortOrder}
-          onSort={handleSort}
-          emptyMessage={filtersActive ? 'No transferred members match the current filters.' : undefined}
-          statusMode="transferred"
-          coachTones={coachTones}
-          showBodyMetrics={showBodyMetrics}
-        />
+        {trialLayout ? (
+          <>
+            <TrialMemberTable
+              title="Trial pending"
+              subtitle={`${filteredTrialPartitions.pending.length} member${filteredTrialPartitions.pending.length === 1 ? '' : 's'} enrolled, not yet started`}
+              rows={filteredTrialPartitions.pending}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              emptyMessage={
+                filtersActive ? 'No pending trials match the current filters.' : 'No members in this section.'
+              }
+              toolbar={activeFilterToolbar}
+            />
+            <TrialMemberTable
+              title="Trial active"
+              subtitle={`${filteredTrialPartitions.active.length} member${filteredTrialPartitions.active.length === 1 ? '' : 's'} in an open trial window`}
+              rows={filteredTrialPartitions.active}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              emptyMessage={filtersActive ? 'No active trials match the current filters.' : undefined}
+            />
+            <TrialMemberTable
+              title="Trial ended"
+              subtitle={`${filteredTrialPartitions.ended.length} trial${filteredTrialPartitions.ended.length === 1 ? '' : 's'} closed without conversion`}
+              rows={filteredTrialPartitions.ended}
+              deemphasized
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              emptyMessage={filtersActive ? 'No ended trials match the current filters.' : undefined}
+            />
+          </>
+        ) : (
+          <>
+            <MemberTable
+              title="Active subscriptions"
+              subtitle={`${filteredActiveMembers.length} member${filteredActiveMembers.length === 1 ? '' : 's'} with live access`}
+              rows={sortedActiveMembers}
+              transferColumn={canTransfer}
+              showTransfer={canTransfer}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              onTransfer={setTransferMember}
+              sortable
+              sortKey={sortKey}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              emptyMessage={
+                filtersActive ? 'No active members match the current filters.' : 'No members in this section.'
+              }
+              statusMode="lifecycle"
+              toolbar={activeFilterToolbar}
+              coachTones={coachTones}
+              showBodyMetrics={showBodyMetrics}
+            />
+            <MemberTable
+              title="Grace"
+              subtitle={`${sortedGraceMembers.length} member${sortedGraceMembers.length === 1 ? '' : 's'} whose access ended, still within grace`}
+              rows={sortedGraceMembers}
+              transferColumn={canTransfer}
+              showTransfer={canTransfer}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              onTransfer={setTransferMember}
+              sortable
+              sortKey={sortKey}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              emptyMessage={filtersActive ? 'No grace members match the current filters.' : undefined}
+              statusMode="grace"
+              coachTones={coachTones}
+              showBodyMetrics={showBodyMetrics}
+            />
+            <MemberTable
+              title="Paused"
+              subtitle={`${sortedPausedMembers.length} member${sortedPausedMembers.length === 1 ? '' : 's'} with an active membership pause`}
+              rows={sortedPausedMembers}
+              transferColumn={canTransfer}
+              showTransfer={canTransfer}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              onTransfer={setTransferMember}
+              sortable
+              sortKey={sortKey}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              emptyMessage={filtersActive ? 'No paused members match the current filters.' : undefined}
+              statusMode="paused"
+              coachTones={coachTones}
+              showBodyMetrics={showBodyMetrics}
+            />
+            <MemberTable
+              title="Lapsed"
+              subtitle={`${sortedLapsedMembers.length} cancelled, halted, or expired member${sortedLapsedMembers.length === 1 ? '' : 's'}`}
+              rows={sortedLapsedMembers}
+              deemphasized
+              transferColumn={false}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              onTransfer={() => undefined}
+              sortable
+              sortKey={sortKey}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              emptyMessage={filtersActive ? 'No lapsed members match the current filters.' : undefined}
+              statusMode="lapsed"
+              coachTones={coachTones}
+              showBodyMetrics={showBodyMetrics}
+            />
+            <MemberTable
+              title="Transferred"
+              subtitle={`${sortedTransferredMembers.length} membership transfer${sortedTransferredMembers.length === 1 ? '' : 's'} out of this batch`}
+              rows={sortedTransferredMembers}
+              deemphasized
+              transferColumn={false}
+              selectedIds={selectedIds}
+              onToggle={toggle}
+              onToggleAll={toggleAll}
+              onRowClick={(member) => member.leadId && openCustomer(member.leadId)}
+              onTransfer={() => undefined}
+              sortable
+              sortKey={sortKey}
+              sortOrder={sortOrder}
+              onSort={handleSort}
+              emptyMessage={filtersActive ? 'No transferred members match the current filters.' : undefined}
+              statusMode="transferred"
+              coachTones={coachTones}
+              showBodyMetrics={showBodyMetrics}
+            />
+          </>
+        )}
       </div>
 
       <CohortEditDialog cohort={cohort} open={editOpen} onOpenChange={setEditOpen} />
