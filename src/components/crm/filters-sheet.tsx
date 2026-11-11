@@ -11,12 +11,12 @@ type FiltersSheetProps = {
   title?: string;
 };
 
-/** Mobile-only entry that opens filter controls in a sheet. Hidden at `lg+`. */
+/** Mobile filter entry that opens controls in a sheet. Parent should only mount this below `lg`. */
 export function FiltersSheet({ activeCount = 0, children, title = 'Filters' }: FiltersSheetProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="lg:hidden">
+    <>
       <Button
         type="button"
         variant="light"
@@ -40,6 +40,6 @@ export function FiltersSheet({ activeCount = 0, children, title = 'Filters' }: F
           <SheetBody className="flex flex-col gap-3">{children}</SheetBody>
         </SheetContent>
       </Sheet>
-    </div>
+    </>
   );
 }

@@ -11,22 +11,6 @@ import {
   forceLeadNutritionRecalcAction,
   getLeadWhatsAppChatAction,
 } from '@/app/(crm)/customers/actions';
-import { SendEmailDialog } from '@/components/comms/send-email-dialog';
-import { SendWhatsAppDialog } from '@/components/comms/send-whatsapp-dialog';
-import { LeadPurgeModal } from '@/components/crm/lead-purge-modal';
-import { OfflineEnrollDialog } from '@/components/crm/offline-enroll-dialog';
-import { AppTrialDialog } from '@/components/crm/app-trial-dialog';
-import { MembershipTransferDialog } from '@/components/crm/membership-transfer-dialog';
-import { SetPasswordDialog } from '@/components/crm/set-password-dialog';
-import { CorrectEmailDialog } from '@/components/crm/correct-email-dialog';
-import { CorrectNameDialog } from '@/components/crm/correct-name-dialog';
-import { CorrectPhoneDialog } from '@/components/crm/correct-phone-dialog';
-import { AttachZohoPaymentDialog } from '@/components/crm/attach-zoho-payment-dialog';
-import { CorrectHeightDialog } from '@/components/crm/correct-height-dialog';
-import { CorrectWeightsDialog } from '@/components/crm/correct-weights-dialog';
-import { CheckInEditorDialog } from '@/components/crm/check-in-editor-dialog';
-import { EditTimezoneDialog } from '@/components/crm/edit-timezone-dialog';
-import { ResetOnboardingPointADialog } from '@/components/crm/reset-onboarding-point-a-dialog';
 import { MemberAppProfileCard } from '@/components/crm/member-app-profile-card';
 import { PointAAssessmentCard } from '@/components/crm/point-a-assessment-card';
 import { LeadDataSuggestionsCard } from '@/components/leads/lead-data-suggestions-card';
@@ -56,6 +40,79 @@ import type { Country } from '@/types/reference';
 
 const CallLogModal = dynamic(
   () => import('@/components/crm/call-log-modal').then((module) => ({ default: module.CallLogModal })),
+  { ssr: false }
+);
+const SendEmailDialog = dynamic(
+  () => import('@/components/comms/send-email-dialog').then((module) => ({ default: module.SendEmailDialog })),
+  { ssr: false }
+);
+const SendWhatsAppDialog = dynamic(
+  () => import('@/components/comms/send-whatsapp-dialog').then((module) => ({ default: module.SendWhatsAppDialog })),
+  { ssr: false }
+);
+const LeadPurgeModal = dynamic(
+  () => import('@/components/crm/lead-purge-modal').then((module) => ({ default: module.LeadPurgeModal })),
+  { ssr: false }
+);
+const OfflineEnrollDialog = dynamic(
+  () => import('@/components/crm/offline-enroll-dialog').then((module) => ({ default: module.OfflineEnrollDialog })),
+  { ssr: false }
+);
+const AppTrialDialog = dynamic(
+  () => import('@/components/crm/app-trial-dialog').then((module) => ({ default: module.AppTrialDialog })),
+  { ssr: false }
+);
+const MembershipTransferDialog = dynamic(
+  () =>
+    import('@/components/crm/membership-transfer-dialog').then((module) => ({
+      default: module.MembershipTransferDialog,
+    })),
+  { ssr: false }
+);
+const SetPasswordDialog = dynamic(
+  () => import('@/components/crm/set-password-dialog').then((module) => ({ default: module.SetPasswordDialog })),
+  { ssr: false }
+);
+const CorrectEmailDialog = dynamic(
+  () => import('@/components/crm/correct-email-dialog').then((module) => ({ default: module.CorrectEmailDialog })),
+  { ssr: false }
+);
+const CorrectNameDialog = dynamic(
+  () => import('@/components/crm/correct-name-dialog').then((module) => ({ default: module.CorrectNameDialog })),
+  { ssr: false }
+);
+const CorrectPhoneDialog = dynamic(
+  () => import('@/components/crm/correct-phone-dialog').then((module) => ({ default: module.CorrectPhoneDialog })),
+  { ssr: false }
+);
+const AttachZohoPaymentDialog = dynamic(
+  () =>
+    import('@/components/crm/attach-zoho-payment-dialog').then((module) => ({
+      default: module.AttachZohoPaymentDialog,
+    })),
+  { ssr: false }
+);
+const CorrectHeightDialog = dynamic(
+  () => import('@/components/crm/correct-height-dialog').then((module) => ({ default: module.CorrectHeightDialog })),
+  { ssr: false }
+);
+const CorrectWeightsDialog = dynamic(
+  () => import('@/components/crm/correct-weights-dialog').then((module) => ({ default: module.CorrectWeightsDialog })),
+  { ssr: false }
+);
+const CheckInEditorDialog = dynamic(
+  () => import('@/components/crm/check-in-editor-dialog').then((module) => ({ default: module.CheckInEditorDialog })),
+  { ssr: false }
+);
+const EditTimezoneDialog = dynamic(
+  () => import('@/components/crm/edit-timezone-dialog').then((module) => ({ default: module.EditTimezoneDialog })),
+  { ssr: false }
+);
+const ResetOnboardingPointADialog = dynamic(
+  () =>
+    import('@/components/crm/reset-onboarding-point-a-dialog').then((module) => ({
+      default: module.ResetOnboardingPointADialog,
+    })),
   { ssr: false }
 );
 
@@ -491,133 +548,165 @@ export function Customer360View({
           }}
         />
       ) : null}
-      <SendEmailDialog
-        open={sendEmailOpen}
-        onClose={() => setSendEmailOpen(false)}
-        leadId={lead.id}
-        templates={emailTemplates}
-        onSent={refresh}
-      />
-      <SendWhatsAppDialog
-        open={sendWhatsAppOpen}
-        onClose={() => setSendWhatsAppOpen(false)}
-        leadId={lead.id}
-        templates={whatsappTemplates}
-        onSent={refresh}
-      />
-      <LeadPurgeModal
-        open={purgeOpen}
-        onOpenChange={setPurgeOpen}
-        leadId={lead.id}
-        leadEmail={contact.email}
-        leadName={contact.name}
-        hasMemberAccount={lead.memberUserId != null}
-        onPurged={() => push('/database')}
-      />
-      <OfflineEnrollDialog
-        open={enrollOpen}
-        onOpenChange={setEnrollOpen}
-        leadId={lead.id}
-        leadName={contact.name}
-        onEnrolled={refresh}
-      />
-      <AppTrialDialog
-        open={trialOpen}
-        onOpenChange={setTrialOpen}
-        leadId={lead.id}
-        leadName={contact.name}
-        onEnrolled={() => {
-          toast({ message: 'Added to the Take Control Trial.', variant: 'success' });
-          refresh();
-        }}
-      />
-      <MembershipTransferDialog
-        open={transferOpen}
-        onOpenChange={setTransferOpen}
-        leadId={lead.id}
-        leadName={contact.name}
-        onTransferred={refresh}
-      />
-      <SetPasswordDialog
-        leadId={lead.id}
-        memberEmail={contact.email}
-        open={setPasswordOpen}
-        onOpenChange={setSetPasswordOpen}
-      />
-      <CorrectEmailDialog
-        leadId={lead.id}
-        currentEmail={contact.email}
-        open={correctEmailOpen}
-        onOpenChange={setCorrectEmailOpen}
-        onDone={refresh}
-      />
-      <CorrectNameDialog
-        leadId={lead.id}
-        currentFirstName={lead.firstName}
-        currentLastName={lead.lastName}
-        open={correctNameOpen}
-        onOpenChange={setCorrectNameOpen}
-        onDone={() => {
-          setMemberProfileKey((k) => k + 1);
-          refresh();
-        }}
-      />
-      <CorrectPhoneDialog
-        leadId={lead.id}
-        currentPhone={contact.phone}
-        suggestedCountryIso={lead.countryCode}
-        countries={countries}
-        open={correctPhoneOpen}
-        onOpenChange={setCorrectPhoneOpen}
-        onDone={() => {
-          setMemberProfileKey((k) => k + 1);
-          refresh();
-        }}
-      />
-      <AttachZohoPaymentDialog
-        leadId={lead.id}
-        memberEmail={contact.email}
-        open={attachZohoPaymentOpen}
-        onOpenChange={setAttachZohoPaymentOpen}
-        onAttached={refresh}
-      />
-      <CorrectWeightsDialog
-        leadId={lead.id}
-        open={correctWeightsOpen}
-        onOpenChange={setCorrectWeightsOpen}
-        onDone={() => {
-          setMemberProfileKey((k) => k + 1);
-          refresh();
-        }}
-      />
-      <CheckInEditorDialog leadId={lead.id} open={checkInsOpen} onOpenChange={setCheckInsOpen} />
-      <CorrectHeightDialog
-        leadId={lead.id}
-        open={correctHeightOpen}
-        onOpenChange={setCorrectHeightOpen}
-        onDone={() => {
-          setMemberProfileKey((k) => k + 1);
-          refresh();
-        }}
-      />
-      <EditTimezoneDialog
-        leadId={lead.id}
-        open={editTimezoneOpen}
-        onOpenChange={setEditTimezoneOpen}
-        onDone={() => {
-          setMemberProfileKey((k) => k + 1);
-          refresh();
-        }}
-      />
-      <ResetOnboardingPointADialog
-        leadId={lead.id}
-        open={resetOnboardingPointAOpen}
-        onOpenChange={setResetOnboardingPointAOpen}
-        onDone={() => {
-          setMemberProfileKey((k) => k + 1);
-          refresh();
-        }}
-      />
+      {sendEmailOpen ? (
+        <SendEmailDialog
+          open={sendEmailOpen}
+          onClose={() => setSendEmailOpen(false)}
+          leadId={lead.id}
+          templates={emailTemplates}
+          onSent={refresh}
+        />
+      ) : null}
+      {sendWhatsAppOpen ? (
+        <SendWhatsAppDialog
+          open={sendWhatsAppOpen}
+          onClose={() => setSendWhatsAppOpen(false)}
+          leadId={lead.id}
+          templates={whatsappTemplates}
+          onSent={refresh}
+        />
+      ) : null}
+      {purgeOpen ? (
+        <LeadPurgeModal
+          open={purgeOpen}
+          onOpenChange={setPurgeOpen}
+          leadId={lead.id}
+          leadEmail={contact.email}
+          leadName={contact.name}
+          hasMemberAccount={lead.memberUserId != null}
+          onPurged={() => push('/database')}
+        />
+      ) : null}
+      {enrollOpen ? (
+        <OfflineEnrollDialog
+          open={enrollOpen}
+          onOpenChange={setEnrollOpen}
+          leadId={lead.id}
+          leadName={contact.name}
+          onEnrolled={refresh}
+        />
+      ) : null}
+      {trialOpen ? (
+        <AppTrialDialog
+          open={trialOpen}
+          onOpenChange={setTrialOpen}
+          leadId={lead.id}
+          leadName={contact.name}
+          onEnrolled={() => {
+            toast({ message: 'Added to the Take Control Trial.', variant: 'success' });
+            refresh();
+          }}
+        />
+      ) : null}
+      {transferOpen ? (
+        <MembershipTransferDialog
+          open={transferOpen}
+          onOpenChange={setTransferOpen}
+          leadId={lead.id}
+          leadName={contact.name}
+          onTransferred={refresh}
+        />
+      ) : null}
+      {setPasswordOpen ? (
+        <SetPasswordDialog
+          leadId={lead.id}
+          memberEmail={contact.email}
+          open={setPasswordOpen}
+          onOpenChange={setSetPasswordOpen}
+        />
+      ) : null}
+      {correctEmailOpen ? (
+        <CorrectEmailDialog
+          leadId={lead.id}
+          currentEmail={contact.email}
+          open={correctEmailOpen}
+          onOpenChange={setCorrectEmailOpen}
+          onDone={refresh}
+        />
+      ) : null}
+      {correctNameOpen ? (
+        <CorrectNameDialog
+          leadId={lead.id}
+          currentFirstName={lead.firstName}
+          currentLastName={lead.lastName}
+          open={correctNameOpen}
+          onOpenChange={setCorrectNameOpen}
+          onDone={() => {
+            setMemberProfileKey((k) => k + 1);
+            refresh();
+          }}
+        />
+      ) : null}
+      {correctPhoneOpen ? (
+        <CorrectPhoneDialog
+          leadId={lead.id}
+          currentPhone={contact.phone}
+          suggestedCountryIso={lead.countryCode}
+          countries={countries}
+          open={correctPhoneOpen}
+          onOpenChange={setCorrectPhoneOpen}
+          onDone={() => {
+            setMemberProfileKey((k) => k + 1);
+            refresh();
+          }}
+        />
+      ) : null}
+      {attachZohoPaymentOpen ? (
+        <AttachZohoPaymentDialog
+          leadId={lead.id}
+          memberEmail={contact.email}
+          open={attachZohoPaymentOpen}
+          onOpenChange={setAttachZohoPaymentOpen}
+          onAttached={refresh}
+        />
+      ) : null}
+      {correctWeightsOpen ? (
+        <CorrectWeightsDialog
+          leadId={lead.id}
+          open={correctWeightsOpen}
+          onOpenChange={setCorrectWeightsOpen}
+          onDone={() => {
+            setMemberProfileKey((k) => k + 1);
+            refresh();
+          }}
+        />
+      ) : null}
+      {checkInsOpen ? (
+        <CheckInEditorDialog leadId={lead.id} open={checkInsOpen} onOpenChange={setCheckInsOpen} />
+      ) : null}
+      {correctHeightOpen ? (
+        <CorrectHeightDialog
+          leadId={lead.id}
+          open={correctHeightOpen}
+          onOpenChange={setCorrectHeightOpen}
+          onDone={() => {
+            setMemberProfileKey((k) => k + 1);
+            refresh();
+          }}
+        />
+      ) : null}
+      {editTimezoneOpen ? (
+        <EditTimezoneDialog
+          leadId={lead.id}
+          open={editTimezoneOpen}
+          onOpenChange={setEditTimezoneOpen}
+          onDone={() => {
+            setMemberProfileKey((k) => k + 1);
+            refresh();
+          }}
+        />
+      ) : null}
+      {resetOnboardingPointAOpen ? (
+        <ResetOnboardingPointADialog
+          leadId={lead.id}
+          open={resetOnboardingPointAOpen}
+          onOpenChange={setResetOnboardingPointAOpen}
+          onDone={() => {
+            setMemberProfileKey((k) => k + 1);
+            refresh();
+          }}
+        />
+      ) : null}
     </CrmPageLayout>
   );
 }

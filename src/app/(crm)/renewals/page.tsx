@@ -34,9 +34,9 @@ export default async function RenewalsPage({
   const filters = parseRenewalFilters(params);
   const query = buildRenewalsSearchParams(filters).toString();
 
-  const [summary, page] = await Promise.all([getRenewalSummary(query), listRenewals(query)]);
-
-  const [emailTemplates, whatsappTemplates, whatsappFlags] = await Promise.all([
+  const [summary, page, emailTemplates, whatsappTemplates, whatsappFlags] = await Promise.all([
+    getRenewalSummary(query),
+    listRenewals(query),
     listEmailTemplates().catch(() => []),
     listWhatsAppTemplates().catch(() => []),
     getWhatsAppFlags().catch(() => ({ sendsEnabled: false, templatesEnabled: false })),

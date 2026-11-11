@@ -174,10 +174,11 @@ export async function loadCommsBulkSendsTab(channel: CommsChannel = 'email') {
 }
 
 export async function loadCommsPerformanceTab(channel: CommsChannel = 'email') {
-  const header = await loadCommsHeaderData();
-
   if (channel === 'whatsapp') {
-    const analyticsResult = await Promise.allSettled([getWhatsAppCommsAnalytics()]).then(([r]) => r);
+    const [header, analyticsResult] = await Promise.all([
+      loadCommsHeaderData(),
+      Promise.allSettled([getWhatsAppCommsAnalytics()]).then(([r]) => r),
+    ]);
     return {
       section: 'whatsapp' as const,
       tab: 'performance' as const,
@@ -187,7 +188,10 @@ export async function loadCommsPerformanceTab(channel: CommsChannel = 'email') {
     };
   }
 
-  const analyticsResult = await Promise.allSettled([getCommsAnalytics()]).then(([r]) => r);
+  const [header, analyticsResult] = await Promise.all([
+    loadCommsHeaderData(),
+    Promise.allSettled([getCommsAnalytics()]).then(([r]) => r),
+  ]);
 
   return {
     section: 'email' as const,
@@ -199,8 +203,10 @@ export async function loadCommsPerformanceTab(channel: CommsChannel = 'email') {
 }
 
 export async function loadCommsSendsTab() {
-  const header = await loadCommsHeaderData();
-  const sendsResult = await Promise.allSettled([listWhatsAppSends({ limit: 50, offset: 0 })]).then(([r]) => r);
+  const [header, sendsResult] = await Promise.all([
+    loadCommsHeaderData(),
+    Promise.allSettled([listWhatsAppSends({ limit: 50, offset: 0 })]).then(([r]) => r),
+  ]);
 
   return {
     section: 'whatsapp' as const,

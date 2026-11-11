@@ -1,6 +1,6 @@
 'use client';
 
-import { AutomationBuilder } from '@/components/comms/automation-builder';
+import { AutomationBuilder } from '@/components/comms/automation-builder-lazy';
 import { AutomationEnrollmentsPanel } from '@/components/comms/automation-enrollments-panel';
 import type { Automation, EmailTemplate, StaffMember, WhatsAppTemplate } from '@/utils/api';
 import type { TagSuggestion } from '@/types/crm';

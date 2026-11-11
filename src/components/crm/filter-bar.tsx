@@ -13,6 +13,7 @@ import {
   UserRound,
   Users,
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
 import { EventSlotFilterSheet } from '@/components/crm/event-slot-filter-sheet';
@@ -31,6 +32,7 @@ import { LeadDatabasePerfSourceFilter } from '@/components/crm/lead-database-per
 import { LeadDatabaseExportButton } from '@/components/crm/lead-database-export-button';
 import { LeadDatabaseBulkSendButton } from '@/components/crm/lead-database-bulk-send-button';
 import { LeadDatabaseSearch } from '@/components/crm/lead-database-search';
+import { useIsLgUp } from '@/hooks/use-media-query';
 import type { EmailTemplate, WhatsAppTemplate } from '@/utils/api';
 import {
   buildLeadDatabaseHref,
@@ -159,33 +161,38 @@ export function FilterBar({
   restrictToCreatedByMe = false,
 }: FilterBarProps) {
   const toolbarFilterCount = countLeadDatabaseToolbarFilters(filters);
+  const isLgUp = useIsLgUp();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  // Desktop-first: one filter-control tree (matches ResponsiveList).
+  const showDesktopFilters = !ready || isLgUp;
+
+  const filterControls = (
+    <LeadDatabaseFilterControls
+      filters={filters}
+      filterOptions={filterOptions}
+      eventOptions={eventOptions}
+      tagSuggestions={tagSuggestions}
+      unseenUpdatesCount={unseenUpdatesCount}
+      restrictToCreatedByMe={restrictToCreatedByMe}
+    />
+  );
 
   return (
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
         <LeadDatabaseSearch filters={filters} className="w-full max-w-96 min-w-0 flex-1" />
-        <FiltersSheet activeCount={toolbarFilterCount}>
-          <div className="flex flex-wrap gap-2">
-            <LeadDatabaseFilterControls
-              filters={filters}
-              filterOptions={filterOptions}
-              eventOptions={eventOptions}
-              tagSuggestions={tagSuggestions}
-              unseenUpdatesCount={unseenUpdatesCount}
-              restrictToCreatedByMe={restrictToCreatedByMe}
-            />
-          </div>
-        </FiltersSheet>
-        <div className="hidden min-w-0 flex-wrap items-center gap-2 lg:flex">
-          <LeadDatabaseFilterControls
-            filters={filters}
-            filterOptions={filterOptions}
-            eventOptions={eventOptions}
-            tagSuggestions={tagSuggestions}
-            unseenUpdatesCount={unseenUpdatesCount}
-            restrictToCreatedByMe={restrictToCreatedByMe}
-          />
-        </div>
+        {showDesktopFilters ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-2">{filterControls}</div>
+        ) : (
+          <FiltersSheet activeCount={toolbarFilterCount}>
+            <div className="flex flex-wrap gap-2">{filterControls}</div>
+          </FiltersSheet>
+        )}
         <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
           <LeadDatabaseBulkSendButton
             emailTemplates={emailTemplates}

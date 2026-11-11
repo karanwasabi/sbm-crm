@@ -27,8 +27,11 @@ export default async function CustomerPage({ params }: CustomerPageProps) {
   const { id } = await params;
 
   try {
-    const [lead, access] = await Promise.all([getLead(id), getMyAccess()]);
-    const whatsappFlags = await getWhatsAppFlags().catch(() => DEFAULT_WHATSAPP_FLAGS);
+    const [lead, access, whatsappFlags] = await Promise.all([
+      getLead(id),
+      getMyAccess(),
+      getWhatsAppFlags().catch(() => DEFAULT_WHATSAPP_FLAGS),
+    ]);
     const [programHistory, emailTemplates, whatsappTemplates, tagSuggestions, countries, eventRegistrations] =
       await Promise.all([
         lead.memberUserId != null ? getMemberEnrollments(lead.memberUserId).catch(() => []) : Promise.resolve([]),

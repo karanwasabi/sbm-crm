@@ -151,7 +151,7 @@ function flowToGraph(nodes: Node<BuilderNodeData>[], edges: Edge[]): AutomationG
   };
 }
 
-type AutomationBuilderProps = {
+export type AutomationBuilderProps = {
   automation: Automation | null;
   emailTemplates: EmailTemplate[];
   whatsappTemplates?: WhatsAppTemplate[];

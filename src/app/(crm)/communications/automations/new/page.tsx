@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { AutomationBuilder } from '@/components/comms/automation-builder';
+import { AutomationBuilder } from '@/components/comms/automation-builder-lazy';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { automationCohortNames } from '@/lib/automation-types';
 import { COMMS_AUTOMATIONS_HREF } from '@/lib/comms-channel';

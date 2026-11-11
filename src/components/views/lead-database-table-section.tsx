@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { LeadTableTimestamp } from '@/components/crm/lead-timestamp';
 import { MarketingContactBadge } from '@/components/comms/marketing-contact-badge';
 import { LeadDatabasePagination } from '@/components/crm/lead-database-pagination';
@@ -91,7 +91,7 @@ export function LeadDatabaseTableSection({
   loadError = null,
 }: LeadDatabaseTableSectionProps) {
   const { items: leads, total, page, pageSize, totalPages } = listResult;
-  const { togglePage, pageSelectionState } = useLeadDatabaseSelection();
+  const { togglePage, pageSelectionState, isSelected, toggleLead } = useLeadDatabaseSelection();
   const pageState = pageSelectionState(leads);
   const showReferrerCoach = filters.referrerCoaches.length > 0;
   const columnCount = showReferrerCoach ? 16 : 15;
@@ -133,7 +133,7 @@ export function LeadDatabaseTableSection({
                 <span className="text-[11px] font-semibold text-slate-500">Select page</span>
               </div>
               {leads.map((lead) => (
-                <LeadMobileCard key={lead.id} lead={lead} />
+                <LeadMobileCard key={lead.id} lead={lead} selected={isSelected(lead.id)} onToggle={toggleLead} />
               ))}
             </div>
           )
@@ -183,7 +183,15 @@ export function LeadDatabaseTableSection({
                     </DataTableCell>
                   </DataTableRow>
                 ) : (
-                  leads.map((lead) => <LeadRow key={lead.id} lead={lead} showReferrerCoach={showReferrerCoach} />)
+                  leads.map((lead) => (
+                    <LeadRow
+                      key={lead.id}
+                      lead={lead}
+                      showReferrerCoach={showReferrerCoach}
+                      selected={isSelected(lead.id)}
+                      onToggle={toggleLead}
+                    />
+                  ))
                 )}
               </DataTableBody>
             </DataTable>
@@ -228,17 +236,23 @@ function PageSelectCheckbox({
   );
 }
 
-function LeadMobileCard({ lead }: { lead: Lead }) {
-  const { isSelected, toggleLead } = useLeadDatabaseSelection();
-
+const LeadMobileCard = memo(function LeadMobileCard({
+  lead,
+  selected,
+  onToggle,
+}: {
+  lead: Lead;
+  selected: boolean;
+  onToggle: (lead: Lead) => void;
+}) {
   return (
     <Card className="p-3">
       <div className="flex items-start gap-3">
         <input
           type="checkbox"
           className="mt-1 h-4 w-4 shrink-0 accent-brand"
-          checked={isSelected(lead.id)}
-          onChange={() => toggleLead(lead)}
+          checked={selected}
+          onChange={() => onToggle(lead)}
           aria-label={`Select ${lead.name}`}
         />
         <div className="min-w-0 flex-1">
@@ -272,10 +286,19 @@ function LeadMobileCard({ lead }: { lead: Lead }) {
       </div>
     </Card>
   );
-}
+});
 
-function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: boolean }) {
-  const { isSelected, toggleLead } = useLeadDatabaseSelection();
+const LeadRow = memo(function LeadRow({
+  lead,
+  showReferrerCoach,
+  selected,
+  onToggle,
+}: {
+  lead: Lead;
+  showReferrerCoach: boolean;
+  selected: boolean;
+  onToggle: (lead: Lead) => void;
+}) {
   const referrerCoachLabel = lead.referrerCoachName?.trim() || 'Unassigned';
 
   return (
@@ -284,8 +307,8 @@ function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: b
         <input
           type="checkbox"
           className="h-3.5 w-3.5 accent-brand"
-          checked={isSelected(lead.id)}
-          onChange={() => toggleLead(lead)}
+          checked={selected}
+          onChange={() => onToggle(lead)}
           aria-label={`Select ${lead.name}`}
         />
       </DataTableCell>
@@ -387,4 +410,4 @@ function LeadRow({ lead, showReferrerCoach }: { lead: Lead; showReferrerCoach: b
       </DataTableCell>
     </DataTableRow>
   );
-}
+});

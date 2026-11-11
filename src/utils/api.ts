@@ -62,13 +62,14 @@ export async function sendLoginOTP(
   }
 }
 
-async function getAccessToken(): Promise<string | null> {
+/** Request-scoped: parallel requireApiFetch calls share one session read. */
+const getAccessToken = cache(async (): Promise<string | null> => {
   const supabase = await createClient();
   const {
     data: { session },
   } = await supabase.auth.getSession();
   return session?.access_token ?? null;
-}
+});
 
 async function requireApiFetch(path: string, init?: RequestInit): Promise<Response> {
   const token = await getAccessToken();
@@ -4085,13 +4086,26 @@ export type EmailTemplatesPage = {
   pageSize: number;
 };
 
+/** Light list for pickers/send UIs — no html_compiled / content_json. Full body via getEmailTemplate. */
 export async function listEmailTemplates(): Promise<EmailTemplate[]> {
-  const response = await requireApiFetch('/admin/comms/templates');
-  if (!response.ok) {
-    throw new ApiError('Failed to load email templates.', response.status);
+  const pageSize = 100;
+  const items: EmailTemplate[] = [];
+  let page = 1;
+  let total = Infinity;
+  while (items.length < total) {
+    const query = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+      sort: 'name_asc',
+    });
+    const result = await listEmailTemplatesPaged(query);
+    items.push(...result.items);
+    total = result.total;
+    if (result.items.length === 0) break;
+    page += 1;
+    if (page > 50) break;
   }
-  const rows = (await response.json()) as Parameters<typeof mapEmailTemplate>[0][];
-  return rows.map(mapEmailTemplate);
+  return items;
 }
 
 export async function listEmailTemplatesPaged(query: URLSearchParams): Promise<EmailTemplatesPage> {
@@ -4535,28 +4549,33 @@ export async function listWhatsAppAccounts(): Promise<WhatsAppAccountsPayload> {
   };
 }
 
+/** Light list for pickers — no content / live_content. Full body via getWhatsAppTemplate or client fetch. */
 export async function listWhatsAppTemplates(options?: {
   accountId?: string;
   status?: WhatsAppTemplate['status'];
   purpose?: WhatsAppTemplate['purpose'];
 }): Promise<WhatsAppTemplate[]> {
-  const params = new URLSearchParams();
-  if (options?.accountId) {
-    params.set('account_id', options.accountId);
+  const pageSize = 100;
+  const items: WhatsAppTemplate[] = [];
+  let page = 1;
+  let total = Infinity;
+  while (items.length < total) {
+    const query = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+      sort: 'name_asc',
+    });
+    if (options?.accountId) query.set('account_id', options.accountId);
+    if (options?.status) query.set('status', options.status);
+    if (options?.purpose) query.set('purpose', options.purpose);
+    const result = await listWhatsAppTemplatesPaged(query);
+    items.push(...result.items);
+    total = result.total;
+    if (result.items.length === 0) break;
+    page += 1;
+    if (page > 50) break;
   }
-  if (options?.status) {
-    params.set('status', options.status);
-  }
-  if (options?.purpose) {
-    params.set('purpose', options.purpose);
-  }
-  const query = params.toString();
-  const response = await requireApiFetch(`/admin/comms/whatsapp/templates${query ? `?${query}` : ''}`);
-  if (!response.ok) {
-    throw new ApiError('Failed to load WhatsApp templates.', response.status);
-  }
-  const rows = (await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0][];
-  return rows.map(mapWhatsAppTemplate);
+  return items;
 }
 
 export async function listWhatsAppTemplatesPaged(query: URLSearchParams): Promise<WhatsAppTemplatesPage> {

@@ -1,17 +1,7 @@
 'use client';
 
 import { Copy, Check } from 'lucide-react';
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type MouseEvent,
-  type MutableRefObject,
-  type ReactNode,
-  type Ref,
-  type RefObject,
-} from 'react';
+import { useRef, useState, type MouseEvent, type MutableRefObject, type ReactNode, type Ref } from 'react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/cn';
 
@@ -62,35 +52,43 @@ function CopyableTooltipBody({ text }: { text: string }) {
   );
 }
 
-type OverflowTooltipProps = {
+type TruncatedWithTooltipProps = {
   text: string;
   className?: string;
-  children: ReactNode;
-  measureRef: RefObject<HTMLElement | null>;
-  overflowing: boolean;
 };
 
-function OverflowTooltip({ text, className, children, measureRef, overflowing }: OverflowTooltipProps) {
-  if (!overflowing || !text.trim()) {
-    return (
-      <div ref={measureRef as RefObject<HTMLDivElement>} className={className}>
-        {children}
-      </div>
-    );
+/** Truncation tooltip measured on open — avoids per-cell ResizeObservers on dense tables. */
+export function TruncatedWithTooltip({ text, className }: TruncatedWithTooltipProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  if (!text.trim()) {
+    return <div className={cn('truncate', className)}>{text}</div>;
   }
 
   return (
-    <Tooltip disableHoverablePopup={false}>
+    <Tooltip
+      disableHoverablePopup={false}
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          setOpen(false);
+          return;
+        }
+        const element = ref.current;
+        setOpen(Boolean(element && isOverflowing(element)));
+      }}
+    >
       <TooltipTrigger
         delay={200}
         closeDelay={100}
         render={(props) => (
           <div
             {...props}
-            ref={mergeRefs(measureRef, props.ref)}
-            className={cn('cursor-default', className, props.className)}
+            ref={mergeRefs(ref, props.ref)}
+            className={cn('cursor-default truncate', className, props.className)}
           >
-            {children}
+            {text}
           </div>
         )}
       />
@@ -98,41 +96,6 @@ function OverflowTooltip({ text, className, children, measureRef, overflowing }:
         <CopyableTooltipBody text={text} />
       </TooltipContent>
     </Tooltip>
-  );
-}
-
-type TruncatedWithTooltipProps = {
-  text: string;
-  className?: string;
-};
-
-export function TruncatedWithTooltip({ text, className }: TruncatedWithTooltipProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [overflowing, setOverflowing] = useState(false);
-
-  const syncOverflow = useCallback(() => {
-    const element = ref.current;
-    if (!element || !text.trim()) {
-      setOverflowing(false);
-      return;
-    }
-    setOverflowing(isOverflowing(element));
-  }, [text]);
-
-  useEffect(() => {
-    syncOverflow();
-    const element = ref.current;
-    if (!element) return;
-
-    const observer = new ResizeObserver(syncOverflow);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [syncOverflow]);
-
-  return (
-    <OverflowTooltip text={text} className={cn('truncate', className)} measureRef={ref} overflowing={overflowing}>
-      {text}
-    </OverflowTooltip>
   );
 }
 
@@ -144,30 +107,37 @@ type TruncatedContainerTooltipProps = {
 
 export function TruncatedContainerTooltip({ tooltip, className, children }: TruncatedContainerTooltipProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [overflowing, setOverflowing] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  const syncOverflow = useCallback(() => {
-    const element = ref.current;
-    if (!element || !tooltip.trim()) {
-      setOverflowing(false);
-      return;
-    }
-    setOverflowing(isOverflowing(element));
-  }, [tooltip]);
-
-  useEffect(() => {
-    syncOverflow();
-    const element = ref.current;
-    if (!element) return;
-
-    const observer = new ResizeObserver(syncOverflow);
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, [syncOverflow, children]);
+  if (!tooltip.trim()) {
+    return <div className={className}>{children}</div>;
+  }
 
   return (
-    <OverflowTooltip text={tooltip} className={className} measureRef={ref} overflowing={overflowing}>
-      {children}
-    </OverflowTooltip>
+    <Tooltip
+      disableHoverablePopup={false}
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) {
+          setOpen(false);
+          return;
+        }
+        const element = ref.current;
+        setOpen(Boolean(element && isOverflowing(element)));
+      }}
+    >
+      <TooltipTrigger
+        delay={200}
+        closeDelay={100}
+        render={(props) => (
+          <div {...props} ref={mergeRefs(ref, props.ref)} className={cn('cursor-default', className, props.className)}>
+            {children}
+          </div>
+        )}
+      />
+      <TooltipContent side="top" align="start">
+        <CopyableTooltipBody text={tooltip} />
+      </TooltipContent>
+    </Tooltip>
   );
 }

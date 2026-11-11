@@ -1,7 +1,10 @@
-import type { ReactNode } from 'react';
+'use client';
+
+import { useEffect, useState, type ReactNode } from 'react';
+import { useIsLgUp } from '@/hooks/use-media-query';
 import { cn } from '@/lib/cn';
 
-/** Renders `mobile` below `lg` and `desktop` at `lg+`. Desktop layout stays untouched. */
+/** Renders only one tree: mobile below `lg`, desktop at `lg+`. Desktop-first before hydration. */
 export function ResponsiveList({
   mobile,
   desktop,
@@ -11,10 +14,15 @@ export function ResponsiveList({
   desktop: ReactNode;
   className?: string;
 }) {
-  return (
-    <div className={cn(className)}>
-      <div className="lg:hidden">{mobile}</div>
-      <div className="hidden lg:block">{desktop}</div>
-    </div>
-  );
+  const isLgUp = useIsLgUp();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  // CRM is desktop-primary: avoid dual trees and avoid a mobile flash on large screens.
+  const showDesktop = !ready || isLgUp;
+
+  return <div className={cn(className)}>{showDesktop ? desktop : mobile}</div>;
 }

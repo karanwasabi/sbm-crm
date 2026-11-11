@@ -1,7 +1,7 @@
 'use client';
 
 import { CalendarClock, Layers, Shield, Tags, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { FiltersSheet } from '@/components/crm/filters-sheet';
 import { RenewalsSearch } from '@/components/crm/renewals-search';
 import { RenewalsBulkSendButton } from '@/components/crm/renewals-bulk-send-button';
 import { RenewalsExportButton } from '@/components/crm/renewals-export-button';
+import { useIsLgUp } from '@/hooks/use-media-query';
 import {
   RENEWAL_ACCESS_FILTERS,
   RENEWAL_BUCKET_FILTERS,
@@ -64,6 +65,16 @@ export function RenewalsFilterBar({
   selectAllFiltered,
   selectedCount,
 }: RenewalsFilterBarProps) {
+  const isLgUp = useIsLgUp();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
+  // Desktop-first: one filter-control tree (matches ResponsiveList).
+  const showDesktopFilters = !ready || isLgUp;
+
   const displayedBucket = (filters.bucket || 'all') as RenewalBucketFilter;
   const secondaryActive =
     Boolean(filters.q) ||
@@ -123,8 +134,11 @@ export function RenewalsFilterBar({
     <Card padding="none" className="overflow-hidden">
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
         <RenewalsSearch filters={filters} onNavigate={onNavigate} className="w-full max-w-96 min-w-0 flex-1" />
-        <FiltersSheet activeCount={toolbarFilterCount}>{filterControls}</FiltersSheet>
-        <div className="hidden min-w-0 flex-wrap items-center gap-2 lg:flex">{filterControls}</div>
+        {showDesktopFilters ? (
+          <div className="flex min-w-0 flex-wrap items-center gap-2">{filterControls}</div>
+        ) : (
+          <FiltersSheet activeCount={toolbarFilterCount}>{filterControls}</FiltersSheet>
+        )}
         <div className="flex w-full shrink-0 items-center gap-2 sm:ml-auto sm:w-auto">
           {leadIds.length > 0 || skippedCount > 0 ? (
             <RenewalsBulkSendButton
