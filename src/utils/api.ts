@@ -2364,6 +2364,49 @@ export type CancelMembershipOfflineRefundResult = {
   alreadyEndedAccess: boolean;
 };
 
+export type CancelMembershipAutopayResult = {
+  enrollmentId: string;
+  checkoutSessionId: string;
+  accessUntil?: string;
+  graceUntil?: string;
+  cancelAtPeriodEnd: boolean;
+  subscriptionStatus: string;
+  razorpayCancelled: boolean;
+};
+
+export async function cancelLeadMembershipAutopay(
+  leadId: string,
+  enrollmentId: string
+): Promise<CancelMembershipAutopayResult> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/membership/cancel-autopay`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ enrollment_id: enrollmentId }),
+  });
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(payload?.error ?? 'Failed to cancel autopay.', response.status);
+  }
+  const row = (await response.json()) as {
+    enrollment_id: string;
+    checkout_session_id: string;
+    access_until?: string;
+    grace_until?: string;
+    cancel_at_period_end: boolean;
+    subscription_status: string;
+    razorpay_cancelled: boolean;
+  };
+  return {
+    enrollmentId: row.enrollment_id,
+    checkoutSessionId: row.checkout_session_id,
+    accessUntil: row.access_until,
+    graceUntil: row.grace_until,
+    cancelAtPeriodEnd: Boolean(row.cancel_at_period_end),
+    subscriptionStatus: row.subscription_status ?? 'cancelling',
+    razorpayCancelled: Boolean(row.razorpay_cancelled),
+  };
+}
+
 export async function cancelLeadMembershipOfflineRefund(
   leadId: string,
   enrollmentId: string

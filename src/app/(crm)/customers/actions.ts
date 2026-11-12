@@ -47,6 +47,7 @@ import {
   putLeadPointA,
   resetLeadOnboardingPointA,
   setLeadMembershipAccessUntil,
+  cancelLeadMembershipAutopay,
   cancelLeadMembershipOfflineRefund,
   scheduleMembershipPause,
   cancelMembershipPause,
@@ -86,6 +87,7 @@ import type {
   PutPointAAssessmentInput,
   ResetOnboardingPointAResult,
   SetMembershipAccessResult,
+  CancelMembershipAutopayResult,
   CancelMembershipOfflineRefundResult,
   MembershipPauseResult,
   SetMemberKindResult,
@@ -667,6 +669,19 @@ export async function setLeadMembershipAccessUntilAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to update membership access.';
+    return { result: null, error: message };
+  }
+}
+
+export async function cancelLeadMembershipAutopayAction(
+  leadId: string,
+  enrollmentId: string
+): Promise<{ result: CancelMembershipAutopayResult | null; error: string | null }> {
+  try {
+    const result = await cancelLeadMembershipAutopay(leadId, enrollmentId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to cancel autopay.';
     return { result: null, error: message };
   }
 }
