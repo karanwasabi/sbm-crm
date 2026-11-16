@@ -59,6 +59,10 @@ import {
   getLeadCheckIn,
   putLeadCheckIn,
   getLeadCheckInTelemetry,
+  getLeadSprint,
+  getLeadSprintDay,
+  putLeadSprintDay,
+  deleteLeadSprintDay,
 } from '@/utils/api';
 import type {
   LeadPurgeInput,
@@ -98,6 +102,11 @@ import type {
   PutCheckInInput,
   PutCheckInResult,
   CheckInTelemetry,
+  SprintOverview,
+  SprintDayDetail,
+  PutSprintDayInput,
+  SprintDayLog,
+  SprintDaySpec,
   AppTrialGoals,
   AppTrialEnrollInput,
 } from '@/utils/api';
@@ -830,6 +839,57 @@ export async function getLeadCheckInTelemetryAction(
     return { result, error: null };
   } catch (error) {
     const message = error instanceof ApiError ? error.message : 'Failed to load check-in activity.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadSprintAction(
+  leadId: string
+): Promise<{ result: SprintOverview | null; error: string | null }> {
+  try {
+    const result = await getLeadSprint(leadId);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load sprint overview.';
+    return { result: null, error: message };
+  }
+}
+
+export async function getLeadSprintDayAction(
+  leadId: string,
+  localDate: string
+): Promise<{ result: SprintDayDetail | null; error: string | null }> {
+  try {
+    const result = await getLeadSprintDay(leadId, localDate);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to load sprint day.';
+    return { result: null, error: message };
+  }
+}
+
+export async function putLeadSprintDayAction(
+  leadId: string,
+  input: PutSprintDayInput
+): Promise<{ result: { log: SprintDayLog; spec: SprintDaySpec } | null; error: string | null }> {
+  try {
+    const result = await putLeadSprintDay(leadId, input);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to save sprint day.';
+    return { result: null, error: message };
+  }
+}
+
+export async function deleteLeadSprintDayAction(
+  leadId: string,
+  localDate: string
+): Promise<{ result: { deleted: boolean; localDate: string } | null; error: string | null }> {
+  try {
+    const result = await deleteLeadSprintDay(leadId, localDate);
+    return { result, error: null };
+  } catch (error) {
+    const message = error instanceof ApiError ? error.message : 'Failed to reset sprint day.';
     return { result: null, error: message };
   }
 }

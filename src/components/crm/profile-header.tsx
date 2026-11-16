@@ -57,6 +57,7 @@ type ProfileHeaderProps = {
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
   onViewCheckIns?: () => void;
+  onViewSprintCheckIns?: () => void;
   onCorrectHeight?: () => void;
   onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
@@ -174,6 +175,7 @@ export function ProfileHeader({
   onForceNutritionRecalc,
   onCorrectWeights,
   onViewCheckIns,
+  onViewSprintCheckIns,
   onCorrectHeight,
   onEditTimezone,
   onResetOnboardingPointA,
@@ -202,6 +204,7 @@ export function ProfileHeader({
     onForceNutritionRecalc ||
     onCorrectWeights ||
     onViewCheckIns ||
+    onViewSprintCheckIns ||
     onCorrectHeight ||
     onEditTimezone ||
     onResetOnboardingPointA
@@ -356,6 +359,7 @@ export function ProfileHeader({
                     onForceNutritionRecalc={onForceNutritionRecalc}
                     onCorrectWeights={onCorrectWeights}
                     onViewCheckIns={onViewCheckIns}
+                    onViewSprintCheckIns={onViewSprintCheckIns}
                     onCorrectHeight={onCorrectHeight}
                     onEditTimezone={onEditTimezone}
                     onResetOnboardingPointA={onResetOnboardingPointA}

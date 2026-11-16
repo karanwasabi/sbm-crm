@@ -45,6 +45,7 @@ type ProfileOverflowMenuProps = {
   onForceNutritionRecalc?: () => void;
   onCorrectWeights?: () => void;
   onViewCheckIns?: () => void;
+  onViewSprintCheckIns?: () => void;
   onCorrectHeight?: () => void;
   onEditTimezone?: () => void;
   onResetOnboardingPointA?: () => void;
@@ -77,6 +78,7 @@ export function ProfileOverflowMenu({
   onForceNutritionRecalc,
   onCorrectWeights,
   onViewCheckIns,
+  onViewSprintCheckIns,
   onCorrectHeight,
   onEditTimezone,
   onResetOnboardingPointA,
@@ -363,6 +365,20 @@ export function ProfileOverflowMenu({
               >
                 <ClipboardList className="h-4 w-4 shrink-0 text-brand" aria-hidden />
                 View check-ins
+              </button>
+            ) : null}
+            {onViewSprintCheckIns ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuItemClass, 'whitespace-nowrap text-slate-800 hover:bg-slate-50')}
+                onClick={() => {
+                  setOpen(false);
+                  onViewSprintCheckIns();
+                }}
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-brand" aria-hidden />
+                View sprint check-ins
               </button>
             ) : null}
             {onCorrectWeights ? (

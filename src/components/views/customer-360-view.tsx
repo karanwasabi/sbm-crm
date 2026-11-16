@@ -104,6 +104,13 @@ const CheckInEditorDialog = dynamic(
   () => import('@/components/crm/check-in-editor-dialog').then((module) => ({ default: module.CheckInEditorDialog })),
   { ssr: false }
 );
+const SprintCheckInEditorDialog = dynamic(
+  () =>
+    import('@/components/crm/sprint-check-in-editor-dialog').then((module) => ({
+      default: module.SprintCheckInEditorDialog,
+    })),
+  { ssr: false }
+);
 const EditTimezoneDialog = dynamic(
   () => import('@/components/crm/edit-timezone-dialog').then((module) => ({ default: module.EditTimezoneDialog })),
   { ssr: false }
@@ -195,6 +202,7 @@ export function Customer360View({
   const [attachZohoPaymentOpen, setAttachZohoPaymentOpen] = useState(false);
   const [correctWeightsOpen, setCorrectWeightsOpen] = useState(false);
   const [checkInsOpen, setCheckInsOpen] = useState(false);
+  const [sprintCheckInsOpen, setSprintCheckInsOpen] = useState(false);
   const [correctHeightOpen, setCorrectHeightOpen] = useState(false);
   const [editTimezoneOpen, setEditTimezoneOpen] = useState(false);
   const [resetOnboardingPointAOpen, setResetOnboardingPointAOpen] = useState(false);
@@ -461,6 +469,9 @@ export function Customer360View({
           onForceNutritionRecalc={canSyncPayment && lead.memberUserId != null ? handleForceNutritionRecalc : undefined}
           onCorrectWeights={canSyncPayment && lead.memberUserId != null ? () => setCorrectWeightsOpen(true) : undefined}
           onViewCheckIns={canSyncPayment && lead.memberUserId != null ? () => setCheckInsOpen(true) : undefined}
+          onViewSprintCheckIns={
+            canSyncPayment && lead.memberUserId != null ? () => setSprintCheckInsOpen(true) : undefined
+          }
           onCorrectHeight={canSyncPayment && lead.memberUserId != null ? () => setCorrectHeightOpen(true) : undefined}
           onEditTimezone={canSyncPayment && lead.memberUserId != null ? () => setEditTimezoneOpen(true) : undefined}
           onResetOnboardingPointA={
@@ -673,6 +684,9 @@ export function Customer360View({
       ) : null}
       {checkInsOpen ? (
         <CheckInEditorDialog leadId={lead.id} open={checkInsOpen} onOpenChange={setCheckInsOpen} />
+      ) : null}
+      {sprintCheckInsOpen ? (
+        <SprintCheckInEditorDialog leadId={lead.id} open={sprintCheckInsOpen} onOpenChange={setSprintCheckInsOpen} />
       ) : null}
       {correctHeightOpen ? (
         <CorrectHeightDialog

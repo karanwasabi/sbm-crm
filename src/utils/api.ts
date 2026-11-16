@@ -6565,6 +6565,210 @@ export async function putLeadCheckIn(leadId: string, input: PutCheckInInput): Pr
   };
 }
 
+export type SprintDaySummary = {
+  localDate: string;
+  weekday: string;
+  sprintWeek: number;
+  logged: boolean;
+  points?: number;
+};
+
+export type SprintOverview = {
+  startsOn: string;
+  endsOn: string;
+  eligible: boolean;
+  ineligibleReason?: string;
+  onboardingComplete: boolean;
+  days: SprintDaySummary[];
+};
+
+export type SprintDaySpec = {
+  localDate: string;
+  sprintWeek: number;
+  weekday: string;
+  stepTarget: number;
+  baseActions: { id: string; label: string }[];
+  bonus1: { id: string; title: string; subtitle?: string; options: { label: string; points: number }[] };
+  bonus2: { id: string; title: string; subtitle?: string; options: { label: string; points: number }[] };
+};
+
+export type SprintDayLog = {
+  localDate: string;
+  sprintWeek: number;
+  baseSteps: boolean;
+  baseProteinVeg: boolean;
+  baseUndereat: boolean;
+  baseNoSnacking: boolean;
+  bonus1Level: number;
+  bonus2Level: number;
+  points: number;
+  submittedAt: string;
+  updatedAt: string;
+};
+
+export type SprintDayDetail = {
+  exists: boolean;
+  localDate: string;
+  spec?: SprintDaySpec;
+  log?: SprintDayLog;
+};
+
+export type PutSprintDayInput = {
+  localDate: string;
+  baseSteps: boolean;
+  baseProteinVeg: boolean;
+  baseUndereat: boolean;
+  baseNoSnacking: boolean;
+  bonus1Level: number;
+  bonus2Level: number;
+};
+
+function mapSprintDaySpec(row: {
+  local_date: string;
+  sprint_week: number;
+  weekday: string;
+  step_target: number;
+  base_actions: { id: string; label: string }[];
+  bonus1: { id: string; title: string; subtitle?: string; options: { label: string; points: number }[] };
+  bonus2: { id: string; title: string; subtitle?: string; options: { label: string; points: number }[] };
+}): SprintDaySpec {
+  return {
+    localDate: row.local_date,
+    sprintWeek: row.sprint_week,
+    weekday: row.weekday,
+    stepTarget: row.step_target,
+    baseActions: row.base_actions ?? [],
+    bonus1: row.bonus1,
+    bonus2: row.bonus2,
+  };
+}
+
+function mapSprintDayLog(row: {
+  local_date: string;
+  sprint_week: number;
+  base_steps: boolean;
+  base_protein_veg: boolean;
+  base_undereat: boolean;
+  base_no_snacking: boolean;
+  bonus1_level: number;
+  bonus2_level: number;
+  points: number;
+  submitted_at: string;
+  updated_at: string;
+}): SprintDayLog {
+  return {
+    localDate: row.local_date,
+    sprintWeek: row.sprint_week,
+    baseSteps: row.base_steps,
+    baseProteinVeg: row.base_protein_veg,
+    baseUndereat: row.base_undereat,
+    baseNoSnacking: row.base_no_snacking,
+    bonus1Level: row.bonus1_level,
+    bonus2Level: row.bonus2_level,
+    points: row.points,
+    submittedAt: row.submitted_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export async function getLeadSprint(leadId: string): Promise<SprintOverview> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/sprint`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load sprint overview.');
+  }
+  const row = (await response.json()) as {
+    starts_on: string;
+    ends_on: string;
+    eligible: boolean;
+    ineligible_reason?: string;
+    onboarding_complete: boolean;
+    days: {
+      local_date: string;
+      weekday: string;
+      sprint_week: number;
+      logged: boolean;
+      points?: number;
+    }[];
+  };
+  return {
+    startsOn: row.starts_on,
+    endsOn: row.ends_on,
+    eligible: row.eligible,
+    ineligibleReason: row.ineligible_reason,
+    onboardingComplete: row.onboarding_complete,
+    days: (row.days ?? []).map((d) => ({
+      localDate: d.local_date,
+      weekday: d.weekday,
+      sprintWeek: d.sprint_week,
+      logged: d.logged,
+      points: d.points,
+    })),
+  };
+}
+
+export async function getLeadSprintDay(leadId: string, localDate: string): Promise<SprintDayDetail> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/sprint/days?local_date=${encodeURIComponent(localDate)}`
+  );
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load sprint day.');
+  }
+  const row = (await response.json()) as {
+    exists: boolean;
+    local_date: string;
+    spec?: Parameters<typeof mapSprintDaySpec>[0];
+    log?: Parameters<typeof mapSprintDayLog>[0];
+  };
+  return {
+    exists: row.exists,
+    localDate: row.local_date,
+    spec: row.spec ? mapSprintDaySpec(row.spec) : undefined,
+    log: row.log ? mapSprintDayLog(row.log) : undefined,
+  };
+}
+
+export async function putLeadSprintDay(
+  leadId: string,
+  input: PutSprintDayInput
+): Promise<{ log: SprintDayLog; spec: SprintDaySpec }> {
+  const response = await requireApiFetch(`/admin/leads/${encodeURIComponent(leadId)}/sprint/days`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      local_date: input.localDate,
+      base_steps: input.baseSteps,
+      base_protein_veg: input.baseProteinVeg,
+      base_undereat: input.baseUndereat,
+      base_no_snacking: input.baseNoSnacking,
+      bonus1_level: input.bonus1Level,
+      bonus2_level: input.bonus2Level,
+    }),
+  });
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to save sprint day.');
+  }
+  const row = (await response.json()) as {
+    log: Parameters<typeof mapSprintDayLog>[0];
+    spec: Parameters<typeof mapSprintDaySpec>[0];
+  };
+  return { log: mapSprintDayLog(row.log), spec: mapSprintDaySpec(row.spec) };
+}
+
+export async function deleteLeadSprintDay(
+  leadId: string,
+  localDate: string
+): Promise<{ deleted: boolean; localDate: string }> {
+  const response = await requireApiFetch(
+    `/admin/leads/${encodeURIComponent(leadId)}/sprint/days?local_date=${encodeURIComponent(localDate)}`,
+    { method: 'DELETE' }
+  );
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to reset sprint day.');
+  }
+  const row = (await response.json()) as { deleted: boolean; local_date: string };
+  return { deleted: row.deleted, localDate: row.local_date };
+}
+
 export type CheckInTelemetryEvent = {
   id: string;
   eventType: string;
