@@ -233,57 +233,51 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
       ) : null}
 
       <Card padding="none" className="overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 bg-gradient-to-r from-[#EEF0FF] via-white to-[#FEF3C7]/50 px-5 py-4">
-          <div>
-            <p className="text-[10px] font-bold tracking-[0.14em] text-brand uppercase">Finance</p>
-            <h1 className="text-xl font-extrabold tracking-tight text-slate-800">Revenue</h1>
-            <p className="mt-0.5 text-xs font-medium text-slate-500">
-              IST payment window · newbie / renewal / returning by 3-month access gap
-            </p>
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
+          <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Window</span>
+          <div className="inline-flex items-center gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200/70">
+            {presets.map((preset) => (
+              <FilterChip
+                key={preset.label}
+                active={selectedPreset === preset.label}
+                pending={pending && selectedPreset === preset.label}
+                onClick={() => {
+                  setFromDate(preset.from);
+                  setToDate(preset.to);
+                  applyWindow(preset.from, preset.to);
+                }}
+              >
+                {preset.label}
+              </FilterChip>
+            ))}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-xl bg-white/80 p-1 ring-1 ring-slate-200/70">
-              {presets.map((preset) => (
-                <FilterChip
-                  key={preset.label}
-                  active={selectedPreset === preset.label}
-                  pending={pending && selectedPreset === preset.label}
-                  onClick={() => {
-                    setFromDate(preset.from);
-                    setToDate(preset.to);
-                    applyWindow(preset.from, preset.to);
-                  }}
-                >
-                  {preset.label}
-                </FilterChip>
-              ))}
-            </div>
-            <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
-              From
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
-              />
-            </label>
-            <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
-              To
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
-              />
-            </label>
-            <Button
-              type="button"
-              size="sm"
-              disabled={pending || !fromDate || !toDate}
-              onClick={() => applyWindow(fromDate, toDate)}
-            >
-              Apply
-            </Button>
+          <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
+            From
+            <input
+              type="date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              className="border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
+            />
+          </label>
+          <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
+            To
+            <input
+              type="date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              className="border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
+            />
+          </label>
+          <Button
+            type="button"
+            size="sm"
+            disabled={pending || !fromDate || !toDate}
+            onClick={() => applyWindow(fromDate, toDate)}
+          >
+            Apply
+          </Button>
+          <div className="ml-auto">
             <RevenueExportButton data={data} window={window} />
           </div>
         </div>
