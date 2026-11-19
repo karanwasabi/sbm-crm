@@ -3,12 +3,11 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState, useTransition, type ReactNode } from 'react';
-import { AlertTriangle, IndianRupee, RefreshCw, RotateCcw, Sparkles, Users } from 'lucide-react';
+import { AlertTriangle, IndianRupee, Loader2, RefreshCw, RotateCcw, Sparkles, Users } from 'lucide-react';
 import { KpiStrip, type KpiStripItem } from '@/components/crm/kpi-strip';
 import { RevenueExportButton } from '@/components/crm/revenue-export-button';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { FilterChip } from '@/components/ui/filter-chip';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { formatInrFromPaise } from '@/lib/money';
 import {
@@ -158,16 +157,23 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
     });
   };
 
+  const appliedFrom = useMemo(() => isoToISTDateInput(window.since), [window.since]);
+  const appliedTo = useMemo(() => {
+    const untilDay = isoToISTDateInput(window.until);
+    return shiftCalendarDate(untilDay, -1) || untilDay;
+  }, [window.until]);
+
   const presets = useMemo(() => {
-    const end = toDate || isoToISTDateInput(new Date().toISOString());
+    const end = appliedTo || isoToISTDateInput(new Date().toISOString());
     return [
       { label: '7d', from: shiftCalendarDate(end, -6), to: end },
       { label: '30d', from: shiftCalendarDate(end, -29), to: end },
       { label: '90d', from: shiftCalendarDate(end, -89), to: end },
     ];
-  }, [toDate]);
+  }, [appliedTo]);
 
-  const selectedPreset = presets.find((preset) => preset.from === fromDate && preset.to === toDate)?.label;
+  const selectedPreset = presets.find((preset) => preset.from === appliedFrom && preset.to === appliedTo)?.label;
+  const rangeDirty = fromDate !== appliedFrom || toDate !== appliedTo;
 
   const newbie = useMemo(() => classTotals(data, 'newbie'), [data]);
   const renewal = useMemo(() => classTotals(data, 'renewal'), [data]);
@@ -233,51 +239,78 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
       ) : null}
 
       <Card padding="none" className="overflow-hidden">
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
-          <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Period</span>
-          <div className="inline-flex items-center gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200/70">
-            {presets.map((preset) => (
-              <FilterChip
-                key={preset.label}
-                active={selectedPreset === preset.label}
-                pending={pending && selectedPreset === preset.label}
-                onClick={() => {
-                  setFromDate(preset.from);
-                  setToDate(preset.to);
-                  applyWindow(preset.from, preset.to);
-                }}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-canvas-cool px-3 py-2.5 lg:px-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="flex size-3 shrink-0 items-center justify-center" aria-hidden>
+              {pending ? <Loader2 size={11} className="animate-spin text-brand" /> : null}
+            </span>
+            <div
+              className="inline-flex rounded-lg bg-slate-100/90 p-0.5 ring-1 ring-slate-200/60"
+              role="group"
+              aria-label="Date range presets"
+            >
+              {presets.map((preset) => {
+                const active = selectedPreset === preset.label;
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => {
+                      setFromDate(preset.from);
+                      setToDate(preset.to);
+                      applyWindow(preset.from, preset.to);
+                    }}
+                    className={cn(
+                      'shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold tabular-nums transition-all disabled:cursor-wait disabled:opacity-70',
+                      active
+                        ? 'bg-white text-brand-deep shadow-sm ring-1 ring-slate-200/80'
+                        : 'text-slate-600 hover:text-slate-800'
+                    )}
+                  >
+                    {preset.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="hidden h-4 w-px shrink-0 bg-slate-200 sm:block" aria-hidden />
+
+            <div className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2">
+              <input
+                type="date"
+                aria-label="Start date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-[8.25rem] border-0 bg-transparent text-[12px] font-semibold text-slate-800 outline-none"
+              />
+              <span className="text-[11px] font-semibold text-slate-300" aria-hidden>
+                –
+              </span>
+              <input
+                type="date"
+                aria-label="End date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-[8.25rem] border-0 bg-transparent text-[12px] font-semibold text-slate-800 outline-none"
+              />
+            </div>
+
+            {rangeDirty ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="light"
+                disabled={pending || !fromDate || !toDate}
+                onClick={() => applyWindow(fromDate, toDate)}
               >
-                {preset.label}
-              </FilterChip>
-            ))}
+                Apply
+              </Button>
+            ) : null}
           </div>
-          <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
-            From
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
-            />
-          </label>
-          <label className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-slate-600">
-            To
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none"
-            />
-          </label>
-          <Button
-            type="button"
-            size="sm"
-            disabled={pending || !fromDate || !toDate}
-            onClick={() => applyWindow(fromDate, toDate)}
-          >
-            Apply
-          </Button>
-          <div className="ml-auto">
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="hidden h-4 w-px shrink-0 bg-slate-200 sm:block" aria-hidden />
             <RevenueExportButton data={data} window={window} />
           </div>
         </div>

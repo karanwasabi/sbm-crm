@@ -46,9 +46,16 @@ export function RevenueExportButton({ data, window }: RevenueExportButtonProps) 
   };
 
   return (
-    <Button type="button" size="sm" variant="light" disabled={busy} onClick={handleClick}>
-      <Download className="mr-1.5 h-3.5 w-3.5" />
-      {busy ? 'Preparing…' : 'Download Excel'}
+    <Button
+      type="button"
+      size="sm"
+      variant="ghost"
+      disabled={busy}
+      onClick={handleClick}
+      leftIcon={<Download className="h-3.5 w-3.5" />}
+      className="text-slate-600 hover:bg-white hover:text-brand"
+    >
+      {busy ? 'Preparing…' : 'Export'}
     </Button>
   );
 }
