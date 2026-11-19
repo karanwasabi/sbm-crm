@@ -1,6 +1,6 @@
 import { RevenueDashboardView } from '@/components/views/revenue-dashboard-view';
 import { buildRevenueSearchParams, EMPTY_REVENUE_ANALYTICS, parseRevenueWindowParams } from '@/lib/revenue-analytics';
-import { getRevenueAnalytics } from '@/utils/api';
+import { ApiError, getRevenueAnalytics } from '@/utils/api';
 
 export default async function RevenuePage({
   searchParams,
@@ -22,12 +22,13 @@ export default async function RevenuePage({
     studentLimit: Number.isFinite(studentLimit) ? Math.max(1, studentLimit) : 50,
   }).toString();
 
-  let data = EMPTY_REVENUE_ANALYTICS;
+  let data = { ...EMPTY_REVENUE_ANALYTICS, since: window.since, until: window.until };
+  let loadError: string | null = null;
   try {
     data = await getRevenueAnalytics(query);
-  } catch {
-    data = { ...EMPTY_REVENUE_ANALYTICS, since: window.since, until: window.until };
+  } catch (error) {
+    loadError = error instanceof ApiError ? error.message : 'Failed to load revenue analytics.';
   }
 
-  return <RevenueDashboardView data={data} window={window} />;
+  return <RevenueDashboardView data={data} window={window} loadError={loadError} />;
 }

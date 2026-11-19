@@ -21,6 +21,7 @@ import { cn } from '@/lib/cn';
 type RevenueDashboardViewProps = {
   data: RevenueAnalytics;
   window: RevenueWindow;
+  loadError?: string | null;
 };
 
 function AmountCells({
@@ -47,7 +48,7 @@ function AmountCells({
   );
 }
 
-export function RevenueDashboardView({ data, window }: RevenueDashboardViewProps) {
+export function RevenueDashboardView({ data, window, loadError = null }: RevenueDashboardViewProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [fromDate, setFromDate] = useState(() => isoToISTDateInput(window.since));
@@ -80,6 +81,10 @@ export function RevenueDashboardView({ data, window }: RevenueDashboardViewProps
 
   return (
     <CrmPageLayout className="gap-6">
+      {loadError ? (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{loadError}</div>
+      ) : null}
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-xl font-extrabold tracking-tight text-slate-800">Revenue</h1>
