@@ -4006,6 +4006,16 @@ export async function getAdPerformance(days?: PerformanceWindowPreset): Promise<
   };
 }
 
+export async function getRevenueAnalytics(query: string): Promise<import('@/lib/revenue-analytics').RevenueAnalytics> {
+  const { mapRevenueAnalytics } = await import('@/lib/revenue-analytics');
+  const suffix = query ? `?${query.replace(/^\?/, '')}` : '';
+  const response = await requireApiFetch(`/admin/analytics/revenue${suffix}`);
+  if (!response.ok) {
+    await parseApiError(response, 'Failed to load revenue analytics.');
+  }
+  return mapRevenueAnalytics((await response.json()) as Record<string, unknown>);
+}
+
 export async function getDashboardAnalytics(
   days?: PerformanceWindowPreset
 ): Promise<import('@/types/crm').DashboardAnalytics> {
