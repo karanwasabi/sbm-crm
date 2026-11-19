@@ -182,35 +182,35 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
     {
       label: 'Collected',
       value: formatInrFromPaise(collected.totalPaise),
-      sub: `${collected.paymentCount} payments in range`,
+      sub: `${collected.paymentCount} payment${collected.paymentCount === 1 ? '' : 's'} this period`,
       accent: '#FFB703',
       icon: IndianRupee,
     },
     {
       label: 'Newbie',
       value: formatInrFromPaise(newbie.totalPaise),
-      sub: `${newbie.studentCount} students · first purchase`,
+      sub: `${newbie.studentCount} first-time buyer${newbie.studentCount === 1 ? '' : 's'}`,
       accent: CLASS_STYLE.newbie.color,
       icon: Sparkles,
     },
     {
       label: 'Renewal',
       value: formatInrFromPaise(renewal.totalPaise),
-      sub: `${renewal.studentCount} students · ≤3 mo gap`,
+      sub: `${renewal.studentCount} within 3 months of expiry`,
       accent: CLASS_STYLE.renewal.color,
       icon: RefreshCw,
     },
     {
       label: 'Returning',
       value: formatInrFromPaise(returning.totalPaise),
-      sub: `${returning.studentCount} students · >3 mo gap`,
+      sub: `${returning.studentCount} after a 3+ month break`,
       accent: CLASS_STYLE.returning.color,
       icon: RotateCcw,
     },
     {
       label: 'Students',
       value: String(data.studentTotal),
-      sub: 'With a paid event in range',
+      sub: 'Who paid in this period',
       accent: '#0EA5E9',
       icon: Users,
     },
@@ -234,7 +234,7 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
 
       <Card padding="none" className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-canvas-cool px-3 py-3 lg:px-4">
-          <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Window</span>
+          <span className="shrink-0 text-[10px] font-bold tracking-wide text-slate-400 uppercase">Period</span>
           <div className="inline-flex items-center gap-1 rounded-xl bg-white p-1 ring-1 ring-slate-200/70">
             {presets.map((preset) => (
               <FilterChip
@@ -287,12 +287,16 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
 
       <div className="grid gap-5 xl:grid-cols-5">
         <div className="xl:col-span-3">
-          <SectionCard title="Revenue split" subtitle="Students and ₹ by class and plan length" accent="#5C65CF">
+          <SectionCard
+            title="Collections by type"
+            subtitle="Paid amount by membership type and plan duration"
+            accent="#5C65CF"
+          >
             <div className="overflow-x-auto rounded-xl ring-1 ring-slate-100">
               <table className="min-w-full text-left text-xs text-slate-700">
                 <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold tracking-[0.08em] text-slate-500 uppercase">
                   <tr>
-                    <th className="px-3 py-2.5">Class</th>
+                    <th className="px-3 py-2.5">Type</th>
                     <th className="px-3 py-2.5">Plan</th>
                     <th className="px-3 py-2.5 text-right">Students</th>
                     <th className="px-3 py-2.5 text-right">Payments</th>
@@ -307,7 +311,7 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
                   {data.split.length === 0 ? (
                     <tr>
                       <td colSpan={9} className="px-3 py-8 text-center text-slate-400">
-                        No paid payments in this range.
+                        No collections in this period.
                       </td>
                     </tr>
                   ) : (
@@ -334,39 +338,45 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
         </div>
 
         <div className="xl:col-span-2">
-          <SectionCard title="Newbie sources" subtitle="First-purchase attribution in this window" accent="#10B981">
+          <SectionCard title="New student sources" subtitle="Where first-time buyers came from" accent="#10B981">
             <div className="space-y-3">
-              {data.newbieSources.map((row) => {
-                const style = SOURCE_STYLE[row.source] ?? { color: '#64748B', tint: '#F1F5F9' };
-                return (
-                  <div
-                    key={row.source}
-                    className="rounded-xl border border-slate-100 bg-gradient-to-r from-white to-slate-50/80 px-3.5 py-3"
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <Pill label={sourceLabel(row.source)} color={style.color} tint={style.tint} />
-                      <span className="text-sm font-extrabold text-slate-800 tabular-nums">
-                        {formatInrFromPaise(row.amounts.totalPaise)}
-                      </span>
+              {data.newbieSources.length === 0 ? (
+                <p className="py-6 text-center text-xs text-slate-400">No new student purchases this period.</p>
+              ) : (
+                data.newbieSources.map((row) => {
+                  const style = SOURCE_STYLE[row.source] ?? { color: '#64748B', tint: '#F1F5F9' };
+                  return (
+                    <div
+                      key={row.source}
+                      className="rounded-xl border border-slate-100 bg-gradient-to-r from-white to-slate-50/80 px-3.5 py-3"
+                    >
+                      <div className="mb-2 flex items-center justify-between gap-2">
+                        <Pill label={sourceLabel(row.source)} color={style.color} tint={style.tint} />
+                        <span className="text-sm font-extrabold text-slate-800 tabular-nums">
+                          {formatInrFromPaise(row.amounts.totalPaise)}
+                        </span>
+                      </div>
+                      <SourceBar total={sourceTotal} value={row.amounts.totalPaise} color={style.color} />
+                      <div className="mt-2 flex justify-between text-[11px] font-medium text-slate-500">
+                        <span>
+                          {row.amounts.studentCount} student{row.amounts.studentCount === 1 ? '' : 's'}
+                        </span>
+                        <span>
+                          {row.amounts.paymentCount} payment{row.amounts.paymentCount === 1 ? '' : 's'}
+                        </span>
+                      </div>
                     </div>
-                    <SourceBar total={sourceTotal} value={row.amounts.totalPaise} color={style.color} />
-                    <div className="mt-2 flex justify-between text-[11px] font-medium text-slate-500">
-                      <span>
-                        {row.amounts.studentCount} student{row.amounts.studentCount === 1 ? '' : 's'}
-                      </span>
-                      <span>{row.amounts.paymentCount} payments</span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </SectionCard>
         </div>
       </div>
 
       <SectionCard
-        title="Students"
-        subtitle={`${data.studentTotal} with a paid event in range · page ${currentPage} of ${studentPages}`}
+        title="Paying students"
+        subtitle={`${data.studentTotal} paid this period · page ${currentPage} of ${studentPages}`}
         accent="#0EA5E9"
         action={
           <div className="flex gap-2">
@@ -408,10 +418,10 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
             <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold tracking-[0.08em] text-slate-500 uppercase">
               <tr>
                 <th className="px-3 py-2.5">Student</th>
-                <th className="px-3 py-2.5">First purchase</th>
+                <th className="px-3 py-2.5">Joined</th>
                 <th className="px-3 py-2.5 text-right">Purchases</th>
-                <th className="px-3 py-2.5 text-right">Lifetime paid</th>
-                <th className="px-3 py-2.5 text-right">Months</th>
+                <th className="px-3 py-2.5 text-right">Lifetime</th>
+                <th className="px-3 py-2.5 text-right">Tenure</th>
                 <th className="px-3 py-2.5">Status</th>
               </tr>
             </thead>
@@ -419,7 +429,7 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
               {data.students.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
-                    No students in this range.
+                    No paying students in this period.
                   </td>
                 </tr>
               ) : (
@@ -468,27 +478,27 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SectionCard
-          title="By joining month"
-          subtitle="First purchase in range · retained by month 3 / 6 / 12"
+          title="Cohort retention"
+          subtitle="New joiners this period, still active or paying at 3 / 6 / 12 months"
           accent="#8338EC"
         >
           <div className="overflow-x-auto rounded-xl ring-1 ring-slate-100">
             <table className="min-w-full text-left text-xs text-slate-700">
               <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold tracking-[0.08em] text-slate-500 uppercase">
                 <tr>
-                  <th className="px-3 py-2.5">Join month</th>
+                  <th className="px-3 py-2.5">Joined</th>
                   <th className="px-3 py-2.5 text-right">Cohort</th>
-                  <th className="px-3 py-2.5 text-right">M3</th>
-                  <th className="px-3 py-2.5 text-right">M6</th>
-                  <th className="px-3 py-2.5 text-right">M12</th>
-                  <th className="px-3 py-2.5 text-right">Avg paid</th>
+                  <th className="px-3 py-2.5 text-right">3 mo</th>
+                  <th className="px-3 py-2.5 text-right">6 mo</th>
+                  <th className="px-3 py-2.5 text-right">12 mo</th>
+                  <th className="px-3 py-2.5 text-right">Avg lifetime</th>
                 </tr>
               </thead>
               <tbody>
                 {data.joiningMonths.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-3 py-8 text-center text-slate-400">
-                      No first-time joiners in this range.
+                      No new joiners in this period.
                     </td>
                   </tr>
                 ) : (
@@ -517,13 +527,13 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
         </SectionCard>
 
         <SectionCard
-          title="Refunds & failed payments"
-          subtitle="Kept separate from collected revenue · offline refunds are count-only"
+          title="Refunds & failures"
+          subtitle="Excluded from collections · offline refunds show count only"
           accent="#F43F5E"
         >
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-100 bg-rose-50/70 px-3 py-2 text-xs font-semibold text-rose-700">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-            {failTotal} issue{failTotal === 1 ? '' : 's'} recorded in this window
+            {failTotal} payment issue{failTotal === 1 ? '' : 's'} this period
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <FailCard
@@ -532,12 +542,12 @@ export function RevenueDashboardView({ data, window, loadError = null }: Revenue
               paise={data.failures.failedCheckoutsPaise}
             />
             <FailCard
-              label="Failed charges"
+              label="Failed autopay"
               count={data.failures.failedChargesCount}
               paise={data.failures.failedChargesPaise}
             />
             <FailCard label="Offline refunds" count={data.failures.offlineRefundsCount} />
-            <FailCard label="Payment failed events" count={data.failures.paymentFailedEventsCount} />
+            <FailCard label="Failed payment events" count={data.failures.paymentFailedEventsCount} />
           </div>
         </SectionCard>
       </div>

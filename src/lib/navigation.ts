@@ -99,7 +99,7 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/programs': { title: 'Program Management', subtitle: 'Live, future & test cohorts' },
   '/communications': { title: 'Communications', subtitle: 'Rules, templates & sequences' },
   '/renewals': { title: 'Renewals', subtitle: 'Membership expiry queue' },
-  '/revenue': { title: 'Revenue', subtitle: 'Collections by newbie, renewal & returning' },
+  '/revenue': { title: 'Revenue', subtitle: 'Paid collections, sources & retention' },
   '/reports': { title: 'Reports', subtitle: 'Published report snapshots' },
   '/feedback': { title: 'Feedback', subtitle: 'In-app survey results' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },

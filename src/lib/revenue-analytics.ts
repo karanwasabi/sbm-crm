@@ -215,7 +215,7 @@ export function sourceLabel(value: string): string {
 
 export function planLabel(value: string): string {
   if (value === 'other') return 'Other';
-  return `${value} mo`;
+  return `${value}-month`;
 }
 
 /** Default last 30 IST calendar days as [since, until) RFC3339. */

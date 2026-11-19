@@ -31,9 +31,9 @@ export async function downloadRevenueXlsx(data: RevenueAnalytics, students: Reve
   workbook.creator = 'SBM CRM';
   workbook.created = new Date();
 
-  const split = workbook.addWorksheet('Revenue split');
+  const split = workbook.addWorksheet('Collections by type');
   split.columns = [
-    { header: 'Class', key: 'class', width: 14 },
+    { header: 'Type', key: 'class', width: 14 },
     { header: 'Plan', key: 'plan', width: 10 },
     { header: 'Students', key: 'students', width: 12 },
     { header: 'Payments', key: 'payments', width: 12 },
@@ -57,7 +57,7 @@ export async function downloadRevenueXlsx(data: RevenueAnalytics, students: Reve
     });
   }
 
-  const sources = workbook.addWorksheet('Newbie sources');
+  const sources = workbook.addWorksheet('New student sources');
   sources.columns = [
     { header: 'Source', key: 'source', width: 18 },
     { header: 'Students', key: 'students', width: 12 },
@@ -81,14 +81,14 @@ export async function downloadRevenueXlsx(data: RevenueAnalytics, students: Reve
     });
   }
 
-  const studentsSheet = workbook.addWorksheet('Students');
+  const studentsSheet = workbook.addWorksheet('Paying students');
   studentsSheet.columns = [
     { header: 'Name', key: 'name', width: 24 },
     { header: 'Email', key: 'email', width: 28 },
-    { header: 'First purchase', key: 'first', width: 22 },
+    { header: 'Joined', key: 'first', width: 22 },
     { header: 'Purchases', key: 'purchases', width: 12 },
-    { header: 'Lifetime paid', key: 'lifetime', width: 16 },
-    { header: 'Months with us', key: 'months', width: 14 },
+    { header: 'Lifetime', key: 'lifetime', width: 16 },
+    { header: 'Tenure (months)', key: 'months', width: 14 },
     { header: 'Status', key: 'status', width: 12 },
     { header: 'Lead ID', key: 'leadId', width: 38 },
   ];
@@ -105,14 +105,14 @@ export async function downloadRevenueXlsx(data: RevenueAnalytics, students: Reve
     });
   }
 
-  const joining = workbook.addWorksheet('Joining month');
+  const joining = workbook.addWorksheet('Cohort retention');
   joining.columns = [
-    { header: 'Join month', key: 'month', width: 14 },
+    { header: 'Joined', key: 'month', width: 14 },
     { header: 'Cohort size', key: 'size', width: 12 },
-    { header: 'Returned by M3', key: 'm3', width: 14 },
-    { header: 'Returned by M6', key: 'm6', width: 14 },
-    { header: 'Returned by M12', key: 'm12', width: 14 },
-    { header: 'Avg lifetime paid', key: 'avg', width: 18 },
+    { header: 'Retained 3 mo', key: 'm3', width: 14 },
+    { header: 'Retained 6 mo', key: 'm6', width: 14 },
+    { header: 'Retained 12 mo', key: 'm12', width: 14 },
+    { header: 'Avg lifetime', key: 'avg', width: 18 },
   ];
   for (const row of data.joiningMonths) {
     joining.addRow({
@@ -125,7 +125,7 @@ export async function downloadRevenueXlsx(data: RevenueAnalytics, students: Reve
     });
   }
 
-  const fails = workbook.addWorksheet('Refunds failures');
+  const fails = workbook.addWorksheet('Refunds & failures');
   fails.columns = [
     { header: 'Metric', key: 'metric', width: 32 },
     { header: 'Count', key: 'count', width: 12 },
@@ -137,17 +137,17 @@ export async function downloadRevenueXlsx(data: RevenueAnalytics, students: Reve
     amount: formatInrFromPaise(data.failures.failedCheckoutsPaise),
   });
   fails.addRow({
-    metric: 'Failed subscription charges',
+    metric: 'Failed autopay',
     count: data.failures.failedChargesCount,
     amount: formatInrFromPaise(data.failures.failedChargesPaise),
   });
   fails.addRow({
-    metric: 'Offline refunds recorded',
+    metric: 'Offline refunds',
     count: data.failures.offlineRefundsCount,
     amount: '',
   });
   fails.addRow({
-    metric: 'Payment failed events',
+    metric: 'Failed payment events',
     count: data.failures.paymentFailedEventsCount,
     amount: '',
   });
