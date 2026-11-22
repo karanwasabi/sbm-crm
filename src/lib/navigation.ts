@@ -53,6 +53,13 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
       { id: 'promos', href: '/promos', label: 'Promo Codes', icon: Tag },
       { id: 'events', href: '/events', label: 'Events', icon: Calendar, superadminOnly: true },
       {
+        id: 'lifestyle-audit',
+        href: '/lifestyle-audit',
+        label: 'Lifestyle Audit',
+        icon: ClipboardList,
+        superadminOnly: true,
+      },
+      {
         id: 'resources',
         href: '/resources',
         label: 'Resource Manager',
@@ -104,6 +111,10 @@ export const CRM_PAGES: Record<string, CrmPageMeta> = {
   '/feedback': { title: 'Feedback', subtitle: 'In-app survey results' },
   '/promos': { title: 'Promo Codes', subtitle: 'Discount terms, usage & audit trail' },
   '/events': { title: 'Events', subtitle: 'Public sign-up events, slots & registrations' },
+  '/lifestyle-audit': {
+    title: 'Lifestyle Audit',
+    subtitle: 'Call schedule, coach pool & paid bookings',
+  },
   '/resources': { title: 'Resource Manager', subtitle: 'Library content & cohort assignments' },
   '/partners': {
     title: 'Partner API',

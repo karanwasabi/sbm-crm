@@ -7293,3 +7293,207 @@ export const listEventOptions = cache(async (): Promise<EventOption[]> => {
     slots: (row.slots ?? []).map((slot) => ({ id: slot.id, label: slot.label, startsAt: slot.starts_at })),
   }));
 });
+
+type ApiLifestyleAuditSettings = {
+  price_paise: number;
+  duration_minutes: number;
+  timezone: string;
+  operating_weekdays: number[];
+  booking_horizon_days: number;
+  hold_ttl_minutes: number;
+  updated_at?: string;
+};
+
+type ApiLifestyleAuditScheduleSlot = {
+  local_time: string;
+  sort_order: number;
+  is_active?: boolean | null;
+  coach_user_ids: string[];
+};
+
+type ApiLifestyleAuditSchedule = {
+  settings: ApiLifestyleAuditSettings;
+  slots: ApiLifestyleAuditScheduleSlot[];
+};
+
+type ApiLifestyleAuditCoachOption = {
+  user_id: string;
+  email: string;
+  first_name: string | null;
+  last_name: string | null;
+};
+
+type ApiLifestyleAuditBooking = {
+  id: string;
+  lead_id: string | null;
+  full_name: string;
+  email: string;
+  whatsapp: string;
+  slot_date: string;
+  local_time: string;
+  starts_at: string;
+  ends_at: string;
+  coach_user_id: string;
+  coach_email: string;
+  coach_first_name: string | null;
+  coach_last_name: string | null;
+  status: string;
+  amount_paise: number;
+  razorpay_order_id: string | null;
+  razorpay_payment_id: string | null;
+  hold_expires_at: string | null;
+  google_calendar_event_id: string | null;
+  google_meet_link: string | null;
+  calendar_sync_status: string | null;
+  created_at: string;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+};
+
+function mapLifestyleAuditSettings(
+  row: ApiLifestyleAuditSettings
+): import('@/types/lifestyle-audit').LifestyleAuditSettings {
+  return {
+    pricePaise: row.price_paise,
+    durationMinutes: row.duration_minutes,
+    timezone: row.timezone,
+    operatingWeekdays: row.operating_weekdays ?? [],
+    bookingHorizonDays: row.booking_horizon_days,
+    holdTtlMinutes: row.hold_ttl_minutes,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapLifestyleAuditBooking(
+  row: ApiLifestyleAuditBooking
+): import('@/types/lifestyle-audit').LifestyleAuditBooking {
+  return {
+    id: row.id,
+    leadId: row.lead_id,
+    fullName: row.full_name,
+    email: row.email,
+    whatsapp: row.whatsapp,
+    slotDate: row.slot_date,
+    localTime: row.local_time,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    coachUserId: row.coach_user_id,
+    coachEmail: row.coach_email,
+    coachFirstName: row.coach_first_name,
+    coachLastName: row.coach_last_name,
+    status: row.status,
+    amountPaise: row.amount_paise,
+    razorpayOrderId: row.razorpay_order_id,
+    razorpayPaymentId: row.razorpay_payment_id,
+    holdExpiresAt: row.hold_expires_at,
+    googleCalendarEventId: row.google_calendar_event_id,
+    googleMeetLink: row.google_meet_link,
+    calendarSyncStatus: row.calendar_sync_status,
+    createdAt: row.created_at,
+    confirmedAt: row.confirmed_at,
+    cancelledAt: row.cancelled_at,
+  };
+}
+
+export async function getLifestyleAuditSchedule(): Promise<import('@/types/lifestyle-audit').LifestyleAuditSchedule> {
+  const response = await requireApiFetch('/admin/lifestyle-audit/schedule');
+  if (!response.ok) await parseApiError(response, 'Failed to load Lifestyle Audit schedule.');
+  const payload = (await response.json()) as ApiLifestyleAuditSchedule;
+  return {
+    settings: mapLifestyleAuditSettings(payload.settings),
+    slots: (payload.slots ?? []).map((slot) => ({
+      localTime: slot.local_time,
+      sortOrder: slot.sort_order,
+      isActive: slot.is_active !== false,
+      coachUserIds: slot.coach_user_ids ?? [],
+    })),
+  };
+}
+
+export async function putLifestyleAuditSchedule(input: {
+  operatingWeekdays: number[];
+  slots: Array<{
+    localTime: string;
+    sortOrder?: number;
+    isActive?: boolean;
+    coachUserIds: string[];
+  }>;
+}): Promise<import('@/types/lifestyle-audit').LifestyleAuditSchedule> {
+  const response = await requireApiFetch('/admin/lifestyle-audit/schedule', {
+    method: 'PUT',
+    body: JSON.stringify({
+      operating_weekdays: input.operatingWeekdays,
+      slots: input.slots.map((slot, index) => ({
+        local_time: slot.localTime,
+        sort_order: slot.sortOrder ?? (index + 1) * 10,
+        is_active: slot.isActive !== false,
+        coach_user_ids: slot.coachUserIds,
+      })),
+    }),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to save Lifestyle Audit schedule.');
+  const payload = (await response.json()) as ApiLifestyleAuditSchedule;
+  return {
+    settings: mapLifestyleAuditSettings(payload.settings),
+    slots: (payload.slots ?? []).map((slot) => ({
+      localTime: slot.local_time,
+      sortOrder: slot.sort_order,
+      isActive: slot.is_active !== false,
+      coachUserIds: slot.coach_user_ids ?? [],
+    })),
+  };
+}
+
+export async function listLifestyleAuditCoachOptions(): Promise<
+  import('@/types/lifestyle-audit').LifestyleAuditCoachOption[]
+> {
+  const response = await requireApiFetch('/admin/lifestyle-audit/coach-options');
+  if (!response.ok) await parseApiError(response, 'Failed to load coaches.');
+  const payload = (await response.json()) as { coaches?: ApiLifestyleAuditCoachOption[] };
+  return (payload.coaches ?? []).map((row) => ({
+    userId: row.user_id,
+    email: row.email,
+    firstName: row.first_name,
+    lastName: row.last_name,
+  }));
+}
+
+export async function listLifestyleAuditBookings(params?: {
+  from?: string;
+  to?: string;
+  status?: string;
+  coachUserId?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<import('@/types/lifestyle-audit').LifestyleAuditBookingsPage> {
+  const qs = new URLSearchParams();
+  if (params?.from) qs.set('from', params.from);
+  if (params?.to) qs.set('to', params.to);
+  if (params?.status) qs.set('status', params.status);
+  if (params?.coachUserId) qs.set('coach_user_id', params.coachUserId);
+  if (params?.limit != null) qs.set('limit', String(params.limit));
+  if (params?.offset != null) qs.set('offset', String(params.offset));
+  const suffix = qs.toString() ? `?${qs.toString()}` : '';
+  const response = await requireApiFetch(`/admin/lifestyle-audit/bookings${suffix}`);
+  if (!response.ok) await parseApiError(response, 'Failed to load Lifestyle Audit bookings.');
+  const payload = (await response.json()) as {
+    bookings?: ApiLifestyleAuditBooking[];
+    total?: number;
+    limit?: number;
+    offset?: number;
+  };
+  return {
+    bookings: (payload.bookings ?? []).map(mapLifestyleAuditBooking),
+    total: payload.total ?? 0,
+    limit: payload.limit ?? 50,
+    offset: payload.offset ?? 0,
+  };
+}
+
+export async function cancelLifestyleAuditBooking(id: string): Promise<{ id: string; status: string }> {
+  const response = await requireApiFetch(`/admin/lifestyle-audit/bookings/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to cancel booking.');
+  return (await response.json()) as { id: string; status: string };
+}
