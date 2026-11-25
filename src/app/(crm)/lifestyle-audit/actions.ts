@@ -1,7 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { cancelLifestyleAuditBooking, listLifestyleAuditBookings, putLifestyleAuditSchedule } from '@/utils/api';
+import {
+  cancelLifestyleAuditBooking,
+  listLifestyleAuditBookings,
+  putLifestyleAuditSchedule,
+  syncLifestyleAuditBookingCalendar,
+} from '@/utils/api';
 
 export async function saveLifestyleAuditScheduleAction(input: {
   operatingWeekdays: number[];
@@ -30,6 +35,12 @@ export async function loadLifestyleAuditBookingsAction(params?: {
 
 export async function cancelLifestyleAuditBookingAction(id: string) {
   const result = await cancelLifestyleAuditBooking(id);
+  revalidatePath('/lifestyle-audit');
+  return result;
+}
+
+export async function syncLifestyleAuditBookingCalendarAction(id: string) {
+  const result = await syncLifestyleAuditBookingCalendar(id);
   revalidatePath('/lifestyle-audit');
   return result;
 }

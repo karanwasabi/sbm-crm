@@ -6,6 +6,7 @@ import {
   cancelLifestyleAuditBookingAction,
   loadLifestyleAuditBookingsAction,
   saveLifestyleAuditScheduleAction,
+  syncLifestyleAuditBookingCalendarAction,
 } from '@/app/(crm)/lifestyle-audit/actions';
 import { TabBar } from '@/components/crm/tab-bar';
 import {
@@ -75,6 +76,27 @@ function statusTone(status: string): 'success' | 'warn' | 'danger' | 'neutral' {
     default:
       return 'neutral';
   }
+}
+
+function calendarSyncTone(status: string | null): 'success' | 'warn' | 'danger' | 'neutral' {
+  switch (status) {
+    case 'synced':
+      return 'success';
+    case 'pending':
+    case 'skipped':
+      return 'warn';
+    case 'failed':
+      return 'danger';
+    default:
+      return 'neutral';
+  }
+}
+
+function canRetryCalendarSync(b: LifestyleAuditBooking): boolean {
+  if (b.status !== 'confirmed') return false;
+  if (b.googleMeetLink && b.calendarSyncStatus === 'synced') return false;
+  const sync = b.calendarSyncStatus;
+  return !sync || sync === 'failed' || sync === 'skipped' || sync === 'pending';
 }
 
 type Props = {
@@ -212,6 +234,21 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
     });
   };
 
+  const retryCalendarSync = (id: string) => {
+    startTransition(async () => {
+      try {
+        await syncLifestyleAuditBookingCalendarAction(id);
+        toast({ message: 'Calendar sync completed.', variant: 'success' });
+        refreshBookings();
+      } catch (error) {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to sync calendar.',
+          variant: 'error',
+        });
+      }
+    });
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <TabBar tabs={['Schedule', 'Bookings']} active={tab} onChange={(t) => setTab(t as Tab)} />
@@ -335,13 +372,15 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
                 <DataTableHeaderCell>Lead</DataTableHeaderCell>
                 <DataTableHeaderCell>Status</DataTableHeaderCell>
                 <DataTableHeaderCell>Coach</DataTableHeaderCell>
+                <DataTableHeaderCell>Meet</DataTableHeaderCell>
+                <DataTableHeaderCell>Calendar</DataTableHeaderCell>
                 <DataTableHeaderCell>Payment</DataTableHeaderCell>
                 <DataTableHeaderCell>Actions</DataTableHeaderCell>
               </DataTableHead>
               <DataTableBody>
                 {bookingsPage.bookings.length === 0 ? (
                   <DataTableRow>
-                    <DataTableCell colSpan={6}>No bookings yet.</DataTableCell>
+                    <DataTableCell colSpan={8}>No bookings yet.</DataTableCell>
                   </DataTableRow>
                 ) : (
                   bookingsPage.bookings.map((b) => (
@@ -371,15 +410,53 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
                         <div className="text-sm">{bookingCoachName(b)}</div>
                       </DataTableCell>
                       <DataTableCell>
+                        {b.googleMeetLink ? (
+                          <a
+                            href={b.googleMeetLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-sm font-medium text-brand no-underline hover:underline"
+                          >
+                            Join
+                          </a>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </DataTableCell>
+                      <DataTableCell>
+                        {b.calendarSyncStatus ? (
+                          <Pill tone={calendarSyncTone(b.calendarSyncStatus)}>{b.calendarSyncStatus}</Pill>
+                        ) : (
+                          <span className="text-xs text-slate-400">—</span>
+                        )}
+                      </DataTableCell>
+                      <DataTableCell>
                         <div className="text-xs text-slate-500">₹{(b.amountPaise / 100).toFixed(0)}</div>
                         <div className="text-xs break-all">{b.razorpayPaymentId || b.razorpayOrderId || '—'}</div>
                       </DataTableCell>
                       <DataTableCell>
-                        {(b.status === 'hold' || b.status === 'confirmed') && (
-                          <Button type="button" variant="ghost" disabled={pending} onClick={() => cancelBooking(b.id)}>
-                            Cancel
-                          </Button>
-                        )}
+                        <div className="flex flex-col items-start gap-1">
+                          {canRetryCalendarSync(b) ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              disabled={pending}
+                              onClick={() => retryCalendarSync(b.id)}
+                            >
+                              Retry sync
+                            </Button>
+                          ) : null}
+                          {(b.status === 'hold' || b.status === 'confirmed') && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              disabled={pending}
+                              onClick={() => cancelBooking(b.id)}
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                        </div>
                       </DataTableCell>
                     </DataTableRow>
                   ))

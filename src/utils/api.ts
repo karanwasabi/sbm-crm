@@ -7497,3 +7497,13 @@ export async function cancelLifestyleAuditBooking(id: string): Promise<{ id: str
   if (!response.ok) await parseApiError(response, 'Failed to cancel booking.');
   return (await response.json()) as { id: string; status: string };
 }
+
+export async function syncLifestyleAuditBookingCalendar(
+  id: string
+): Promise<import('@/types/lifestyle-audit').LifestyleAuditBooking> {
+  const response = await requireApiFetch(`/admin/lifestyle-audit/bookings/${encodeURIComponent(id)}/calendar-sync`, {
+    method: 'POST',
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to sync calendar.');
+  return mapLifestyleAuditBooking((await response.json()) as ApiLifestyleAuditBooking);
+}
