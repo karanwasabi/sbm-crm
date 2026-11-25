@@ -49,9 +49,18 @@ export type LifestyleAuditBooking = {
   googleCalendarEventId: string | null;
   googleMeetLink: string | null;
   calendarSyncStatus: string | null;
+  calendarConflict: boolean;
   createdAt: string;
   confirmedAt: string | null;
   cancelledAt: string | null;
+};
+
+export type LifestyleAuditReassignOption = {
+  userId: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  available: boolean;
 };
 
 export type LifestyleAuditBookingsPage = {

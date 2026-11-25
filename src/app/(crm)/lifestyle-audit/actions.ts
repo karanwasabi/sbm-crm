@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import {
   cancelLifestyleAuditBooking,
+  getLifestyleAuditReassignOptions,
   listLifestyleAuditBookings,
   putLifestyleAuditSchedule,
+  reassignLifestyleAuditBooking,
   syncLifestyleAuditBookingCalendar,
 } from '@/utils/api';
 
@@ -41,6 +43,16 @@ export async function cancelLifestyleAuditBookingAction(id: string) {
 
 export async function syncLifestyleAuditBookingCalendarAction(id: string) {
   const result = await syncLifestyleAuditBookingCalendar(id);
+  revalidatePath('/lifestyle-audit');
+  return result;
+}
+
+export async function loadLifestyleAuditReassignOptionsAction(id: string) {
+  return getLifestyleAuditReassignOptions(id);
+}
+
+export async function reassignLifestyleAuditBookingAction(id: string, coachUserId: string) {
+  const result = await reassignLifestyleAuditBooking(id, coachUserId);
   revalidatePath('/lifestyle-audit');
   return result;
 }

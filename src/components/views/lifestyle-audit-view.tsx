@@ -5,6 +5,8 @@ import { useMemo, useState, useTransition } from 'react';
 import {
   cancelLifestyleAuditBookingAction,
   loadLifestyleAuditBookingsAction,
+  loadLifestyleAuditReassignOptionsAction,
+  reassignLifestyleAuditBookingAction,
   saveLifestyleAuditScheduleAction,
   syncLifestyleAuditBookingCalendarAction,
 } from '@/app/(crm)/lifestyle-audit/actions';
@@ -19,6 +21,14 @@ import {
 } from '@/components/crm/data-table';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Field } from '@/components/ui/field';
 import { Pill } from '@/components/ui/pill';
 import { SearchableSelect } from '@/components/ui/searchable-select';
@@ -28,6 +38,7 @@ import type {
   LifestyleAuditBooking,
   LifestyleAuditBookingsPage,
   LifestyleAuditCoachOption,
+  LifestyleAuditReassignOption,
   LifestyleAuditSchedule,
   LifestyleAuditScheduleSlot,
 } from '@/types/lifestyle-audit';
@@ -99,6 +110,12 @@ function canRetryCalendarSync(b: LifestyleAuditBooking): boolean {
   return !sync || sync === 'failed' || sync === 'skipped' || sync === 'pending';
 }
 
+function reassignOptionLabel(c: LifestyleAuditReassignOption): string {
+  const name = [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
+  const base = name || c.email || c.userId;
+  return c.available ? base : `${base} (busy)`;
+}
+
 type Props = {
   initialSchedule: LifestyleAuditSchedule;
   coaches: LifestyleAuditCoachOption[];
@@ -116,8 +133,21 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
   const [bookingsPage, setBookingsPage] = useState(initialBookings);
   const [statusFilter, setStatusFilter] = useState('');
   const [coachFilter, setCoachFilter] = useState('');
+  const [reassignBooking, setReassignBooking] = useState<LifestyleAuditBooking | null>(null);
+  const [reassignOptions, setReassignOptions] = useState<LifestyleAuditReassignOption[]>([]);
+  const [reassignCoachId, setReassignCoachId] = useState('');
+  const [reassignLoading, setReassignLoading] = useState(false);
 
   const coachOptions = useMemo(() => coaches.map((c) => ({ value: c.userId, label: coachLabel(c) })), [coaches]);
+  const reassignSelectOptions = useMemo(() => {
+    const available = reassignOptions.filter((c) => c.available);
+    const busy = reassignOptions.filter((c) => !c.available);
+    return [...available, ...busy].map((c) => ({
+      value: c.userId,
+      label: reassignOptionLabel(c),
+      subtitle: c.available ? 'Available' : 'Busy at this time',
+    }));
+  }, [reassignOptions]);
 
   const toggleWeekday = (day: number) => {
     setWeekdays((prev) => {
@@ -243,6 +273,44 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
       } catch (error) {
         toast({
           message: error instanceof Error ? error.message : 'Failed to sync calendar.',
+          variant: 'error',
+        });
+      }
+    });
+  };
+
+  const openReassign = (booking: LifestyleAuditBooking) => {
+    setReassignBooking(booking);
+    setReassignCoachId('');
+    setReassignOptions([]);
+    setReassignLoading(true);
+    void loadLifestyleAuditReassignOptionsAction(booking.id)
+      .then((options) => {
+        setReassignOptions(options);
+        const firstAvailable = options.find((c) => c.available);
+        setReassignCoachId(firstAvailable?.userId ?? '');
+      })
+      .catch((error) => {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to load coaches.',
+          variant: 'error',
+        });
+        setReassignBooking(null);
+      })
+      .finally(() => setReassignLoading(false));
+  };
+
+  const submitReassign = () => {
+    if (!reassignBooking || !reassignCoachId) return;
+    startTransition(async () => {
+      try {
+        await reassignLifestyleAuditBookingAction(reassignBooking.id, reassignCoachId);
+        toast({ message: 'Coach reassigned.', variant: 'success' });
+        setReassignBooking(null);
+        refreshBookings();
+      } catch (error) {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to reassign coach.',
           variant: 'error',
         });
       }
@@ -408,6 +476,11 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
                       </DataTableCell>
                       <DataTableCell>
                         <div className="text-sm">{bookingCoachName(b)}</div>
+                        {b.calendarConflict ? (
+                          <div className="mt-1">
+                            <Pill tone="warn">Calendar conflict</Pill>
+                          </div>
+                        ) : null}
                       </DataTableCell>
                       <DataTableCell>
                         {b.googleMeetLink ? (
@@ -436,6 +509,11 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
                       </DataTableCell>
                       <DataTableCell>
                         <div className="flex flex-col items-start gap-1">
+                          {(b.status === 'hold' || b.status === 'confirmed') && (
+                            <Button type="button" variant="ghost" disabled={pending} onClick={() => openReassign(b)}>
+                              Change coach
+                            </Button>
+                          )}
                           {canRetryCalendarSync(b) ? (
                             <Button
                               type="button"
@@ -469,6 +547,47 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
           </Card>
         </div>
       )}
+
+      <Dialog
+        open={Boolean(reassignBooking)}
+        onOpenChange={(open) => {
+          if (!open) setReassignBooking(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change coach</DialogTitle>
+            <DialogDescription>
+              {reassignBooking
+                ? `${reassignBooking.fullName} · ${reassignBooking.slotDate} ${reassignBooking.localTime} IST`
+                : 'Pick another coach for this Lifestyle Audit.'}
+            </DialogDescription>
+          </DialogHeader>
+          {reassignLoading ? (
+            <p className="text-sm text-slate-500">Loading availability…</p>
+          ) : reassignSelectOptions.length === 0 ? (
+            <p className="text-sm text-slate-500">No other coaches available to assign.</p>
+          ) : (
+            <Field label="Coach">
+              <SearchableSelect value={reassignCoachId} onChange={setReassignCoachId} options={reassignSelectOptions} />
+            </Field>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="light" onClick={() => setReassignBooking(null)}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={submitReassign}
+              disabled={pending || reassignLoading || !reassignCoachId}
+              loading={pending}
+              loadingLabel="Saving…"
+            >
+              Reassign
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -7345,6 +7345,7 @@ type ApiLifestyleAuditBooking = {
   google_calendar_event_id: string | null;
   google_meet_link: string | null;
   calendar_sync_status: string | null;
+  calendar_conflict?: boolean;
   created_at: string;
   confirmed_at: string | null;
   cancelled_at: string | null;
@@ -7389,6 +7390,7 @@ function mapLifestyleAuditBooking(
     googleCalendarEventId: row.google_calendar_event_id,
     googleMeetLink: row.google_meet_link,
     calendarSyncStatus: row.calendar_sync_status,
+    calendarConflict: Boolean(row.calendar_conflict),
     createdAt: row.created_at,
     confirmedAt: row.confirmed_at,
     cancelledAt: row.cancelled_at,
@@ -7505,5 +7507,41 @@ export async function syncLifestyleAuditBookingCalendar(
     method: 'POST',
   });
   if (!response.ok) await parseApiError(response, 'Failed to sync calendar.');
+  return mapLifestyleAuditBooking((await response.json()) as ApiLifestyleAuditBooking);
+}
+
+export async function getLifestyleAuditReassignOptions(
+  id: string
+): Promise<import('@/types/lifestyle-audit').LifestyleAuditReassignOption[]> {
+  const response = await requireApiFetch(`/admin/lifestyle-audit/bookings/${encodeURIComponent(id)}/reassign-options`);
+  if (!response.ok) await parseApiError(response, 'Failed to load coach options.');
+  const payload = (await response.json()) as {
+    coaches?: Array<{
+      user_id: string;
+      email: string;
+      first_name: string | null;
+      last_name: string | null;
+      available: boolean;
+    }>;
+  };
+  return (payload.coaches ?? []).map((row) => ({
+    userId: row.user_id,
+    email: row.email,
+    firstName: row.first_name,
+    lastName: row.last_name,
+    available: Boolean(row.available),
+  }));
+}
+
+export async function reassignLifestyleAuditBooking(
+  id: string,
+  coachUserId: string
+): Promise<import('@/types/lifestyle-audit').LifestyleAuditBooking> {
+  const response = await requireApiFetch(`/admin/lifestyle-audit/bookings/${encodeURIComponent(id)}/reassign`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ coach_user_id: coachUserId }),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to reassign coach.');
   return mapLifestyleAuditBooking((await response.json()) as ApiLifestyleAuditBooking);
 }
