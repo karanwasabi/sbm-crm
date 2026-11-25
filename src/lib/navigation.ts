@@ -45,20 +45,25 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
       { id: 'revenue', href: '/revenue', label: 'Revenue', icon: IndianRupee },
       { id: 'reports', href: '/reports', label: 'Reports', icon: FileText },
       { id: 'feedback', href: '/feedback', label: 'Feedback', icon: ClipboardList },
+      {
+        id: 'lifestyle-audit',
+        href: '/lifestyle-audit',
+        label: 'Lifestyle Audit',
+        icon: ClipboardList,
+      },
     ],
   },
   {
     label: 'Setup',
     items: [
       { id: 'promos', href: '/promos', label: 'Promo Codes', icon: Tag },
+      { id: 'settings', href: '/settings', label: 'Settings', icon: Settings, marketingAllowed: true },
+    ],
+  },
+  {
+    label: 'Superadmin',
+    items: [
       { id: 'events', href: '/events', label: 'Events', icon: Calendar, superadminOnly: true },
-      {
-        id: 'lifestyle-audit',
-        href: '/lifestyle-audit',
-        label: 'Lifestyle Audit',
-        icon: ClipboardList,
-        superadminOnly: true,
-      },
       {
         id: 'resources',
         href: '/resources',
@@ -94,7 +99,6 @@ export const CRM_NAV_GROUPS: { label?: string; items: CrmNavItem[] }[] = [
         icon: Smartphone,
         superadminOnly: true,
       },
-      { id: 'settings', href: '/settings', label: 'Settings', icon: Settings, marketingAllowed: true },
     ],
   },
 ];

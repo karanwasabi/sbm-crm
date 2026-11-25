@@ -28,5 +28,8 @@ export function getFilteredCrmNavGroups(opts: {
   return CRM_NAV_GROUPS.map((group) => ({
     ...group,
     items: filterCrmNavItems(group.items, opts),
-  })).filter((group) => group.items.length > 0);
+  })).filter((group) => {
+    // Drop empty groups so section titles (e.g. Superadmin) stay hidden when no items remain.
+    return group.items.length > 0;
+  });
 }

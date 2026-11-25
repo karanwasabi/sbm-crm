@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { CrmPageLayout } from '@/components/layout/crm/crm-page-layout';
 import { LifestyleAuditView } from '@/components/views/lifestyle-audit-view';
-import { isSuperadmin } from '@/lib/access';
+import { isCRMAdmin } from '@/lib/access';
 import {
   getLifestyleAuditSchedule,
   getMyAccess,
@@ -11,7 +11,7 @@ import {
 
 export default async function LifestyleAuditPage() {
   const access = await getMyAccess();
-  if (!isSuperadmin(access.roles)) {
+  if (!isCRMAdmin(access.roles)) {
     redirect('/unauthorized');
   }
 

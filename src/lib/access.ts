@@ -16,6 +16,11 @@ export function isSuperadmin(roles: AppRole[]): boolean {
   return roles.includes('superadmin');
 }
 
+/** CRM admin tier: admin or superadmin (matches backend HasCRMAdminAccess). */
+export function isCRMAdmin(roles: AppRole[]): boolean {
+  return roles.includes('admin') || roles.includes('superadmin');
+}
+
 export function isMarketingFamily(roles: AppRole[]): boolean {
   if (roles.includes('admin') || roles.includes('superadmin')) return false;
   return roles.includes('marketing') || roles.includes('marketing_plus');
