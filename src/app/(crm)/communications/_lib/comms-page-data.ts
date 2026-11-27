@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import {
   ApiError,
   getCommsAnalytics,
@@ -13,9 +14,12 @@ import {
   listWhatsAppAccounts,
   listWhatsAppTemplatesPaged,
   type CommsAnalyticsSummary,
+  type EmailTemplate,
   type MarketingContactsSummary,
+  type WhatsAppAccount,
   type WhatsAppCommsAnalytics,
   type WhatsAppFlags,
+  type WhatsAppTemplate,
 } from '@/utils/api';
 import type { CommsChannel } from '@/lib/comms-channel';
 import {
@@ -24,7 +28,11 @@ import {
   type CommsTemplateFilters,
 } from '@/lib/comms-templates-query';
 import { resolveWhatsAppAccountId } from '@/lib/whatsapp-account';
-import type { WhatsAppAccount } from '@/utils/api';
+
+type TemplatesPageResult = {
+  items: EmailTemplate[] | WhatsAppTemplate[];
+  total: number;
+};
 
 function rejectedErrorMessage(reason: unknown, fallback: string): string {
   if (reason instanceof ApiError) {
@@ -36,7 +44,7 @@ function rejectedErrorMessage(reason: unknown, fallback: string): string {
   return fallback;
 }
 
-const DEFAULT_MARKETING_SUMMARY: MarketingContactsSummary = {
+export const DEFAULT_MARKETING_SUMMARY: MarketingContactsSummary = {
   used: 0,
   activeSubscribers: 0,
   limit: 1000,
@@ -49,12 +57,12 @@ const DEFAULT_WHATSAPP_FLAGS: WhatsAppFlags = {
   sendsEnabled: false,
 };
 
-type CommsHeaderData = {
+export type CommsHeaderData = {
   marketingSummary: MarketingContactsSummary;
   analyticsSummary: CommsAnalyticsSummary | null;
 };
 
-async function loadCommsHeaderData(): Promise<CommsHeaderData> {
+export const loadCommsHeaderData = cache(async (): Promise<CommsHeaderData> => {
   const [marketingResult, analyticsResult] = await Promise.allSettled([
     getMarketingContactsSummary(),
     getCommsAnalyticsSummary(),
@@ -64,29 +72,78 @@ async function loadCommsHeaderData(): Promise<CommsHeaderData> {
     marketingSummary: marketingResult.status === 'fulfilled' ? marketingResult.value : DEFAULT_MARKETING_SUMMARY,
     analyticsSummary: analyticsResult.status === 'fulfilled' ? analyticsResult.value : null,
   };
-}
+});
 
 export async function loadCommsTemplatesTab(
   channel: CommsChannel = 'email',
   searchParams: Record<string, string | string[] | undefined> = {}
 ) {
   const filters = parseCommsTemplateFilters(channel, searchParams);
+  const accountFromUrl = channel === 'whatsapp' ? filters.accountId : '';
 
-  const [header, flagsResult, accountsResult] = await Promise.all([
-    loadCommsHeaderData(),
+  const flagsPromise =
     channel === 'whatsapp'
       ? Promise.allSettled([getWhatsAppFlags()]).then(([r]) => r)
-      : Promise.resolve({ status: 'fulfilled' as const, value: DEFAULT_WHATSAPP_FLAGS }),
+      : Promise.resolve({ status: 'fulfilled' as const, value: DEFAULT_WHATSAPP_FLAGS });
+
+  const accountsPromise =
     channel === 'whatsapp'
       ? Promise.allSettled([listWhatsAppAccounts()]).then(([r]) => r)
-      : Promise.resolve({ status: 'fulfilled' as const, value: null }),
-  ]);
+      : Promise.resolve({ status: 'fulfilled' as const, value: null });
 
   let whatsAppAccounts: WhatsAppAccount[] = [];
   let whatsAppDefaultAccountId = '';
   let whatsAppAccountLocked = false;
-  let selectedWhatsAppAccountId = '';
+  let selectedWhatsAppAccountId = accountFromUrl;
   let resolvedFilters: CommsTemplateFilters = filters;
+
+  // When wa_account is already in the URL, fetch templates immediately — do not
+  // wait on the accounts list (still load accounts in parallel for the picker).
+  if (channel === 'whatsapp' && accountFromUrl) {
+    const apiQuery = buildCommsTemplatesApiQuery(resolvedFilters);
+    const [templatesResult, flagsResult, accountsResult] = await Promise.all([
+      Promise.allSettled([listWhatsAppTemplatesPaged(apiQuery)]).then(([r]) => r),
+      flagsPromise,
+      accountsPromise,
+    ]);
+
+    if (accountsResult.status === 'fulfilled' && accountsResult.value) {
+      whatsAppAccounts = accountsResult.value.accounts;
+      whatsAppDefaultAccountId = accountsResult.value.defaultAccountId;
+      whatsAppAccountLocked = accountsResult.value.accountLocked;
+      selectedWhatsAppAccountId = resolveWhatsAppAccountId(accountFromUrl, whatsAppAccounts, whatsAppDefaultAccountId);
+      resolvedFilters = { ...filters, accountId: selectedWhatsAppAccountId };
+
+      // Rare: URL account was invalid and resolver picked another — refetch once.
+      if (selectedWhatsAppAccountId && selectedWhatsAppAccountId !== accountFromUrl) {
+        const correctedQuery = buildCommsTemplatesApiQuery(resolvedFilters);
+        const corrected = await Promise.allSettled([listWhatsAppTemplatesPaged(correctedQuery)]).then(([r]) => r);
+        return buildTemplatesTabResult({
+          channel,
+          resolvedFilters,
+          templatesResult: corrected,
+          flagsResult,
+          whatsAppAccounts,
+          whatsAppDefaultAccountId,
+          whatsAppAccountLocked,
+          selectedWhatsAppAccountId,
+        });
+      }
+    }
+
+    return buildTemplatesTabResult({
+      channel,
+      resolvedFilters,
+      templatesResult,
+      flagsResult,
+      whatsAppAccounts,
+      whatsAppDefaultAccountId,
+      whatsAppAccountLocked,
+      selectedWhatsAppAccountId,
+    });
+  }
+
+  const [flagsResult, accountsResult] = await Promise.all([flagsPromise, accountsPromise]);
 
   if (channel === 'whatsapp' && accountsResult.status === 'fulfilled' && accountsResult.value) {
     whatsAppAccounts = accountsResult.value.accounts;
@@ -105,11 +162,41 @@ export async function loadCommsTemplatesTab(
     channel === 'whatsapp' ? listWhatsAppTemplatesPaged(apiQuery) : listEmailTemplatesPaged(apiQuery),
   ]).then(([r]) => r);
 
+  return buildTemplatesTabResult({
+    channel,
+    resolvedFilters,
+    templatesResult,
+    flagsResult,
+    whatsAppAccounts,
+    whatsAppDefaultAccountId,
+    whatsAppAccountLocked,
+    selectedWhatsAppAccountId,
+  });
+}
+
+function buildTemplatesTabResult({
+  channel,
+  resolvedFilters,
+  templatesResult,
+  flagsResult,
+  whatsAppAccounts,
+  whatsAppDefaultAccountId,
+  whatsAppAccountLocked,
+  selectedWhatsAppAccountId,
+}: {
+  channel: CommsChannel;
+  resolvedFilters: CommsTemplateFilters;
+  templatesResult: PromiseSettledResult<TemplatesPageResult>;
+  flagsResult: PromiseSettledResult<WhatsAppFlags>;
+  whatsAppAccounts: WhatsAppAccount[];
+  whatsAppDefaultAccountId: string;
+  whatsAppAccountLocked: boolean;
+  selectedWhatsAppAccountId: string;
+}) {
   if (templatesResult.status === 'rejected') {
     return {
       section: channel as CommsChannel,
       tab: 'templates' as const,
-      ...header,
       templates: [],
       templatesTotal: 0,
       templateFilters: resolvedFilters,
@@ -127,7 +214,6 @@ export async function loadCommsTemplatesTab(
   return {
     section: channel as CommsChannel,
     tab: 'templates' as const,
-    ...header,
     templates: page.items,
     templatesTotal: page.total,
     templateFilters: resolvedFilters,

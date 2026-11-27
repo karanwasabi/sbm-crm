@@ -27,9 +27,9 @@ function mapEmailTemplate(row: {
   subject: string;
   from_name?: string | null;
   from_local_part?: string | null;
-  content_json: unknown;
-  html_compiled: string;
-  text_compiled: string;
+  content_json?: unknown;
+  html_compiled?: string;
+  text_compiled?: string;
   status: string;
   created_at: string;
   updated_at: string;
@@ -48,8 +48,8 @@ function mapEmailTemplate(row: {
     fromName: row.from_name ?? null,
     fromLocalPart: row.from_local_part ?? null,
     contentJson,
-    htmlCompiled: row.html_compiled,
-    textCompiled: row.text_compiled,
+    htmlCompiled: row.html_compiled ?? '',
+    textCompiled: row.text_compiled ?? '',
     status: row.status as EmailTemplate['status'],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -91,8 +91,8 @@ function mapWhatsAppTemplate(row: {
   category: string;
   language: string;
   purpose: string;
-  runtime_params: unknown;
-  content: unknown;
+  runtime_params?: unknown;
+  content?: unknown;
   live_content?: unknown;
   rating?: string;
   last_synced_at?: string | null;
@@ -118,17 +118,57 @@ function mapWhatsAppTemplate(row: {
   };
 }
 
-export async function fetchEmailTemplatesClient(): Promise<EmailTemplate[]> {
+type EmailTemplatesPagePayload = {
+  items?: Parameters<typeof mapEmailTemplate>[0][];
+  total?: number;
+  page?: number;
+  page_size?: number;
+};
+
+type WhatsAppTemplatesPagePayload = {
+  items?: Parameters<typeof mapWhatsAppTemplate>[0][];
+  total?: number;
+  page?: number;
+  page_size?: number;
+};
+
+/** Light paged list for pickers — no html_compiled / content_json. */
+export async function fetchEmailTemplatesClient(options?: {
+  q?: string;
+  status?: EmailTemplate['status'];
+}): Promise<EmailTemplate[]> {
   const token = await getAccessToken();
-  const response = await fetch(`${getBackendUrl()}/admin/comms/templates`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to load email templates.');
+  const pageSize = 100;
+  const items: EmailTemplate[] = [];
+  let page = 1;
+  let total = Infinity;
+
+  while (items.length < total) {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+      sort: 'name_asc',
+    });
+    if (options?.q?.trim()) params.set('q', options.q.trim());
+    if (options?.status) params.set('status', options.status);
+
+    const response = await fetch(`${getBackendUrl()}/admin/comms/templates?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to load email templates.');
+    }
+    const payload = (await response.json()) as EmailTemplatesPagePayload;
+    const rows = payload.items ?? [];
+    items.push(...rows.map(mapEmailTemplate));
+    total = payload.total ?? items.length;
+    if (rows.length === 0) break;
+    page += 1;
+    if (page > 50) break;
   }
-  const rows = (await response.json()) as Parameters<typeof mapEmailTemplate>[0][];
-  return rows.map(mapEmailTemplate);
+
+  return items;
 }
 
 export async function fetchWhatsAppAccountsClient(): Promise<WhatsAppAccountsPayload> {
@@ -152,20 +192,42 @@ export async function fetchWhatsAppAccountsClient(): Promise<WhatsAppAccountsPay
   };
 }
 
-export async function fetchWhatsAppTemplatesClient(accountId?: string): Promise<WhatsAppTemplate[]> {
+/** Light paged list for pickers — no content / live_content. */
+export async function fetchWhatsAppTemplatesClient(
+  accountId?: string,
+  options?: { q?: string; status?: WhatsAppTemplate['status'] }
+): Promise<WhatsAppTemplate[]> {
   const token = await getAccessToken();
-  const params = new URLSearchParams();
-  if (accountId) {
-    params.set('account_id', accountId);
+  const pageSize = 100;
+  const items: WhatsAppTemplate[] = [];
+  let page = 1;
+  let total = Infinity;
+
+  while (items.length < total) {
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+      sort: 'name_asc',
+    });
+    if (accountId) params.set('account_id', accountId);
+    if (options?.q?.trim()) params.set('q', options.q.trim());
+    if (options?.status) params.set('status', options.status);
+
+    const response = await fetch(`${getBackendUrl()}/admin/comms/whatsapp/templates?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      throw new Error('Failed to load WhatsApp templates.');
+    }
+    const payload = (await response.json()) as WhatsAppTemplatesPagePayload;
+    const rows = payload.items ?? [];
+    items.push(...rows.map(mapWhatsAppTemplate));
+    total = payload.total ?? items.length;
+    if (rows.length === 0) break;
+    page += 1;
+    if (page > 50) break;
   }
-  const query = params.toString();
-  const response = await fetch(`${getBackendUrl()}/admin/comms/whatsapp/templates${query ? `?${query}` : ''}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: 'no-store',
-  });
-  if (!response.ok) {
-    throw new Error('Failed to load WhatsApp templates.');
-  }
-  const rows = (await response.json()) as Parameters<typeof mapWhatsAppTemplate>[0][];
-  return rows.map(mapWhatsAppTemplate);
+
+  return items;
 }

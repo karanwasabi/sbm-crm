@@ -81,8 +81,13 @@ type CommunicationsViewProps = {
   automations?: Automation[];
   bulkSendJobs?: BulkLeadEmailSendJob[] | BulkLeadWhatsAppSendJob[];
   bulkSendJobsError?: string | null;
-  marketingSummary: MarketingContactsSummary;
-  analyticsSummary: CommsAnalyticsSummary | null;
+  /**
+   * When true, skip CrmPageLayout + KPI strip — parent owns page chrome
+   * (used by templates Suspense split so KPIs stream independently).
+   */
+  panelOnly?: boolean;
+  marketingSummary?: MarketingContactsSummary;
+  analyticsSummary?: CommsAnalyticsSummary | null;
   analytics?: CommsAnalytics | null;
   whatsAppAnalytics?: WhatsAppCommsAnalytics | null;
   whatsAppSends?: WhatsAppSend[];
@@ -166,6 +171,14 @@ function CommsNavSectionPanel({ children, className }: { children: React.ReactNo
   );
 }
 
+const EMPTY_MARKETING_SUMMARY: MarketingContactsSummary = {
+  used: 0,
+  activeSubscribers: 0,
+  limit: 1000,
+  percentUsed: 0,
+  source: 'local',
+};
+
 export function CommunicationsView({
   section,
   tab = 'templates',
@@ -176,8 +189,9 @@ export function CommunicationsView({
   automations = [],
   bulkSendJobs = [],
   bulkSendJobsError,
-  marketingSummary,
-  analyticsSummary,
+  panelOnly = false,
+  marketingSummary = EMPTY_MARKETING_SUMMARY,
+  analyticsSummary = null,
   analytics = null,
   whatsAppAnalytics = null,
   whatsAppSends = [],
@@ -296,6 +310,244 @@ export function CommunicationsView({
           ? 'Campaign sends from Lead Database'
           : 'Delivery and engagement tracking';
 
+  const panel = (
+    <Card padding="none" className="overflow-hidden">
+      <div className="border-b border-slate-200/90 bg-linear-to-r from-violet-100 via-indigo-100/80 to-emerald-100 px-4 py-3.5">
+        <div className="relative flex flex-col gap-3 xl:flex-row xl:flex-wrap xl:items-stretch">
+          <div className="w-full xl:w-auto">
+            <CommsNavSectionPanel className="w-full xl:w-auto">
+              <div className="flex w-full items-center gap-3 xl:w-auto">
+                <CommsNavLabelRail label="Automations" icon={Workflow} tone="violet" href={COMMS_AUTOMATIONS_HREF} />
+                <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
+                  <Link href={COMMS_AUTOMATIONS_HREF} className={commsNavTabClass(isAutomations, 'violet')}>
+                    Workflows
+                  </Link>
+                </div>
+              </div>
+            </CommsNavSectionPanel>
+          </div>
+
+          {COMMS_CHANNELS.map(({ id: channelId, label }) => {
+            const ChannelIcon = channelId === 'whatsapp' ? MessageCircle : Mail;
+            const tone: CommsNavTone = channelId === 'whatsapp' ? 'green' : 'indigo';
+
+            return (
+              <div key={channelId} className="w-full xl:w-auto">
+                <CommsNavSectionPanel className="w-full xl:w-auto">
+                  <div className="flex w-full items-center gap-3 xl:w-auto">
+                    <CommsNavLabelRail
+                      label={label}
+                      icon={ChannelIcon}
+                      tone={tone}
+                      href={commsTabHref(channelId, COMMS_CHANNEL_TABS[0].id)}
+                    />
+                    <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
+                      {(channelId === 'whatsapp' ? COMMS_WHATSAPP_CHANNEL_TABS : COMMS_CHANNEL_TABS).map(
+                        ({ id: tabId, label: tabLabel }) => (
+                          <button
+                            key={tabId}
+                            type="button"
+                            onClick={() => selectChannelTab(channelId, tabId)}
+                            className={commsNavTabClass(section === channelId && tab === tabId, tone)}
+                          >
+                            {tabLabel}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </CommsNavSectionPanel>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="p-5 md:p-7">
+        <SectionHead
+          className="mb-5"
+          title={contentTitle}
+          subtitle={contentSubtitle}
+          right={
+            isAutomations ? (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Plus className="h-3.5 w-3.5" />}
+                onClick={() => router.push(commsAutomationHref('new'))}
+              >
+                New automation
+              </Button>
+            ) : tab === 'templates' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {isWhatsApp && canSyncWhatsAppTemplates ? (
+                  <Button
+                    variant="light"
+                    size="sm"
+                    leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
+                    loading={isSyncing}
+                    loadingLabel="Syncing…"
+                    onClick={handleSyncTemplates}
+                  >
+                    Sync from Convonite
+                  </Button>
+                ) : null}
+                {isWhatsApp && !canManageWhatsAppTemplates ? null : (
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="h-3.5 w-3.5" />}
+                    onClick={() => router.push(withWhatsAppAccountQuery(commsTemplateHref(channel, 'new')))}
+                  >
+                    New template
+                  </Button>
+                )}
+              </div>
+            ) : tab === 'bulk-sends' ? (
+              <Button
+                variant="primary"
+                size="sm"
+                leftIcon={<Send className="h-3.5 w-3.5" />}
+                onClick={() => router.push('/database')}
+              >
+                Send from Lead Database
+              </Button>
+            ) : null
+          }
+        />
+
+        {isAutomations ? (
+          <div className="flex flex-col gap-2">
+            {automations.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 py-10 text-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                  <Workflow className="h-5 w-5" />
+                </div>
+                <p className="max-w-md text-sm font-medium text-slate-600">
+                  Build visual nurture flows — wait, check conditions, send email or WhatsApp — triggered when leads are
+                  created or start checkout.
+                </p>
+              </div>
+            ) : (
+              automations.map((automation) => <AutomationListRow key={automation.id} automation={automation} />)
+            )}
+          </div>
+        ) : null}
+
+        {!isAutomations && tab === 'templates' ? (
+          <>
+            {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
+            <CommsTemplatesToolbar
+              filters={filters}
+              statusOptions={isWhatsApp ? WHATSAPP_TEMPLATE_STATUS_FILTER_OPTIONS : EMAIL_TEMPLATE_STATUS_OPTIONS}
+              classificationOptions={isWhatsApp ? undefined : EMAIL_TEMPLATE_CLASSIFICATION_OPTIONS}
+              categoryOptions={isWhatsApp ? WHATSAPP_TEMPLATE_CATEGORY_OPTIONS : undefined}
+              purposeOptions={isWhatsApp ? WHATSAPP_TEMPLATE_PURPOSE_OPTIONS : undefined}
+              total={templatesTotal}
+              accountSelect={
+                isWhatsApp && whatsAppAccounts.length > 0 ? (
+                  <WhatsAppAccountSelect
+                    accounts={whatsAppAccounts}
+                    value={selectedWhatsAppAccountId}
+                    onChange={handleWhatsAppAccountChange}
+                    accountLocked={whatsAppAccountLocked}
+                    disabled={isSyncing}
+                    className="h-9 rounded-2xl border-slate-200/90 text-xs shadow-sm"
+                  />
+                ) : undefined
+              }
+            />
+            <div className="flex flex-col gap-2">
+              {templatesError ? (
+                <p className="text-sm font-medium text-danger-press">{templatesError}</p>
+              ) : templates.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  {filtersActive ? (
+                    'No templates match these filters.'
+                  ) : isWhatsApp && !filters.status ? (
+                    <>
+                      No templates to show (inactive are hidden by default). Try the Inactive status filter
+                      {canSyncWhatsAppTemplates
+                        ? ', or sync from Convonite.'
+                        : '. Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'}
+                    </>
+                  ) : (
+                    <>
+                      No templates yet.
+                      {isWhatsApp && !canSyncWhatsAppTemplates
+                        ? ' Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'
+                        : isWhatsApp
+                          ? ' Use Sync from Convonite to import templates.'
+                          : ' Create your first email template.'}
+                    </>
+                  )}
+                </p>
+              ) : isWhatsApp ? (
+                <WhatsAppTemplatesTable
+                  templates={whatsappTemplates}
+                  filters={filters}
+                  templateHref={(templateId) => withWhatsAppAccountQuery(commsTemplateHref(channel, templateId))}
+                />
+              ) : (
+                <EmailTemplatesTable
+                  templates={emailTemplates}
+                  filters={filters}
+                  templateHref={(templateId) => commsTemplateHref(channel, templateId)}
+                />
+              )}
+            </div>
+            <CommsTemplatesPagination filters={filters} total={templatesTotal} />
+          </>
+        ) : null}
+
+        {!isAutomations && tab === 'bulk-sends' ? (
+          <div className="flex flex-col gap-2">
+            {bulkSendJobsError ? (
+              <p className="text-sm font-medium text-danger-press">{bulkSendJobsError}</p>
+            ) : bulkSendJobs.length === 0 ? (
+              <p className="text-sm text-slate-500">
+                No bulk sends yet. Select leads in Lead Database and use Send {isWhatsApp ? 'WhatsApp' : 'email'} to
+                start a campaign.
+              </p>
+            ) : (
+              bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} channel={channel} />)
+            )}
+          </div>
+        ) : null}
+
+        {!isAutomations && tab === 'performance' ? (
+          isWhatsApp ? (
+            whatsAppAnalytics ? (
+              <WhatsAppCommsPerformancePanel analytics={whatsAppAnalytics} />
+            ) : (
+              <p className="text-sm text-slate-500">
+                Analytics could not be loaded. Ensure WhatsApp sends are enabled and the API is running.
+              </p>
+            )
+          ) : analytics ? (
+            <CommsPerformancePanel analytics={analytics} />
+          ) : (
+            <p className="text-sm text-slate-500">
+              Analytics could not be loaded. Apply the latest backend migration and ensure the API is running.
+            </p>
+          )
+        ) : null}
+
+        {!isAutomations && isWhatsApp && tab === 'sends' ? (
+          whatsAppSendsError ? (
+            <p className="text-sm font-medium text-danger-press">{whatsAppSendsError}</p>
+          ) : (
+            <WhatsAppSendsPanel initialSends={whatsAppSends} />
+          )
+        ) : null}
+      </div>
+    </Card>
+  );
+
+  if (panelOnly) {
+    return panel;
+  }
+
   return (
     <CrmPageLayout className="gap-4">
       <CommsHeaderStats
@@ -304,238 +556,7 @@ export function CommunicationsView({
         activeAutomationCount={activeAutomationCount}
         onOpenPerformance={() => router.push(performanceHref)}
       />
-
-      <Card padding="none" className="overflow-hidden">
-        <div className="border-b border-slate-200/90 bg-linear-to-r from-violet-100 via-indigo-100/80 to-emerald-100 px-4 py-3.5">
-          <div className="relative flex flex-col gap-3 xl:flex-row xl:flex-wrap xl:items-stretch">
-            <div className="w-full xl:w-auto">
-              <CommsNavSectionPanel className="w-full xl:w-auto">
-                <div className="flex w-full items-center gap-3 xl:w-auto">
-                  <CommsNavLabelRail label="Automations" icon={Workflow} tone="violet" href={COMMS_AUTOMATIONS_HREF} />
-                  <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
-                    <Link href={COMMS_AUTOMATIONS_HREF} className={commsNavTabClass(isAutomations, 'violet')}>
-                      Workflows
-                    </Link>
-                  </div>
-                </div>
-              </CommsNavSectionPanel>
-            </div>
-
-            {COMMS_CHANNELS.map(({ id: channelId, label }) => {
-              const ChannelIcon = channelId === 'whatsapp' ? MessageCircle : Mail;
-              const tone: CommsNavTone = channelId === 'whatsapp' ? 'green' : 'indigo';
-
-              return (
-                <div key={channelId} className="w-full xl:w-auto">
-                  <CommsNavSectionPanel className="w-full xl:w-auto">
-                    <div className="flex w-full items-center gap-3 xl:w-auto">
-                      <CommsNavLabelRail
-                        label={label}
-                        icon={ChannelIcon}
-                        tone={tone}
-                        href={commsTabHref(channelId, COMMS_CHANNEL_TABS[0].id)}
-                      />
-                      <div className="flex flex-wrap items-center gap-1 rounded-lg bg-slate-50 p-0.5">
-                        {(channelId === 'whatsapp' ? COMMS_WHATSAPP_CHANNEL_TABS : COMMS_CHANNEL_TABS).map(
-                          ({ id: tabId, label: tabLabel }) => (
-                            <button
-                              key={tabId}
-                              type="button"
-                              onClick={() => selectChannelTab(channelId, tabId)}
-                              className={commsNavTabClass(section === channelId && tab === tabId, tone)}
-                            >
-                              {tabLabel}
-                            </button>
-                          )
-                        )}
-                      </div>
-                    </div>
-                  </CommsNavSectionPanel>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="p-5 md:p-7">
-          <SectionHead
-            className="mb-5"
-            title={contentTitle}
-            subtitle={contentSubtitle}
-            right={
-              isAutomations ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Plus className="h-3.5 w-3.5" />}
-                  onClick={() => router.push(commsAutomationHref('new'))}
-                >
-                  New automation
-                </Button>
-              ) : tab === 'templates' ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {isWhatsApp && canSyncWhatsAppTemplates ? (
-                    <Button
-                      variant="light"
-                      size="sm"
-                      leftIcon={<RefreshCw className="h-3.5 w-3.5" />}
-                      loading={isSyncing}
-                      loadingLabel="Syncing…"
-                      onClick={handleSyncTemplates}
-                    >
-                      Sync from Convonite
-                    </Button>
-                  ) : null}
-                  {isWhatsApp && !canManageWhatsAppTemplates ? null : (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      leftIcon={<Plus className="h-3.5 w-3.5" />}
-                      onClick={() => router.push(withWhatsAppAccountQuery(commsTemplateHref(channel, 'new')))}
-                    >
-                      New template
-                    </Button>
-                  )}
-                </div>
-              ) : tab === 'bulk-sends' ? (
-                <Button
-                  variant="primary"
-                  size="sm"
-                  leftIcon={<Send className="h-3.5 w-3.5" />}
-                  onClick={() => router.push('/database')}
-                >
-                  Send from Lead Database
-                </Button>
-              ) : null
-            }
-          />
-
-          {isAutomations ? (
-            <div className="flex flex-col gap-2">
-              {automations.length === 0 ? (
-                <div className="flex flex-col items-center gap-3 py-10 text-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-                    <Workflow className="h-5 w-5" />
-                  </div>
-                  <p className="max-w-md text-sm font-medium text-slate-600">
-                    Build visual nurture flows — wait, check conditions, send email or WhatsApp — triggered when leads
-                    are created or start checkout.
-                  </p>
-                </div>
-              ) : (
-                automations.map((automation) => <AutomationListRow key={automation.id} automation={automation} />)
-              )}
-            </div>
-          ) : null}
-
-          {!isAutomations && tab === 'templates' ? (
-            <>
-              {syncMessage ? <p className="mb-3 text-sm font-medium text-slate-600">{syncMessage}</p> : null}
-              <CommsTemplatesToolbar
-                filters={filters}
-                statusOptions={isWhatsApp ? WHATSAPP_TEMPLATE_STATUS_FILTER_OPTIONS : EMAIL_TEMPLATE_STATUS_OPTIONS}
-                classificationOptions={isWhatsApp ? undefined : EMAIL_TEMPLATE_CLASSIFICATION_OPTIONS}
-                categoryOptions={isWhatsApp ? WHATSAPP_TEMPLATE_CATEGORY_OPTIONS : undefined}
-                purposeOptions={isWhatsApp ? WHATSAPP_TEMPLATE_PURPOSE_OPTIONS : undefined}
-                total={templatesTotal}
-                accountSelect={
-                  isWhatsApp && whatsAppAccounts.length > 0 ? (
-                    <WhatsAppAccountSelect
-                      accounts={whatsAppAccounts}
-                      value={selectedWhatsAppAccountId}
-                      onChange={handleWhatsAppAccountChange}
-                      accountLocked={whatsAppAccountLocked}
-                      disabled={isSyncing}
-                      className="h-9 rounded-2xl border-slate-200/90 text-xs shadow-sm"
-                    />
-                  ) : undefined
-                }
-              />
-              <div className="flex flex-col gap-2">
-                {templatesError ? (
-                  <p className="text-sm font-medium text-danger-press">{templatesError}</p>
-                ) : templates.length === 0 ? (
-                  <p className="text-sm text-slate-500">
-                    {filtersActive ? (
-                      'No templates match these filters.'
-                    ) : isWhatsApp && !filters.status ? (
-                      <>
-                        No templates to show (inactive are hidden by default). Try the Inactive status filter
-                        {canSyncWhatsAppTemplates
-                          ? ', or sync from Convonite.'
-                          : '. Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'}
-                      </>
-                    ) : (
-                      <>
-                        No templates yet.
-                        {isWhatsApp && !canSyncWhatsAppTemplates
-                          ? ' Enable WHATSAPP_SENDS_ENABLED on the backend to load and sync templates.'
-                          : isWhatsApp
-                            ? ' Use Sync from Convonite to import templates.'
-                            : ' Create your first email template.'}
-                      </>
-                    )}
-                  </p>
-                ) : isWhatsApp ? (
-                  <WhatsAppTemplatesTable
-                    templates={whatsappTemplates}
-                    filters={filters}
-                    templateHref={(templateId) => withWhatsAppAccountQuery(commsTemplateHref(channel, templateId))}
-                  />
-                ) : (
-                  <EmailTemplatesTable
-                    templates={emailTemplates}
-                    filters={filters}
-                    templateHref={(templateId) => commsTemplateHref(channel, templateId)}
-                  />
-                )}
-              </div>
-              <CommsTemplatesPagination filters={filters} total={templatesTotal} />
-            </>
-          ) : null}
-
-          {!isAutomations && tab === 'bulk-sends' ? (
-            <div className="flex flex-col gap-2">
-              {bulkSendJobsError ? (
-                <p className="text-sm font-medium text-danger-press">{bulkSendJobsError}</p>
-              ) : bulkSendJobs.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  No bulk sends yet. Select leads in Lead Database and use Send {isWhatsApp ? 'WhatsApp' : 'email'} to
-                  start a campaign.
-                </p>
-              ) : (
-                bulkSendJobs.map((job) => <BulkSendListRow key={job.id} job={job} channel={channel} />)
-              )}
-            </div>
-          ) : null}
-
-          {!isAutomations && tab === 'performance' ? (
-            isWhatsApp ? (
-              whatsAppAnalytics ? (
-                <WhatsAppCommsPerformancePanel analytics={whatsAppAnalytics} />
-              ) : (
-                <p className="text-sm text-slate-500">
-                  Analytics could not be loaded. Ensure WhatsApp sends are enabled and the API is running.
-                </p>
-              )
-            ) : analytics ? (
-              <CommsPerformancePanel analytics={analytics} />
-            ) : (
-              <p className="text-sm text-slate-500">
-                Analytics could not be loaded. Apply the latest backend migration and ensure the API is running.
-              </p>
-            )
-          ) : null}
-
-          {!isAutomations && isWhatsApp && tab === 'sends' ? (
-            whatsAppSendsError ? (
-              <p className="text-sm font-medium text-danger-press">{whatsAppSendsError}</p>
-            ) : (
-              <WhatsAppSendsPanel initialSends={whatsAppSends} />
-            )
-          ) : null}
-        </div>
-      </Card>
+      {panel}
     </CrmPageLayout>
   );
 }
