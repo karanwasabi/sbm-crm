@@ -7,6 +7,7 @@ import {
   loadLifestyleAuditBookingsAction,
   loadLifestyleAuditReassignOptionsAction,
   reassignLifestyleAuditBookingAction,
+  saveLifestyleAuditConfirmationTemplatesAction,
   saveLifestyleAuditScheduleAction,
   syncLifestyleAuditBookingCalendarAction,
 } from '@/app/(crm)/lifestyle-audit/actions';
@@ -116,19 +117,33 @@ function reassignOptionLabel(c: LifestyleAuditReassignOption): string {
   return c.available ? base : `${base} (busy)`;
 }
 
+type TemplateOption = { id: string; name: string; status: string };
+
 type Props = {
   initialSchedule: LifestyleAuditSchedule;
   coaches: LifestyleAuditCoachOption[];
   initialBookings: LifestyleAuditBookingsPage;
+  emailTemplates: TemplateOption[];
+  whatsappTemplates: TemplateOption[];
 };
 
-export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }: Props) {
+export function LifestyleAuditView({
+  initialSchedule,
+  coaches,
+  initialBookings,
+  emailTemplates,
+  whatsappTemplates,
+}: Props) {
   const { toast } = useToast();
   const [tab, setTab] = useState<Tab>('Schedule');
   const [pending, startTransition] = useTransition();
 
   const [weekdays, setWeekdays] = useState<number[]>(initialSchedule.settings.operatingWeekdays);
   const [slots, setSlots] = useState<LifestyleAuditScheduleSlot[]>(initialSchedule.slots);
+  const [emailTemplateId, setEmailTemplateId] = useState(initialSchedule.settings.confirmationEmailTemplateId ?? '');
+  const [whatsappTemplateId, setWhatsappTemplateId] = useState(
+    initialSchedule.settings.confirmationWhatsappTemplateId ?? ''
+  );
 
   const [bookingsPage, setBookingsPage] = useState(initialBookings);
   const [statusFilter, setStatusFilter] = useState('');
@@ -188,6 +203,46 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
         };
       })
     );
+  };
+
+  const emailTemplateOptions = useMemo(
+    () => [
+      { value: '', label: 'None — don’t send email' },
+      ...emailTemplates.map((t) => ({
+        value: t.id,
+        label: t.status === 'active' ? t.name : `${t.name} (${t.status})`,
+      })),
+    ],
+    [emailTemplates]
+  );
+  const whatsappTemplateOptions = useMemo(
+    () => [
+      { value: '', label: 'None — don’t send WhatsApp' },
+      ...whatsappTemplates.map((t) => ({
+        value: t.id,
+        label: t.status === 'active' || t.status === 'approved' ? t.name : `${t.name} (${t.status})`,
+      })),
+    ],
+    [whatsappTemplates]
+  );
+
+  const saveConfirmationTemplates = () => {
+    startTransition(async () => {
+      try {
+        const saved = await saveLifestyleAuditConfirmationTemplatesAction({
+          confirmationEmailTemplateId: emailTemplateId || null,
+          confirmationWhatsappTemplateId: whatsappTemplateId || null,
+        });
+        setEmailTemplateId(saved.confirmationEmailTemplateId ?? '');
+        setWhatsappTemplateId(saved.confirmationWhatsappTemplateId ?? '');
+        toast({ message: 'Confirmation templates saved.', variant: 'success' });
+      } catch (error) {
+        toast({
+          message: error instanceof Error ? error.message : 'Failed to save templates.',
+          variant: 'error',
+        });
+      }
+    });
   };
 
   const saveSchedule = () => {
@@ -346,6 +401,41 @@ export function LifestyleAuditView({ initialSchedule, coaches, initialBookings }
               Price ₹{(initialSchedule.settings.pricePaise / 100).toFixed(0)} ·{' '}
               {initialSchedule.settings.durationMinutes} min · {initialSchedule.settings.timezone}
             </p>
+          </Card>
+
+          <Card>
+            <div className="text-sm font-semibold text-slate-800">Confirmation messages</div>
+            <p className="mt-1 text-xs text-slate-500">
+              Sent once after payment confirms (after calendar sync when enabled). Use booking tokens like{' '}
+              {'{{booking.date}}'}, {'{{booking.time}}'}, {'{{booking.meet_link}}'}, {'{{coach.first_name}}'}.
+            </p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Field label="Email template">
+                <SearchableSelect
+                  value={emailTemplateId}
+                  onChange={setEmailTemplateId}
+                  options={emailTemplateOptions}
+                />
+              </Field>
+              <Field label="WhatsApp template">
+                <SearchableSelect
+                  value={whatsappTemplateId}
+                  onChange={setWhatsappTemplateId}
+                  options={whatsappTemplateOptions}
+                />
+              </Field>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button
+                type="button"
+                variant="light"
+                onClick={saveConfirmationTemplates}
+                loading={pending}
+                loadingLabel="Saving…"
+              >
+                Save templates
+              </Button>
+            </div>
           </Card>
 
           <Card>

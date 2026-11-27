@@ -7301,6 +7301,8 @@ type ApiLifestyleAuditSettings = {
   operating_weekdays: number[];
   booking_horizon_days: number;
   hold_ttl_minutes: number;
+  confirmation_email_template_id?: string | null;
+  confirmation_whatsapp_template_id?: string | null;
   updated_at?: string;
 };
 
@@ -7361,6 +7363,8 @@ function mapLifestyleAuditSettings(
     operatingWeekdays: row.operating_weekdays ?? [],
     bookingHorizonDays: row.booking_horizon_days,
     holdTtlMinutes: row.hold_ttl_minutes,
+    confirmationEmailTemplateId: row.confirmation_email_template_id ?? null,
+    confirmationWhatsappTemplateId: row.confirmation_whatsapp_template_id ?? null,
     updatedAt: row.updated_at,
   };
 }
@@ -7444,6 +7448,27 @@ export async function putLifestyleAuditSchedule(input: {
       coachUserIds: slot.coach_user_ids ?? [],
     })),
   };
+}
+
+export async function patchLifestyleAuditSettings(input: {
+  confirmationEmailTemplateId?: string | null;
+  confirmationWhatsappTemplateId?: string | null;
+}): Promise<import('@/types/lifestyle-audit').LifestyleAuditSettings> {
+  const body: Record<string, unknown> = {};
+  if (input.confirmationEmailTemplateId !== undefined) {
+    body.set_confirmation_email_template = true;
+    body.confirmation_email_template_id = input.confirmationEmailTemplateId;
+  }
+  if (input.confirmationWhatsappTemplateId !== undefined) {
+    body.set_confirmation_whatsapp_template = true;
+    body.confirmation_whatsapp_template_id = input.confirmationWhatsappTemplateId;
+  }
+  const response = await requireApiFetch('/admin/lifestyle-audit/settings', {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) await parseApiError(response, 'Failed to update Lifestyle Audit settings.');
+  return mapLifestyleAuditSettings((await response.json()) as ApiLifestyleAuditSettings);
 }
 
 export async function listLifestyleAuditCoachOptions(): Promise<

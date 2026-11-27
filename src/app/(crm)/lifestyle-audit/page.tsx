@@ -5,8 +5,10 @@ import { isCRMAdmin } from '@/lib/access';
 import {
   getLifestyleAuditSchedule,
   getMyAccess,
+  listEmailTemplates,
   listLifestyleAuditBookings,
   listLifestyleAuditCoachOptions,
+  listWhatsAppTemplates,
 } from '@/utils/api';
 
 export default async function LifestyleAuditPage() {
@@ -15,7 +17,7 @@ export default async function LifestyleAuditPage() {
     redirect('/unauthorized');
   }
 
-  const [schedule, coaches, bookings] = await Promise.all([
+  const [schedule, coaches, bookings, emailTemplates, whatsappTemplates] = await Promise.all([
     getLifestyleAuditSchedule().catch(() => ({
       settings: {
         pricePaise: 75000,
@@ -24,6 +26,8 @@ export default async function LifestyleAuditPage() {
         operatingWeekdays: [1, 2, 3, 4, 5, 6],
         bookingHorizonDays: 21,
         holdTtlMinutes: 15,
+        confirmationEmailTemplateId: null,
+        confirmationWhatsappTemplateId: null,
       },
       slots: [],
     })),
@@ -34,11 +38,23 @@ export default async function LifestyleAuditPage() {
       limit: 50,
       offset: 0,
     })),
+    listEmailTemplates().catch(() => []),
+    listWhatsAppTemplates().catch(() => []),
   ]);
 
   return (
     <CrmPageLayout>
-      <LifestyleAuditView initialSchedule={schedule} coaches={coaches} initialBookings={bookings} />
+      <LifestyleAuditView
+        initialSchedule={schedule}
+        coaches={coaches}
+        initialBookings={bookings}
+        emailTemplates={emailTemplates.map((t) => ({ id: t.id, name: t.name, status: t.status }))}
+        whatsappTemplates={whatsappTemplates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          status: String(t.status),
+        }))}
+      />
     </CrmPageLayout>
   );
 }

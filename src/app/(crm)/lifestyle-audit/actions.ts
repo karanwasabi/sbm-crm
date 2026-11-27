@@ -5,6 +5,7 @@ import {
   cancelLifestyleAuditBooking,
   getLifestyleAuditReassignOptions,
   listLifestyleAuditBookings,
+  patchLifestyleAuditSettings,
   putLifestyleAuditSchedule,
   reassignLifestyleAuditBooking,
   syncLifestyleAuditBookingCalendar,
@@ -20,6 +21,15 @@ export async function saveLifestyleAuditScheduleAction(input: {
   }>;
 }) {
   const result = await putLifestyleAuditSchedule(input);
+  revalidatePath('/lifestyle-audit');
+  return result;
+}
+
+export async function saveLifestyleAuditConfirmationTemplatesAction(input: {
+  confirmationEmailTemplateId: string | null;
+  confirmationWhatsappTemplateId: string | null;
+}) {
+  const result = await patchLifestyleAuditSettings(input);
   revalidatePath('/lifestyle-audit');
   return result;
 }

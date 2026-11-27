@@ -5,6 +5,8 @@ export type LifestyleAuditSettings = {
   operatingWeekdays: number[];
   bookingHorizonDays: number;
   holdTtlMinutes: number;
+  confirmationEmailTemplateId: string | null;
+  confirmationWhatsappTemplateId: string | null;
   updatedAt?: string;
 };
 
